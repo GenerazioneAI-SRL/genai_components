@@ -290,7 +290,7 @@ class _ResponsePopupState extends State<ResponsePopup>
   Widget _buildCountdownRing() {
     return AnimatedBuilder(
       animation: _countdownCtrl,
-      builder: (_, _) {
+      builder: (_, __) {
         return SizedBox(
           width: 16,
           height: 16,

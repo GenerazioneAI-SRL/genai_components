@@ -83,7 +83,7 @@ class _ActionFeedOverlayState extends State<ActionFeedOverlay>
   Widget _feedCard() {
     return ListenableBuilder(
       listenable: widget.controller,
-      builder: (_, _) {
+      builder: (_, __) {
         final progressText = widget.controller.progressText;
         final finalText = widget.controller.finalResponseText;
         final steps = widget.controller.actionSteps;
@@ -306,7 +306,7 @@ class _PulsingOrbState extends State<_PulsingOrb>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, _) {
+      builder: (_, __) {
         final v = _c.value;
         return Container(
           width: 10,
@@ -365,7 +365,7 @@ class _PulsingDotState extends State<_PulsingDot>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, _) {
+      builder: (_, __) {
         final v = _c.value;
         return Container(
           width: 10,

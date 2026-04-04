@@ -140,7 +140,7 @@ class _ChatOverlayState extends State<ChatOverlay>
           child: SizedBox.expand(
             child: AnimatedBuilder(
               animation: _actionModeCtrl,
-              builder: (_, _) {
+              builder: (_, __) {
                 final actionT = Curves.easeInOut.transform(
                   _actionModeCtrl.value,
                 );
@@ -158,7 +158,7 @@ class _ChatOverlayState extends State<ChatOverlay>
                         child: RepaintBoundary(
                           child: AnimatedBuilder(
                             animation: _bgCtrl,
-                            builder: (_, _) => CustomPaint(
+                            builder: (_, __) => CustomPaint(
                               painter: _HoloPainter(
                                 _bgCtrl.value,
                                 drawEffects: bgOpacity > 0.3,
@@ -252,7 +252,7 @@ class _ChatOverlayState extends State<ChatOverlay>
             height: 42,
             child: AnimatedBuilder(
               animation: _ringCtrl,
-              builder: (_, _) => CustomPaint(
+              builder: (_, __) => CustomPaint(
                 painter: _ArcRingsPainter(
                   t: _ringCtrl.value,
                   ringRadius: 21,
@@ -303,14 +303,14 @@ class _ChatOverlayState extends State<ChatOverlay>
                 const SizedBox(height: 2),
                 ListenableBuilder(
                   listenable: _ctrl,
-                  builder: (_, _) => _statusRow(),
+                  builder: (_, __) => _statusRow(),
                 ),
               ],
             ),
           ),
           ListenableBuilder(
             listenable: _ctrl,
-            builder: (_, _) => _headerActions(),
+            builder: (_, __) => _headerActions(),
           ),
         ],
       ),
@@ -380,7 +380,7 @@ class _ChatOverlayState extends State<ChatOverlay>
   Widget _messagesArea() {
     return ListenableBuilder(
       listenable: _ctrl,
-      builder: (_, _) {
+      builder: (_, __) {
         final msgs = _ctrl.messages;
         if (msgs.isEmpty && !_ctrl.isProcessing) return _emptyState();
 
@@ -421,7 +421,7 @@ class _ChatOverlayState extends State<ChatOverlay>
                 // Pulse ripples expanding outward.
                 AnimatedBuilder(
                   animation: _pulseCtrl,
-                  builder: (_, _) => CustomPaint(
+                  builder: (_, __) => CustomPaint(
                     painter: _PulseRipplePainter(
                       t: _pulseCtrl.value,
                       color: _accent,
@@ -433,7 +433,7 @@ class _ChatOverlayState extends State<ChatOverlay>
                 // Arc ring segments rotating.
                 AnimatedBuilder(
                   animation: _ringCtrl,
-                  builder: (_, _) => CustomPaint(
+                  builder: (_, __) => CustomPaint(
                     painter: _ArcRingsPainter(
                       t: _ringCtrl.value,
                       ringRadius: 56,
@@ -445,7 +445,7 @@ class _ChatOverlayState extends State<ChatOverlay>
                 // Inner glowing orb.
                 AnimatedBuilder(
                   animation: _pulseCtrl,
-                  builder: (_, _) {
+                  builder: (_, __) {
                     final v =
                         (math.sin(_pulseCtrl.value * math.pi * 2) + 1) / 2;
                     return Container(
@@ -573,7 +573,7 @@ class _ChatOverlayState extends State<ChatOverlay>
           // Live partial transcription display.
           ListenableBuilder(
             listenable: _ctrl,
-            builder: (_, _) {
+            builder: (_, __) {
               final partial = _ctrl.partialTranscription;
               if (partial == null || partial.isEmpty) {
                 return const SizedBox.shrink();
@@ -610,7 +610,7 @@ class _ChatOverlayState extends State<ChatOverlay>
               if (_ctrl.config.voiceEnabled)
                 ListenableBuilder(
                   listenable: _ctrl,
-                  builder: (_, _) => _circleBtn(
+                  builder: (_, __) => _circleBtn(
                     _ctrl.isListening ? Icons.mic : Icons.mic_none,
                     _ctrl.isListening ? _red : _textD,
                     (_ctrl.isProcessing && !_ctrl.isWaitingForUserResponse)
@@ -623,7 +623,7 @@ class _ChatOverlayState extends State<ChatOverlay>
               const SizedBox(width: 6),
               ListenableBuilder(
                 listenable: _ctrl,
-                builder: (_, _) {
+                builder: (_, __) {
                   if (_ctrl.isProcessing && !_ctrl.isWaitingForUserResponse) {
                     return _stopButton();
                   }
@@ -640,7 +640,7 @@ class _ChatOverlayState extends State<ChatOverlay>
   Widget _inputField() {
     return ListenableBuilder(
       listenable: Listenable.merge([_ctrl, _focus]),
-      builder: (_, _) {
+      builder: (_, __) {
         final waiting = _ctrl.isWaitingForUserResponse;
         final focused = _focus.hasFocus;
         final showGlow = focused || waiting;
@@ -835,7 +835,7 @@ class _StatusDotState extends State<_StatusDot>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, _) {
+      builder: (_, __) {
         final v = _c.value;
         return Container(
           width: 6,
@@ -1163,7 +1163,7 @@ class _TypingDotState extends State<_TypingDot>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, _) => Transform.translate(
+      builder: (_, __) => Transform.translate(
         offset: Offset(0, -3 * _c.value),
         child: Opacity(
           opacity: 0.3 + _c.value * 0.7,

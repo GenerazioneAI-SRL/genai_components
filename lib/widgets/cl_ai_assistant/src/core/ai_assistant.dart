@@ -385,13 +385,13 @@ class _FloatingAssistantButtonState extends State<_FloatingAssistantButton>
     final ctrl = widget.controller;
     return ListenableBuilder(
       listenable: ctrl,
-      builder: (_, _) {
+      builder: (_, __) {
         final isProcessing = ctrl.isProcessing;
         final hasUnread = ctrl.hasUnreadResponse;
 
         return AnimatedBuilder(
           animation: Listenable.merge([_glowCtrl, _ringCtrl]),
-          builder: (_, _) {
+          builder: (_, __) {
             final glowPhase = _glowCtrl.value * 2 * math.pi;
             final glowAlpha = 0.25 + 0.15 * math.sin(glowPhase).abs();
 

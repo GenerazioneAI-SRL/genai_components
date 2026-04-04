@@ -233,7 +233,7 @@ class _HandoffIndicatorState extends State<HandoffIndicator>
   Widget _buildCascadingArrows() {
     return AnimatedBuilder(
       animation: _arrowCtrl,
-      builder: (_, _) {
+      builder: (_, __) {
         return SizedBox(
           height: 36,
           child: Stack(

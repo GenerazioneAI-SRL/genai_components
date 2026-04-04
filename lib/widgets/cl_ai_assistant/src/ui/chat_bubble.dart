@@ -241,7 +241,7 @@ class ChatBubble extends StatelessWidget {
             ),
           );
         },
-        errorBuilder: (_, _, _) => Container(
+        errorBuilder: (_, __, ___) => Container(
           height: 80,
           color: _bgDeep,
           child: const Center(
@@ -472,7 +472,7 @@ class ChatBubble extends StatelessWidget {
                   : Image.network(
                       card.imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
+                      errorBuilder: (_, __, ___) => Container(
                         color: _bgMid,
                         child: const Center(
                           child: Icon(
