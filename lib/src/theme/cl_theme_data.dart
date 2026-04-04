@@ -148,4 +148,20 @@ class CLThemeData {
     final b = 100 + ((hash >> 16) & 0xFF) % 156;
     return Color.fromARGB(255, r, g, b);
   }
+
+  // ── Text Styles ──
+
+  TextStyle get heading1 => TextStyle(fontFamily: displayFontFamily, fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -0.03 * 32, height: 1.2, color: text);
+  TextStyle get heading2 => TextStyle(fontFamily: displayFontFamily, fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.02 * 24, height: 1.2, color: text);
+  TextStyle get heading3 => TextStyle(fontFamily: displayFontFamily, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.01 * 18, height: 1.3, color: text);
+  TextStyle get heading4 => TextStyle(fontFamily: bodyFontFamily, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.01 * 16, height: 1.3, color: text);
+  TextStyle get heading5 => TextStyle(fontFamily: bodyFontFamily, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4, color: text);
+  TextStyle get heading6 => TextStyle(fontFamily: bodyFontFamily, fontSize: 12, fontWeight: FontWeight.w600, height: 1.4, color: text);
+  TextStyle get title => TextStyle(fontFamily: bodyFontFamily, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.01 * 16, height: 1.4, color: text);
+  TextStyle get subtitle => TextStyle(fontFamily: bodyFontFamily, fontSize: 14, fontWeight: FontWeight.w500, height: 1.5, color: text);
+  TextStyle get bodyText => TextStyle(fontFamily: bodyFontFamily, fontSize: 14, fontWeight: FontWeight.w400, height: 1.5, color: text);
+  TextStyle get bodyLabel => TextStyle(fontFamily: bodyFontFamily, fontSize: 14, fontWeight: FontWeight.w500, height: 1.5, color: textSecondary);
+  TextStyle get smallText => TextStyle(fontFamily: bodyFontFamily, fontSize: 12, fontWeight: FontWeight.w400, height: 1.4, color: text);
+  TextStyle get smallLabel => TextStyle(fontFamily: bodyFontFamily, fontSize: 12, fontWeight: FontWeight.w500, height: 1.4, color: textSecondary);
+  TextStyle get caption => TextStyle(fontFamily: bodyFontFamily, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.08 * 10, height: 1.4, color: textSecondary);
 }
