@@ -98,8 +98,8 @@ class _MenuLayoutState extends State<MenuLayout> {
                       else
                         _buildGroupRoute(navigationState, route, depth: 0)
                     else if (route is ModuleRoute && route.isVisible && !route.showInSideMenu)
-                      // Modulo non mostrato come gruppo, ma le sotto-voci visibili appaiono flat
-                      ..._buildFlatChildren(navigationState, route)
+                      // Modulo mostrato come sezione con label + children strutturati
+                      ..._buildSectionModule(navigationState, route)
                     else if (route is ShellModularRoute)
                       for (var subRoute in route.routes)
                         if (subRoute is ChildRoute && subRoute.isVisible)
@@ -117,7 +117,7 @@ class _MenuLayoutState extends State<MenuLayout> {
                           else
                             _buildGroupRoute(navigationState, subRoute, depth: 0)
                         else if (subRoute is ModuleRoute && subRoute.isVisible && !subRoute.showInSideMenu)
-                          ..._buildFlatChildren(navigationState, subRoute),
+                          ..._buildSectionModule(navigationState, subRoute),
                 ],
               ),
             ),
@@ -315,26 +315,85 @@ class _MenuLayoutState extends State<MenuLayout> {
     );
   }
 
-  // ── Sotto-voci flat (modulo con showInSideMenu: false) ─────────────────────
-  List<Widget> _buildFlatChildren(NavigationState navigationState, ModuleRoute parentRoute) {
+  // ── Modulo come sezione con label + children strutturati ─────────────────────
+  List<Widget> _buildSectionModule(NavigationState navigationState, ModuleRoute parentRoute) {
     final List<Widget> widgets = [];
+    final theme = CLTheme.of(context);
+    final defaultIcon = HugeIcons.strokeRoundedFolder01;
+
+    // Section label
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(left: 6, top: 14, bottom: 6),
+        child: Text(
+          parentRoute.name.toUpperCase(),
+          style: theme.smallLabel.copyWith(
+            color: theme.secondaryText.withValues(alpha: 0.55),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+
+    // Children
+    final basePath = parentRoute.module.moduleRoute.path;
     for (final childRoute in parentRoute.module.routes) {
       if (childRoute is ChildRoute && childRoute.isVisible) {
-        widgets.add(_buildChildRoute(navigationState, childRoute..path = parentRoute.module.moduleRoute.path));
+        // Voce singola direttamente sotto la sezione → con icona fallback
+        if (!childRoute.hasIcon) {
+          childRoute.hugeIcon = HugeIcon(icon: defaultIcon);
+        }
+        widgets.add(_buildChildRoute(navigationState, childRoute..path = basePath));
       } else if (childRoute is ModuleRoute && childRoute.isVisible) {
-        if (_countVisibleRoutes(childRoute.module.routes) == 1 &&
+        final visibleCount = _countVisibleRoutes(childRoute.module.routes);
+        if (visibleCount == 1 &&
             childRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
-          final singleChild = childRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first
+          // Modulo con una sola voce visibile → voce singola con icona
+          final singleChild = childRoute.module.routes
+              .whereType<ChildRoute>()
+              .where((r) => r.isVisible)
+              .first;
+          // Usa icona del modulo o fallback
+          singleChild
             ..icon = childRoute.icon
-            ..hugeIcon = childRoute.hugeIcon
-            ..path = childRoute.module.moduleRoute.path;
-          widgets.add(_buildChildRoute(navigationState, singleChild));
+            ..hugeIcon = childRoute.hugeIcon ?? HugeIcon(icon: defaultIcon)
+            ..path = "$basePath${childRoute.module.moduleRoute.path}".replaceAll('//', '/');
+          // Usa il nome del modulo padre, non della child route
+          widgets.add(_buildSectionChildRoute(
+            navigationState,
+            singleChild,
+            displayName: childRoute.name,
+          ));
         } else {
-          widgets.add(_buildGroupRoute(navigationState, childRoute, depth: 0));
+          // Modulo con più voci → dropdown espandibile con icona e freccia
+          widgets.add(_buildGroupRoute(navigationState, childRoute, basePath: basePath, depth: 0));
         }
       }
     }
     return widgets;
+  }
+
+  /// Voce singola dentro una sezione, con nome personalizzabile
+  Widget _buildSectionChildRoute(NavigationState navigationState, ChildRoute route, {String? displayName}) {
+    final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
+    final selected = _isSelected(navigationState, route.path, isParentRoute: true);
+    final theme = CLTheme.of(context);
+    final iconSize = isMobile ? 19.0 : 20.0;
+
+    return _MenuTile(
+      label: displayName ?? route.name,
+      icon: route.hasIcon
+          ? route.buildIcon(size: iconSize, color: selected ? theme.primary : theme.secondaryText)
+          : HugeIcon(icon: HugeIcons.strokeRoundedFolder01, size: iconSize, color: selected ? theme.primary : theme.secondaryText),
+      selected: selected,
+      isMobile: isMobile,
+      onTap: () {
+        if (isMobile) _closeDrawer(context);
+        context.customGoNamed(route.routeName ?? route.name);
+      },
+    );
   }
 
   // ── Gruppo espandibile ─────────────────────────────────────────────────────
@@ -351,7 +410,7 @@ class _MenuLayoutState extends State<MenuLayout> {
       isSelected: isSelected,
       isMobile: isMobile,
       depth: depth,
-      icon: subRoute.buildIcon(size: iconSize, color: iconColor) ?? Icon(Icons.folder_outlined, size: iconSize, color: iconColor),
+      icon: subRoute.buildIcon(size: iconSize, color: iconColor) ?? HugeIcon(icon: HugeIcons.strokeRoundedFolder01, size: iconSize, color: iconColor),
       children: [
         for (var childRoute in subRoute.module.routes)
           if (childRoute is ChildRoute && childRoute.isVisible)
@@ -561,17 +620,14 @@ class _MenuTileState extends State<_MenuTile> {
           ),
           child: Row(
             children: [
-              // Pill indicatore selezione
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: 3,
-                height: widget.selected ? 20 : 0,
-                margin: const EdgeInsets.only(left: 2, right: 10),
-                decoration: BoxDecoration(color: theme.primary, borderRadius: BorderRadius.circular(99)),
+              // Padding sinistro fisso
+              const SizedBox(width: 12),
+              // Icona in box a larghezza fissa — sempre presente per allineare il testo
+              SizedBox(
+                width: 20,
+                child: widget.icon != null ? Center(child: widget.icon!) : null,
               ),
-              if (!widget.selected) const SizedBox(width: 15),
-              // Icona
-              if (widget.icon != null) ...[widget.icon!, const SizedBox(width: 10)],
+              const SizedBox(width: 10),
               // Label
               Expanded(
                 child: Text(
@@ -684,15 +740,10 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
               ),
               child: Row(
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 3,
-                    height: widget.isSelected ? 20 : 0,
-                    margin: const EdgeInsets.only(left: 2, right: 10),
-                    decoration: BoxDecoration(color: theme.primary, borderRadius: BorderRadius.circular(99)),
-                  ),
-                  if (!widget.isSelected) const SizedBox(width: 15),
-                  widget.icon,
+                  // Padding sinistro fisso (uguale a _MenuTile)
+                  const SizedBox(width: 12),
+                  // Icona in box a larghezza fissa (uguale a _MenuTile)
+                  SizedBox(width: 20, child: Center(child: widget.icon)),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -736,58 +787,56 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
     );
   }
 
-  /// Gruppo annidato (depth >= 1) — stile indentato con linea verticale
+  /// Gruppo annidato (depth >= 1) — stile indentato senza linee
   Widget _buildNestedGroup(CLTheme theme) {
-    final h = widget.isMobile ? 38.0 : 36.0;
-    final leftIndent = 18.0 + (widget.depth - 1) * 14.0;
+    final h = widget.isMobile ? 42.0 : 40.0;
+    // Allineato al testo del parent: 42px + extra per depth
+    final leftMargin = 42.0 + (widget.depth - 1) * 16.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MouseRegion(
-          onEnter: (_) => _safeSetState(() => _hovered = true),
-          onExit: (_) => _safeSetState(() => _hovered = false),
+          onEnter: (_) { if (mounted) setState(() => _hovered = true); },
+          onExit: (_) { if (mounted) setState(() => _hovered = false); },
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
             onTap: _toggle,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               height: h,
-              margin: const EdgeInsets.symmetric(vertical: 1),
+              margin: const EdgeInsets.symmetric(vertical: 1.5),
               decoration: BoxDecoration(
                 color: widget.isSelected
                     ? theme.primary.withValues(alpha: 0.08)
                     : _hovered
                         ? theme.primary.withValues(alpha: 0.04)
                         : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  SizedBox(width: leftIndent),
-                  // Linea verticale
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 2,
-                    height: h * 0.55,
-                    decoration: BoxDecoration(
-                      color: widget.isSelected
-                          ? theme.primary
-                          : _hovered
-                              ? theme.primary.withValues(alpha: 0.4)
-                              : theme.borderColor,
-                      borderRadius: BorderRadius.circular(99),
+                  SizedBox(width: leftMargin),
+                  // Icona folder in box fisso
+                  SizedBox(
+                    width: 20,
+                    child: Center(
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedFolder01,
+                        size: 16,
+                        color: widget.isSelected ? theme.primary : theme.secondaryText,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   // Label
                   Expanded(
                     child: Text(
                       widget.title,
-                      style: theme.bodyText.copyWith(
+                      style: theme.bodyLabel.override(
                         color: widget.isSelected ? theme.primary : theme.secondaryText,
                         fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
-                        fontSize: widget.isMobile ? 12 : 12.5,
+                        fontSize: widget.isMobile ? 13 : 13.5,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -800,7 +849,7 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
                       turns: Tween(begin: 0.0, end: 0.25).animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
                       child: HugeIcon(
                         icon: HugeIcons.strokeRoundedArrowRight01,
-                        size: 13,
+                        size: 14,
                         color: widget.isSelected ? theme.primary : theme.secondaryText,
                       ),
                     ),
@@ -810,13 +859,13 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
             ),
           ),
         ),
-        // Figli con indentazione extra
+        // Figli
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
           child: _expanded
               ? Padding(
-                  padding: EdgeInsets.only(left: widget.depth * 8.0, bottom: 2),
+                  padding: const EdgeInsets.only(bottom: 2),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
                 )
               : const SizedBox.shrink(),
@@ -826,7 +875,7 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
   }
 }
 
-/// Voce figlia indentata con linea verticale (senza pallino)
+/// Voce figlia indentata sotto un gruppo espandibile
 class _MenuSubTile extends StatefulWidget {
   const _MenuSubTile({required this.label, required this.selected, required this.isMobile, required this.onTap, this.depth = 0});
 
@@ -843,70 +892,48 @@ class _MenuSubTile extends StatefulWidget {
 class _MenuSubTileState extends State<_MenuSubTile> {
   bool _hovered = false;
 
-  void _safeSetState(VoidCallback fn) {
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(fn);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final h = widget.isMobile ? 36.0 : 34.0;
-    final leftIndent = 18.0 + widget.depth * 14.0;
+    final h = widget.isMobile ? 38.0 : 36.0;
+    // Testo del parent parte a: 12 (spacer) + 20 (icon) + 10 (gap) = 42px
+    // Box colorato parte a 32px, con 10px di padding → testo a 42px
+    final boxLeftMargin = 32.0 + widget.depth * 16.0;
 
     return MouseRegion(
-      onEnter: (_) => _safeSetState(() => _hovered = true),
-      onExit: (_) => _safeSetState(() => _hovered = false),
+      onEnter: (_) { if (mounted) setState(() => _hovered = true); },
+      onExit: (_) { if (mounted) setState(() => _hovered = false); },
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+        child: SizedBox(
           height: h,
-          margin: const EdgeInsets.symmetric(vertical: 1),
-          decoration: BoxDecoration(
-            color: widget.selected
-                ? theme.primary.withValues(alpha: 0.1)
-                : _hovered
-                    ? theme.primary.withValues(alpha: 0.04)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              // Indentazione basata sul depth
-              SizedBox(width: leftIndent),
-              // Linea verticale
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: 2,
-                height: h * 0.55,
-                decoration: BoxDecoration(
-                  color: widget.selected
-                      ? theme.primary
-                      : _hovered
-                          ? theme.primary.withValues(alpha: 0.4)
-                          : theme.borderColor,
-                  borderRadius: BorderRadius.circular(99),
-                ),
+          child: Padding(
+            padding: EdgeInsets.only(left: boxLeftMargin, top: 1, bottom: 1),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: const EdgeInsets.only(left: 10),
+              decoration: BoxDecoration(
+                color: widget.selected
+                    ? theme.primary.withValues(alpha: 0.1)
+                    : _hovered
+                        ? theme.primary.withValues(alpha: 0.04)
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 12),
-              // Label
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: theme.bodyText.copyWith(
-                    color: widget.selected ? theme.primary : theme.secondaryText,
-                    fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w400,
-                    fontSize: widget.isMobile ? 12 : 12.5,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.label,
+                style: theme.bodyText.copyWith(
+                  color: widget.selected ? theme.primary : theme.secondaryText,
+                  fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w400,
+                  fontSize: widget.isMobile ? 13 : 13.5,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
-            ],
+            ),
           ),
         ),
       ),
