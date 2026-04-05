@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../cl_path_utils.dart';
 import '../page_transition_enum.dart';
 import 'cl_route.dart';
 import 'i_modular_route.dart';
@@ -71,7 +72,7 @@ class ChildRoute extends ModularRoute {
     String childRoutePath = "/$routePath/";
     String argsPath = params.map((e) => ":$e").join("/");
 
-    String fullPath = _buildPath(
+    String fullPath = CLPathUtils.buildPath(
       "${childRoutePath.isNotEmpty ? childRoutePath : ''}$argsPath",
     );
 
@@ -91,12 +92,4 @@ class ChildRoute extends ModularRoute {
     return path;
   }
 
-  static String _buildPath(String path) {
-    if (!path.endsWith('/')) {
-      path = '$path/';
-    }
-    path = path.replaceAll(RegExp(r'/+'), '/');
-    if (path == '/') return path;
-    return path.substring(0, path.length - 1);
-  }
 }

@@ -67,10 +67,30 @@ class ApiCallResponse {
           jsonBody["error"] != null
               ? ApiError.fromJson(jsonObject: jsonBody["error"])
               : (jsonBody is Map && jsonBody["statusCode"] != null ? ApiError.fromJson(jsonObject: jsonBody) : null);
-      pagination = jsonBody["meta"] != null ? Pagination.fromJson(jsonObject: jsonBody["meta"]) : null;
+
+      // Pagination: formato standard {meta: {total, lastPage, currentPage, perPage}}
+      if (jsonBody is Map && jsonBody["meta"] != null) {
+        pagination = Pagination.fromJson(jsonObject: jsonBody["meta"]);
+      }
+      // Pagination: formato HR {total, page, limit, totalPages} a livello root
+      else if (jsonBody is Map && jsonBody["total"] != null && jsonBody["items"] != null) {
+        final p = Pagination();
+        p.total = jsonBody['total'] as int?;
+        p.currentPage = jsonBody['page'] as int?;
+        p.perPage = jsonBody['limit'] as int?;
+        p.lastPage = jsonBody['totalPages'] as int?;
+        if (p.currentPage != null && p.currentPage! > 1) {
+          p.prev = p.currentPage! - 1;
+        }
+        if (p.currentPage != null && p.lastPage != null && p.currentPage! < p.lastPage!) {
+          p.next = p.currentPage! + 1;
+        }
+        pagination = p;
+      }
     } catch (_) {}
     return ApiCallResponse(
-      jsonBody != null ? (jsonBody["data"] ?? jsonBody) : null,
+      // Estrae i dati: formato standard "data", formato HR "items", oppure body intero
+      jsonBody != null ? (jsonBody["data"] ?? jsonBody["items"] ?? jsonBody) : null,
       pagination,
       error,
       response.headers,

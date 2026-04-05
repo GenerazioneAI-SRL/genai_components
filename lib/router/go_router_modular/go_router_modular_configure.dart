@@ -4,7 +4,6 @@ import 'package:cl_components/router/go_router_modular/page_transition_enum.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'bind.dart';
 import 'module.dart';
 
 typedef Modular = GoRouterModular;
@@ -33,12 +32,9 @@ class GoRouterModular {
 
   static PageTransition? _pageTansition;
 
-  static T get<T>() => Bind.get<T>();
-
   static getCurrentPathOf(BuildContext context) => GoRouterState.of(context).path ?? '';
 
   static GoRouterState stateOf(BuildContext context) => GoRouterState.of(context);
-  static late BuildContext _viewContext;
 
   static Future<FutureOr<GoRouter>> configure({
     required Module appModule,
@@ -89,8 +85,6 @@ class GoRouterModular {
     debugLogDiagnostics = debugLogDiagnostics;
     return _router!;
   }
-
-  static BuildContext get getContext => _viewContext;
 }
 
 extension GoRouterExtension on BuildContext {

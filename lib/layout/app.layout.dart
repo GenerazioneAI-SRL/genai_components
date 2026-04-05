@@ -5,6 +5,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 import 'package:cl_components/providers/app_state.dart';
 import 'package:cl_components/utils/providers/module_theme.util.provider.dart';
 import 'package:cl_components/router/go_router_modular/go_router_modular_configure.dart';
+import 'package:cl_components/router/go_router_modular/routes/i_modular_route.dart';
 import 'package:cl_components/auth/cl_auth_state.dart';
 import 'package:cl_components/cl_theme.dart';
 import 'package:cl_components/widgets/gradient_background.widget.dart';
@@ -16,9 +17,10 @@ import 'package:cl_components/layout/ai_chat_drawer.widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class AppLayout extends StatefulWidget {
-  const AppLayout({super.key, required this.shellChild});
+  const AppLayout({super.key, required this.shellChild, required this.shellRoutes});
 
   final Widget shellChild;
+  final List<ModularRoute> shellRoutes;
 
   @override
   State<AppLayout> createState() => _AppLayoutState();
@@ -89,7 +91,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver, Tick
       width: MediaQuery.of(context).size.width * 0.85,
       backgroundColor: CLTheme.of(context).secondaryBackground,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(0), bottomRight: Radius.circular(0))),
-      child: SafeArea(child: GoRouterModular.get<MenuLayout>()),
+      child: SafeArea(child: MenuLayout(routes: widget.shellRoutes)),
     );
   }
 
@@ -125,7 +127,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver, Tick
                       border: Border.all(color: theme.borderColor),
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), blurRadius: 12, offset: const Offset(0, 2))],
                     ),
-                    child: GoRouterModular.get<MenuLayout>(),
+                    child: MenuLayout(routes: widget.shellRoutes),
                   ),
                 ),
               ),

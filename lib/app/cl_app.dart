@@ -10,14 +10,12 @@ import '../auth/cl_auth_state.dart';
 import '../cl_theme.dart';
 import '../core_utils/navigation_observer.dart';
 import '../layout/app.layout.dart';
-import '../layout/menu.layout.dart';
 import '../pages/error_page.dart';
 import '../constants/routes.constants.dart';
 import '../providers/app_state.dart';
 import '../providers/error_state.dart';
 import '../providers/notifications_panel_provider.dart';
 import '../providers/theme_provider.dart';
-import '../router/go_router_modular/bind.dart';
 import '../router/go_router_modular/go_router_modular_configure.dart';
 import '../router/go_router_modular/module.dart';
 import '../router/go_router_modular/page_transition_enum.dart';
@@ -129,10 +127,6 @@ class _CLAppModule extends Module {
   @override
   CLRoute get moduleRoute => CLRoute(name: "App", path: "/app");
 
-  @override
-  List<Bind<Object>> get binds => [
-        Bind.factory<MenuLayout>((i) => MenuLayout(routes: routes)),
-      ];
 
   @override
   List<ModularRoute> get routes => [
@@ -149,7 +143,7 @@ class _CLAppModule extends Module {
         ),
         if (config.shellRoutes.isNotEmpty)
           ShellModularRoute(
-            builder: (context, state, child) => AppLayout(shellChild: child),
+            builder: (context, state, child) => AppLayout(shellChild: child, shellRoutes: config.shellRoutes),
             observers: [
               GoRouterBreadcrumbObserver(),
               CLResumeObserver.instance,

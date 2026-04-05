@@ -94,8 +94,8 @@ export 'app/cl_app_config.dart';
 
 // Router
 export 'router/go_router_modular/module.dart';
-export 'router/go_router_modular/bind.dart';
 export 'router/go_router_modular/go_router_modular_configure.dart';
+export 'router/go_router_modular/cl_path_utils.dart';
 export 'router/go_router_modular/page_transition_enum.dart';
 export 'router/go_router_modular/route_registry.dart';
 export 'router/go_router_modular/routes/child_route.dart';
@@ -115,7 +115,6 @@ export 'layout/breadcrumbs.layout.dart';
 
 // API
 export 'api/api_manager.dart';
-export 'api/hr_response_parser.dart';
 
 // Providers
 export 'providers/app_state.dart';

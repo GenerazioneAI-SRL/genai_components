@@ -1,28 +1,10 @@
-import 'package:cl_components/utils/models/pageaction.model.dart';
-
 class BreadcrumbItem {
   final String name;
   final String path;
   final bool isModule;
   final bool isClickable;
-  List<PageAction> pageActions = [];
 
-  BreadcrumbItem({required this.name, required this.path, required this.isModule, this.isClickable = true});
-
-  // Metodo per serializzare l'oggetto in JSON
-  Map<String, dynamic> toJson() {
-    return {'name': name, 'path': path, 'isModule': isModule, 'isClickable': isClickable};
-  }
-
-  // Metodo per creare un oggetto da una mappa JSON
-  factory BreadcrumbItem.fromJson(Map<String, dynamic> json) {
-    return BreadcrumbItem(
-      name: json['name'],
-      path: json['path'],
-      isModule: json['isModule'],
-      isClickable: json['isClickable'] ?? true,
-    );
-  }
+  const BreadcrumbItem({required this.name, required this.path, this.isModule = false, this.isClickable = true});
 
   @override
   bool operator ==(Object other) {
@@ -33,4 +15,7 @@ class BreadcrumbItem {
 
   @override
   int get hashCode => path.hashCode;
+
+  @override
+  String toString() => 'BreadcrumbItem($name, $path, module=$isModule)';
 }

@@ -11,7 +11,7 @@ class Transition {
   )
   builder({
     required PageTransition pageTransition,
-    required void Function() configRouteManager,
+    VoidCallback? onTransitionStart,
   }) {
     return (
       BuildContext context,
@@ -19,7 +19,7 @@ class Transition {
       Animation<double> secondaryAnimation,
       Widget child,
     ) {
-      configRouteManager.call();
+      onTransitionStart?.call();
       switch (pageTransition) {
         case PageTransition.noTransition:
           return child; // Nessuna transizione, cambio istantaneo
