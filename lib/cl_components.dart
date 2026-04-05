@@ -88,6 +88,9 @@ export 'utils/models/custom_model.model.dart';
 export 'auth/cl_auth_state.dart';
 export 'auth/cl_user_info.dart';
 export 'auth/cl_tenant.dart';
+// App
+export 'app/cl_app.dart';
+export 'app/cl_app_config.dart';
 
 // Router
 export 'router/go_router_modular/module.dart';
