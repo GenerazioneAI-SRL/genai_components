@@ -85,7 +85,7 @@ class _MenuLayoutState extends State<MenuLayout> {
                   for (var route in widget.routes)
                     if (route is ChildRoute && route.isVisible)
                       _buildChildRoute(navigationState, route)
-                    else if (route is ModuleRoute && route.isVisible)
+                    else if (route is ModuleRoute && route.isVisible && route.showInSideMenu)
                       if (_countVisibleRoutes(route.module.routes) == 1 &&
                           route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
                         _buildChildRoute(
@@ -97,11 +97,14 @@ class _MenuLayoutState extends State<MenuLayout> {
                         )
                       else
                         _buildGroupRoute(navigationState, route, depth: 0)
+                    else if (route is ModuleRoute && route.isVisible && !route.showInSideMenu)
+                      // Modulo non mostrato come gruppo, ma le sotto-voci visibili appaiono flat
+                      ..._buildFlatChildren(navigationState, route)
                     else if (route is ShellModularRoute)
                       for (var subRoute in route.routes)
                         if (subRoute is ChildRoute && subRoute.isVisible)
                           _buildChildRoute(navigationState, subRoute)
-                        else if (subRoute is ModuleRoute && subRoute.isVisible)
+                        else if (subRoute is ModuleRoute && subRoute.isVisible && subRoute.showInSideMenu)
                           if (_countVisibleRoutes(subRoute.module.routes) == 1 &&
                               subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
                             _buildChildRoute(
@@ -112,7 +115,9 @@ class _MenuLayoutState extends State<MenuLayout> {
                                 ..path = subRoute.module.moduleRoute.path,
                             )
                           else
-                            _buildGroupRoute(navigationState, subRoute, depth: 0),
+                            _buildGroupRoute(navigationState, subRoute, depth: 0)
+                        else if (subRoute is ModuleRoute && subRoute.isVisible && !subRoute.showInSideMenu)
+                          ..._buildFlatChildren(navigationState, subRoute),
                 ],
               ),
             ),
@@ -308,6 +313,28 @@ class _MenuLayoutState extends State<MenuLayout> {
         context.customGoNamed(route.name);
       },
     );
+  }
+
+  // ── Sotto-voci flat (modulo con showInSideMenu: false) ─────────────────────
+  List<Widget> _buildFlatChildren(NavigationState navigationState, ModuleRoute parentRoute) {
+    final List<Widget> widgets = [];
+    for (final childRoute in parentRoute.module.routes) {
+      if (childRoute is ChildRoute && childRoute.isVisible) {
+        widgets.add(_buildChildRoute(navigationState, childRoute..path = parentRoute.module.moduleRoute.path));
+      } else if (childRoute is ModuleRoute && childRoute.isVisible) {
+        if (_countVisibleRoutes(childRoute.module.routes) == 1 &&
+            childRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
+          final singleChild = childRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first
+            ..icon = childRoute.icon
+            ..hugeIcon = childRoute.hugeIcon
+            ..path = childRoute.module.moduleRoute.path;
+          widgets.add(_buildChildRoute(navigationState, singleChild));
+        } else {
+          widgets.add(_buildGroupRoute(navigationState, childRoute, depth: 0));
+        }
+      }
+    }
+    return widgets;
   }
 
   // ── Gruppo espandibile ─────────────────────────────────────────────────────
