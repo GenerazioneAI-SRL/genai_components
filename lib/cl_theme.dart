@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'utils/providers/cl_theme.provider.dart';
 import 'utils/providers/module_theme.util.provider.dart';
 import 'utils/shared_manager.util.dart';
 
@@ -16,10 +17,10 @@ class ColorUtils {
 
   static String toHex(Color color, {bool leadingHashSign = true}) =>
       '${leadingHashSign ? '#' : ''}'
-      '${color.alpha.toRadixString(16).padLeft(2, '0')}'
-      '${color.red.toRadixString(16).padLeft(2, '0')}'
-      '${color.green.toRadixString(16).padLeft(2, '0')}'
-      '${color.blue.toRadixString(16).padLeft(2, '0')}';
+      '${(color.a * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
+      '${(color.r * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
+      '${(color.g * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
+      '${(color.b * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}';
 }
 
 /// --- Theme root ----------------------------------------------------------
@@ -58,12 +59,22 @@ abstract class CLTheme {
 
   static CLTheme of(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 1. Cerca il provider generico (nuovo, consigliato)
     try {
+      final tp = Provider.of<CLThemeProvider>(context);
+      return isDark ? tp.darkTheme : tp.lightTheme;
+    } catch (_) {}
+
+    // 2. Fallback: cerca il vecchio ModuleThemeProvider (retrocompatibilità)
+    try {
+      // ignore: deprecated_member_use_from_same_package
       final mp = Provider.of<ModuleThemeProvider>(context);
       return isDark ? mp.darkTheme : mp.lightTheme;
-    } catch (_) {
-      return isDark ? dark : light;
-    }
+    } catch (_) {}
+
+    // 3. Default built-in
+    return isDark ? dark : light;
   }
 
   // Singletons (default ID/azzurro)
@@ -133,22 +144,35 @@ class LightModeTheme extends CLTheme {
   const LightModeTheme({
     Color primary = const Color(0xFF0C8EC7),
     Color secondary = const Color(0xFF0A7AAD),
+    Color alternate = const Color(0xFFE8EBF0),
+    Color primaryText = const Color(0xFF2E2E38),
+    Color secondaryText = const Color(0xFF6B7080),
+    Color primaryBackground = const Color(0xFFFAF9F7),
+    Color secondaryBackground = const Color(0xFFFFFFFF),
+    Color tertiaryBackground = const Color(0xFFF0F1F4),
+    Color success = const Color(0xFF16A34A),
+    Color warning = const Color(0xFFD97706),
+    Color danger = const Color(0xFFDC2626),
+    Color info = const Color(0xFF0C8EC7),
+    Color borderColor = const Color(0xFFE8EBF0),
+    Color background = const Color(0xFFFAF9F7),
+    Color fillColor = const Color(0xFFF0F1F4),
   }) : super(
         primary: primary,
         secondary: secondary,
-        alternate: const Color(0xFFE8EBF0),
-        primaryText: const Color(0xFF2E2E38),
-        secondaryText: const Color(0xFF6B7080),
-        primaryBackground: const Color(0xFFFAF9F7),
-        secondaryBackground: const Color(0xFFFFFFFF),
-        tertiaryBackground: const Color(0xFFF0F1F4),
-        success: const Color(0xFF16A34A),
-        warning: const Color(0xFFD97706),
-        danger: const Color(0xFFDC2626),
-        info: const Color(0xFF0C8EC7),
-        borderColor: const Color(0xFFE8EBF0),
-        background: const Color(0xFFFAF9F7),
-        fillColor: const Color(0xFFF0F1F4),
+        alternate: alternate,
+        primaryText: primaryText,
+        secondaryText: secondaryText,
+        primaryBackground: primaryBackground,
+        secondaryBackground: secondaryBackground,
+        tertiaryBackground: tertiaryBackground,
+        success: success,
+        warning: warning,
+        danger: danger,
+        info: info,
+        borderColor: borderColor,
+        background: background,
+        fillColor: fillColor,
       );
 }
 
@@ -156,22 +180,35 @@ class DarkModeTheme extends CLTheme {
   const DarkModeTheme({
     Color primary = const Color(0xFF3BA8D8),
     Color secondary = const Color(0xFF0C8EC7),
+    Color alternate = const Color(0xFF2A2A34),
+    Color primaryText = const Color(0xFFE8E8EC),
+    Color secondaryText = const Color(0xFF8B8FA0),
+    Color primaryBackground = const Color(0xFF121218),
+    Color secondaryBackground = const Color(0xFF1E1E26),
+    Color tertiaryBackground = const Color(0xFF2A2A34),
+    Color success = const Color(0xFF4ADE80),
+    Color warning = const Color(0xFFFBBF24),
+    Color danger = const Color(0xFFF87171),
+    Color info = const Color(0xFF3BA8D8),
+    Color borderColor = const Color(0xFF2A2A34),
+    Color background = const Color(0xFF121218),
+    Color fillColor = const Color(0xFF1E1E26),
   }) : super(
         primary: primary,
         secondary: secondary,
-        alternate: const Color(0xFF2A2A34),
-        primaryText: const Color(0xFFE8E8EC),
-        secondaryText: const Color(0xFF8B8FA0),
-        primaryBackground: const Color(0xFF121218),
-        secondaryBackground: const Color(0xFF1E1E26),
-        tertiaryBackground: const Color(0xFF2A2A34),
-        success: const Color(0xFF4ADE80),
-        warning: const Color(0xFFFBBF24),
-        danger: const Color(0xFFF87171),
-        info: const Color(0xFF3BA8D8),
-        borderColor: const Color(0xFF2A2A34),
-        background: const Color(0xFF121218),
-        fillColor: const Color(0xFF1E1E26),
+        alternate: alternate,
+        primaryText: primaryText,
+        secondaryText: secondaryText,
+        primaryBackground: primaryBackground,
+        secondaryBackground: secondaryBackground,
+        tertiaryBackground: tertiaryBackground,
+        success: success,
+        warning: warning,
+        danger: danger,
+        info: info,
+        borderColor: borderColor,
+        background: background,
+        fillColor: fillColor,
       );
 }
 

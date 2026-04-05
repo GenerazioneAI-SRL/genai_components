@@ -1,0 +1,4 @@
+enum ResourceType {
+  detail,
+  caseSheet
+}

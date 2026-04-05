@@ -2,10 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../cl_theme.dart';
 
-/// Suite principali dell'app con palette colori dedicate
+/// Suite principali dell'app Skillera con palette colori dedicate.
+///
+/// **Nota:** Questo enum è specifico per il progetto Skillera.
+/// Per progetti generici, usa [CLThemeProvider] con temi custom.
+@Deprecated('Specifico per Skillera. Usa CLThemeProvider con temi custom.')
 enum SkilleraModule { concierge, id, hr, cert, lms }
 
 /// Palette colori per una suite (light + dark)
+@Deprecated('Specifico per Skillera. Usa CLThemeProvider con temi custom.')
 class ModulePalette {
   final Color lightPrimary;
   final Color lightSecondary;
@@ -22,6 +27,9 @@ class ModulePalette {
 
 /// Provider che gestisce il cambio palette in base alla suite corrente.
 ///
+/// **Deprecato:** Specifico per il progetto Skillera. Per nuovi progetti usa
+/// [CLThemeProvider] che accetta qualsiasi istanza di [CLTheme].
+///
 /// Due concetti separati:
 /// - [currentModule]: la suite della pagina attiva (controlla CLTheme.primary)
 /// - [selectedModule]: la suite selezionata nel top bar (controlla la sidebar)
@@ -29,6 +37,7 @@ class ModulePalette {
 /// Quando l'utente clicca un tab nel top bar, cambia solo [selectedModule]
 /// (la sidebar si aggiorna). Quando naviga effettivamente in una pagina,
 /// [updateFromRoute] aggiorna [currentModule] e il tema cambia.
+@Deprecated('Specifico per Skillera. Usa CLThemeProvider con temi custom.')
 class ModuleThemeProvider extends ChangeNotifier {
   SkilleraModule _currentModule = SkilleraModule.concierge;
   SkilleraModule _selectedModule = SkilleraModule.concierge;
