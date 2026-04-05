@@ -89,6 +89,18 @@ class _MenuLayoutState extends State<MenuLayout> {
                   for (var route in widget.routes)
                     if (route is ChildRoute && route.isVisible)
                       _buildChildRoute(navigationState, route)
+                    else if (route is ModuleRoute && route.isVisible)
+                      if (_countVisibleRoutes(route.module.routes) == 1 &&
+                          route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
+                        _buildChildRoute(
+                          navigationState,
+                          (route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
+                            ..icon = route.icon
+                            ..hugeIcon = route.hugeIcon
+                            ..path = route.module.moduleRoute.path,
+                        )
+                      else
+                        _buildGroupRoute(navigationState, route, depth: 0)
                     else if (route is ShellModularRoute)
                       for (var subRoute in route.routes)
                         if (subRoute is ChildRoute && subRoute.isVisible)

@@ -52,6 +52,23 @@ class ApiCallResponse {
 
   String getHeader(String headerName) => headers[headerName] ?? '';
 
+  /// jsonBody come List — gestisce sia List diretta che Map con "data"/"items".
+  /// Ritorna sempre una List (vuota se il body non contiene dati lista).
+  List get jsonList {
+    if (jsonBody is List) return jsonBody as List;
+    if (jsonBody is Map) {
+      final data = jsonBody["data"];
+      if (data is List) return data;
+      final items = jsonBody["items"];
+      if (items is List) return items;
+    }
+    return [];
+  }
+
+  /// jsonBody come Map — sicuro, ritorna {} se il body non è un map.
+  Map<String, dynamic> get jsonMap =>
+      jsonBody is Map<String, dynamic> ? jsonBody as Map<String, dynamic> : {};
+
   // Return the raw body from the response, or if this came from a cloud call
   // and the body is not a string, then the json encoded body.
   String get bodyText => response?.body ?? (jsonBody is String ? jsonBody as String : jsonEncode(jsonBody));
@@ -63,34 +80,42 @@ class ApiCallResponse {
     try {
       final responseBody = decodeUtf8 && returnBody ? const Utf8Decoder().convert(response.bodyBytes) : response.body;
       jsonBody = returnBody ? json.decode(responseBody) : null;
-      error =
-          jsonBody["error"] != null
-              ? ApiError.fromJson(jsonObject: jsonBody["error"])
-              : (jsonBody is Map && jsonBody["statusCode"] != null ? ApiError.fromJson(jsonObject: jsonBody) : null);
 
-      // Pagination: formato standard {meta: {total, lastPage, currentPage, perPage}}
-      if (jsonBody is Map && jsonBody["meta"] != null) {
-        pagination = Pagination.fromJson(jsonObject: jsonBody["meta"]);
-      }
-      // Pagination: formato HR {total, page, limit, totalPages} a livello root
-      else if (jsonBody is Map && jsonBody["total"] != null && jsonBody["items"] != null) {
-        final p = Pagination();
-        p.total = jsonBody['total'] as int?;
-        p.currentPage = jsonBody['page'] as int?;
-        p.perPage = jsonBody['limit'] as int?;
-        p.lastPage = jsonBody['totalPages'] as int?;
-        if (p.currentPage != null && p.currentPage! > 1) {
-          p.prev = p.currentPage! - 1;
+      if (jsonBody is Map) {
+        error =
+            jsonBody["error"] != null
+                ? ApiError.fromJson(jsonObject: jsonBody["error"])
+                : (jsonBody["statusCode"] != null ? ApiError.fromJson(jsonObject: jsonBody) : null);
+
+        // Pagination: formato standard {meta: {total, lastPage, currentPage, perPage}}
+        if (jsonBody["meta"] != null) {
+          pagination = Pagination.fromJson(jsonObject: jsonBody["meta"]);
         }
-        if (p.currentPage != null && p.lastPage != null && p.currentPage! < p.lastPage!) {
-          p.next = p.currentPage! + 1;
+        // Pagination: formato HR {total, page, limit, totalPages} a livello root
+        else if (jsonBody["total"] != null && jsonBody["items"] != null) {
+          final p = Pagination();
+          p.total = jsonBody['total'] as int?;
+          p.currentPage = jsonBody['page'] as int?;
+          p.perPage = jsonBody['limit'] as int?;
+          p.lastPage = jsonBody['totalPages'] as int?;
+          if (p.currentPage != null && p.currentPage! > 1) {
+            p.prev = p.currentPage! - 1;
+          }
+          if (p.currentPage != null && p.lastPage != null && p.currentPage! < p.lastPage!) {
+            p.next = p.currentPage! + 1;
+          }
+          pagination = p;
         }
-        pagination = p;
       }
     } catch (_) {}
+
+    // Estrae i dati: se è un Map usa "data" o "items", altrimenti body intero
+    final extractedBody = jsonBody is Map
+        ? (jsonBody["data"] ?? jsonBody["items"] ?? jsonBody)
+        : jsonBody;
+
     return ApiCallResponse(
-      // Estrae i dati: formato standard "data", formato HR "items", oppure body intero
-      jsonBody != null ? (jsonBody["data"] ?? jsonBody["items"] ?? jsonBody) : null,
+      extractedBody,
       pagination,
       error,
       response.headers,
