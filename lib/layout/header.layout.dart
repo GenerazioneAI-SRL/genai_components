@@ -2,24 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:cl_components/core_utils/extension.util.dart';
 import 'package:cl_components/utils/providers/navigation.util.provider.dart';
 import 'package:cl_components/auth/cl_auth_state.dart';
-import 'package:cl_components/widgets/avatar.widget.dart';
-import 'package:cl_components/widgets/cl_popup_menu.widget.dart';
-import 'package:cl_components/layout/breadcrumbs.layout.dart';
-import 'package:cl_components/layout/constants/sizes.constant.dart';
-import 'package:cl_components/cl_theme.dart';
+import '../widgets/avatar.widget.dart';
+import '../widgets/cl_popup_menu.widget.dart';
+import 'breadcrumbs.layout.dart';
+import 'constants/sizes.constant.dart';
+import '../cl_theme.dart';
 
 class HeaderLayout extends StatefulWidget {
-  const HeaderLayout({super.key, this.headerColor, this.headerHeight, this.iconColor, this.iconSize, this.onProfileTap});
+  const HeaderLayout({super.key, this.headerColor, this.headerHeight, this.iconColor, this.iconSize});
 
   final Color? headerColor;
   final double? headerHeight;
   final Color? iconColor;
   final double? iconSize;
-
-  /// Callback quando l'utente clicca "Profilo". Se null, la voce non viene mostrata.
-  final VoidCallback? onProfileTap;
 
   @override
   State<HeaderLayout> createState() => _HeaderLayoutState();
@@ -126,7 +124,7 @@ class _HeaderLayoutState extends State<HeaderLayout> {
   Widget _buildUserProfile(BuildContext context, CLAuthState authState, bool isMobile) {
     final firstName = authState.currentUserInfo?.firstName ?? '';
     final lastName = authState.currentUserInfo?.lastName ?? '';
-    final fullName = '$firstName $lastName'.trim();
+    final fullName = authState.currentUserInfo?.fullName ?? '';
 
     if (isMobile) {
       return InkWell(
@@ -142,17 +140,16 @@ class _HeaderLayoutState extends State<HeaderLayout> {
       minWidth: 220,
       maxWidth: 260,
       items: [
-        if (widget.onProfileTap != null)
-          CLPopupMenuItem(
-            content: Row(
-              children: [
-                HugeIcon(icon: HugeIcons.strokeRoundedUser, color: CLTheme.of(context).primaryText, size: Sizes.medium),
-                const SizedBox(width: 12),
-                Text('Profilo', style: CLTheme.of(context).bodyText),
-              ],
-            ),
-            onTap: () => widget.onProfileTap!(),
+        CLPopupMenuItem(
+          content: Row(
+            children: [
+              HugeIcon(icon: HugeIcons.strokeRoundedUser, color: CLTheme.of(context).primaryText, size: Sizes.medium),
+              const SizedBox(width: 12),
+              Text('Profilo', style: CLTheme.of(context).bodyText),
+            ],
           ),
+          onTap: () => context.customGoNamed('Profilo Utente'),
+        ),
         CLPopupMenuItem(
           content: Row(
             children: [
@@ -179,7 +176,7 @@ class _HeaderLayoutState extends State<HeaderLayout> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("$firstName $lastName", style: CLTheme.of(context).bodyText),
-                  Text("${authState.currentUserInfo?.email}", style: CLTheme.of(context).smallLabel),
+                  Text(authState.currentUserInfo?.email ?? '', style: CLTheme.of(context).smallLabel),
                 ],
               ),
             ],
@@ -191,10 +188,8 @@ class _HeaderLayoutState extends State<HeaderLayout> {
 
   /// Bottom sheet profilo mobile
   void _showProfileBottomSheet(BuildContext context, CLAuthState authState) {
-    final firstName = authState.currentUserInfo?.firstName ?? '';
-    final lastName = authState.currentUserInfo?.lastName ?? '';
     final email = authState.currentUserInfo?.email ?? '';
-    final fullName = '$firstName $lastName'.trim();
+    final fullName = authState.currentUserInfo?.fullName ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -266,18 +261,17 @@ class _HeaderLayoutState extends State<HeaderLayout> {
                     padding: const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding * 0.75, Sizes.padding, 0),
                     child: Column(
                       children: [
-                        if (widget.onProfileTap != null)
-                          _ProfileAction(
-                            icon: HugeIcons.strokeRoundedUserAccount,
-                            label: 'Profilo',
-                            subtitle: 'Visualizza e modifica il profilo',
-                            color: t.primary,
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              widget.onProfileTap!();
-                            },
-                          ),
-                        if (widget.onProfileTap != null) const SizedBox(height: 8),
+                        _ProfileAction(
+                          icon: HugeIcons.strokeRoundedUserAccount,
+                          label: 'Profilo',
+                          subtitle: 'Visualizza e modifica il profilo',
+                          color: t.primary,
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            context.customGoNamed('Profilo Utente');
+                          },
+                        ),
+                        const SizedBox(height: 8),
                         _ProfileAction(
                           icon: HugeIcons.strokeRoundedLogout01,
                           label: 'Logout',

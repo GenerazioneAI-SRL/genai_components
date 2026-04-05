@@ -57,8 +57,8 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                           child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
                             selector: (context, model) => model._rowsSelectionChange,
                             builder: (context, value, child) {
-                              final isAllSelected = state._items.isNotEmpty &&
-                                  state._items.every((item) => state.selectedRows.containsKey(idGetter(item)));
+                              final isAllSelected =
+                                  state._items.isNotEmpty && state._items.every((item) => state.selectedRows.containsKey(idGetter(item)));
                               final hasSelection = state.selectedRows.isNotEmpty;
 
                               return Center(
@@ -94,13 +94,12 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                         ),
                       ),
 
-                    // Column headers — flexible to avoid overflow
+                    // Column headers — fixed width to match rows
                     ...state.columns.map((column) {
                       final isSorted = state.hasSortModel && state._sortModel!.columnId == column.id;
-                      final flex = ((column.sizeFactor ?? 0.1) * 1000).round();
 
-                      return Flexible(
-                        flex: flex,
+                      return SizedBox(
+                        width: column.sizeFactor == null ? state._nullSizeFactorColumnsWidth : width * column.sizeFactor!,
                         child: _ColumnHeader(
                           column: column,
                           isSorted: isSorted,
@@ -110,9 +109,11 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                       );
                     }),
 
+                    // Spacer to match rows
+                    const Spacer(),
+
                     // Actions placeholder to match rows
-                    if (hasActions)
-                      const SizedBox(width: 40),
+                    if (hasActions) const SizedBox(width: 40),
                   ],
                 ),
               );
@@ -207,13 +208,9 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
               // Header content with optional pill
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: widget.isSorted
-                    ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
-                    : EdgeInsets.zero,
+                padding: widget.isSorted ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4) : EdgeInsets.zero,
                 decoration: BoxDecoration(
-                  color: widget.isSorted
-                      ? theme.primary.withValues(alpha: 0.08)
-                      : Colors.transparent,
+                  color: widget.isSorted ? theme.primary.withValues(alpha: 0.08) : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(

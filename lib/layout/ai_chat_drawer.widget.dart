@@ -2,8 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cl_components/widgets/cl_ai_assistant/flutter_ai_assistant.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/layout/constants/sizes.constant.dart';
+import '../cl_theme.dart';
+import 'constants/sizes.constant.dart';
 
 /// Chat drawer per l'Assistente AI in stile "bolla glass",
 /// coerente con il menu e l'header dell'app.
@@ -93,9 +93,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
               child: Container(
                 width: drawerWidth,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? theme.primaryBackground.withValues(alpha: 0.85)
-                      : theme.secondaryBackground.withValues(alpha: 0.85),
+                  color: isDark ? theme.primaryBackground.withValues(alpha: 0.85) : theme.secondaryBackground.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
                   border: Border.all(color: theme.borderColor),
                   boxShadow: [
@@ -246,8 +244,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               if (!isUser) ...[
                 Container(
@@ -263,14 +260,11 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
               ],
               Flexible(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: isUser
                         ? theme.primary.withValues(alpha: isDark ? 0.25 : 0.12)
-                        : (isDark
-                            ? theme.primaryBackground
-                            : theme.primaryBackground.withValues(alpha: 0.7)),
+                        : (isDark ? theme.primaryBackground : theme.primaryBackground.withValues(alpha: 0.7)),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -318,8 +312,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
           const SizedBox(width: 8),
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: theme.primaryBackground,
                 borderRadius: const BorderRadius.only(
@@ -377,9 +370,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: isDark
-                    ? theme.primaryBackground
-                    : theme.primaryBackground.withValues(alpha: 0.6),
+                color: isDark ? theme.primaryBackground : theme.primaryBackground.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: theme.borderColor.withValues(alpha: 0.5),
@@ -393,9 +384,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
                 onSubmitted: (_) => _send(),
                 style: theme.bodyText.copyWith(fontSize: 13.5),
                 decoration: InputDecoration(
-                  hintText: isProcessing
-                      ? 'Attendi la risposta...'
-                      : 'Scrivi un messaggio...',
+                  hintText: isProcessing ? 'Attendi la risposta...' : 'Scrivi un messaggio...',
                   hintStyle: theme.bodyLabel.copyWith(
                     color: theme.secondaryText,
                     fontSize: 13.5,
@@ -412,9 +401,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
           ),
           const SizedBox(width: 8),
           Material(
-            color: isProcessing
-                ? theme.secondaryText.withValues(alpha: 0.3)
-                : theme.primary,
+            color: isProcessing ? theme.secondaryText.withValues(alpha: 0.3) : theme.primary,
             borderRadius: BorderRadius.circular(20),
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
@@ -436,4 +423,3 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
     );
   }
 }
-

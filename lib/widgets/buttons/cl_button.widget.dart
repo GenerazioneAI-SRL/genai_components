@@ -304,9 +304,7 @@ class _CLButtonState extends State<CLButton> {
                 icon: loading
                     ? SizedBox(width: iconSz, height: iconSz, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : widget.hugeIcon ??
-                        (widget.iconData != null
-                            ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: iconSz)
-                            : null),
+                        (widget.iconData != null ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: iconSz) : null),
                 onPressed: _handleTap,
                 style: ButtonStyle(
                   padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
@@ -344,7 +342,10 @@ class _CLButtonState extends State<CLButton> {
                 ),
                 onPressed: _handleTap,
                 icon: loading
-                    ? SizedBox(width: widget.iconSize ?? Sizes.medium, height: widget.iconSize ?? Sizes.medium, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? SizedBox(
+                        width: widget.iconSize ?? Sizes.medium,
+                        height: widget.iconSize ?? Sizes.medium,
+                        child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : widget.hugeIcon ??
                         (widget.iconData != null
                             ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: widget.iconSize ?? Sizes.medium)

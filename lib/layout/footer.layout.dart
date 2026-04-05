@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/widgets/clock/digitalclock.dart';
+import '../cl_theme.dart';
+import '../widgets/clock/digitalclock.dart';
 
 class FooterLayout extends StatefulWidget {
   const FooterLayout({super.key});

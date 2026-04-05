@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:cl_components/providers/notifications_panel_provider.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/layout/constants/sizes.constant.dart';
+import '../cl_theme.dart';
+import 'constants/sizes.constant.dart';
 
 class NotificationsPanel extends StatelessWidget {
   const NotificationsPanel({super.key});
@@ -46,10 +46,9 @@ class NotificationsPanel extends StatelessWidget {
               ),
               // Contenuto del pannello
               Expanded(
-                child:
-                    notificationsPanelProvider.currentSection == PanelSection.notifications
-                        ? _buildNotificationsContent(context)
-                        : _buildChatbotContent(context),
+                child: notificationsPanelProvider.currentSection == PanelSection.notifications
+                    ? _buildNotificationsContent(context)
+                    : _buildChatbotContent(context),
               ),
             ],
           ),
