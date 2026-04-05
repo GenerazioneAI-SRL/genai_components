@@ -2,6 +2,7 @@ import 'package:cl_components/widgets/avatar.widget.dart';
 import 'package:cl_components/widgets/logo.widget.dart';
 import 'package:cl_components/core_utils/extension.util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -9,7 +10,6 @@ import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
 import 'package:cl_components/auth/cl_auth_state.dart';
-import 'package:cl_components/providers/theme_provider.dart';
 import 'package:cl_components/layout/constants/sizes.constant.dart';
 import 'package:cl_components/router/go_router_modular/routes/child_route.dart';
 import 'package:cl_components/router/go_router_modular/routes/i_modular_route.dart';
@@ -59,7 +59,6 @@ class _MenuLayoutState extends State<MenuLayout> {
     final navigationState = context.watch<NavigationState>();
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: isMobile ? double.infinity : null,
@@ -197,58 +196,13 @@ class _MenuLayoutState extends State<MenuLayout> {
             ),
           ),*/
 
-          // ── Footer: Toggle tema ──────────────────────────────
           Padding(
-            padding: EdgeInsets.fromLTRB(Sizes.padding * 0.6, 0, Sizes.padding * 0.6, isMobile ? Sizes.padding * 1.2 : Sizes.padding * 0.75),
-            child: Consumer<ThemeProvider>(
-              builder: (context, themeProvider, _) {
-                final isDarkNow = themeProvider.isDarkMode;
-                return GestureDetector(
-                  onTap: () async => await themeProvider.toggleTheme(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: Sizes.padding * 0.6),
-                    decoration: BoxDecoration(
-                      color: isDark ? theme.secondaryBackground : const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: theme.borderColor),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: isDarkNow ? const Color(0xFF1E293B) : const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: HugeIcon(
-                              icon: isDarkNow ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-                              color: isDarkNow ? const Color(0xFF94A3B8) : const Color(0xFFF59E0B),
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isDarkNow ? 'Modalità scura' : 'Modalità chiara',
-                                style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w500, fontSize: isMobile ? 12.5 : 13),
-                              ),
-                              Text('Tocca per cambiare', style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10)),
-                            ],
-                          ),
-                        ),
-                        // Switch toggle visivo
-                        _ThemeToggleSwitch(isDark: isDarkNow),
-                      ],
-                    ),
-                  ),
-                );
-              },
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Center(
+              child: Opacity(
+                opacity: 0.5,
+                child: SvgPicture.asset('assets/svgs/genai.svg', height: 40),
+              ),
             ),
           ),
 
@@ -268,8 +222,6 @@ class _MenuLayoutState extends State<MenuLayout> {
               );
             },
           ),
-
-          // ── Header ──────────────────────────────────────────
         ],
       ),
     );
@@ -613,7 +565,10 @@ class _MenuTileState extends State<_MenuTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final suiteColor = theme.primary;
+    final moduleTheme = context.watch<ModuleThemeProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = ModuleThemeProvider.palettes[moduleTheme.selectedModule]!;
+    final suiteColor = isDark ? palette.darkPrimary : palette.lightPrimary;
 
     Color bg;
     if (widget.selected) {
@@ -679,7 +634,10 @@ class _MenuSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final suiteColor = theme.primary;
+    final moduleTheme = context.watch<ModuleThemeProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = ModuleThemeProvider.palettes[moduleTheme.selectedModule]!;
+    final suiteColor = isDark ? palette.darkPrimary : palette.lightPrimary;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 6),
@@ -693,43 +651,6 @@ class _MenuSectionHeader extends StatelessWidget {
         ),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
-      ),
-    );
-  }
-}
-
-/// Mini switch visivo per il toggle tema nel footer del menu
-class _ThemeToggleSwitch extends StatelessWidget {
-  const _ThemeToggleSwitch({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 36,
-      height: 20,
-      decoration: BoxDecoration(color: isDark ? theme.primary.withValues(alpha: 0.8) : theme.borderColor, borderRadius: BorderRadius.circular(10)),
-      child: Stack(
-        children: [
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            left: isDark ? 18.0 : 2.0,
-            top: 2,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3)],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

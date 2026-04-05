@@ -14,6 +14,7 @@ import 'package:cl_components/providers/theme_provider.dart';
 import 'package:cl_components/widgets/logo.widget.dart';
 import 'package:cl_components/widgets/avatar.widget.dart';
 import 'package:cl_components/widgets/cl_popup_menu.widget.dart';
+import 'package:cl_components/core_utils/extension.util.dart';
 import 'package:cl_components/layout/constants/sizes.constant.dart';
 import 'package:cl_components/layout/menu.layout.dart';
 import 'package:cl_components/layout/notifications_panel.layout.dart';
@@ -82,8 +83,8 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
           drawer: isMobile ? _buildMobileDrawer(context) : null,
           drawerEnableOpenDragGesture: isMobile,
           drawerEdgeDragWidth: isMobile ? 40 : 0,
-          endDrawer: const AiChatDrawer(),
-          endDrawerEnableOpenDragGesture: false,
+          //endDrawer: const AiChatDrawer(),
+          //endDrawerEnableOpenDragGesture: false,
           body: isMobile ? _buildMobileLayout(appState) : _buildDesktopLayout(appState),
         );
       },
@@ -114,12 +115,17 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
           Expanded(
             child: Row(
               children: [
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  alignment: Alignment.centerLeft,
-                  child: showSidebar
-                      ? Container(
+                ClipRect(
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    offset: showSidebar ? Offset.zero : const Offset(-1, 0),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: showSidebar ? 1.0 : 0.0,
+                      child: SizedBox(
+                        width: showSidebar ? 220 : 0,
+                        child: Container(
                           width: 220,
                           decoration: BoxDecoration(
                             color: theme.secondaryBackground,
@@ -127,8 +133,10 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
                           ),
                           clipBehavior: Clip.hardEdge,
                           child: MenuLayout(routes: widget.shellRoutes, moduleTabsEnabled: true),
-                        )
-                      : const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 Expanded(child: widget.shellChild),
                 const NotificationsPanel(),
@@ -439,36 +447,58 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
 
           const Spacer(),
 
-          // ── Tenant switch ──
+          // ── Tenant ──
           if (authState.currentTenant != null)
-            MouseRegion(
-              cursor: authState.tenantList.length > 1 ? SystemMouseCursors.click : SystemMouseCursors.basic,
-              child: GestureDetector(
-                onTap: authState.tenantList.length > 1 ? () => authState.setCurrentTenant(null) : null,
-                child: Container(
-                  height: 32,
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        authState.currentTenant!.name,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => context.customGoNamed('La mia azienda'),
+                    child: Container(
+                      height: 32,
+                      margin: const EdgeInsets.only(right: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      if (authState.tenantList.length > 1) ...[
-                        const SizedBox(width: 6),
-                        const HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 12, color: Color(0xFF94A3B8)),
-                      ],
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const HugeIcon(icon: HugeIcons.strokeRoundedCorporate, size: 13, color: Color(0xFF94A3B8)),
+                          const SizedBox(width: 6),
+                          Text(
+                            authState.currentTenant!.name,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (authState.tenantList.length > 1)
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => authState.setCurrentTenant(null),
+                      child: Container(
+                        height: 32,
+                        width: 32,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Center(child: HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 13, color: Color(0xFF94A3B8))),
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(width: 4),
+              ],
             ),
 
           // ── Theme toggle ──

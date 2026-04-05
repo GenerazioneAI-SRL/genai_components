@@ -59,6 +59,10 @@ class AiAssistantController extends ChangeNotifier {
   final List<AiChatMessage> _messages = [];
   bool _isProcessing = false;
   bool _isOverlayVisible = false;
+
+  /// When true, [sendMessage] will NOT auto-open the overlay.
+  /// Use this when the chat is embedded inline (e.g. in a dashboard panel).
+  bool embedMode = false;
   bool _isListening = false;
   bool _disposed = false;
 
@@ -198,11 +202,7 @@ class AiAssistantController extends ChangeNotifier {
   ///
   /// True when the agent is processing, has executed at least one screen-changing
   /// tool (navigation, tap, scroll), and is NOT paused waiting for user input.
-  bool get isActionMode =>
-      _isActionFeedVisible &&
-      _isProcessing &&
-      !_waitingForUserResponse &&
-      _hasExecutedScreenChangingTool;
+  bool get isActionMode => _isActionFeedVisible && _isProcessing && !_waitingForUserResponse && _hasExecutedScreenChangingTool;
 
   /// Whether the compact response popup is currently visible above the FAB.
   bool get isResponsePopupVisible => _isResponsePopupVisible;
@@ -262,8 +262,7 @@ class AiAssistantController extends ChangeNotifier {
             _executor.setText(label, text, parentContext: parentContext),
           ),
           onScroll: (direction) => _unwrapResult(_executor.scroll(direction)),
-          onNavigate: (routeName) =>
-              _unwrapResult(_executor.navigateToRoute(routeName)),
+          onNavigate: (routeName) => _unwrapResult(_executor.navigateToRoute(routeName)),
           onGoBack: () => _unwrapResult(_executor.goBack()),
           onGetScreenContent: () => _unwrapResult(_executor.getScreenContent()),
           onLongPress: (label, {parentContext}) => _unwrapResult(
@@ -397,9 +396,7 @@ class AiAssistantController extends ChangeNotifier {
     final routeBefore = AiNavigatorObserver.currentRoute;
     _handoffRouteListener = () {
       final routeNow = AiNavigatorObserver.currentRoute;
-      if (routeNow != routeBefore &&
-          _handoffCompleter != null &&
-          !_handoffCompleter!.isCompleted) {
+      if (routeNow != routeBefore && _handoffCompleter != null && !_handoffCompleter!.isCompleted) {
         AiLogger.log(
           'Handoff: route changed $routeBefore → $routeNow',
           tag: 'Controller',
@@ -436,11 +433,10 @@ class AiAssistantController extends ChangeNotifier {
       final resolution = result.contains('cancelled')
           ? 'cancelled'
           : result.contains('timed out')
-          ? 'timeout'
-          : result.contains('route changed') ||
-                result.contains('Screen changed')
-          ? 'route_change'
-          : 'manual';
+              ? 'timeout'
+              : result.contains('route changed') || result.contains('Screen changed')
+                  ? 'route_change'
+                  : 'manual';
       final routeAfter = AiNavigatorObserver.currentRoute;
 
       _emit(AiEventType.handoffCompleted, {
@@ -451,9 +447,7 @@ class AiAssistantController extends ChangeNotifier {
         'routeAfter': routeAfter,
         'userMessage': _currentTaskMessage,
         'wasVoice': _currentTaskIsVoice,
-        'durationMs': _currentTaskStartedAt != null
-            ? DateTime.now().difference(_currentTaskStartedAt!).inMilliseconds
-            : null,
+        'durationMs': _currentTaskStartedAt != null ? DateTime.now().difference(_currentTaskStartedAt!).inMilliseconds : null,
       });
 
       // On cancel, keep overlay so user can give new instructions.
@@ -669,9 +663,7 @@ class AiAssistantController extends ChangeNotifier {
       if (preamble.isNotEmpty) TextContent(preamble),
       ButtonsContent(
         buttons: buttons,
-        layout: buttons.any((b) => b.label.length > 30)
-            ? ButtonLayout.column
-            : ButtonLayout.wrap,
+        layout: buttons.any((b) => b.label.length > 30) ? ButtonLayout.column : ButtonLayout.wrap,
       ),
     ];
   }
@@ -718,9 +710,7 @@ class AiAssistantController extends ChangeNotifier {
 
     // If waiting for user response, resolve the completer so the agent
     // doesn't hang forever.
-    if (_waitingForUserResponse &&
-        _userResponseCompleter != null &&
-        !_userResponseCompleter!.isCompleted) {
+    if (_waitingForUserResponse && _userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
       _userResponseCompleter!.complete('The user stopped the task.');
       _userResponseCompleter = null;
       _waitingForUserResponse = false;
@@ -753,9 +743,7 @@ class AiAssistantController extends ChangeNotifier {
 
     // If the agent is waiting for user response (ask_user tool), complete
     // the completer with the user's message instead of starting a new run.
-    if (_waitingForUserResponse &&
-        _userResponseCompleter != null &&
-        !_userResponseCompleter!.isCompleted) {
+    if (_waitingForUserResponse && _userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
       AiLogger.log('User response to ask_user: "$text"', tag: 'Controller');
       _messages.add(
         AiChatMessage(
@@ -782,7 +770,7 @@ class AiAssistantController extends ChangeNotifier {
 
     // Dismiss any visible popup and ensure overlay is open for the new request.
     if (_isResponsePopupVisible) dismissResponsePopup();
-    if (!_isOverlayVisible) {
+    if (!embedMode && !_isOverlayVisible) {
       _isOverlayVisible = true;
       _hasUnreadResponse = false;
     }
@@ -905,18 +893,14 @@ class AiAssistantController extends ChangeNotifier {
 
       stopwatch.stop();
       _emit(AiEventType.conversationCompleted, {
-        'response': response.text.length > 200
-            ? '${response.text.substring(0, 200)}...'
-            : response.text,
+        'response': response.text.length > 200 ? '${response.text.substring(0, 200)}...' : response.text,
         'responseType': responseType.name,
         'totalActions': response.actions.length,
         'durationMs': stopwatch.elapsedMilliseconds,
         'wasVoice': isVoice,
       });
       _emit(AiEventType.messageReceived, {
-        'response': response.text.length > 200
-            ? '${response.text.substring(0, 200)}...'
-            : response.text,
+        'response': response.text.length > 200 ? '${response.text.substring(0, 200)}...' : response.text,
         'responseType': responseType.name,
         'actionCount': response.actions.length,
       });
@@ -934,9 +918,7 @@ class AiAssistantController extends ChangeNotifier {
       //
       // If overlay was already hidden (e.g. after handoff), show popup
       // regardless of type since the user needs to see the result somewhere.
-      if (_config.autoCloseOnComplete &&
-          _isOverlayVisible &&
-          responseType == AiResponseType.actionComplete) {
+      if (_config.autoCloseOnComplete && _isOverlayVisible && responseType == AiResponseType.actionComplete) {
         // Auto-close: agent did something, user needs to see/interact with the app.
         _isOverlayVisible = false;
         _safeNotify();
@@ -953,9 +935,7 @@ class AiAssistantController extends ChangeNotifier {
         if (_config.enableHaptics) HapticFeedback.heavyImpact();
         if (_config.enableTts) {
           _emit(AiEventType.ttsStarted, {
-            'text': response.text.length > 100
-                ? '${response.text.substring(0, 100)}...'
-                : response.text,
+            'text': response.text.length > 100 ? '${response.text.substring(0, 100)}...' : response.text,
             'isProgress': false,
           });
           _voiceOutput!.speakSummary(response.text);
@@ -974,9 +954,7 @@ class AiAssistantController extends ChangeNotifier {
         'durationMs': stopwatch.elapsedMilliseconds,
       });
       _isActionFeedVisible = false;
-      final errorMsg = _currentTaskIsVoice
-          ? _friendlyVoiceError(e)
-          : _friendlyError(e);
+      final errorMsg = _currentTaskIsVoice ? _friendlyVoiceError(e) : _friendlyError(e);
       _messages.add(
         AiChatMessage(
           id: _uuid.v4(),
@@ -1038,9 +1016,7 @@ class AiAssistantController extends ChangeNotifier {
 
     // If the agent is waiting for user input (ask_user), resolve the
     // completer with the button label instead of starting a new run.
-    if (_waitingForUserResponse &&
-        _userResponseCompleter != null &&
-        !_userResponseCompleter!.isCompleted) {
+    if (_waitingForUserResponse && _userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
       AiLogger.log(
         'Button tap resolving ask_user: "${button.label}"',
         tag: 'Controller',
@@ -1086,9 +1062,7 @@ class AiAssistantController extends ChangeNotifier {
     });
 
     // Internal tools, ask_user, and hand_off_to_user are not shown in the action feed.
-    if (_internalTools.contains(toolName) ||
-        toolName == 'ask_user' ||
-        toolName == 'hand_off_to_user') {
+    if (_internalTools.contains(toolName) || toolName == 'ask_user' || toolName == 'hand_off_to_user') {
       return;
     }
 
@@ -1140,9 +1114,7 @@ class AiAssistantController extends ChangeNotifier {
     }
 
     // Internal tools, ask_user, and hand_off_to_user are not shown in the action feed.
-    if (_internalTools.contains(toolName) ||
-        toolName == 'ask_user' ||
-        toolName == 'hand_off_to_user') {
+    if (_internalTools.contains(toolName) || toolName == 'ask_user' || toolName == 'hand_off_to_user') {
       return;
     }
 
@@ -1152,9 +1124,7 @@ class AiAssistantController extends ChangeNotifier {
     );
     if (index != -1) {
       _actionSteps[index] = _actionSteps[index].copyWith(
-        status: result.success
-            ? ActionStepStatus.completed
-            : ActionStepStatus.failed,
+        status: result.success ? ActionStepStatus.completed : ActionStepStatus.failed,
         error: result.error,
         completedAt: DateTime.now(),
       );
@@ -1179,13 +1149,9 @@ class AiAssistantController extends ChangeNotifier {
 
     // Voice progress: speak sanitized thoughts aloud (throttled to max
     // once per 4 seconds) so the user hears what the agent is doing.
-    if (_currentTaskIsVoice &&
-        _voiceOutput != null &&
-        _config.enableTts &&
-        sanitized.length > 5) {
+    if (_currentTaskIsVoice && _voiceOutput != null && _config.enableTts && sanitized.length > 5) {
       final now = DateTime.now();
-      if (_lastSpokenProgress == null ||
-          now.difference(_lastSpokenProgress!) > const Duration(seconds: 4)) {
+      if (_lastSpokenProgress == null || now.difference(_lastSpokenProgress!) > const Duration(seconds: 4)) {
         _lastSpokenProgress = now;
         _emit(AiEventType.ttsStarted, {'text': sanitized, 'isProgress': true});
         _voiceOutput!.speak(sanitized);
@@ -1404,14 +1370,10 @@ class AiAssistantController extends ChangeNotifier {
     // Info-query pattern: agent navigated somewhere THEN read the screen to
     // extract data (e.g. "what's my balance?" → navigate → get_screen_content).
     // These should stay open even if the response is short.
-    final isInfoPattern =
-        response.actions.isNotEmpty &&
+    final isInfoPattern = response.actions.isNotEmpty &&
         response.actions.last.toolName == 'get_screen_content' &&
         !response.actions.any(
-          (a) =>
-              a.toolName == 'tap_element' ||
-              a.toolName == 'set_text' ||
-              a.toolName == 'long_press_element',
+          (a) => a.toolName == 'tap_element' || a.toolName == 'set_text' || a.toolName == 'long_press_element',
         );
 
     // Short response + mutating tools = action confirmation ("Added to cart!")
@@ -1521,8 +1483,7 @@ class AiAssistantController extends ChangeNotifier {
           _partialTranscription = null;
 
           // Confidence filtering: discard noise / false starts.
-          if (text.trim().length < 2 ||
-              (confidence > 0 && confidence < 0.3 && text.trim().length < 5)) {
+          if (text.trim().length < 2 || (confidence > 0 && confidence < 0.3 && text.trim().length < 5)) {
             AiLogger.log(
               'Voice filtered: "$text" (confidence=${confidence.toStringAsFixed(2)}, len=${text.trim().length})',
               tag: 'Voice',
@@ -1536,8 +1497,7 @@ class AiAssistantController extends ChangeNotifier {
             _safeNotify();
             // Clear the "didn't catch" message after a moment.
             Future.delayed(const Duration(seconds: 2), () {
-              if (!_disposed &&
-                  _partialTranscription == "Didn't catch that. Try again.") {
+              if (!_disposed && _partialTranscription == "Didn't catch that. Try again.") {
                 _partialTranscription = null;
                 _safeNotify();
               }
@@ -1608,8 +1568,7 @@ class AiAssistantController extends ChangeNotifier {
     _pendingIsVoice = false;
     _hasUnreadResponse = false;
     // Resolve any pending completers to prevent dangling futures.
-    if (_userResponseCompleter != null &&
-        !_userResponseCompleter!.isCompleted) {
+    if (_userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
       _userResponseCompleter!.completeError(StateError('Conversation cleared'));
     }
     _userResponseCompleter = null;
@@ -1627,8 +1586,7 @@ class AiAssistantController extends ChangeNotifier {
     _processingTimer?.cancel();
     _responsePopupTimer?.cancel();
     // Resolve any pending completers to prevent dangling futures.
-    if (_userResponseCompleter != null &&
-        !_userResponseCompleter!.isCompleted) {
+    if (_userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
       _userResponseCompleter!.completeError(StateError('Controller disposed'));
     }
     if (_handoffCompleter != null && !_handoffCompleter!.isCompleted) {
