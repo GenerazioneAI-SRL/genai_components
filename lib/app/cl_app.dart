@@ -247,6 +247,7 @@ class _RootScaffold extends StatelessWidget {
   final Widget child;
   const _RootScaffold({required this.locale, required this.child});
 
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
