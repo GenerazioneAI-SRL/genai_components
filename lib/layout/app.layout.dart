@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -9,6 +10,7 @@ import 'package:cl_components/router/go_router_modular/routes/i_modular_route.da
 import 'package:cl_components/router/go_router_modular/routes/module_route.dart';
 import 'package:cl_components/auth/cl_auth_state.dart';
 import 'package:cl_components/cl_theme.dart';
+import 'package:cl_components/providers/theme_provider.dart';
 import 'package:cl_components/widgets/logo.widget.dart';
 import 'package:cl_components/widgets/avatar.widget.dart';
 import 'package:cl_components/widgets/cl_popup_menu.widget.dart';
@@ -76,7 +78,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
       builder: (context, appState, authState, child) {
         return Scaffold(
           key: _scaffoldKey,
-          backgroundColor: const Color(0xFFFAF9F7),
+          backgroundColor: CLTheme.of(context).primaryBackground,
           drawer: isMobile ? _buildMobileDrawer(context) : null,
           drawerEnableOpenDragGesture: isMobile,
           drawerEdgeDragWidth: isMobile ? 40 : 0,
@@ -95,7 +97,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
   Widget _buildDesktopLayout(AppState appState) {
     final theme = CLTheme.of(context);
     final moduleTheme = context.watch<ModuleThemeProvider>();
-    final visibleModules = widget.shellRoutes.whereType<ModuleRoute>().where((r) => r.isVisible).toList();
+    final visibleModules = widget.shellRoutes.whereType<ModuleRoute>().where((r) => r.isVisible && r.showInTopBar).toList();
     final currentPath = GoRouterModular.routerConfig.routeInformationProvider.value.uri.toString();
 
     if (widget.moduleTabsEnabled) {
@@ -116,9 +118,10 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
                   Container(
                     width: 220,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: theme.secondaryBackground,
                       border: Border(right: BorderSide(color: theme.borderColor, width: 1)),
                     ),
+                    clipBehavior: Clip.hardEdge,
                     child: MenuLayout(routes: widget.shellRoutes, moduleTabsEnabled: true),
                   ),
                 Expanded(child: widget.shellChild),
@@ -136,7 +139,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
         Container(
           width: 250,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.secondaryBackground,
             border: Border(right: BorderSide(color: theme.borderColor, width: 1)),
           ),
           child: MenuLayout(routes: widget.shellRoutes, moduleTabsEnabled: false),
@@ -160,7 +163,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
       children: [
         // ── Mobile header ──
         Container(
-          color: Colors.white,
+          color: theme.secondaryBackground,
           child: SafeArea(
             bottom: false,
             child: Container(
@@ -283,7 +286,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver {
   Widget _buildMobileDrawer(BuildContext context) {
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.85,
-      backgroundColor: Colors.white,
+      backgroundColor: CLTheme.of(context).secondaryBackground,
       shape: const RoundedRectangleBorder(),
       child: SafeArea(child: MenuLayout(routes: widget.shellRoutes)),
     );
@@ -315,7 +318,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: widget.modules.length, vsync: this);
+    _tabController = TabController(length: widget.modules.length, vsync: this, animationDuration: Duration.zero);
     _tabController.index = _currentTabIndex();
     _tabController.addListener(_onTabTapped);
   }
@@ -328,7 +331,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
     if (_tabController.length != widget.modules.length) {
       _tabController.removeListener(_onTabTapped);
       _tabController.dispose();
-      _tabController = TabController(length: widget.modules.length, vsync: this, initialIndex: desired);
+      _tabController = TabController(length: widget.modules.length, vsync: this, initialIndex: desired, animationDuration: Duration.zero);
       _tabController.addListener(_onTabTapped);
     } else if (_tabController.index != desired) {
       _tabController.removeListener(_onTabTapped);
@@ -355,89 +358,137 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
   void _onTabTapped() {
     if (_tabController.indexIsChanging) return;
     final mod = widget.modules[_tabController.index];
-    widget.moduleTheme.selectModule(_moduleEnumFromPath(mod.path));
+    final modEnum = _moduleEnumFromPath(mod.path);
+    widget.moduleTheme.selectModule(modEnum);
+    // Naviga alla root del modulo selezionato
+    context.go(mod.path);
+  }
+
+  /// Restituisce il colore primario light per un modulo dal suo path.
+  Color _moduleColorFromPath(String path) {
+    final mod = _moduleEnumFromPath(path);
+    return ModuleThemeProvider.palettes[mod]?.lightPrimary ?? const Color(0xFF0C8EC7);
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<CLAuthState>();
+    final themeProvider = context.watch<ThemeProvider>();
     final firstName = authState.currentUserInfo?.firstName ?? '';
     final lastName = authState.currentUserInfo?.lastName ?? '';
     final fullName = '$firstName $lastName'.trim();
+    final isDarkNow = themeProvider.isDarkMode;
+    final selectedIndex = _currentTabIndex();
 
     return Container(
-      height: 58,
+      height: 56,
       color: const Color(0xFF2E2E38),
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
           // ── Logo ──
-          LogoWidget(height: 22, dark: false, color: const Color(0xFF0C8EC7)),
-          const SizedBox(width: 24),
+          LogoWidget(height: 22, dark: true, color: const Color(0xFF0C8EC7)),
+          const SizedBox(width: 28),
 
-          // ── Module Tabs (1:1 CLTabView su sfondo scuro) ──
-          Expanded(
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(Sizes.borderRadius),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          // ── Module Tabs ──
+          Theme(
+            data: Theme.of(context).copyWith(splashFactory: NoSplash.splashFactory),
+            child: TabBar(
+              controller: _tabController,
+              indicator: UnderlineTabIndicator(
+                borderSide: BorderSide(
+                  color: _moduleColorFromPath(widget.modules[selectedIndex].path),
+                  width: 2.5,
                 ),
-                padding: const EdgeInsets.all(4),
-                child: Theme(
-                  data: Theme.of(context).copyWith(splashFactory: NoSplash.splashFactory),
-                  child: TabBar(
-                    controller: _tabController,
-                    indicator: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(Sizes.borderRadius - 2),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 4, offset: const Offset(0, 1))],
+                borderRadius: BorderRadius.circular(2),
+                insets: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              splashFactory: NoSplash.splashFactory,
+              dividerColor: Colors.transparent,
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              labelColor: Colors.white,
+              unselectedLabelColor: const Color(0xFF8B8FA0),
+              labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 13),
+              unselectedLabelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, fontSize: 13),
+              padding: EdgeInsets.zero,
+              indicatorPadding: EdgeInsets.zero,
+              labelPadding: EdgeInsets.zero,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              tabs: List.generate(widget.modules.length, (i) {
+                final mod = widget.modules[i];
+                return Tab(
+                  height: 56,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(mod.name),
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          const Spacer(),
+
+          // ── Tenant switch ──
+          if (authState.currentTenant != null)
+            MouseRegion(
+              cursor: authState.tenantList.length > 1 ? SystemMouseCursors.click : SystemMouseCursors.basic,
+              child: GestureDetector(
+                onTap: authState.tenantList.length > 1 ? () => authState.setCurrentTenant(null) : null,
+                child: Container(
+                  height: 32,
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        authState.currentTenant!.name,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (authState.tenantList.length > 1) ...[
+                        const SizedBox(width: 6),
+                        const HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 12, color: Color(0xFF94A3B8)),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // ── Theme toggle ──
+          Tooltip(
+            message: isDarkNow ? 'Modalità chiara' : 'Modalità scura',
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () async => await themeProvider.toggleTheme(),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: HugeIcon(
+                      icon: isDarkNow ? HugeIcons.strokeRoundedSun03 : HugeIcons.strokeRoundedMoon02,
+                      color: const Color(0xFF94A3B8),
+                      size: 16,
                     ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    dividerColor: Colors.transparent,
-                    overlayColor: WidgetStateProperty.all(Colors.transparent),
-                    labelColor: Colors.white,
-                    unselectedLabelColor: const Color(0x73FFFFFF),
-                    labelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 13),
-                    unselectedLabelStyle: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, fontSize: 13),
-                    padding: EdgeInsets.zero,
-                    indicatorPadding: EdgeInsets.zero,
-                    labelPadding: EdgeInsets.zero,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    tabs: List.generate(widget.modules.length, (i) {
-                      final mod = widget.modules[i];
-                      return Tab(
-                        height: 38,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(mod.name, overflow: TextOverflow.ellipsis, maxLines: 1, textAlign: TextAlign.center),
-                        ),
-                      );
-                    }),
                   ),
                 ),
               ),
             ),
           ),
-
-          // ── Tenant badge ──
-          if (authState.currentTenant != null)
-            Container(
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                authState.currentTenant!.name,
-                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
 
           // ── User Avatar + Menu ──
           CLPopupMenu(
@@ -465,7 +516,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(height: 30, width: 30, child: CLAvatarWidget(medias: [], elementToPreview: 1, name: fullName)),
+                      SizedBox(height: 28, width: 28, child: CLAvatarWidget(medias: [], elementToPreview: 1, name: fullName)),
                       const SizedBox(width: 8),
                       Text(firstName, style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1), fontWeight: FontWeight.w500)),
                       const SizedBox(width: 4),
@@ -489,4 +540,3 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
     return SkilleraModule.concierge;
   }
 }
-

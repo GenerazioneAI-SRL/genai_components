@@ -74,6 +74,13 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
   bool get hasNextPage => _hasNextPage;
   bool _initialized = false;
+  bool _disposed = false;
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
 
   set availableWidth(double newWidth) {
     _availableWidth = newWidth;
@@ -96,10 +103,10 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     required PagedDataTableController<TKey, TResultId, TResult>? controller,
     required this.refreshListener,
     required int pageSize,
-  }) : controller = controller ?? PagedDataTableController(),
-       _pageSize = pageSize,
-       _paginationKeys = {0: initialPage},
-       filters = (mainFilter != null ? {mainFilter.id: TableFilterState._internal(mainFilter)} : {}) {
+  })  : controller = controller ?? PagedDataTableController(),
+        _pageSize = pageSize,
+        _paginationKeys = {0: initialPage},
+        filters = (mainFilter != null ? {mainFilter.id: TableFilterState._internal(mainFilter)} : {}) {
     // Aggiungi extraFilters a filters
     if (extraFilters != null) {
       for (var v in extraFilters) {
@@ -110,22 +117,21 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   }
 
   Future downloadResult(SortBy? sortModel, Filtering filtering) async {
-    Map<String, dynamic> searchParams =
-        filtering.getAllFilters().map((key, value) {
-          // Gestione speciale per DateTimeRange
-          if (value.value is DateTimeRange) {
-            final dateRange = value.value as DateTimeRange;
-            String startIso = dateRange.start.toUtc().toIso8601String();
-            String endIso = dateRange.end.toUtc().toIso8601String();
+    Map<String, dynamic> searchParams = filtering.getAllFilters().map((key, value) {
+      // Gestione speciale per DateTimeRange
+      if (value.value is DateTimeRange) {
+        final dateRange = value.value as DateTimeRange;
+        String startIso = dateRange.start.toUtc().toIso8601String();
+        String endIso = dateRange.end.toUtc().toIso8601String();
 
-            // Assicuriamo che termini con Z
-            if (!startIso.endsWith('Z')) startIso += 'Z';
-            if (!endIso.endsWith('Z')) endIso += 'Z';
+        // Assicuriamo che termini con Z
+        if (!startIso.endsWith('Z')) startIso += 'Z';
+        if (!endIso.endsWith('Z')) endIso += 'Z';
 
-            return MapEntry(key, {'gte': startIso, 'lte': endIso});
-          }
-          return MapEntry(key, value.value);
-        }).cast<String, dynamic>();
+        return MapEntry(key, {'gte': startIso, 'lte': endIso});
+      }
+      return MapEntry(key, value.value);
+    }).cast<String, dynamic>();
 
     searchParams.removeWhere((key, value) => value == null);
     Map<String, dynamic> sortMap = sortModel != null ? {"columnId": sortModel.columnId, "mode": sortModel.descending ? "DESC" : "ASC"} : {};
@@ -305,6 +311,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
   @override
   void dispose() {
+    _disposed = true;
     filterChipsScrollController.dispose();
     _refreshListenerSubscription?.cancel();
     // Dispose risorse dei filtri (controller, focusNode, debounce timer)
@@ -323,33 +330,32 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   }
 
   Future<PaginationResult<TKey, TResult>> fetchResult(lookupKey, pageSize, SortBy? sortModel, Filtering filtering) async {
-    Map<String, dynamic> searchParams =
-        filtering.getAllFilters().map((key, value) {
-          // Gestione speciale per DateTimeRange
-          if (value.value is DateTimeRange) {
-            final dateRange = value.value as DateTimeRange;
-            String startIso = dateRange.start.toUtc().toIso8601String();
-            String endIso = dateRange.end.toUtc().toIso8601String();
+    Map<String, dynamic> searchParams = filtering.getAllFilters().map((key, value) {
+      // Gestione speciale per DateTimeRange
+      if (value.value is DateTimeRange) {
+        final dateRange = value.value as DateTimeRange;
+        String startIso = dateRange.start.toUtc().toIso8601String();
+        String endIso = dateRange.end.toUtc().toIso8601String();
 
-            // Assicuriamo che termini con Z
-            if (!startIso.endsWith('Z')) startIso += 'Z';
-            if (!endIso.endsWith('Z')) endIso += 'Z';
+        // Assicuriamo che termini con Z
+        if (!startIso.endsWith('Z')) startIso += 'Z';
+        if (!endIso.endsWith('Z')) endIso += 'Z';
 
-            return MapEntry(key, {'gte': startIso, 'lte': endIso});
-          }
+        return MapEntry(key, {'gte': startIso, 'lte': endIso});
+      }
 
-          // Gestione speciale per CLDropdownTableFilterAsync e CLDropdownTableFilterSync
-          var filterValue = value.value;
-          if (value._filter is CLDropdownTableFilterAsync) {
-            final dropdownFilter = value._filter as CLDropdownTableFilterAsync;
-            filterValue = dropdownFilter.getValueForBackend(value.value);
-          } else if (value._filter is CLDropdownTableFilterSync) {
-            final dropdownFilter = value._filter as CLDropdownTableFilterSync;
-            filterValue = dropdownFilter.getValueForBackend(value.value);
-          }
+      // Gestione speciale per CLDropdownTableFilterAsync e CLDropdownTableFilterSync
+      var filterValue = value.value;
+      if (value._filter is CLDropdownTableFilterAsync) {
+        final dropdownFilter = value._filter as CLDropdownTableFilterAsync;
+        filterValue = dropdownFilter.getValueForBackend(value.value);
+      } else if (value._filter is CLDropdownTableFilterSync) {
+        final dropdownFilter = value._filter as CLDropdownTableFilterSync;
+        filterValue = dropdownFilter.getValueForBackend(value.value);
+      }
 
-          return MapEntry(key, filterValue);
-        }).cast<String, dynamic>();
+      return MapEntry(key, filterValue);
+    }).cast<String, dynamic>();
     searchParams.removeWhere((key, value) => value == null);
     Map<String, dynamic> sortMap = sortModel != null ? {"columnId": sortModel.columnId, "mode": sortModel.descending ? "DESC" : "ASC"} : {};
     int currentPage = int.parse(lookupKey);
@@ -413,7 +419,6 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
       }
       notifyListeners();
     } catch (err, stack) {
-
       // store the error so the errorBuilder can display it
       _state = _TableState.error;
       _rowsChange++;

@@ -144,4 +144,10 @@ class NavigationState extends ChangeNotifier {
       _breadcrumbs.removeRange(1, _breadcrumbs.length);
     }
   }
+
+  @override
+  void dispose() {
+    headerTitleVisible.dispose();
+    super.dispose();
+  }
 }

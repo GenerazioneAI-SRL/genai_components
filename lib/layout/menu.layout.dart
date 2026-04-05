@@ -45,6 +45,14 @@ class MenuLayout extends StatefulWidget {
 }
 
 class _MenuLayoutState extends State<MenuLayout> {
+  late final Future<PackageInfo> _packageInfoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<CLAuthState>();
@@ -246,7 +254,7 @@ class _MenuLayoutState extends State<MenuLayout> {
 
           // ── Versione app ─────────────────────────────────────
           FutureBuilder<PackageInfo>(
-            future: PackageInfo.fromPlatform(),
+            future: _packageInfoFuture,
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const SizedBox.shrink();
               final info = snapshot.data!;
@@ -359,7 +367,7 @@ class _MenuLayoutState extends State<MenuLayout> {
     for (final route in routes) {
       if (route is ChildRoute && route.isVisible) {
         items.add(_buildChildRoute(navigationState, route));
-      } else if (route is ModuleRoute && route.isVisible) {
+      } else if (route is ModuleRoute && route.isVisible && route.showInSideMenu) {
         if (_countVisibleRoutes(route.module.routes) == 1 && route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
           items.add(_buildChildRoute(
             navigationState,
@@ -375,7 +383,7 @@ class _MenuLayoutState extends State<MenuLayout> {
         for (final subRoute in route.routes) {
           if (subRoute is ChildRoute && subRoute.isVisible) {
             items.add(_buildChildRoute(navigationState, subRoute));
-          } else if (subRoute is ModuleRoute && subRoute.isVisible) {
+          } else if (subRoute is ModuleRoute && subRoute.isVisible && subRoute.showInSideMenu) {
             if (_countVisibleRoutes(subRoute.module.routes) == 1 &&
                 subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
               items.add(_buildChildRoute(
@@ -399,12 +407,9 @@ class _MenuLayoutState extends State<MenuLayout> {
   Widget _buildChildRoute(NavigationState navigationState, ChildRoute route) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final selected = _isSelected(navigationState, route.path);
-    final theme = CLTheme.of(context);
-    final iconSize = isMobile ? 19.0 : 20.0;
 
     return _MenuTile(
       label: route.name,
-      icon: route.hasIcon ? route.buildIcon(size: iconSize, color: selected ? theme.primary : theme.secondaryText) : null,
       selected: selected,
       isMobile: isMobile,
       onTap: () {
@@ -414,29 +419,26 @@ class _MenuLayoutState extends State<MenuLayout> {
     );
   }
 
-  // ── Gruppo espandibile ─────────────────────────────────────────────────────
+  // ── Sezione menu (flat) ────────────────────────────────────────────────────
   Widget _buildGroupRoute(NavigationState navigationState, ModuleRoute subRoute, {String basePath = '', int depth = 0}) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final currentPath = "$basePath${subRoute.path}".replaceAll('//', '/');
     final isSelected = _isSelected(navigationState, currentPath, isParentRoute: true);
-    final theme = CLTheme.of(context);
-    final iconSize = isMobile ? 19.0 : 20.0;
-    final iconColor = isSelected ? theme.primary : theme.secondaryText;
 
-    return _MenuGroup(
-      title: subRoute.name,
-      isSelected: isSelected,
-      isMobile: isMobile,
-      depth: depth,
-      icon: subRoute.buildIcon(size: iconSize, color: iconColor) ?? HugeIcon(icon: HugeIcons.strokeRoundedFolder01, size: iconSize, color: iconColor),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _MenuSectionHeader(
+          title: subRoute.name,
+          isSelected: isSelected,
+        ),
         for (var childRoute in subRoute.module.routes)
           if (childRoute is ChildRoute && childRoute.isVisible)
-            _MenuSubTile(
+            _MenuTile(
               label: childRoute.name,
               selected: _isSelected(navigationState, "$currentPath${childRoute.path}".replaceAll('//', '/')),
               isMobile: isMobile,
-              depth: depth,
+              indent: depth + 1,
               onTap: () {
                 if (isMobile) _closeDrawer(context);
                 context.customGoNamed(childRoute.routeName ?? childRoute.name);
@@ -444,11 +446,11 @@ class _MenuLayoutState extends State<MenuLayout> {
             )
           else if (childRoute is ModuleRoute && childRoute.isVisible)
             if (childRoute.module.routes.where((r) => r is ChildRoute && r.isVisible).length == 1)
-              _MenuSubTile(
+              _MenuTile(
                 label: (childRoute.module.routes.where((r) => r is ChildRoute && r.isVisible).first as ChildRoute).name,
                 selected: _isSelected(navigationState, "$currentPath${childRoute.path}".replaceAll('//', '/')),
                 isMobile: isMobile,
-                depth: depth,
+                indent: depth + 1,
                 onTap: () {
                   if (isMobile) _closeDrawer(context);
                   context.go("$currentPath${childRoute.path}".replaceAll('//', '/'));
@@ -589,289 +591,21 @@ class _TenantCard extends StatelessWidget {
   }
 }
 
-/// Voce di menu — design system §8.4
-/// Active: suite color tint bg piena, weight 600, border-left 3px.
-/// Nessun hover, nessuna stondatura, nessun margin.
+/// Voce di menu — stile coerente per tutte le label.
+/// Active: suite color tint bg, weight 600, border-right 2.5px.
 class _MenuTile extends StatelessWidget {
-  const _MenuTile({required this.label, required this.selected, required this.isMobile, required this.onTap, this.icon});
-
-  final String label;
-  final Widget? icon;
-  final bool selected;
-  final bool isMobile;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-    final suiteColor = theme.primary;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: isMobile ? 13 : 12,
-          ),
-          decoration: BoxDecoration(
-            color: selected ? suiteColor.withValues(alpha: 0.10) : Colors.transparent,
-            border: Border(
-              left: BorderSide(
-                color: selected ? suiteColor : Colors.transparent,
-                width: 3,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              if (icon != null) ...[icon!, const SizedBox(width: 10)],
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    color: selected ? suiteColor : const Color(0xFF6B7080),
-                    height: 1.4,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Gruppo espandibile — design system §8.4
-/// Section header in overline style: 9px, uppercase, letter-spacing 0.1em, suite color 60%.
-/// Top level: overline header + accordion figli.
-/// Nested: indented con linea verticale sottile.
-class _MenuGroup extends StatefulWidget {
-  const _MenuGroup({
-    required this.title,
-    required this.isSelected,
-    required this.isMobile,
-    required this.icon,
-    required this.children,
-    this.depth = 0,
-  });
-
-  final String title;
-  final bool isSelected;
-  final bool isMobile;
-  final Widget icon;
-  final List<Widget> children;
-  final int depth;
-
-  @override
-  State<_MenuGroup> createState() => _MenuGroupState();
-}
-
-class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMixin {
-  late bool _expanded;
-  late AnimationController _rotationCtrl;
-  bool _hovered = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _expanded = widget.isSelected;
-    _rotationCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 200), value: _expanded ? 1.0 : 0.0);
-  }
-
-  @override
-  void dispose() {
-    _rotationCtrl.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    setState(() => _expanded = !_expanded);
-    _expanded ? _rotationCtrl.forward() : _rotationCtrl.reverse();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isNested = widget.depth > 0;
-    if (isNested) {
-      return _buildNestedGroup();
-    }
-    return _buildTopLevelGroup();
-  }
-
-  /// Gruppo di primo livello — header con icona + label + accordion
-  Widget _buildTopLevelGroup() {
-    final theme = CLTheme.of(context);
-    final suiteColor = theme.primary;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ── Section header con icona ──
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 4),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: _toggle,
-              child: Row(
-                children: [
-                  // Icona del modulo (o cartella default)
-                  widget.icon,
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: widget.isSelected ? suiteColor : const Color(0xFF2E2E38),
-                        height: 1.4,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  AnimatedRotation(
-                    duration: const Duration(milliseconds: 200),
-                    turns: _expanded ? 0.25 : 0.0,
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedArrowRight01,
-                      size: 14,
-                      color: widget.isSelected ? suiteColor : const Color(0xFF6B7080),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // ── Children accordion ──
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child: _expanded
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-
-  /// Gruppo annidato (depth >= 1) — indentato con linea verticale
-  Widget _buildNestedGroup() {
-    final theme = CLTheme.of(context);
-    final suiteColor = theme.primary;
-    final leftIndent = 14.0 + (widget.depth) * 12.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: _toggle,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.symmetric(vertical: 1),
-              padding: EdgeInsets.symmetric(horizontal: leftIndent, vertical: widget.isMobile ? 11 : 10),
-              decoration: BoxDecoration(
-                color: widget.isSelected
-                    ? suiteColor.withValues(alpha: 0.08)
-                    : _hovered
-                        ? const Color(0xFFFAFBFC)
-                        : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                children: [
-                  // Linea verticale
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 2,
-                    height: 16,
-                    margin: const EdgeInsets.only(right: 10),
-                    decoration: BoxDecoration(
-                      color: widget.isSelected
-                          ? suiteColor
-                          : _hovered
-                              ? suiteColor.withValues(alpha: 0.4)
-                              : const Color(0xFFE8EBF0),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
-                        fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: widget.isSelected ? suiteColor : const Color(0xFF6B7080),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  AnimatedRotation(
-                    duration: const Duration(milliseconds: 200),
-                    turns: _expanded ? 0.25 : 0.0,
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedArrowRight01,
-                      size: 12,
-                      color: widget.isSelected ? suiteColor : const Color(0xFF6B7080),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child: _expanded
-              ? Padding(
-                  padding: EdgeInsets.only(left: widget.depth * 8.0, bottom: 2),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-}
-
-/// Voce figlia — design system §8.4
-/// Stile identico a _MenuTile ma con indent tramite padding.
-/// Nessun hover, nessuna stondatura, nessun margin.
-class _MenuSubTile extends StatelessWidget {
-  const _MenuSubTile({required this.label, required this.selected, required this.isMobile, required this.onTap, this.depth = 0});
+  const _MenuTile({required this.label, required this.selected, required this.isMobile, required this.onTap, this.indent = 0});
 
   final String label;
   final bool selected;
   final bool isMobile;
   final VoidCallback onTap;
-  final int depth;
+  final int indent;
 
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final suiteColor = theme.primary;
-    final leftPad = 14.0 + (depth + 1) * 10.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -879,7 +613,7 @@ class _MenuSubTile extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: Container(
           padding: EdgeInsets.fromLTRB(
-            leftPad,
+            14,
             isMobile ? 11 : 10,
             14,
             isMobile ? 11 : 10,
@@ -887,25 +621,54 @@ class _MenuSubTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? suiteColor.withValues(alpha: 0.10) : Colors.transparent,
             border: Border(
-              left: BorderSide(
+              right: BorderSide(
                 color: selected ? suiteColor : Colors.transparent,
-                width: 3,
+                width: 2.5,
               ),
             ),
           ),
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
+            style: theme.bodyLabel.copyWith(
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: selected ? suiteColor : const Color(0xFF6B7080),
+              color: selected ? suiteColor : theme.secondaryText,
+              fontSize: 13,
               height: 1.4,
             ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Section header per raggruppare le voci di menu.
+/// Stile overline: icona piccola + titolo uppercase, nessuna interazione.
+class _MenuSectionHeader extends StatelessWidget {
+  const _MenuSectionHeader({required this.title, required this.isSelected});
+
+  final String title;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final suiteColor = theme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 18, 14, 6),
+      child: Text(
+        title.toUpperCase(),
+        style: theme.smallLabel.copyWith(
+          fontWeight: FontWeight.w700,
+          color: isSelected ? suiteColor : theme.secondaryText,
+          fontSize: 10,
+          letterSpacing: 0.8,
+        ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

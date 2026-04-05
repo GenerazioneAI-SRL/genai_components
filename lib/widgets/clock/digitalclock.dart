@@ -20,7 +20,17 @@ class DigitalClock extends StatefulWidget {
   ///For more info about skeletons please refer to this site https://pub.dev/documentation/intl/latest/intl/DateFormat-class.html
   final String? format;
 
-  const DigitalClock({this.format, this.datetime, this.showSeconds = true,this.showDate = true, this.decoration, this.padding, this.digitalClockTextColor = Colors.black, this.textScaleFactor = 1.0, isLive, super.key})
+  const DigitalClock(
+      {this.format,
+      this.datetime,
+      this.showSeconds = true,
+      this.showDate = true,
+      this.decoration,
+      this.padding,
+      this.digitalClockTextColor = Colors.black,
+      this.textScaleFactor = 1.0,
+      isLive,
+      super.key})
       : isLive = isLive ?? (datetime == null);
 
   @override
@@ -30,6 +40,7 @@ class DigitalClock extends StatefulWidget {
 class _DigitalClockState extends State<DigitalClock> {
   DateTime initialDatetime; // to keep track of time changes
   DateTime datetime;
+  Timer? _timer;
 
   Duration updateDuration = const Duration(seconds: 1); // repaint frequency
   _DigitalClockState(datetime)
@@ -42,9 +53,7 @@ class _DigitalClockState extends State<DigitalClock> {
 
     updateDuration = const Duration(seconds: 1);
     if (widget.isLive) {
-      // update clock every second or minute based on second hand's visibility.
-
-      Timer.periodic(updateDuration, update);
+      _timer = Timer.periodic(updateDuration, update);
     }
   }
 
@@ -62,9 +71,21 @@ class _DigitalClockState extends State<DigitalClock> {
       decoration: widget.decoration,
       padding: widget.padding,
       child: Container(
-          constraints: BoxConstraints(minWidth: widget.showDate?220 * widget.textScaleFactor:widget.showSeconds ? 110 * widget.textScaleFactor : 85.0 * widget.textScaleFactor, minHeight: 30.0 * widget.textScaleFactor),
+          constraints: BoxConstraints(
+              minWidth: widget.showDate
+                  ? 220 * widget.textScaleFactor
+                  : widget.showSeconds
+                      ? 110 * widget.textScaleFactor
+                      : 85.0 * widget.textScaleFactor,
+              minHeight: 30.0 * widget.textScaleFactor),
           child: CustomPaint(
-            painter: DigitalClockPainter( format: widget.format,showDate:widget.showDate, showSeconds: widget.showSeconds, datetime: datetime, digitalClockTextColor: widget.digitalClockTextColor, textScaleFactor: widget.textScaleFactor),
+            painter: DigitalClockPainter(
+                format: widget.format,
+                showDate: widget.showDate,
+                showSeconds: widget.showSeconds,
+                datetime: datetime,
+                digitalClockTextColor: widget.digitalClockTextColor,
+                textScaleFactor: widget.textScaleFactor),
           )),
     );
   }
@@ -78,5 +99,11 @@ class _DigitalClockState extends State<DigitalClock> {
     } else if (widget.isLive && widget.datetime != oldWidget.datetime) {
       initialDatetime = widget.datetime ?? DateTime.now();
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }

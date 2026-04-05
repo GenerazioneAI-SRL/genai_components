@@ -12,11 +12,19 @@ class ModuleRoute extends ModularRoute {
   final HugeIcon? hugeIcon;
   final bool isVisible;
 
+  /// Se true, il modulo compare come tab nella top bar.
+  final bool showInTopBar;
+
+  /// Se true, il modulo compare nel side menu.
+  final bool showInSideMenu;
+
   ModuleRoute({
     required this.module,
     this.icon,
     this.hugeIcon,
     this.isVisible = true,
+    this.showInTopBar = true,
+    this.showInSideMenu = true,
   }) {
     name = module.moduleRoute.name;
     path = module.moduleRoute.path;

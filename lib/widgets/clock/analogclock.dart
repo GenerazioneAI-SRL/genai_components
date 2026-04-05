@@ -78,8 +78,11 @@ class AnalogClock extends StatefulWidget {
 class _AnalogClockState extends State<AnalogClock> {
   DateTime initialDatetime; // to keep track of time changes
   DateTime datetime;
+  Timer? _timer;
   Duration updateDuration = const Duration(seconds: 1); // repaint frequency
-  _AnalogClockState(datetime) : datetime = datetime ?? DateTime.now(), initialDatetime = datetime ?? DateTime.now();
+  _AnalogClockState(datetime)
+      : datetime = datetime ?? DateTime.now(),
+        initialDatetime = datetime ?? DateTime.now();
 
   @override
   initState() {
@@ -88,8 +91,7 @@ class _AnalogClockState extends State<AnalogClock> {
     updateDuration = const Duration(seconds: 1);
 
     if (widget.isLive) {
-      // update clock every second or minute based on second hand's visibility.
-      Timer.periodic(updateDuration, update);
+      _timer = Timer.periodic(updateDuration, update);
     }
   }
 
@@ -151,5 +153,11 @@ class _AnalogClockState extends State<AnalogClock> {
     } else if (widget.isLive && widget.datetime != oldWidget.datetime) {
       initialDatetime = widget.datetime ?? DateTime.now();
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }
