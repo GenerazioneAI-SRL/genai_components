@@ -16,16 +16,29 @@ import 'package:cl_components/router/go_router_modular/routes/i_modular_route.da
 import 'package:cl_components/router/go_router_modular/routes/module_route.dart';
 import 'package:cl_components/router/go_router_modular/routes/shell_modular_route.dart';
 import 'package:cl_components/utils/providers/navigation.util.provider.dart';
+import 'package:cl_components/utils/providers/module_theme.util.provider.dart';
 import 'package:cl_components/cl_theme.dart';
 
 class MenuLayout extends StatefulWidget {
   final List<ModularRoute> routes;
   final String? logoImagePath;
   final String? logoImagePathMini;
+
   /// Callback quando l'utente clicca sul tenant card. Se null, il tap non fa nulla.
   final VoidCallback? onTenantTap;
 
-  const MenuLayout({super.key, required this.routes, this.logoImagePath, this.logoImagePathMini, this.onTenantTap});
+  /// Se true, filtra le route per il modulo selezionato nella top bar.
+  /// Se false, mostra tutte le route (comportamento classico).
+  final bool moduleTabsEnabled;
+
+  const MenuLayout({
+    super.key,
+    required this.routes,
+    this.logoImagePath,
+    this.logoImagePathMini,
+    this.onTenantTap,
+    this.moduleTabsEnabled = false,
+  });
 
   @override
   createState() => _MenuLayoutState();
@@ -40,43 +53,45 @@ class _MenuLayoutState extends State<MenuLayout> {
     final theme = CLTheme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Mobile: sfondo opaco. Desktop: trasparente (il glass è nel container di app.layout)
-    final menuBg = isMobile ? (isDark ? theme.primaryBackground : Colors.white) : Colors.transparent;
-
     return Container(
       width: isMobile ? double.infinity : null,
-      color: isMobile ? menuBg : Colors.transparent,
+      color: Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: Sizes.padding),
-            child: _MenuHeader(authState: authState, isMobile: isMobile, onClose: () => _closeDrawer(context)),
-          ),
+          // ── Logo & Header (solo mobile — su desktop è nella top bar) ──
+          if (isMobile) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: Sizes.padding),
+              child: _MenuHeader(authState: authState, isMobile: isMobile, onClose: () => _closeDrawer(context)),
+            ),
 
-          // ── Tenant Card ──────────────────────────────────────
-          if (authState.currentTenant != null)
-            _TenantCard(
-              authState: authState,
-              isMobile: isMobile,
-              onTap: () {
-                if (isMobile) _closeDrawer(context);
-                widget.onTenantTap?.call();
-              },
-              onSwitch:
-                  authState.tenantList.length > 1
-                      ? () {
+            // ── Tenant Card ──
+            if (authState.currentTenant != null)
+              _TenantCard(
+                authState: authState,
+                isMobile: isMobile,
+                onTap: () {
+                  if (isMobile) _closeDrawer(context);
+                  widget.onTenantTap?.call();
+                },
+                onSwitch: authState.tenantList.length > 1
+                    ? () {
                         if (isMobile) _closeDrawer(context);
                         authState.setCurrentTenant(null);
                       }
-                      : null,
-            ),
+                    : null,
+              ),
 
-          // ── Divider ──────────────────────────────────────────
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: isMobile ? 6 : 8),
-            child: Divider(color: theme.borderColor, height: 1, thickness: 1),
-          ),
+            // ── Divider ──
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 6),
+              child: Divider(color: theme.borderColor, height: 1, thickness: 1),
+            ),
+          ] else ...[
+            // Desktop: piccolo padding in alto
+            const SizedBox(height: 12),
+          ],
 
           // ── Voci menu ────────────────────────────────────────
           Expanded(
@@ -85,39 +100,7 @@ class _MenuLayoutState extends State<MenuLayout> {
               padding: EdgeInsets.fromLTRB(Sizes.padding * 0.6, 0, Sizes.padding * 0.6, Sizes.padding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var route in widget.routes)
-                    if (route is ChildRoute && route.isVisible)
-                      _buildChildRoute(navigationState, route)
-                    else if (route is ModuleRoute && route.isVisible)
-                      if (_countVisibleRoutes(route.module.routes) == 1 &&
-                          route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
-                        _buildChildRoute(
-                          navigationState,
-                          (route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
-                            ..icon = route.icon
-                            ..hugeIcon = route.hugeIcon
-                            ..path = route.module.moduleRoute.path,
-                        )
-                      else
-                        _buildGroupRoute(navigationState, route, depth: 0)
-                    else if (route is ShellModularRoute)
-                      for (var subRoute in route.routes)
-                        if (subRoute is ChildRoute && subRoute.isVisible)
-                          _buildChildRoute(navigationState, subRoute)
-                        else if (subRoute is ModuleRoute && subRoute.isVisible)
-                          if (_countVisibleRoutes(subRoute.module.routes) == 1 &&
-                              subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
-                            _buildChildRoute(
-                              navigationState,
-                              (subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
-                                ..icon = subRoute.icon
-                                ..hugeIcon = subRoute.hugeIcon
-                                ..path = subRoute.module.moduleRoute.path,
-                            )
-                          else
-                            _buildGroupRoute(navigationState, subRoute, depth: 0),
-                ],
+                children: _buildMenuItems(navigationState, isMobile),
               ),
             ),
           ),
@@ -217,15 +200,9 @@ class _MenuLayoutState extends State<MenuLayout> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: Sizes.padding * 0.6),
                     decoration: BoxDecoration(
-                      color:
-                          isMobile
-                              ? (isDark ? theme.secondaryBackground : Colors.white)
-                              : (isDark ? theme.secondaryBackground.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6)),
+                      color: isDark ? theme.secondaryBackground : const Color(0xFFF8F9FA),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color:
-                            isDark ? theme.borderColor.withValues(alpha: isMobile ? 1.0 : 0.5) : Colors.white.withValues(alpha: isMobile ? 0.0 : 0.8),
-                      ),
+                      border: Border.all(color: theme.borderColor),
                     ),
                     child: Row(
                       children: [
@@ -263,9 +240,9 @@ class _MenuLayoutState extends State<MenuLayout> {
                     ),
                   ),
                 );
-                },
-              ),
+              },
             ),
+          ),
 
           // ── Versione app ─────────────────────────────────────
           FutureBuilder<PackageInfo>(
@@ -294,6 +271,128 @@ class _MenuLayoutState extends State<MenuLayout> {
     if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
       Navigator.of(context).pop();
     }
+  }
+
+  // ── Logica costruzione voci menu ────────────────────────────────────────────
+
+  /// Su desktop con moduleTabsEnabled: mostra solo le sotto-route del modulo selezionato.
+  /// Altrimenti: mostra tutte le route (comportamento classico).
+  List<Widget> _buildMenuItems(NavigationState navigationState, bool isMobile) {
+    // Mobile o moduleTabsEnabled disabilitato → mostra tutte le route
+    if (isMobile || !widget.moduleTabsEnabled) {
+      return _buildAllRoutes(navigationState, widget.routes);
+    }
+
+    // Desktop con module tabs: filtra per modulo selezionato
+    final moduleTheme = context.watch<ModuleThemeProvider>();
+    final activeModule = _findModuleForSelected(moduleTheme.selectedModule);
+    if (activeModule != null) {
+      return _buildModuleSubRoutes(navigationState, activeModule);
+    }
+
+    // Fallback: mostra tutte le route
+    return _buildAllRoutes(navigationState, widget.routes);
+  }
+
+  /// Trova il ModuleRoute corrispondente al SkilleraModule selezionato.
+  ModuleRoute? _findModuleForSelected(SkilleraModule selected) {
+    final allModules = <ModuleRoute>[];
+    for (final route in widget.routes) {
+      if (route is ModuleRoute) {
+        allModules.add(route);
+      } else if (route is ShellModularRoute) {
+        for (final sub in route.routes) {
+          if (sub is ModuleRoute) allModules.add(sub);
+        }
+      }
+    }
+
+    for (final mod in allModules) {
+      if (_moduleEnumFromPath(mod.path) == selected) {
+        return mod;
+      }
+    }
+    return null;
+  }
+
+  /// Mappa un path di modulo al corrispondente SkilleraModule.
+  static SkilleraModule _moduleEnumFromPath(String path) {
+    if (path.startsWith('/skill-hr')) return SkilleraModule.hr;
+    if (path.startsWith('/skill-cert')) return SkilleraModule.cert;
+    if (path.startsWith('/skill-lms')) return SkilleraModule.lms;
+    if (path.startsWith('/skill-id')) return SkilleraModule.id;
+    return SkilleraModule.concierge;
+  }
+
+  /// Costruisce le sotto-route di un singolo modulo (per la sidebar desktop).
+  List<Widget> _buildModuleSubRoutes(NavigationState navigationState, ModuleRoute activeModule) {
+    final List<Widget> items = [];
+    final basePath = activeModule.path;
+
+    for (final route in activeModule.module.routes) {
+      if (route is ChildRoute && route.isVisible) {
+        // Route figlia diretta del modulo
+        items.add(_buildChildRoute(navigationState, route));
+      } else if (route is ModuleRoute && route.isVisible) {
+        // Sotto-modulo: se ha una sola route visibile → voce semplice, altrimenti → gruppo
+        if (_countVisibleRoutes(route.module.routes) == 1 && route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
+          final child = route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first;
+          items.add(_buildChildRoute(
+            navigationState,
+            child
+              ..icon = route.icon
+              ..hugeIcon = route.hugeIcon
+              ..path = '$basePath${route.path}'.replaceAll('//', '/'),
+          ));
+        } else {
+          items.add(_buildGroupRoute(navigationState, route, basePath: basePath, depth: 0));
+        }
+      }
+    }
+
+    return items;
+  }
+
+  /// Costruisce tutte le route (usato su mobile e come fallback).
+  List<Widget> _buildAllRoutes(NavigationState navigationState, List<ModularRoute> routes) {
+    final List<Widget> items = [];
+    for (final route in routes) {
+      if (route is ChildRoute && route.isVisible) {
+        items.add(_buildChildRoute(navigationState, route));
+      } else if (route is ModuleRoute && route.isVisible) {
+        if (_countVisibleRoutes(route.module.routes) == 1 && route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
+          items.add(_buildChildRoute(
+            navigationState,
+            (route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
+              ..icon = route.icon
+              ..hugeIcon = route.hugeIcon
+              ..path = route.module.moduleRoute.path,
+          ));
+        } else {
+          items.add(_buildGroupRoute(navigationState, route, depth: 0));
+        }
+      } else if (route is ShellModularRoute) {
+        for (final subRoute in route.routes) {
+          if (subRoute is ChildRoute && subRoute.isVisible) {
+            items.add(_buildChildRoute(navigationState, subRoute));
+          } else if (subRoute is ModuleRoute && subRoute.isVisible) {
+            if (_countVisibleRoutes(subRoute.module.routes) == 1 &&
+                subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
+              items.add(_buildChildRoute(
+                navigationState,
+                (subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
+                  ..icon = subRoute.icon
+                  ..hugeIcon = subRoute.hugeIcon
+                  ..path = subRoute.module.moduleRoute.path,
+              ));
+            } else {
+              items.add(_buildGroupRoute(navigationState, subRoute, depth: 0));
+            }
+          }
+        }
+      }
+    }
+    return items;
   }
 
   // ── Voce semplice ──────────────────────────────────────────────────────────
@@ -443,10 +542,9 @@ class _TenantCard extends StatelessWidget {
         margin: EdgeInsets.symmetric(horizontal: Sizes.padding * 0.6, vertical: isMobile ? 2 : 4),
         padding: EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: isMobile ? 8 : 10),
         decoration: BoxDecoration(
-          color:
-              isMobile
-                  ? (isDark ? theme.secondaryBackground : Colors.white)
-                  : (isDark ? theme.secondaryBackground.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6)),
+          color: isMobile
+              ? (isDark ? theme.secondaryBackground : Colors.white)
+              : (isDark ? theme.secondaryBackground.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: theme.borderColor),
         ),
@@ -466,7 +564,8 @@ class _TenantCard extends StatelessWidget {
                   ),
                   if (authState.currentTenant!.rawData['vatNumber'] != null) ...[
                     const SizedBox(height: 1),
-                    Text('P.IVA ${authState.currentTenant!.rawData['vatNumber']}', style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10)),
+                    Text('P.IVA ${authState.currentTenant!.rawData['vatNumber']}',
+                        style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10)),
                   ],
                 ],
               ),
@@ -530,10 +629,9 @@ class _MenuTileState extends State<_MenuTile> {
           height: h,
           margin: const EdgeInsets.symmetric(vertical: 1.5),
           decoration: BoxDecoration(
-            color:
-                widget.selected
-                    ? theme.primary.withValues(alpha: 0.12)
-                    : _hovered
+            color: widget.selected
+                ? theme.primary.withValues(alpha: 0.12)
+                : _hovered
                     ? theme.primary.withValues(alpha: 0.05)
                     : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
@@ -654,10 +752,9 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
               height: h,
               margin: const EdgeInsets.symmetric(vertical: 1.5),
               decoration: BoxDecoration(
-                color:
-                    widget.isSelected
-                        ? theme.primary.withValues(alpha: 0.08)
-                        : _hovered
+                color: widget.isSelected
+                    ? theme.primary.withValues(alpha: 0.08)
+                    : _hovered
                         ? theme.primary.withValues(alpha: 0.05)
                         : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
@@ -705,13 +802,12 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
-          child:
-              _expanded
-                  ? Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
-                  )
-                  : const SizedBox.shrink(),
+          child: _expanded
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );
@@ -736,10 +832,9 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
               height: h,
               margin: const EdgeInsets.symmetric(vertical: 1),
               decoration: BoxDecoration(
-                color:
-                    widget.isSelected
-                        ? theme.primary.withValues(alpha: 0.08)
-                        : _hovered
+                color: widget.isSelected
+                    ? theme.primary.withValues(alpha: 0.08)
+                    : _hovered
                         ? theme.primary.withValues(alpha: 0.04)
                         : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
@@ -753,10 +848,9 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
                     width: 2,
                     height: h * 0.55,
                     decoration: BoxDecoration(
-                      color:
-                          widget.isSelected
-                              ? theme.primary
-                              : _hovered
+                      color: widget.isSelected
+                          ? theme.primary
+                          : _hovered
                               ? theme.primary.withValues(alpha: 0.4)
                               : theme.borderColor,
                       borderRadius: BorderRadius.circular(99),
@@ -797,13 +891,12 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
-          child:
-              _expanded
-                  ? Padding(
-                    padding: EdgeInsets.only(left: widget.depth * 8.0, bottom: 2),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
-                  )
-                  : const SizedBox.shrink(),
+          child: _expanded
+              ? Padding(
+                  padding: EdgeInsets.only(left: widget.depth * 8.0, bottom: 2),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );
@@ -851,10 +944,9 @@ class _MenuSubTileState extends State<_MenuSubTile> {
           height: h,
           margin: const EdgeInsets.symmetric(vertical: 1),
           decoration: BoxDecoration(
-            color:
-                widget.selected
-                    ? theme.primary.withValues(alpha: 0.1)
-                    : _hovered
+            color: widget.selected
+                ? theme.primary.withValues(alpha: 0.1)
+                : _hovered
                     ? theme.primary.withValues(alpha: 0.04)
                     : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -869,10 +961,9 @@ class _MenuSubTileState extends State<_MenuSubTile> {
                 width: 2,
                 height: h * 0.55,
                 decoration: BoxDecoration(
-                  color:
-                      widget.selected
-                          ? theme.primary
-                          : _hovered
+                  color: widget.selected
+                      ? theme.primary
+                      : _hovered
                           ? theme.primary.withValues(alpha: 0.4)
                           : theme.borderColor,
                   borderRadius: BorderRadius.circular(99),

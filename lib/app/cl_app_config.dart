@@ -47,6 +47,11 @@ abstract class CLAppConfig {
   /// Breakpoint per il passaggio mobile/desktop
   double get mobileBreakpoint => 1079;
 
+  /// Abilita le tab dei moduli nella top bar.
+  /// Se true: header scuro con tab colorate per modulo, sidebar filtrata.
+  /// Se false: sidebar con tutte le route visibili, nessuna tab.
+  bool get moduleTabsEnabled => false;
+
   /// Redirect custom del router globale
   String? Function(BuildContext context, dynamic state)? get customRedirect =>
       null;

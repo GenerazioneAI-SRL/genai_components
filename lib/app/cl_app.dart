@@ -35,9 +35,7 @@ import 'cl_app_config.dart';
 class _MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
+    return super.createHttpClient(context)..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
   }
 }
 
@@ -78,8 +76,7 @@ class CLApp {
       debugLogDiagnostics: config.debugLogDiagnostics,
       debugLogDiagnosticsGoRouter: false,
       pageTransition: PageTransition.fade,
-      refreshListenable:
-          Listenable.merge([authState, navigationState, appState, errorState]),
+      refreshListenable: Listenable.merge([authState, navigationState, appState, errorState]),
       redirect: (context, state) {
         try {
           if (config.customRedirect != null) {
@@ -127,11 +124,11 @@ class CLApp {
 /// AppModule generico che usa CLAppConfig
 class _CLAppModule extends Module {
   final CLAppConfig config;
+
   _CLAppModule(this.config);
 
   @override
   CLRoute get moduleRoute => CLRoute(name: "App", path: "/app");
-
 
   @override
   List<ModularRoute> get routes => [
@@ -148,14 +145,17 @@ class _CLAppModule extends Module {
         ),
         if (config.shellRoutes.isNotEmpty)
           ShellModularRoute(
-            builder: (context, state, child) => AppLayout(shellChild: child, shellRoutes: config.shellRoutes),
+            builder: (context, state, child) => AppLayout(
+              shellChild: child,
+              shellRoutes: config.shellRoutes,
+              moduleTabsEnabled: config.moduleTabsEnabled,
+            ),
             observers: [
               GoRouterBreadcrumbObserver(),
               CLResumeObserver.instance,
             ],
             redirect: (context, state) {
-              final authState =
-                  Provider.of<CLAuthState>(context, listen: false);
+              final authState = Provider.of<CLAuthState>(context, listen: false);
               if (!authState.isAuthenticated) {
                 return config.authRoute;
               }
@@ -223,8 +223,7 @@ class _CLMainApp extends StatelessWidget {
           ),
           breakpoints: [
             Breakpoint(start: 0, end: mobileBreakpoint, name: MOBILE),
-            Breakpoint(
-                start: mobileBreakpoint, end: double.infinity, name: DESKTOP),
+            Breakpoint(start: mobileBreakpoint, end: double.infinity, name: DESKTOP),
           ],
         );
       },
@@ -244,8 +243,8 @@ class _CLMainApp extends StatelessWidget {
 class _RootScaffold extends StatelessWidget {
   final Locale locale;
   final Widget child;
-  const _RootScaffold({required this.locale, required this.child});
 
+  const _RootScaffold({required this.locale, required this.child});
 
   @override
   Widget build(BuildContext context) {

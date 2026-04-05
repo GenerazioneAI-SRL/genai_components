@@ -94,21 +94,23 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                         ),
                       ),
 
-                    // Column headers
+                    // Column headers — flexible to avoid overflow
                     ...state.columns.map((column) {
                       final isSorted = state.hasSortModel && state._sortModel!.columnId == column.id;
+                      final flex = ((column.sizeFactor ?? 0.1) * 1000).round();
 
-                      return _ColumnHeader(
-                        column: column,
-                        width: column.sizeFactor == null ? state._nullSizeFactorColumnsWidth : width * column.sizeFactor!,
-                        isSorted: isSorted,
-                        isDescending: isSorted ? state._sortModel!._descending : false,
-                        onSort: column.sortable ? () => state.swapSortBy(column.id!) : null,
+                      return Flexible(
+                        flex: flex,
+                        child: _ColumnHeader(
+                          column: column,
+                          isSorted: isSorted,
+                          isDescending: isSorted ? state._sortModel!._descending : false,
+                          onSort: column.sortable ? () => state.swapSortBy(column.id!) : null,
+                        ),
                       );
                     }),
 
-                    // Spacer + actions placeholder to match rows
-                    const Spacer(),
+                    // Actions placeholder to match rows
                     if (hasActions)
                       const SizedBox(width: 40),
                   ],
@@ -155,14 +157,12 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
 // Widget separato per column header con hover state
 class _ColumnHeader<TResult extends Object> extends StatefulWidget {
   final BaseTableColumn<TResult> column;
-  final double width;
   final bool isSorted;
   final bool isDescending;
   final VoidCallback? onSort;
 
   const _ColumnHeader({
     required this.column,
-    required this.width,
     required this.isSorted,
     required this.isDescending,
     this.onSort,
@@ -197,7 +197,6 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: Sizes.padding),
-          width: widget.width,
           decoration: BoxDecoration(
             color: Colors.transparent,
           ),
