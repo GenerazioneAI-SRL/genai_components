@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:cl_components/utils/shared_manager.util.dart';
-import 'package:cl_components/models/pageaction.model.dart';
+import 'package:genai_components/utils/shared_manager.util.dart';
+import 'package:genai_components/models/pageaction.model.dart';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 

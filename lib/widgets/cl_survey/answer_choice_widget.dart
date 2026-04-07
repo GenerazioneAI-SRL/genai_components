@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:star_rating/star_rating.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/widgets/cl_text_field.widget.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/widgets/cl_text_field.widget.dart';
 
 import '../../layout/constants/sizes.constant.dart';
 import 'models/option.dart';

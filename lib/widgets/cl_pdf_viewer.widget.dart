@@ -1,4 +1,4 @@
-import 'package:cl_components/layout/constants/sizes.constant.dart';
+import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:pdfrx/pdfrx.dart';

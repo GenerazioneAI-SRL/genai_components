@@ -38,7 +38,7 @@ class _MyHttpOverrides extends HttpOverrides {
   }
 }
 
-/// Entry point generico per le app basate su cl_components.
+/// Entry point generico per le app basate su genai_components.
 ///
 /// Uso:
 /// ```dart

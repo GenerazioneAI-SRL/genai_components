@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:cl_components/widgets/alertmanager/alert_manager.dart';
+import 'package:genai_components/widgets/alertmanager/alert_manager.dart';
 
 extension DownloadExtension on BuildContext {
   Future<void> downloadFile(String url) async {

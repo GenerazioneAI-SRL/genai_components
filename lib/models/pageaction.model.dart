@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/widgets/buttons/cl_button.widget.dart';
-import 'package:cl_components/widgets/buttons/cl_outline_button.widget.dart';
-import 'package:cl_components/widgets/buttons/cl_ghost_button.widget.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/widgets/buttons/cl_button.widget.dart';
+import 'package:genai_components/widgets/buttons/cl_outline_button.widget.dart';
+import 'package:genai_components/widgets/buttons/cl_ghost_button.widget.dart';
 
 /// Azione contestuale di pagina — usata per creare bottoni nel CLPageHeader.
 class PageAction {

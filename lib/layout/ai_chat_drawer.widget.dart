@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cl_components/widgets/cl_ai_assistant/flutter_ai_assistant.dart';
+import 'package:genai_components/widgets/cl_ai_assistant/flutter_ai_assistant.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../cl_theme.dart';
 import 'constants/sizes.constant.dart';

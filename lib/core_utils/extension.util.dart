@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:cl_components/router/go_router_modular/go_router_modular_configure.dart';
-import 'package:cl_components/router/go_router_modular/route_registry.dart';
+import 'package:genai_components/router/go_router_modular/go_router_modular_configure.dart';
+import 'package:genai_components/router/go_router_modular/route_registry.dart';
 
 
 export 'download_extension_stub.dart'
 if (dart.library.html) 'download_extension_web.dart'
-if (dart.library.io) 'package:cl_components/utils/download_extension_io.dart';
+if (dart.library.io) 'package:genai_components/utils/download_extension_io.dart';
 
 extension NavigationExtensions on BuildContext {
   void safePop() {

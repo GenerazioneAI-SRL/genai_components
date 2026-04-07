@@ -1,10 +1,10 @@
-import 'package:cl_components/widgets/buttons/cl_button.widget.dart';
-import 'package:cl_components/providers/error_state.dart';
+import 'package:genai_components/widgets/buttons/cl_button.widget.dart';
+import 'package:genai_components/providers/error_state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/layout/constants/sizes.constant.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/layout/constants/sizes.constant.dart';
 
 class ErrorPage extends StatefulWidget {
   final int? errorCode;

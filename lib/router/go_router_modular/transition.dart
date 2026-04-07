@@ -1,4 +1,4 @@
-import 'package:cl_components/router/go_router_modular/page_transition_enum.dart';
+import 'package:genai_components/router/go_router_modular/page_transition_enum.dart';
 import 'package:flutter/material.dart';
 
 class Transition {

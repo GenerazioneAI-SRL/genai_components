@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:cl_components/layout/constants/sizes.constant.dart';
+import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
-import 'package:cl_components/widgets/loading.widget.dart';
+import 'package:genai_components/widgets/loading.widget.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../cl_theme.dart';
 import 'package:flutter/foundation.dart';

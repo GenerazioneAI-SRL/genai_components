@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:cl_components/cl_theme.dart';
+import 'package:genai_components/cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
 class LoadingWidget extends StatefulWidget {

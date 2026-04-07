@@ -1,4 +1,4 @@
-import 'package:cl_components/utils/models/custom_model.model.dart';
+import 'package:genai_components/utils/models/custom_model.model.dart';
 
 class CityGraphData extends BaseModel {
   @override

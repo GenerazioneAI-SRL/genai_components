@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/utils/shared_manager.util.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/utils/shared_manager.util.dart';
 
 class AppState extends ChangeNotifier {
   late BehaviorSubject<bool> refreshList = BehaviorSubject<bool>.seeded(false);

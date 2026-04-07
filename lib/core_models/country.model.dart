@@ -1,5 +1,5 @@
 
-import 'package:cl_components/utils/models/custom_model.model.dart';
+import 'package:genai_components/utils/models/custom_model.model.dart';
 import 'state.model.dart';
 
 class Country extends BaseModel {

@@ -1,5 +1,5 @@
 /// CL Components — UI component library for Generazione AI projects.
-library cl_components;
+library genai_components;
 
 // Theme
 export 'cl_theme.dart';

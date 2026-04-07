@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:core';
-import 'package:cl_components/providers/error_state.dart';
+import 'package:genai_components/providers/error_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,12 +10,12 @@ import 'package:equatable/equatable.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:provider/provider.dart';
-import 'package:cl_components/auth/cl_auth_state.dart';
-import 'package:cl_components/utils/models/pagination.model.dart';
-export 'package:cl_components/utils/models/pagination.model.dart';
+import 'package:genai_components/auth/cl_auth_state.dart';
+import 'package:genai_components/utils/models/pagination.model.dart';
+export 'package:genai_components/utils/models/pagination.model.dart';
 
-import 'package:cl_components/widgets/alertmanager/alert_manager.dart';
-import 'package:cl_components/core_models/upload_file.model.dart';
+import 'package:genai_components/widgets/alertmanager/alert_manager.dart';
+import 'package:genai_components/core_models/upload_file.model.dart';
 
 enum ApiCallType { GET, POST, DELETE, PUT, PATCH }
 

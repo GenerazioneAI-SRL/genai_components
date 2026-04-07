@@ -6,16 +6,16 @@ UI component library for Flutter projects. Works out of the box with sensible de
 
 ```yaml
 dependencies:
-  cl_components: ^2.0.0
+  genai_components: ^2.0.0
 ```
 
 Or from GitHub:
 
 ```yaml
 dependencies:
-  cl_components:
+  genai_components:
     git:
-      url: git@github.com:generazione-ai/cl_components.git
+      url: git@github.com:generazione-ai/genai_components.git
       ref: stable
 ```
 
@@ -24,7 +24,7 @@ dependencies:
 Import and use — no setup required, default theme is applied automatically:
 
 ```dart
-import 'package:cl_components/cl_components.dart';
+import 'package:genai_components/genai_components.dart';
 
 // Usa i componenti direttamente, il tema default viene usato
 CLButton(text: 'Click me', onPressed: () {});
@@ -35,7 +35,7 @@ CLButton(text: 'Click me', onPressed: () {});
 Wrap il tuo widget tree con `CLThemeProvider` per personalizzare i colori:
 
 ```dart
-import 'package:cl_components/cl_components.dart';
+import 'package:genai_components/genai_components.dart';
 import 'package:provider/provider.dart';
 
 ChangeNotifierProvider(

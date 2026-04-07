@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:cl_components/core_models/upload_file.model.dart';
+import 'package:genai_components/core_models/upload_file.model.dart';
 
 
 /// SERIALIZATION HELPERS

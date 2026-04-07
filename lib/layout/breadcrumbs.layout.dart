@@ -1,6 +1,6 @@
 import 'package:provider/provider.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/utils/providers/navigation.util.provider.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/utils/providers/navigation.util.provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:go_router/go_router.dart';

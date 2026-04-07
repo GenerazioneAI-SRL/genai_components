@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cl_components/cl_theme.dart';
-import 'package:cl_components/layout/constants/sizes.constant.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/layout/constants/sizes.constant.dart';
 
 /// Widget per visualizzare uno status con pallino colorato + testo
 /// Esempio: ● In attesa, ● Approvata, ● Rifiutata

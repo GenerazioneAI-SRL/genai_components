@@ -1,7 +1,7 @@
 // ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cl_components/cl_components.dart';
+import 'package:genai_components/genai_components.dart';
 
 /// Example app showcasing CL Components usage.
 ///
