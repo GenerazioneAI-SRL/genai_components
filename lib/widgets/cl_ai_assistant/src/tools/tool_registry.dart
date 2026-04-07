@@ -11,6 +11,28 @@ import 'tool_result.dart';
 class ToolRegistry {
   final Map<String, AiTool> _tools = {};
 
+  /// Tool names currently disabled. Disabled tools are hidden from the LLM
+  /// and rejected if called. Used to toggle built-in UI tools on/off.
+  final Set<String> _disabledTools = {};
+
+  /// Tools that require user confirmation before executing.
+  final Set<String> _confirmationRequired = {};
+
+  /// Callback invoked when a confirmation-required tool is about to execute.
+  /// Must return `true` to proceed, `false` to deny.
+  Future<bool> Function(String toolName, Map<String, dynamic> args)?
+  onConfirmationRequired;
+
+  /// Mark tools as requiring user confirmation before execution.
+  void setConfirmationRequired(Iterable<String> names) {
+    _confirmationRequired.addAll(names);
+  }
+
+  /// Remove confirmation requirement from tools.
+  void clearConfirmationRequired(Iterable<String> names) {
+    _confirmationRequired.removeAll(names);
+  }
+
   /// Register a tool. Replaces any existing tool with the same name.
   void register(AiTool tool) {
     AiLogger.log('Registered tool: ${tool.name}', tag: 'Tools');
@@ -29,12 +51,27 @@ class ToolRegistry {
     _tools.remove(name);
   }
 
+  /// Disable tools by name. They remain registered but are hidden from the
+  /// LLM and rejected if called.
+  void disableTools(Iterable<String> names) {
+    _disabledTools.addAll(names);
+  }
+
+  /// Re-enable previously disabled tools.
+  void enableTools(Iterable<String> names) {
+    _disabledTools.removeAll(names);
+  }
+
   /// Whether a tool with the given name is registered.
   bool has(String name) => _tools.containsKey(name);
 
   /// Get all tool definitions (for sending to the LLM).
+  /// Excludes disabled tools.
   List<ToolDefinition> getToolDefinitions() {
-    return _tools.values.map((t) => t.toDefinition()).toList();
+    return _tools.entries
+        .where((e) => !_disabledTools.contains(e.key))
+        .map((e) => e.value.toDefinition())
+        .toList();
   }
 
   /// Execute a tool call returned by the LLM.
@@ -42,6 +79,25 @@ class ToolRegistry {
   /// Looks up the tool by name and calls its handler with the provided arguments.
   /// Returns a [ToolResult] with success/failure and data.
   Future<ToolResult> executeTool(ToolCall call) async {
+    if (_disabledTools.contains(call.name)) {
+      return ToolResult.fail(
+        'Tool "${call.name}" is currently disabled (chatbot mode).',
+      );
+    }
+
+    // Confirmation gate — pause and ask the user before executing.
+    if (_confirmationRequired.contains(call.name) &&
+        onConfirmationRequired != null) {
+      final approved = await onConfirmationRequired!(call.name, call.arguments);
+      if (!approved) {
+        AiLogger.log('Tool "${call.name}" denied by user', tag: 'Tools');
+        return ToolResult.fail(
+          'L\'utente ha negato il permesso per questa azione. '
+          'Non riprovare, rispondi con un messaggio testuale.',
+        );
+      }
+    }
+
     final tool = _tools[call.name];
     if (tool == null) {
       return ToolResult.fail('Unknown tool: ${call.name}');

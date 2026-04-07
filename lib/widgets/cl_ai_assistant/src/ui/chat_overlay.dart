@@ -158,13 +158,14 @@ class _ChatOverlayState extends State<ChatOverlay>
                         child: RepaintBoundary(
                           child: AnimatedBuilder(
                             animation: _bgCtrl,
-                            builder: (_, __) => CustomPaint(
-                              painter: _HoloPainter(
-                                _bgCtrl.value,
-                                drawEffects: bgOpacity > 0.3,
-                              ),
-                              size: Size.infinite,
-                            ),
+                            builder:
+                                (_, __) => CustomPaint(
+                                  painter: _HoloPainter(
+                                    _bgCtrl.value,
+                                    drawEffects: bgOpacity > 0.3,
+                                  ),
+                                  size: Size.infinite,
+                                ),
                           ),
                         ),
                       ),
@@ -201,11 +202,12 @@ class _ChatOverlayState extends State<ChatOverlay>
                                 top: Radius.circular(20 * actionT),
                               ),
                               child: Container(
-                                color: actionT > 0.01
-                                    ? _bgDeep.withValues(
-                                        alpha: 0.88 + 0.12 * (1 - actionT),
-                                      )
-                                    : Colors.transparent,
+                                color:
+                                    actionT > 0.01
+                                        ? _bgDeep.withValues(
+                                          alpha: 0.88 + 0.12 * (1 - actionT),
+                                        )
+                                        : Colors.transparent,
                                 padding: EdgeInsets.only(
                                   top: actionT > 0.01 ? 0 : mq.padding.top,
                                   bottom: kb > 0 ? kb : mq.padding.bottom,
@@ -252,38 +254,39 @@ class _ChatOverlayState extends State<ChatOverlay>
             height: 42,
             child: AnimatedBuilder(
               animation: _ringCtrl,
-              builder: (_, __) => CustomPaint(
-                painter: _ArcRingsPainter(
-                  t: _ringCtrl.value,
-                  ringRadius: 21,
-                  ringCount: 2,
-                ),
-                child: Center(
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [_accent, _glow],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _accent.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                        ),
-                      ],
+              builder:
+                  (_, __) => CustomPaint(
+                    painter: _ArcRingsPainter(
+                      t: _ringCtrl.value,
+                      ringRadius: 21,
+                      ringCount: 2,
                     ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      size: 16,
-                      color: Colors.white,
+                    child: Center(
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [_accent, _glow],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _accent.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -408,117 +411,77 @@ class _ChatOverlayState extends State<ChatOverlay>
 
   Widget _emptyState() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Central orb with rotating rings and pulse ripples.
-          SizedBox(
-            width: 130,
-            height: 130,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Pulse ripples expanding outward.
-                AnimatedBuilder(
-                  animation: _pulseCtrl,
-                  builder: (_, __) => CustomPaint(
-                    painter: _PulseRipplePainter(
-                      t: _pulseCtrl.value,
-                      color: _accent,
-                      maxRadius: 65,
-                    ),
-                    size: const Size(130, 130),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Clean avatar with subtle glow.
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_accent, _glow],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _accent.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    spreadRadius: 2,
                   ),
-                ),
-                // Arc ring segments rotating.
-                AnimatedBuilder(
-                  animation: _ringCtrl,
-                  builder: (_, __) => CustomPaint(
-                    painter: _ArcRingsPainter(
-                      t: _ringCtrl.value,
-                      ringRadius: 56,
-                      ringCount: 3,
-                    ),
-                    size: const Size(130, 130),
-                  ),
-                ),
-                // Inner glowing orb.
-                AnimatedBuilder(
-                  animation: _pulseCtrl,
-                  builder: (_, __) {
-                    final v =
-                        (math.sin(_pulseCtrl.value * math.pi * 2) + 1) / 2;
-                    return Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            _accent.withValues(alpha: 0.25 + v * 0.1),
-                            _accent.withValues(alpha: 0.03),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: _accent.withValues(alpha: 0.3 + v * 0.15),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _accent.withValues(alpha: 0.15 + v * 0.15),
-                            blurRadius: 20 + v * 10,
-                            spreadRadius: v * 4,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome,
-                        size: 30,
-                        color: _accentAlt,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-          const Text(
-            'How can I help?',
-            style: TextStyle(
-              color: _textH,
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'I can navigate, tap, type, and\nperform actions for you.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: _textD, fontSize: 13, height: 1.5),
-          ),
-          const SizedBox(height: 36),
-          // Quick suggestion chips (configured by the app developer).
-          if (_ctrl.config.initialSuggestions.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: _ctrl.config.initialSuggestions
-                    .map(
-                      (chip) => _SuggestionChip(
-                        icon: chip.icon,
-                        label: chip.label,
-                        onTap: () =>
-                            _ctrl.sendSuggestion(chip.label, chip.message),
-                      ),
-                    )
-                    .toList(),
+                ],
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 24,
+                color: Colors.white,
               ),
             ),
-        ],
+            const SizedBox(height: 20),
+            Text(
+              _ctrl.config.assistantName,
+              style: const TextStyle(
+                color: _textH,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Chiedimi informazioni su presenze, turni,\nanomalìe o naviga nelle sezioni.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: _textD, fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 28),
+            // Suggestion cards styled like dashboard stat chips.
+            if (_ctrl.config.initialSuggestions.isNotEmpty)
+              Column(
+                children:
+                    _ctrl.config.initialSuggestions
+                        .map(
+                          (chip) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _SuggestionCard(
+                              icon: chip.icon,
+                              label: chip.label,
+                              subtitle: chip.message,
+                              onTap:
+                                  () => _ctrl.sendSuggestion(
+                                    chip.label,
+                                    chip.message,
+                                  ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -610,13 +573,14 @@ class _ChatOverlayState extends State<ChatOverlay>
               if (_ctrl.config.voiceEnabled)
                 ListenableBuilder(
                   listenable: _ctrl,
-                  builder: (_, __) => _circleBtn(
-                    _ctrl.isListening ? Icons.mic : Icons.mic_none,
-                    _ctrl.isListening ? _red : _textD,
-                    (_ctrl.isProcessing && !_ctrl.isWaitingForUserResponse)
-                        ? null
-                        : _ctrl.toggleVoiceInput,
-                  ),
+                  builder:
+                      (_, __) => _circleBtn(
+                        _ctrl.isListening ? Icons.mic : Icons.mic_none,
+                        _ctrl.isListening ? _red : _textD,
+                        (_ctrl.isProcessing && !_ctrl.isWaitingForUserResponse)
+                            ? null
+                            : _ctrl.toggleVoiceInput,
+                      ),
                 ),
               const SizedBox(width: 6),
               Expanded(child: _inputField()),
@@ -651,31 +615,41 @@ class _ChatOverlayState extends State<ChatOverlay>
         // losing focus on the first tap.
         return AnimatedBuilder(
           animation: _ringCtrl,
-          builder: (_, child) => Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              gradient: showGlow
-                  ? SweepGradient(
-                      colors: const [_accent, _cyan, _accent, _cyan, _accent],
-                      transform: GradientRotation(
-                        _ringCtrl.value * 2 * math.pi,
-                      ),
-                    )
-                  : null,
-              border: showGlow
-                  ? null
-                  : Border.all(color: _glassBorder, width: 0.5),
-              color: showGlow ? null : _bgMid,
-            ),
-            child: Container(
-              margin: showGlow ? const EdgeInsets.all(1.5) : EdgeInsets.zero,
-              decoration: BoxDecoration(
-                color: _bgMid,
-                borderRadius: BorderRadius.circular(showGlow ? 24.5 : 26),
+          builder:
+              (_, child) => Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  gradient:
+                      showGlow
+                          ? SweepGradient(
+                            colors: const [
+                              _accent,
+                              _cyan,
+                              _accent,
+                              _cyan,
+                              _accent,
+                            ],
+                            transform: GradientRotation(
+                              _ringCtrl.value * 2 * math.pi,
+                            ),
+                          )
+                          : null,
+                  border:
+                      showGlow
+                          ? null
+                          : Border.all(color: _glassBorder, width: 0.5),
+                  color: showGlow ? null : _bgMid,
+                ),
+                child: Container(
+                  margin:
+                      showGlow ? const EdgeInsets.all(1.5) : EdgeInsets.zero,
+                  decoration: BoxDecoration(
+                    color: _bgMid,
+                    borderRadius: BorderRadius.circular(showGlow ? 24.5 : 26),
+                  ),
+                  child: child,
+                ),
               ),
-              child: child,
-            ),
-          ),
           child: TextField(
             controller: _textC,
             focusNode: _focus,
@@ -685,13 +659,15 @@ class _ChatOverlayState extends State<ChatOverlay>
             style: const TextStyle(color: _textH, fontSize: 14),
             cursorColor: _cyan,
             decoration: InputDecoration(
-              hintText: waiting
-                  ? 'Type your response...'
-                  : 'Ask me to do something...',
+              hintText:
+                  waiting
+                      ? 'Type your response...'
+                      : 'Ask me to do something...',
               hintStyle: TextStyle(
-                color: waiting
-                    ? _cyan.withValues(alpha: 0.5)
-                    : _textD.withValues(alpha: 0.6),
+                color:
+                    waiting
+                        ? _cyan.withValues(alpha: 0.5)
+                        : _textD.withValues(alpha: 0.6),
                 fontSize: 14,
               ),
               border: InputBorder.none,
@@ -843,15 +819,16 @@ class _StatusDotState extends State<_StatusDot>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: widget.color,
-            boxShadow: widget.animate
-                ? [
-                    BoxShadow(
-                      color: widget.color.withValues(alpha: 0.3 + v * 0.4),
-                      blurRadius: 4 + v * 4,
-                      spreadRadius: v * 2,
-                    ),
-                  ]
-                : null,
+            boxShadow:
+                widget.animate
+                    ? [
+                      BoxShadow(
+                        color: widget.color.withValues(alpha: 0.3 + v * 0.4),
+                        blurRadius: 4 + v * 4,
+                        spreadRadius: v * 2,
+                      ),
+                    ]
+                    : null,
           ),
         );
       },
@@ -905,9 +882,10 @@ class _HoloPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas, Size size) {
     const spacing = 50.0;
-    final paint = Paint()
-      ..color = _cyan.withValues(alpha: 0.015)
-      ..strokeWidth = 0.5;
+    final paint =
+        Paint()
+          ..color = _cyan.withValues(alpha: 0.015)
+          ..strokeWidth = 0.5;
 
     for (double x = 0; x < size.width; x += spacing) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
@@ -1015,11 +993,12 @@ class _ArcRingsPainter extends CustomPainter {
       final opacity = c[4] as double;
       final strokeW = c[5] as double;
 
-      final paint = Paint()
-        ..color = color.withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeW
-        ..strokeCap = StrokeCap.round;
+      final paint =
+          Paint()
+            ..color = color.withValues(alpha: opacity)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeW
+            ..strokeCap = StrokeCap.round;
 
       final segArc = math.pi / (segments * 1.5);
       final gapArc = (2 * math.pi - segArc * segments) / segments;
@@ -1039,45 +1018,6 @@ class _ArcRingsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ArcRingsPainter old) => old.t != t;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Pulse ripple — expanding circles from center.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class _PulseRipplePainter extends CustomPainter {
-  final double t;
-  final Color color;
-  final double maxRadius;
-
-  _PulseRipplePainter({
-    required this.t,
-    required this.color,
-    required this.maxRadius,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-
-    for (int i = 0; i < 2; i++) {
-      final phase = (t + i * 0.5) % 1.0;
-      final radius = phase * maxRadius;
-      final opacity = (1.0 - phase) * 0.12;
-
-      canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..color = color.withValues(alpha: opacity)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_PulseRipplePainter old) => old.t != t;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1163,23 +1103,27 @@ class _TypingDotState extends State<_TypingDot>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, __) => Transform.translate(
-        offset: Offset(0, -3 * _c.value),
-        child: Opacity(
-          opacity: 0.3 + _c.value * 0.7,
-          child: Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(colors: [_accent, _glow]),
-              boxShadow: [
-                BoxShadow(color: _accent.withValues(alpha: 0.3), blurRadius: 4),
-              ],
+      builder:
+          (_, __) => Transform.translate(
+            offset: Offset(0, -3 * _c.value),
+            child: Opacity(
+              opacity: 0.3 + _c.value * 0.7,
+              child: Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(colors: [_accent, _glow]),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _accent.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -1188,14 +1132,16 @@ class _TypingDotState extends State<_TypingDot>
 // Suggestion chip for empty state.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _SuggestionChip extends StatelessWidget {
+class _SuggestionCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String subtitle;
   final VoidCallback onTap;
 
-  const _SuggestionChip({
+  const _SuggestionCard({
     required this.icon,
     required this.label,
+    required this.subtitle,
     required this.onTap,
   });
 
@@ -1204,24 +1150,51 @@ class _SuggestionChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: _accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _accent.withValues(alpha: 0.2)),
+          color: _bgMid,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _glassBorder),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: _accentAlt),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: _textB,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(icon, size: 18, color: _accentAlt),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: _textH,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: _textD, fontSize: 11),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: _textD.withValues(alpha: 0.5),
             ),
           ],
         ),

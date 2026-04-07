@@ -234,6 +234,23 @@ class AiAssistantConfig {
   /// ```
   final List<AiSuggestionChip> initialSuggestions;
 
+  /// Maximum character length for a single tool result before the memory
+  /// system compacts it to a short summary.
+  ///
+  /// Lower values save tokens but force the LLM to re-call tools for details
+  /// it has already seen (more iterations, slower). Higher values keep full
+  /// results in history so the LLM can reference them without re-fetching.
+  ///
+  /// With large context models (128k-256k), set this to 4000-8000 to retain
+  /// full screen captures and reduce round-trips. Default: 4000.
+  final int maxToolResultChars;
+
+  /// Names of built-in tools to disable. These tools remain registered but
+  /// are hidden from the LLM and rejected if called. Use this to remove
+  /// UI-interaction tools (tap_element, scroll, etc.) when the assistant
+  /// operates purely as a chatbot with custom tools.
+  final Set<String> disabledBuiltInTools;
+
   /// Optional callback to build post-task follow-up suggestion chips.
   ///
   /// Called after the agent completes a task. Receives the agent's response
@@ -304,6 +321,8 @@ class AiAssistantConfig {
     this.autoCloseOnComplete = true,
     this.domainInstructions,
     this.initialSuggestions = const [],
+    this.maxToolResultChars = 4000,
+    this.disabledBuiltInTools = const {},
     this.postTaskChipsBuilder,
     this.onEvent,
   });

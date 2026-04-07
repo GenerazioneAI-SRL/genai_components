@@ -178,36 +178,43 @@ class ConversationMemory {
   }
 
   /// Create a compact summary of a tool result based on the tool type.
-  static String _compactResult(String toolName, String content) {
+  ///
+  /// When [maxToolResultChars] is large (models with big context window),
+  /// compaction is gentler — it keeps more content so the LLM doesn't
+  /// need to re-call tools for information it already saw.
+  String _compactResult(String toolName, String content) {
+    // Generous budget: keep up to maxToolResultChars even when compacting.
+    final budget = maxToolResultChars;
+
     switch (toolName) {
       case 'get_screen_content':
-        // Extract just the route and a brief element summary.
+        // For large context: keep a meaningful portion of the screen data
+        // so the LLM can reference previously seen elements without re-fetching.
+        if (content.length <= budget) return content;
         final routeMatch = RegExp(
           r'CURRENT ROUTE:\s*(\S+)',
         ).firstMatch(content);
         final route = routeMatch?.group(1) ?? '?';
-        return '[Screen captured: $route — details compacted, call get_screen_content for fresh view]';
+        // Keep first chunk of content (element tree) for reference.
+        final kept = content.substring(0, (budget * 0.8).toInt());
+        return '$kept\n… [compacted from ${content.length} chars — screen: $route]';
 
       case 'tap_element':
       case 'long_press_element':
-        // Keep the full result — these are usually short and contain
-        // important feedback like screenChanged and snackbar text.
-        if (content.length > 500) {
-          return content.substring(0, 500);
+        if (content.length > budget) {
+          return content.substring(0, budget);
         }
         return content;
 
       case 'set_text':
-        // Keep short — these confirm text entry.
-        if (content.length > 300) {
-          return content.substring(0, 300);
+        if (content.length > budget) {
+          return content.substring(0, budget);
         }
         return content;
 
       default:
-        // Generic: keep first 300 chars.
-        if (content.length > 300) {
-          return '${content.substring(0, 300)}… [compacted]';
+        if (content.length > budget) {
+          return '${content.substring(0, budget)}… [compacted]';
         }
         return content;
     }
@@ -305,11 +312,22 @@ class ConversationMemory {
       final msg = _messages[i];
       if (msg.role == LlmRole.assistant && msg.toolCalls != null) {
         for (final tc in msg.toolCalls!) {
-          final args = tc.arguments.values.take(2).join(', ');
+          final args = tc.arguments.values.take(3).join(', ');
           actions.add('• ${tc.name}($args)');
         }
+      } else if (msg.role == LlmRole.assistant &&
+          msg.content != null &&
+          msg.content!.isNotEmpty) {
+        // Include assistant status/thought text for better context.
+        final text =
+            msg.content!.length > 80
+                ? '${msg.content!.substring(0, 80)}…'
+                : msg.content!;
+        actions.add('  → $text');
       }
     }
-    return actions.take(15).join('\n');
+    // With large context windows, keep more trimmed action history.
+    final limit = maxToolResultChars > 2000 ? 30 : 15;
+    return actions.take(limit).join('\n');
   }
 }

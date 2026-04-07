@@ -82,6 +82,11 @@ class AiAssistantController extends ChangeNotifier {
   // Cancellation — allows the user to stop the agent mid-execution.
   bool _cancelRequested = false;
 
+  // Navigation confirmation — when the agent wants to navigate, we pause
+  // and ask the user for permission before executing.
+  bool _waitingForConfirmation = false;
+  Completer<bool>? _confirmationCompleter;
+
   // Action mode — true when the agent has executed a screen-changing tool
   // (navigation, tap, etc.) and is still processing. Used by the UI to
   // make the overlay semi-transparent so the user can see the app underneath.
@@ -202,7 +207,11 @@ class AiAssistantController extends ChangeNotifier {
   ///
   /// True when the agent is processing, has executed at least one screen-changing
   /// tool (navigation, tap, scroll), and is NOT paused waiting for user input.
-  bool get isActionMode => _isActionFeedVisible && _isProcessing && !_waitingForUserResponse && _hasExecutedScreenChangingTool;
+  bool get isActionMode =>
+      _isActionFeedVisible &&
+      _isProcessing &&
+      !_waitingForUserResponse &&
+      _hasExecutedScreenChangingTool;
 
   /// Whether the compact response popup is currently visible above the FAB.
   bool get isResponsePopupVisible => _isResponsePopupVisible;
@@ -212,6 +221,13 @@ class AiAssistantController extends ChangeNotifier {
 
   /// The text content shown in the response popup.
   String? get responsePopupText => _responsePopupText;
+
+  /// Whether the assistant is in agent mode. Always true — navigation is
+  /// gated by per-action confirmation instead of a global toggle.
+  bool get agentMode => true;
+
+  /// Whether the assistant is waiting for the user to confirm a navigation action.
+  bool get waitingForConfirmation => _waitingForConfirmation;
 
   // ---------------------------------------------------------------------------
   // Initialization
@@ -255,19 +271,24 @@ class AiAssistantController extends ChangeNotifier {
     _toolRegistry.registerAll(
       createBuiltInTools(
         BuiltInToolHandlers(
-          onTap: (label, {parentContext}) => _unwrapResult(
-            _executor.tapElement(label, parentContext: parentContext),
-          ),
-          onSetText: (label, text, {parentContext}) => _unwrapResult(
-            _executor.setText(label, text, parentContext: parentContext),
-          ),
+          onTap:
+              (label, {parentContext}) => _unwrapResult(
+                _executor.tapElement(label, parentContext: parentContext),
+              ),
+          onSetText:
+              (label, text, {parentContext}) => _unwrapResult(
+                _executor.setText(label, text, parentContext: parentContext),
+              ),
           onScroll: (direction) => _unwrapResult(_executor.scroll(direction)),
-          onNavigate: (routeName) => _unwrapResult(_executor.navigateToRoute(routeName)),
+          onNavigate:
+              (routeName) =>
+                  _unwrapResult(_executor.navigateToRoute(routeName)),
           onGoBack: () => _unwrapResult(_executor.goBack()),
           onGetScreenContent: () => _unwrapResult(_executor.getScreenContent()),
-          onLongPress: (label, {parentContext}) => _unwrapResult(
-            _executor.longPress(label, parentContext: parentContext),
-          ),
+          onLongPress:
+              (label, {parentContext}) => _unwrapResult(
+                _executor.longPress(label, parentContext: parentContext),
+              ),
           onIncrease: (label) => _unwrapResult(_executor.increaseValue(label)),
           onDecrease: (label) => _unwrapResult(_executor.decreaseValue(label)),
           onAskUser: _handleAskUser,
@@ -284,6 +305,7 @@ class AiAssistantController extends ChangeNotifier {
     // 4. Conversation memory + ReAct agent.
     _memory = ConversationMemory(
       maxMessages: _config.maxAgentIterations * 4 + 20,
+      maxToolResultChars: _config.maxToolResultChars,
     );
     _agent = ReactAgent(
       provider: _config.provider,
@@ -298,6 +320,15 @@ class AiAssistantController extends ChangeNotifier {
       domainInstructions: _config.domainInstructions,
       maxVerificationAttempts: _config.maxVerificationAttempts,
     );
+
+    // 4b. Disable built-in tools the host app doesn't need.
+    if (_config.disabledBuiltInTools.isNotEmpty) {
+      _toolRegistry.disableTools(_config.disabledBuiltInTools);
+    }
+
+    // 4c. Navigation confirmation — navigation tools require user approval.
+    _toolRegistry.setConfirmationRequired(const {'navigate_to_route'});
+    _toolRegistry.onConfirmationRequired = _handleToolConfirmation;
 
     // 5. Voice services (lazy-initialized on first use).
     if (_config.voiceEnabled) {
@@ -323,6 +354,67 @@ class AiAssistantController extends ChangeNotifier {
       throw Exception(result.error ?? 'Action failed');
     }
     return result.data;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation confirmation
+  // ---------------------------------------------------------------------------
+
+  /// Called by [ToolRegistry] when a confirmation-required tool is invoked.
+  /// Adds a confirmation card to the chat and pauses until the user responds.
+  Future<bool> _handleToolConfirmation(
+    String toolName,
+    Map<String, dynamic> args,
+  ) async {
+    _waitingForConfirmation = true;
+    _confirmationCompleter = Completer<bool>();
+
+    // Pause the processing timer — user has unlimited time to decide.
+    _processingTimer?.cancel();
+
+    final description = _describeToolAction(toolName, args);
+    _messages.add(
+      AiChatMessage(
+        id: _uuid.v4(),
+        role: AiMessageRole.assistant,
+        content: description,
+        timestamp: DateTime.now(),
+        richContent: [
+          const CardContent(
+            title: 'Autorizzazione richiesta',
+            subtitle: 'Autorizzi Skill Assistant a navigare in autonomia?',
+          ),
+          const ButtonsContent(
+            buttons: [
+              ChatButton(label: 'Autorizza', style: ChatButtonStyle.success),
+              ChatButton(label: 'Annulla', style: ChatButtonStyle.destructive),
+            ],
+          ),
+        ],
+      ),
+    );
+    _safeNotify();
+
+    try {
+      final approved = await _confirmationCompleter!.future;
+      _waitingForConfirmation = false;
+      if (approved) _startProcessingTimer();
+      _safeNotify();
+      return approved;
+    } catch (_) {
+      _waitingForConfirmation = false;
+      _safeNotify();
+      return false;
+    }
+  }
+
+  /// Build a user-friendly Italian description of a tool action.
+  String _describeToolAction(String toolName, Map<String, dynamic> args) {
+    return switch (toolName) {
+      'navigate_to_route' =>
+        'Skill Assistant vuole navigare a "${args['routeName'] ?? 'pagina sconosciuta'}".',
+      _ => 'Skill Assistant vuole eseguire: $toolName.',
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -396,7 +488,9 @@ class AiAssistantController extends ChangeNotifier {
     final routeBefore = AiNavigatorObserver.currentRoute;
     _handoffRouteListener = () {
       final routeNow = AiNavigatorObserver.currentRoute;
-      if (routeNow != routeBefore && _handoffCompleter != null && !_handoffCompleter!.isCompleted) {
+      if (routeNow != routeBefore &&
+          _handoffCompleter != null &&
+          !_handoffCompleter!.isCompleted) {
         AiLogger.log(
           'Handoff: route changed $routeBefore → $routeNow',
           tag: 'Controller',
@@ -430,13 +524,15 @@ class AiAssistantController extends ChangeNotifier {
         },
       );
       AiLogger.log('Handoff resolved: $result', tag: 'Controller');
-      final resolution = result.contains('cancelled')
-          ? 'cancelled'
-          : result.contains('timed out')
+      final resolution =
+          result.contains('cancelled')
+              ? 'cancelled'
+              : result.contains('timed out')
               ? 'timeout'
-              : result.contains('route changed') || result.contains('Screen changed')
-                  ? 'route_change'
-                  : 'manual';
+              : result.contains('route changed') ||
+                  result.contains('Screen changed')
+              ? 'route_change'
+              : 'manual';
       final routeAfter = AiNavigatorObserver.currentRoute;
 
       _emit(AiEventType.handoffCompleted, {
@@ -447,7 +543,12 @@ class AiAssistantController extends ChangeNotifier {
         'routeAfter': routeAfter,
         'userMessage': _currentTaskMessage,
         'wasVoice': _currentTaskIsVoice,
-        'durationMs': _currentTaskStartedAt != null ? DateTime.now().difference(_currentTaskStartedAt!).inMilliseconds : null,
+        'durationMs':
+            _currentTaskStartedAt != null
+                ? DateTime.now()
+                    .difference(_currentTaskStartedAt!)
+                    .inMilliseconds
+                : null,
       });
 
       // On cancel, keep overlay so user can give new instructions.
@@ -654,16 +755,20 @@ class AiAssistantController extends ChangeNotifier {
     final preamble = question.substring(0, firstMatchStart).trim();
 
     // Extract option labels.
-    final buttons = matches.map((m) {
-      final label = m.group(2)!.trim();
-      return ChatButton(label: label, style: ChatButtonStyle.primary);
-    }).toList();
+    final buttons =
+        matches.map((m) {
+          final label = m.group(2)!.trim();
+          return ChatButton(label: label, style: ChatButtonStyle.primary);
+        }).toList();
 
     return [
       if (preamble.isNotEmpty) TextContent(preamble),
       ButtonsContent(
         buttons: buttons,
-        layout: buttons.any((b) => b.label.length > 30) ? ButtonLayout.column : ButtonLayout.wrap,
+        layout:
+            buttons.any((b) => b.label.length > 30)
+                ? ButtonLayout.column
+                : ButtonLayout.wrap,
       ),
     ];
   }
@@ -710,7 +815,9 @@ class AiAssistantController extends ChangeNotifier {
 
     // If waiting for user response, resolve the completer so the agent
     // doesn't hang forever.
-    if (_waitingForUserResponse && _userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
+    if (_waitingForUserResponse &&
+        _userResponseCompleter != null &&
+        !_userResponseCompleter!.isCompleted) {
       _userResponseCompleter!.complete('The user stopped the task.');
       _userResponseCompleter = null;
       _waitingForUserResponse = false;
@@ -743,7 +850,9 @@ class AiAssistantController extends ChangeNotifier {
 
     // If the agent is waiting for user response (ask_user tool), complete
     // the completer with the user's message instead of starting a new run.
-    if (_waitingForUserResponse && _userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
+    if (_waitingForUserResponse &&
+        _userResponseCompleter != null &&
+        !_userResponseCompleter!.isCompleted) {
       AiLogger.log('User response to ask_user: "$text"', tag: 'Controller');
       _messages.add(
         AiChatMessage(
@@ -836,9 +945,10 @@ class AiAssistantController extends ChangeNotifier {
           )
           .timeout(
             const Duration(minutes: 10),
-            onTimeout: () => const AgentResponse(
-              text: 'The session expired. Please try again.',
-            ),
+            onTimeout:
+                () => const AgentResponse(
+                  text: 'The session expired. Please try again.',
+                ),
           );
 
       // If tools were executed, show the final response in the feed briefly.
@@ -893,14 +1003,20 @@ class AiAssistantController extends ChangeNotifier {
 
       stopwatch.stop();
       _emit(AiEventType.conversationCompleted, {
-        'response': response.text.length > 200 ? '${response.text.substring(0, 200)}...' : response.text,
+        'response':
+            response.text.length > 200
+                ? '${response.text.substring(0, 200)}...'
+                : response.text,
         'responseType': responseType.name,
         'totalActions': response.actions.length,
         'durationMs': stopwatch.elapsedMilliseconds,
         'wasVoice': isVoice,
       });
       _emit(AiEventType.messageReceived, {
-        'response': response.text.length > 200 ? '${response.text.substring(0, 200)}...' : response.text,
+        'response':
+            response.text.length > 200
+                ? '${response.text.substring(0, 200)}...'
+                : response.text,
         'responseType': responseType.name,
         'actionCount': response.actions.length,
       });
@@ -918,7 +1034,9 @@ class AiAssistantController extends ChangeNotifier {
       //
       // If overlay was already hidden (e.g. after handoff), show popup
       // regardless of type since the user needs to see the result somewhere.
-      if (_config.autoCloseOnComplete && _isOverlayVisible && responseType == AiResponseType.actionComplete) {
+      if (_config.autoCloseOnComplete &&
+          _isOverlayVisible &&
+          responseType == AiResponseType.actionComplete) {
         // Auto-close: agent did something, user needs to see/interact with the app.
         _isOverlayVisible = false;
         _safeNotify();
@@ -935,7 +1053,10 @@ class AiAssistantController extends ChangeNotifier {
         if (_config.enableHaptics) HapticFeedback.heavyImpact();
         if (_config.enableTts) {
           _emit(AiEventType.ttsStarted, {
-            'text': response.text.length > 100 ? '${response.text.substring(0, 100)}...' : response.text,
+            'text':
+                response.text.length > 100
+                    ? '${response.text.substring(0, 100)}...'
+                    : response.text,
             'isProgress': false,
           });
           _voiceOutput!.speakSummary(response.text);
@@ -954,7 +1075,8 @@ class AiAssistantController extends ChangeNotifier {
         'durationMs': stopwatch.elapsedMilliseconds,
       });
       _isActionFeedVisible = false;
-      final errorMsg = _currentTaskIsVoice ? _friendlyVoiceError(e) : _friendlyError(e);
+      final errorMsg =
+          _currentTaskIsVoice ? _friendlyVoiceError(e) : _friendlyError(e);
       _messages.add(
         AiChatMessage(
           id: _uuid.v4(),
@@ -1014,9 +1136,25 @@ class AiAssistantController extends ChangeNotifier {
     });
     _safeNotify();
 
+    // If the agent is waiting for navigation confirmation, resolve it.
+    if (_waitingForConfirmation &&
+        _confirmationCompleter != null &&
+        !_confirmationCompleter!.isCompleted) {
+      final approved = buttonIndex == 0; // 0 = "Autorizza", 1 = "Annulla"
+      AiLogger.log(
+        'Button tap resolving confirmation: ${approved ? "approved" : "denied"}',
+        tag: 'Controller',
+      );
+      _confirmationCompleter!.complete(approved);
+      _confirmationCompleter = null;
+      return;
+    }
+
     // If the agent is waiting for user input (ask_user), resolve the
     // completer with the button label instead of starting a new run.
-    if (_waitingForUserResponse && _userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
+    if (_waitingForUserResponse &&
+        _userResponseCompleter != null &&
+        !_userResponseCompleter!.isCompleted) {
       AiLogger.log(
         'Button tap resolving ask_user: "${button.label}"',
         tag: 'Controller',
@@ -1062,7 +1200,9 @@ class AiAssistantController extends ChangeNotifier {
     });
 
     // Internal tools, ask_user, and hand_off_to_user are not shown in the action feed.
-    if (_internalTools.contains(toolName) || toolName == 'ask_user' || toolName == 'hand_off_to_user') {
+    if (_internalTools.contains(toolName) ||
+        toolName == 'ask_user' ||
+        toolName == 'hand_off_to_user') {
       return;
     }
 
@@ -1114,7 +1254,9 @@ class AiAssistantController extends ChangeNotifier {
     }
 
     // Internal tools, ask_user, and hand_off_to_user are not shown in the action feed.
-    if (_internalTools.contains(toolName) || toolName == 'ask_user' || toolName == 'hand_off_to_user') {
+    if (_internalTools.contains(toolName) ||
+        toolName == 'ask_user' ||
+        toolName == 'hand_off_to_user') {
       return;
     }
 
@@ -1124,7 +1266,10 @@ class AiAssistantController extends ChangeNotifier {
     );
     if (index != -1) {
       _actionSteps[index] = _actionSteps[index].copyWith(
-        status: result.success ? ActionStepStatus.completed : ActionStepStatus.failed,
+        status:
+            result.success
+                ? ActionStepStatus.completed
+                : ActionStepStatus.failed,
         error: result.error,
         completedAt: DateTime.now(),
       );
@@ -1149,9 +1294,13 @@ class AiAssistantController extends ChangeNotifier {
 
     // Voice progress: speak sanitized thoughts aloud (throttled to max
     // once per 4 seconds) so the user hears what the agent is doing.
-    if (_currentTaskIsVoice && _voiceOutput != null && _config.enableTts && sanitized.length > 5) {
+    if (_currentTaskIsVoice &&
+        _voiceOutput != null &&
+        _config.enableTts &&
+        sanitized.length > 5) {
       final now = DateTime.now();
-      if (_lastSpokenProgress == null || now.difference(_lastSpokenProgress!) > const Duration(seconds: 4)) {
+      if (_lastSpokenProgress == null ||
+          now.difference(_lastSpokenProgress!) > const Duration(seconds: 4)) {
         _lastSpokenProgress = now;
         _emit(AiEventType.ttsStarted, {'text': sanitized, 'isProgress': true});
         _voiceOutput!.speak(sanitized);
@@ -1370,10 +1519,14 @@ class AiAssistantController extends ChangeNotifier {
     // Info-query pattern: agent navigated somewhere THEN read the screen to
     // extract data (e.g. "what's my balance?" → navigate → get_screen_content).
     // These should stay open even if the response is short.
-    final isInfoPattern = response.actions.isNotEmpty &&
+    final isInfoPattern =
+        response.actions.isNotEmpty &&
         response.actions.last.toolName == 'get_screen_content' &&
         !response.actions.any(
-          (a) => a.toolName == 'tap_element' || a.toolName == 'set_text' || a.toolName == 'long_press_element',
+          (a) =>
+              a.toolName == 'tap_element' ||
+              a.toolName == 'set_text' ||
+              a.toolName == 'long_press_element',
         );
 
     // Short response + mutating tools = action confirmation ("Added to cart!")
@@ -1483,7 +1636,8 @@ class AiAssistantController extends ChangeNotifier {
           _partialTranscription = null;
 
           // Confidence filtering: discard noise / false starts.
-          if (text.trim().length < 2 || (confidence > 0 && confidence < 0.3 && text.trim().length < 5)) {
+          if (text.trim().length < 2 ||
+              (confidence > 0 && confidence < 0.3 && text.trim().length < 5)) {
             AiLogger.log(
               'Voice filtered: "$text" (confidence=${confidence.toStringAsFixed(2)}, len=${text.trim().length})',
               tag: 'Voice',
@@ -1497,7 +1651,8 @@ class AiAssistantController extends ChangeNotifier {
             _safeNotify();
             // Clear the "didn't catch" message after a moment.
             Future.delayed(const Duration(seconds: 2), () {
-              if (!_disposed && _partialTranscription == "Didn't catch that. Try again.") {
+              if (!_disposed &&
+                  _partialTranscription == "Didn't catch that. Try again.") {
                 _partialTranscription = null;
                 _safeNotify();
               }
@@ -1568,7 +1723,8 @@ class AiAssistantController extends ChangeNotifier {
     _pendingIsVoice = false;
     _hasUnreadResponse = false;
     // Resolve any pending completers to prevent dangling futures.
-    if (_userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
+    if (_userResponseCompleter != null &&
+        !_userResponseCompleter!.isCompleted) {
       _userResponseCompleter!.completeError(StateError('Conversation cleared'));
     }
     _userResponseCompleter = null;
@@ -1586,11 +1742,16 @@ class AiAssistantController extends ChangeNotifier {
     _processingTimer?.cancel();
     _responsePopupTimer?.cancel();
     // Resolve any pending completers to prevent dangling futures.
-    if (_userResponseCompleter != null && !_userResponseCompleter!.isCompleted) {
+    if (_userResponseCompleter != null &&
+        !_userResponseCompleter!.isCompleted) {
       _userResponseCompleter!.completeError(StateError('Controller disposed'));
     }
     if (_handoffCompleter != null && !_handoffCompleter!.isCompleted) {
       _handoffCompleter!.completeError(StateError('Controller disposed'));
+    }
+    if (_confirmationCompleter != null &&
+        !_confirmationCompleter!.isCompleted) {
+      _confirmationCompleter!.completeError(StateError('Controller disposed'));
     }
     _contextInvalidator.detach();
     _walker.dispose();

@@ -147,9 +147,10 @@ class ReactAgent {
           'actionCount': executedActions.length,
           'reason': 'user_requested',
         });
-        final text = executedActions.isNotEmpty
-            ? 'Task stopped. ${_summarizeActions(executedActions)}'
-            : 'Task stopped.';
+        final text =
+            executedActions.isNotEmpty
+                ? 'Task stopped. ${_summarizeActions(executedActions)}'
+                : 'Task stopped.';
         memory.addAssistantMessage(text);
         return AgentResponse(text: text, actions: executedActions);
       }
@@ -205,9 +206,10 @@ class ReactAgent {
       // in conversation memory (screenshots are large and change every iteration).
       final messages = memory.getMessages();
       final screenshot = context.screenshot;
-      final messagesWithScreenshot = screenshot != null
-          ? _injectScreenshot(messages, screenshot)
-          : messages;
+      final messagesWithScreenshot =
+          screenshot != null
+              ? _injectScreenshot(messages, screenshot)
+              : messages;
 
       AiLogger.log(
         'Sending ${messages.length} messages '
@@ -246,9 +248,10 @@ class ReactAgent {
               'Agent cancelled during LLM call at iteration ${i + 1}',
               tag: 'Agent',
             );
-            final text = executedActions.isNotEmpty
-                ? 'Task stopped. ${_summarizeActions(executedActions)}'
-                : 'Task stopped.';
+            final text =
+                executedActions.isNotEmpty
+                    ? 'Task stopped. ${_summarizeActions(executedActions)}'
+                    : 'Task stopped.';
             memory.addAssistantMessage(text);
             return AgentResponse(text: text, actions: executedActions);
           }
@@ -278,9 +281,10 @@ class ReactAgent {
           'errorType': 'context_overflow',
           'isRetryable': false,
         });
-        final text = executedActions.isNotEmpty
-            ? '${_summarizeActions(executedActions)} (Conversation got too long for the model.)'
-            : 'The conversation is too long. Please clear and try again.';
+        final text =
+            executedActions.isNotEmpty
+                ? '${_summarizeActions(executedActions)} (Conversation got too long for the model.)'
+                : 'The conversation is too long. Please clear and try again.';
         memory.addAssistantMessage(text);
         return AgentResponse(text: text, actions: executedActions);
       } on ContentFilteredException catch (e) {
@@ -310,9 +314,10 @@ class ReactAgent {
         });
         consecutiveEmptyResponses++;
         if (consecutiveEmptyResponses >= 3) {
-          final text = executedActions.isNotEmpty
-              ? _summarizeActions(executedActions)
-              : 'I encountered an error communicating with the AI service. Please try again.';
+          final text =
+              executedActions.isNotEmpty
+                  ? _summarizeActions(executedActions)
+                  : 'I encountered an error communicating with the AI service. Please try again.';
           memory.addAssistantMessage(text);
           return AgentResponse(text: text, actions: executedActions);
         }
@@ -410,9 +415,31 @@ class ReactAgent {
         // ── Post-completion verification ──
         // If the agent performed actions, verify the task is genuinely
         // complete before returning. Also catches questions returned as text.
+        //
+        // SKIP verification when the agent only used custom (data-only) tools
+        // and no UI-interaction tools. Data tools return complete results
+        // directly — re-checking the screen adds a useless LLM round-trip.
         final looksLikeQuestion = _looksLikeQuestion(text);
 
+        const _builtInToolNames = {
+          'tap_element',
+          'set_text',
+          'scroll',
+          'navigate_to_route',
+          'go_back',
+          'get_screen_content',
+          'long_press_element',
+          'increase_value',
+          'decrease_value',
+          'ask_user',
+          'hand_off_to_user',
+        };
+        final usedAnyBuiltInTool = executedActions.any(
+          (a) => _builtInToolNames.contains(a.toolName),
+        );
+
         if (executedActions.isNotEmpty &&
+            usedAnyBuiltInTool &&
             verificationAttempts < maxVerificationAttempts) {
           verificationAttempts++;
           AiLogger.log(
@@ -727,11 +754,12 @@ class ReactAgent {
         if (circuitBreakerFirings >= 2) {
           // Second firing — the agent is truly stuck. Force an early exit
           // instead of allowing another cycle of failing actions.
-          final text = executedActions.isNotEmpty
-              ? '${_summarizeActions(executedActions)} '
-                    'I ran into repeated issues and could not complete the task.'
-              : 'I ran into repeated issues and could not complete the request. '
-                    'Please try a different approach.';
+          final text =
+              executedActions.isNotEmpty
+                  ? '${_summarizeActions(executedActions)} '
+                      'I ran into repeated issues and could not complete the task.'
+                  : 'I ran into repeated issues and could not complete the request. '
+                      'Please try a different approach.';
           memory.addAssistantMessage(text);
           return AgentResponse(text: text, actions: executedActions);
         }
@@ -767,10 +795,11 @@ class ReactAgent {
       'maxIterations': maxIterations,
       'actionCount': executedActions.length,
     });
-    final maxIterText = executedActions.isNotEmpty
-        ? _summarizeActions(executedActions)
-        : "I wasn't able to complete the request within the step limit. "
-              'Please try a simpler command.';
+    final maxIterText =
+        executedActions.isNotEmpty
+            ? _summarizeActions(executedActions)
+            : "I wasn't able to complete the request within the step limit. "
+                'Please try a simpler command.';
     memory.addAssistantMessage(maxIterText);
     return AgentResponse(text: maxIterText, actions: executedActions);
   }
@@ -897,9 +926,8 @@ class ReactAgent {
       final idx = lowerU.indexOf(w);
       if (idx == -1) return false;
       final before = idx > 0 ? lowerU[idx - 1] : ' ';
-      final after = idx + w.length < lowerU.length
-          ? lowerU[idx + w.length]
-          : ' ';
+      final after =
+          idx + w.length < lowerU.length ? lowerU[idx + w.length] : ' ';
       return !RegExp(r'[a-z]').hasMatch(before) &&
           !RegExp(r'[a-z]').hasMatch(after);
     });
@@ -1037,11 +1065,14 @@ class ReactAgent {
   /// returned an empty response instead of a proper text conclusion.
   String _summarizeActions(List<AgentAction> actions) {
     // Filter out internal tools and ask_user from the visible summary.
-    final visible = actions
-        .where(
-          (a) => a.toolName != 'get_screen_content' && a.toolName != 'ask_user',
-        )
-        .toList();
+    final visible =
+        actions
+            .where(
+              (a) =>
+                  a.toolName != 'get_screen_content' &&
+                  a.toolName != 'ask_user',
+            )
+            .toList();
     if (visible.isEmpty) return 'Done.';
 
     // Count action types for a concise summary instead of listing every action.
@@ -1459,9 +1490,8 @@ class ReactAgent {
       if (extraRoutes.isNotEmpty) {
         buffer.writeln('OTHER DISCOVERED SCREENS:');
         for (final route in extraRoutes) {
-          final desc = route.description != null
-              ? ' — ${route.description}'
-              : '';
+          final desc =
+              route.description != null ? ' — ${route.description}' : '';
           buffer.writeln('  ${route.name}$desc');
         }
         buffer.writeln();
@@ -1469,13 +1499,10 @@ class ReactAgent {
     } else {
       // Fallback: flat route list.
       if (context.availableRoutes.isNotEmpty) {
-        buffer.writeln(
-          'APP SCREENS (navigate with exact route name):',
-        );
+        buffer.writeln('APP SCREENS (navigate with exact route name):');
         for (final route in context.availableRoutes) {
-          final desc = route.description != null
-              ? ' — ${route.description}'
-              : '';
+          final desc =
+              route.description != null ? ' — ${route.description}' : '';
           buffer.writeln('  • ${route.name}$desc');
         }
         buffer.writeln();
@@ -1514,8 +1541,9 @@ class ReactAgent {
     // Screen knowledge cache (brief).
     if (context.screenKnowledge.isNotEmpty) {
       buffer.writeln('SCREENS SEEN BEFORE:');
-      final knownEntries = context.screenKnowledge.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key));
+      final knownEntries =
+          context.screenKnowledge.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key));
       for (final entry in knownEntries.take(20)) {
         buffer.writeln(
           '  • ${entry.key}: ${entry.value.elements.length} elements',
@@ -1622,10 +1650,12 @@ class ReactAgent {
     }
     buffer.writeln();
 
-    final allRoutes = <String>{
-      ...manifest.screens.keys,
-      ...context.availableRoutes.map((r) => r.name),
-    }.toList()..sort();
+    final allRoutes =
+        <String>{
+            ...manifest.screens.keys,
+            ...context.availableRoutes.map((r) => r.name),
+          }.toList()
+          ..sort();
     buffer.writeln('ALL ROUTES (exact names for navigate_to_route):');
     for (final route in allRoutes) {
       buffer.writeln('  - $route');

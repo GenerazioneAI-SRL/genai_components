@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cl_components/widgets/cl_ai_assistant/flutter_ai_assistant.dart';
+
+import 'cl_ai_assistant/src/core/ai_assistant.dart';
 
 /// Apre/chiude l'overlay dell'assistente AI globale.
 ///
