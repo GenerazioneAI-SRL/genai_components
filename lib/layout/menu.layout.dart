@@ -437,8 +437,6 @@ class _MenuLayoutState extends State<MenuLayout> {
 
   // ── Gruppo espandibile ─────────────────────────────────────────────────────
   Widget _buildGroupRoute(NavigationState navigationState, ModuleRoute subRoute, {String basePath = '', int depth = 0}) {
-    // Se non ha icona, non mostrare il gruppo nel menu
-    if (!subRoute.hasIcon) return const SizedBox.shrink();
 
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final currentPath = "$basePath${subRoute.path}".replaceAll('//', '/');
