@@ -86,17 +86,7 @@ class _MenuLayoutState extends State<MenuLayout> {
                     if (route is ChildRoute && route.isVisible)
                       _buildChildRoute(navigationState, route)
                     else if (route is ModuleRoute && route.isVisible && route.showInSideMenu)
-                      if (_countVisibleRoutes(route.module.routes) == 1 &&
-                          route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
-                        _buildChildRoute(
-                          navigationState,
-                          (route.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
-                            ..icon = route.icon
-                            ..hugeIcon = route.hugeIcon
-                            ..path = route.module.moduleRoute.path,
-                        )
-                      else
-                        _buildGroupRoute(navigationState, route, depth: 0)
+                      _buildVisibleModuleRoute(navigationState, route)
                     else if (route is ModuleRoute && route.isVisible && !route.showInSideMenu)
                       // Modulo mostrato come sezione con label + children strutturati
                       ..._buildSectionModule(navigationState, route)
@@ -105,17 +95,7 @@ class _MenuLayoutState extends State<MenuLayout> {
                         if (subRoute is ChildRoute && subRoute.isVisible)
                           _buildChildRoute(navigationState, subRoute)
                         else if (subRoute is ModuleRoute && subRoute.isVisible && subRoute.showInSideMenu)
-                          if (_countVisibleRoutes(subRoute.module.routes) == 1 &&
-                              subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty)
-                            _buildChildRoute(
-                              navigationState,
-                              (subRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).first)
-                                ..icon = subRoute.icon
-                                ..hugeIcon = subRoute.hugeIcon
-                                ..path = subRoute.module.moduleRoute.path,
-                            )
-                          else
-                            _buildGroupRoute(navigationState, subRoute, depth: 0)
+                          _buildVisibleModuleRoute(navigationState, subRoute)
                         else if (subRoute is ModuleRoute && subRoute.isVisible && !subRoute.showInSideMenu)
                           ..._buildSectionModule(navigationState, subRoute),
                 ],
@@ -296,7 +276,63 @@ class _MenuLayoutState extends State<MenuLayout> {
     }
   }
 
-  // ── Voce semplice ──────────────────────────────────────────────────────────
+  /// Restituisce la singola ChildRoute visibile di un ModuleRoute, configurata
+  /// con l'icona e il path corretti, se il modulo ha esattamente una pagina
+  /// visibile (anche attraverso un livello di ModuleRoute annidato).
+  /// Restituisce null se il modulo deve essere mostrato come gruppo espandibile.
+  ChildRoute? _extractSingleVisibleChild(ModuleRoute route) {
+    final visibleCount = _countVisibleRoutes(route.module.routes);
+    if (visibleCount != 1) return null;
+
+    // Caso A: ChildRoute diretta
+    final directChild = route.module.routes
+        .whereType<ChildRoute>()
+        .where((r) => r.isVisible)
+        .firstOrNull;
+    if (directChild != null) {
+      return directChild
+        ..icon = route.icon
+        ..hugeIcon = route.hugeIcon
+        ..path = route.module.moduleRoute.path;
+    }
+
+    // Caso B: singolo ModuleRoute annidato con una sola ChildRoute visibile
+    final nestedModule = route.module.routes
+        .whereType<ModuleRoute>()
+        .where((r) => r.isVisible)
+        .firstOrNull;
+    if (nestedModule != null) {
+      final nestedVisible = _countVisibleRoutes(nestedModule.module.routes);
+      if (nestedVisible == 1) {
+        final nestedChild = nestedModule.module.routes
+            .whereType<ChildRoute>()
+            .where((r) => r.isVisible)
+            .firstOrNull;
+        if (nestedChild != null) {
+          return nestedChild
+            ..icon = route.icon
+            ..hugeIcon = route.hugeIcon
+            ..path = "${route.module.moduleRoute.path}${nestedModule.module.moduleRoute.path}"
+                .replaceAll('//', '/');
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /// Costruisce la voce di menu per un ModuleRoute visibile con showInSideMenu=true:
+  /// - voce singola con icona se il modulo ha una sola pagina visibile
+  /// - gruppo espandibile altrimenti
+  Widget _buildVisibleModuleRoute(NavigationState navigationState, ModuleRoute route) {
+    final singleChild = _extractSingleVisibleChild(route);
+    if (singleChild != null) {
+      return _buildChildRoute(navigationState, singleChild);
+    }
+    return _buildGroupRoute(navigationState, route, depth: 0);
+  }
+
+
   Widget _buildChildRoute(NavigationState navigationState, ChildRoute route) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final selected = _isSelected(navigationState, route.path);
@@ -348,28 +384,51 @@ class _MenuLayoutState extends State<MenuLayout> {
         widgets.add(_buildChildRoute(navigationState, childRoute..path = basePath));
       } else if (childRoute is ModuleRoute && childRoute.isVisible) {
         final visibleCount = _countVisibleRoutes(childRoute.module.routes);
-        if (visibleCount == 1 &&
-            childRoute.module.routes.whereType<ChildRoute>().where((r) => r.isVisible).isNotEmpty) {
-          // Modulo con una sola voce visibile → voce singola con icona
-          final singleChild = childRoute.module.routes
+        if (visibleCount == 1) {
+          // Caso A: singola ChildRoute diretta
+          final directChild = childRoute.module.routes
               .whereType<ChildRoute>()
               .where((r) => r.isVisible)
-              .first;
-          // Usa icona del modulo o fallback
-          singleChild
-            ..icon = childRoute.icon
-            ..hugeIcon = childRoute.hugeIcon ?? HugeIcon(icon: defaultIcon)
-            ..path = "$basePath${childRoute.module.moduleRoute.path}".replaceAll('//', '/');
-          // Usa il nome del modulo padre, non della child route
-          widgets.add(_buildSectionChildRoute(
-            navigationState,
-            singleChild,
-            displayName: childRoute.name,
-          ));
-        } else {
-          // Modulo con più voci → dropdown espandibile con icona e freccia
-          widgets.add(_buildGroupRoute(navigationState, childRoute, basePath: basePath, depth: 0));
+              .firstOrNull;
+          if (directChild != null) {
+            directChild
+              ..icon = childRoute.icon
+              ..hugeIcon = childRoute.hugeIcon ?? HugeIcon(icon: defaultIcon)
+              ..path = "$basePath${childRoute.module.moduleRoute.path}".replaceAll('//', '/');
+            widgets.add(_buildSectionChildRoute(
+              navigationState,
+              directChild,
+              displayName: childRoute.name,
+            ));
+            continue;
+          }
+          // Caso B: singolo ModuleRoute annidato con una sola ChildRoute visibile
+          final nestedModule = childRoute.module.routes
+              .whereType<ModuleRoute>()
+              .where((r) => r.isVisible)
+              .firstOrNull;
+          if (nestedModule != null && _countVisibleRoutes(nestedModule.module.routes) == 1) {
+            final nestedChild = nestedModule.module.routes
+                .whereType<ChildRoute>()
+                .where((r) => r.isVisible)
+                .firstOrNull;
+            if (nestedChild != null) {
+              nestedChild
+                ..icon = childRoute.icon
+                ..hugeIcon = childRoute.hugeIcon ?? HugeIcon(icon: defaultIcon)
+                ..path = "$basePath${childRoute.module.moduleRoute.path}${nestedModule.module.moduleRoute.path}"
+                    .replaceAll('//', '/');
+              widgets.add(_buildSectionChildRoute(
+                navigationState,
+                nestedChild,
+                displayName: childRoute.name,
+              ));
+              continue;
+            }
+          }
         }
+        // Modulo con più voci → dropdown espandibile con icona e freccia
+        widgets.add(_buildGroupRoute(navigationState, childRoute, basePath: basePath, depth: 0));
       }
     }
     return widgets;
