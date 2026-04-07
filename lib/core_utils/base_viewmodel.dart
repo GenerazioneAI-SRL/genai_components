@@ -5,8 +5,6 @@ import 'package:cl_components/models/pageaction.model.dart';
 import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 
-import 'package:cl_components/constants/strings.constant.dart';
-
 class CLBaseViewModel extends BaseViewModel {
   late BuildContext viewContext;
   late VMType viewModelType;
@@ -24,7 +22,7 @@ class CLBaseViewModel extends BaseViewModel {
   }
 
   Future deleteAllData() async {
-    SharedManager.setBool(Strings.authenticated, false);
+    SharedManager.setBool('authenticated', false);
   }
 }
 

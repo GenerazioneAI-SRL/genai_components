@@ -24,3 +24,4 @@ class UserGraphData extends BaseModel {
     return {'monthName': key, 'countPerMonth': value, 'totalCount': total};
   }
 }
+

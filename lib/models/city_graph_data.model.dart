@@ -28,3 +28,4 @@ class CityGraphData extends BaseModel {
     };
   }
 }
+

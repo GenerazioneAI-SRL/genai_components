@@ -11,7 +11,6 @@ import '../cl_theme.dart';
 import '../core_utils/navigation_observer.dart';
 import '../layout/app.layout.dart';
 import '../pages/error_page.dart';
-import '../constants/routes.constants.dart';
 import '../providers/app_state.dart';
 import '../providers/error_state.dart';
 import '../providers/notifications_panel_provider.dart';
@@ -134,12 +133,12 @@ class _CLAppModule extends Module {
   List<ModularRoute> get routes => [
         ...config.preAuthRoutes,
         ChildRoute.build(
-          route: AppRoutes.error,
+          route: CLRoute(name: "Errore", path: "/error"),
           childBuilder: (context, state) => const ErrorPage(),
           isVisible: false,
         ),
         ChildRoute.build(
-          route: AppRoutes.forbidden,
+          route: CLRoute(name: "Accesso Negato", path: "/forbidden"),
           childBuilder: (context, state) => const ErrorPage(),
           isVisible: false,
         ),
