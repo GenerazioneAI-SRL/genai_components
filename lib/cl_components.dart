@@ -26,6 +26,8 @@ export 'widgets/cl_text_field.widget.dart';
 export 'widgets/cl_checkbox.widget.dart';
 export 'widgets/cl_dropdown/cl_dropdown.dart';
 export 'widgets/cl_file_picker.widget.dart';
+export 'widgets/textfield_validator.dart';
+export 'widgets/time_input_field.widget.dart';
 
 // Data display
 export 'widgets/avatar.widget.dart';
@@ -35,6 +37,8 @@ export 'widgets/cl_pill.widget.dart';
 export 'widgets/cl_role_badge.widget.dart';
 export 'widgets/cl_status_badge.widget.dart';
 export 'widgets/cl_media_viewer.widget.dart';
+export 'widgets/excerpt_text.widget.dart';
+export 'widgets/table_action_item.widget.dart';
 
 // Navigation
 export 'widgets/cl_page_header.widget.dart';
@@ -42,6 +46,7 @@ export 'widgets/cl_pagination.widget.dart';
 export 'widgets/cl_popup_menu.widget.dart';
 export 'widgets/cl_view_toggle.widget.dart';
 export 'widgets/cl_tabs/cl_tab_view.widget.dart';
+export 'widgets/cl_tabs/cl_tab_item.model.dart';
 
 // Feedback
 export 'widgets/cl_alert.widget.dart';
@@ -55,6 +60,10 @@ export 'widgets/cl_confirm_refuse_buttons.widget.dart';
 // States
 export 'widgets/cl_shimmer.widget.dart';
 export 'widgets/loading.widget.dart';
+export 'widgets/gradient_background.widget.dart';
+export 'widgets/logo.widget.dart';
+export 'widgets/cl_pdf_viewer.widget.dart';
+export 'widgets/fiscal_code_calculator.dart';
 
 // Calendar
 export 'widgets/cl_calendar.widget.dart';
@@ -74,6 +83,11 @@ export 'widgets/cl_org_chart/org_chart.dart';
 
 // Survey
 export 'widgets/cl_survey/survey.dart';
+export 'widgets/cl_survey/cl_survey_builder.widget.dart';
+export 'widgets/cl_survey/cl_survey_viewer.widget.dart';
+export 'widgets/cl_survey/cl_survey_result_viewer.widget.dart';
+export 'widgets/cl_survey/models/question.dart';
+export 'widgets/cl_survey/models/question_result.dart';
 
 // Grid
 export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';
@@ -120,16 +134,31 @@ export 'api/api_manager.dart';
 export 'providers/app_state.dart';
 export 'providers/error_state.dart';
 export 'providers/theme_provider.dart';
+export 'utils/providers/navigation.util.provider.dart';
 
 // Core Utils
 export 'core_utils/base_viewmodel.dart';
-export 'core_utils/extension.util.dart' hide DownloadExtension;
+export 'core_utils/extension.util.dart';
 export 'core_utils/navigation_observer.dart';
 
 // Core Models
 export 'core_models/upload_file.model.dart';
 export 'core_models/media.model.dart';
+export 'core_models/city.model.dart';
+export 'core_models/country.model.dart';
+export 'core_models/province.model.dart';
+export 'core_models/state.model.dart' hide State;
+export 'core_models/tolerances.model.dart';
 
 // Models
 export 'models/pageaction.model.dart';
+
+// Enums
+export 'constants/request_acceptance_status.enum.dart';
+export 'enums/resource_type.enum.dart';
+
+// AI Assistant
+export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
+export 'widgets/cl_ai_assistant/src/llm/providers/openai_provider.dart';
+export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
 
