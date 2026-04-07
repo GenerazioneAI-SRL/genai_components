@@ -15,7 +15,6 @@ class BreadcrumbsLayout extends StatefulWidget {
   State<BreadcrumbsLayout> createState() => _BreadcrumbsLayoutState();
 }
 
-
 class _BreadcrumbsLayoutState extends State<BreadcrumbsLayout> {
   @override
   Widget build(BuildContext context) {
