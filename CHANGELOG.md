@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.2
+
+- **Core:** Updated Changelog Md
+
+
 ## 3.0.0
 
 - **Breaking:** Renamed package from `cl_components` to `genai_components`
