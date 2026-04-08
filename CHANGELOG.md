@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.6
+
+- **Widgets:** Updated 9 components
+
+
 ## 4.0.5
 
 - **Widgets:** Updated CLFile_picker, Flutter Responsive Flex Grid, Survey
