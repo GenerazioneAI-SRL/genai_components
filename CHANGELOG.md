@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.5
+
+- **Widgets:** Updated CLFile_picker, Flutter Responsive Flex Grid, Survey
+
+
 ## 4.0.4
 
 - **Widgets:** Updated Dropdown State, CLFile_picker
