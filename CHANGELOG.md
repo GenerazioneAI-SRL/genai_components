@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.1.1
+
+- Maintenance and minor improvements
+
+
 ## 4.1.0
 
 - Maintenance and minor improvements
