@@ -41,13 +41,6 @@ class _SurveyState extends State<SurveyWidget> {
     super.initState();
   }
 
-  void _onVerticalDragUpdate(DragUpdateDetails details) {
-    // details.delta.dy indica lo spostamento verticale
-    double newOffset = _scrollController.offset - details.delta.dy;
-    // Limitiamo il nuovo offset tra 0 e il massimo scrollabile
-    newOffset = newOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.jumpTo(newOffset);
-  }
 
   @override
   Widget build(BuildContext context) {

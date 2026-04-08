@@ -472,12 +472,11 @@ class _DashedBorderPainter extends CustomPainter {
   final double borderRadius;
   final double dashWidth = 6;
   final double dashSpace = 4;
-  final double strokeWidth;
+  final double strokeWidth = 1.5;
 
   _DashedBorderPainter({
     required this.color,
     required this.borderRadius,
-    this.strokeWidth = 1.5,
   });
 
   @override
