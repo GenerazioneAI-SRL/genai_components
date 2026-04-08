@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.4
+
+- **Widgets:** Updated Dropdown State, CLFile_picker
+
+
 ## 4.0.3
 
 - **Core:** Updated Changelog Md
