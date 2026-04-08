@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.1.0
+
+- **Widgets:** Updated 12 components
+
+
 ## 4.0.0
 
 - **Widgets:** Fixed unused parameters in CLDropdown and CLFilePicker
