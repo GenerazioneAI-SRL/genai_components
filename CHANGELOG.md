@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.1.0
+
+- Maintenance and minor improvements
+
+
 ## 4.0.7
 
 - **Widgets:** Updated Paged Datatable, Paged Datatable Menu
