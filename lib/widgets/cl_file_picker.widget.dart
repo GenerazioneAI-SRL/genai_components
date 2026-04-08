@@ -470,15 +470,13 @@ class _ClFilePickerState extends State<ClFilePicker> {
 class _DashedBorderPainter extends CustomPainter {
   final Color color;
   final double borderRadius;
-  final double dashWidth;
-  final double dashSpace;
+  final double dashWidth = 6;
+  final double dashSpace = 4;
   final double strokeWidth;
 
   _DashedBorderPainter({
     required this.color,
     required this.borderRadius,
-    this.dashWidth = 6,
-    this.dashSpace = 4,
     this.strokeWidth = 1.5,
   });
 
