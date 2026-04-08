@@ -97,7 +97,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   final WidgetBuilder? noItemsFoundBuilder;
 
   /// A custom theme to apply only to this DataTable instance.
-  late PagedDataTableThemeData? theme;
+  final PagedDataTableThemeData? theme;
 
   /// Indicates if the table allows the user to select rows.
   final bool rowsSelectable;
@@ -181,7 +181,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
   @override
   Widget build(BuildContext context) {
-    theme = PagedDataTableThemeData(
+    final effectiveTheme = theme ?? PagedDataTableThemeData(
       rowColors: [CLTheme.of(context).secondaryBackground, CLTheme.of(context).secondaryBackground],
       border: const RoundedRectangleBorder(side: BorderSide.none),
       backgroundColor: Colors.transparent,
@@ -202,7 +202,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
       ),
     );
 
-    final localTheme = theme ?? _kDefaultPagedDataTableTheme;
+    final localTheme = effectiveTheme;
     return ChangeNotifierProvider<_PagedDataTableState<TKey, TResultId, TResult>>(
       create:
           (context) => _PagedDataTableState(
@@ -305,7 +305,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 : Column(
                   children: [
                     if (localTheme.configuration.filterBarVisibile &&
-                        (header != null || mainMenus.isNotEmpty || extraMenus != null || state.filters.isNotEmpty)) ...[
+                        (header != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty || state.filters.isNotEmpty)) ...[
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -350,14 +350,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
           },
         );
         // apply configuration to this widget only
-
-        // apply configuration to this widget only
-        if (theme != null) {
-          child = PagedDataTableTheme(data: theme!, child: child);
-          assert(theme!.rowColors != null ? theme!.rowColors!.length == 2 : true, "rowColors must contain exactly two colors");
-        } else {
-          assert(localTheme.rowColors != null ? localTheme.rowColors!.length == 2 : true, "rowColors must contain exactly two colors");
-        }
+        child = PagedDataTableTheme(data: effectiveTheme, child: child);
+        assert(effectiveTheme.rowColors != null ? effectiveTheme.rowColors!.length == 2 : true, "rowColors must contain exactly two colors");
 
         return Container(
           decoration: BoxDecoration(

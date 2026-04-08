@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:video_player/video_player.dart';
@@ -17,11 +16,10 @@ class ClVideoPicker extends StatefulWidget {
 class _ClVideoPickerState extends State<ClVideoPicker> {
   String? _videoName;
   VideoPlayerController? _videoPlayerController;
-  Uint8List? _videoBytes;
   String? _videoUrl;
 
   Future<void> _pickVideo() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    await FilePicker.platform.pickFiles(
       type: FileType.video,
     );
 
@@ -54,7 +52,6 @@ class _ClVideoPickerState extends State<ClVideoPicker> {
 
   void _removeVideo() {
     setState(() {
-      _videoBytes = null;
       _videoName = null;
       if (_videoPlayerController != null) {
         _videoPlayerController!.dispose();

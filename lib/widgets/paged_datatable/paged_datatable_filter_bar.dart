@@ -402,17 +402,23 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   }
 }
 
-class _FiltersDialogBoxed<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
+class _FiltersDialogBoxed<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatefulWidget {
   final RelativeRect rect;
   final _PagedDataTableState<TKey, TResultId, TResult> state;
 
-  _FiltersDialogBoxed({required this.rect, required this.state});
+  const _FiltersDialogBoxed({required this.rect, required this.state});
 
+  @override
+  State<_FiltersDialogBoxed<TKey, TResultId, TResult>> createState() => _FiltersDialogBoxedState<TKey, TResultId, TResult>();
+}
+
+class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends State<_FiltersDialogBoxed<TKey, TResultId, TResult>> {
   BaseTableColumn<TResult>? selectedColumn;
   bool descending = false;
 
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
     List<Map<BaseTableColumn<TResult>?, bool>> items = [];
     state.columns.where((column) => column.sortable == true).map((column) {
       items.add({column: true});

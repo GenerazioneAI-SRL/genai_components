@@ -123,12 +123,6 @@ class _ResponsiveGridItemState extends State<ResponsiveGridItem> {
   }
 }
 
-// Estensione per limitare i valori
-extension _DoubleExtension on double {
-  double get reduced {
-    return this > 100 ? 100 : this;
-  }
-}
 
 // Breakpoints
 enum _BreakPoints { xs, lg }

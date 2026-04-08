@@ -63,7 +63,6 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
   }
 
   Widget _buildShimmerRows(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state) {
-    final columnsCount = state.columns.length + (rowsSelectable ? 1 : 0);
     final clTheme = CLTheme.of(context);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),

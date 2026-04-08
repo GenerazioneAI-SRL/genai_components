@@ -14,7 +14,7 @@ class PagedDataTableFilterBarMenu {
 abstract class BaseFilterMenuItem {
   const BaseFilterMenuItem();
 
-  Widget _build(BuildContext context);
+  Widget build(BuildContext context);
 }
 
 class FilterMenuItem extends BaseFilterMenuItem {
@@ -26,7 +26,7 @@ class FilterMenuItem extends BaseFilterMenuItem {
   const FilterMenuItem({this.onTap, required this.title, this.subtitle, this.leading, this.trailing});
 
   @override
-  Widget _build(BuildContext context) {
+  Widget build(BuildContext context) {
     return ListTile(
       title: title,
       subtitle: subtitle,
@@ -48,7 +48,7 @@ class FilterMenuDivider extends BaseFilterMenuItem {
   const FilterMenuDivider({this.height = 0});
 
   @override
-  Widget _build(BuildContext context) => Divider(height: height, thickness: 1, color: CLTheme.of(context).borderColor);
+  Widget build(BuildContext context) => Divider(height: height, thickness: 1, color: CLTheme.of(context).borderColor);
 }
 
 class FilterMenuItemBuilder extends BaseFilterMenuItem {
@@ -57,5 +57,5 @@ class FilterMenuItemBuilder extends BaseFilterMenuItem {
   const FilterMenuItemBuilder({required this.builder});
 
   @override
-  Widget _build(BuildContext context) => builder(context);
+  Widget build(BuildContext context) => builder(context);
 }
