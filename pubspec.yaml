@@ -1,6 +1,6 @@
 name: genai_components
 description: A comprehensive Flutter UI component library with theming, routing, state management, charts, and 30+ reusable widgets. Built for rapid app development with sensible defaults.
-version: 4.0.2
+version: 4.0.3
 homepage: https://github.com/generazione-ai/genai_components
 repository: https://github.com/generazione-ai/genai_components
 issue_tracker: https://github.com/generazione-ai/genai_components/issues
