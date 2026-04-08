@@ -321,7 +321,27 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
     final actions = widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
     final showControls = _isHovered || model._isSelected || _isDialogOpen;
     final hasExpandedBuilder = widget.expandedRowBuilder != null;
-    final isActive = model._isSelected || _isHovered || _isExpanded;
+    final isSelected = model._isSelected;
+    // Distinct visual states
+    Color rowColor;
+    Color leftBorderColor;
+    double leftBorderWidth;
+    if (isSelected) {
+      // Selected: stronger primary tint + solid left border
+      rowColor = theme.primary.withValues(alpha: 0.08);
+      leftBorderColor = theme.primary;
+      leftBorderWidth = 3.0;
+    } else if (_isHovered) {
+      // Hover: very subtle neutral tint + faint border
+      rowColor = theme.primaryText.withValues(alpha: 0.025);
+      leftBorderColor = theme.primary.withValues(alpha: 0.3);
+      leftBorderWidth = 2.5;
+    } else {
+      // Normal: transparent
+      rowColor = Colors.transparent;
+      leftBorderColor = Colors.transparent;
+      leftBorderWidth = 2.5;
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -365,15 +385,11 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                 constraints: const BoxConstraints(minHeight: 52),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? theme.primary.withValues(alpha: 0.04)
-                      : _isHovered
-                          ? theme.primaryText.withValues(alpha: 0.015)
-                          : Colors.transparent,
+                  color: rowColor,
                   border: Border(
                     left: BorderSide(
-                      color: isActive ? theme.primary : Colors.transparent,
-                      width: isActive ? 2.5 : 2.5,
+                      color: leftBorderColor,
+                      width: leftBorderWidth,
                     ),
                   ),
                 ),
@@ -414,7 +430,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                               alignment: Alignment.centerLeft,
                               child: AnimatedOpacity(
                                 duration: const Duration(milliseconds: 150),
-                                opacity: showControls ? 1.0 : 0.0,
+                                opacity: showControls || isSelected ? 1.0 : 0.0,
                                 child: _RowSelectorCheckbox(
                                   isSelected: model._isSelected,
                                   setSelected: (newValue) {

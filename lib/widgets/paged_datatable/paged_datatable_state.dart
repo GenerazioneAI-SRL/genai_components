@@ -42,6 +42,10 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   final TKey initialPage;
   late TKey nextPageIndex;
 
+  /// Range display helpers
+  int get rangeStart => _items.isEmpty ? 0 : (_currentPageIndex * _pageSize) + 1;
+  int get rangeEnd => _items.isEmpty ? 0 : rangeStart + _items.length - 1;
+
   final Stream? refreshListener;
   final ScrollController filterChipsScrollController = ScrollController();
   final PagedDataTableController<TKey, TResultId, TResult> controller;
@@ -299,6 +303,18 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     notifyListeners();
   }
 
+  /// Deseleziona TUTTE le righe su tutte le pagine, non solo quella corrente.
+  void clearAllSelections() {
+    // Aggiorna lo stato visivo delle righe della pagina corrente
+    for (var element in _rowsState) {
+      element.selected = false;
+    }
+    // Svuota la mappa globale delle selezioni (cross-page)
+    selectedRows.clear();
+    _rowsSelectionChange = -3;
+    notifyListeners();
+  }
+
   Future<void> nextPage({bool isInfiniteScroll = false}) => _dispatchCallback(page: _currentPageIndex + 1, isInfiniteScroll: isInfiniteScroll);
 
   Future<void> previousPage() => _dispatchCallback(page: _currentPageIndex - 1);
@@ -417,6 +433,9 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
         _rowsStateMapper[itemId] = index;
         index++;
       }
+      // Aggiorna _rowsSelectionChange dopo aver caricato i nuovi item,
+      // così il Selector del checkbox header si ricostruisce con gli item della pagina corrente.
+      _rowsSelectionChange = _rowsChange;
       notifyListeners();
     } catch (err) {
       // store the error so the errorBuilder can display it

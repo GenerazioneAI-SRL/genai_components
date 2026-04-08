@@ -59,13 +59,15 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                             builder: (context, value, child) {
                               final isAllSelected =
                                   state._items.isNotEmpty && state._items.every((item) => state.selectedRows.containsKey(idGetter(item)));
-                              final hasSelection = state.selectedRows.isNotEmpty;
+                              // Usa solo gli item della pagina corrente per determinare se c'è una selezione parziale,
+                              // evitando che selezioni su altre pagine influenzino il checkbox header
+                              final hasCurrentPageSelection = state._items.any((item) => state.selectedRows.containsKey(idGetter(item)));
 
                               return Center(
                                 child: Transform.scale(
                                   scale: 0.9,
                                   child: Checkbox(
-                                    value: isAllSelected ? true : (hasSelection ? null : false),
+                                    value: isAllSelected ? true : (hasCurrentPageSelection ? null : false),
                                     tristate: true,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     visualDensity: VisualDensity.compact,
@@ -75,15 +77,13 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                                     checkColor: Colors.white,
                                     side: BorderSide(color: clTheme.borderColor, width: 1),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                    onChanged: (newValue) {
-                                      if (newValue == true || newValue == null) {
-                                        if (isAllSelected) {
-                                          state.unselectAllRows();
-                                        } else {
-                                          state.selectAllRows();
-                                        }
-                                      } else {
+                                    onChanged: (_) {
+                                      if (isAllSelected) {
+                                        // Tutti selezionati → deseleziona solo la pagina corrente
                                         state.unselectAllRows();
+                                      } else {
+                                        // Nessuno o parziale → seleziona tutti sulla pagina corrente
+                                        state.selectAllRows();
                                       }
                                     },
                                   ),
@@ -199,70 +199,42 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: Sizes.padding),
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            color: _isHovered && canSort ? theme.primaryText.withValues(alpha: 0.02) : Colors.transparent,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: widget.column.isNumeric ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: widget.column.isNumeric ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
-              // Header content with optional pill
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: widget.isSorted ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4) : EdgeInsets.zero,
-                decoration: BoxDecoration(
-                  color: widget.isSorted ? theme.primary.withValues(alpha: 0.08) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
+              Flexible(
+                child: DefaultTextStyle(
+                  style: theme.smallLabel.copyWith(
+                    fontWeight: widget.isSorted ? FontWeight.w700 : FontWeight.w600,
+                    color: widget.isSorted ? theme.primary : theme.secondaryText,
+                    fontSize: 12,
+                    letterSpacing: 0.3,
+                  ),
+                  child: widget.column.title,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: widget.column.isNumeric ? MainAxisAlignment.end : MainAxisAlignment.start,
-                  children: [
-                    Flexible(
-                      child: DefaultTextStyle(
-                        style: theme.smallLabel.copyWith(
-                          fontWeight: widget.isSorted ? FontWeight.w700 : FontWeight.w600,
-                          color: widget.isSorted ? theme.primary : theme.secondaryText,
-                          fontSize: 12,
-                          letterSpacing: 0.3,
-                        ),
-                        child: widget.column.title,
-                      ),
+              ),
+
+              // Sort indicator — always hint sortability on hover
+              if (canSort) ...[
+                const SizedBox(width: 4),
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: widget.isSorted ? 1.0 : (_isHovered ? 0.5 : 0.15),
+                  child: AnimatedRotation(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    turns: widget.isDescending ? 0.5 : 0,
+                    child: Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 13,
+                      color: widget.isSorted ? theme.primary : theme.secondaryText,
                     ),
-
-                    // Sort indicator
-                    if (canSort) ...[
-                      const SizedBox(width: 4),
-                      AnimatedOpacity(
-                        duration: const Duration(milliseconds: 150),
-                        opacity: widget.isSorted ? 1.0 : (_isHovered ? 0.4 : 0.0),
-                        child: AnimatedRotation(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
-                          turns: widget.isDescending ? 0.5 : 0,
-                          child: Icon(
-                            Icons.arrow_upward_rounded,
-                            size: 13,
-                            color: widget.isSorted ? theme.primary : theme.secondaryText,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
-
-              // Animated underline on hover
-              const SizedBox(height: 2),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                height: 2,
-                width: _isHovered && canSort ? 24 : 0,
-                decoration: BoxDecoration(
-                  color: _isHovered ? theme.primary.withValues(alpha: 0.4) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
+              ],
             ],
           ),
         ),

@@ -74,6 +74,9 @@ class PagedDataTableController<TKey extends Comparable,
   /// Unselects any selected row in the current resultset
   void unselectAllRows() => _state.unselectAllRows();
 
+  /// Deseleziona TUTTE le righe su tutte le pagine (cross-page clear)
+  void clearAllSelections() => _state.clearAllSelections();
+
   /// Selects all the rows in the current resultset
   void selectAllRows() => _state.selectAllRows();
 

@@ -56,8 +56,10 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 child: Text(
-                  '${state.totalElement} totali',
-                  key: ValueKey(state.totalElement),
+                  state.totalElement > 0
+                      ? '${state.rangeStart}–${state.rangeEnd} di ${state.totalElement}'
+                      : '0 risultati',
+                  key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
                   style: t.smallLabel.copyWith(
                     color: t.secondaryText,
                     fontSize: 12,
@@ -104,7 +106,9 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                '${state.totalElement} totali',
+                state.totalElement > 0
+                    ? '${state.rangeStart}–${state.rangeEnd} di ${state.totalElement}'
+                    : '0 risultati',
                 style: t.smallLabel.copyWith(fontWeight: FontWeight.w500, fontSize: 11, color: t.secondaryText),
               ),
             ),

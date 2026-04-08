@@ -126,6 +126,11 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// Callback chiamata quando una riga viene espansa
   final Future<void> Function(TResult item)? onRowExpanded;
 
+  /// Builder opzionale per le azioni nella toolbar di selezione (appare quando almeno una riga è selezionata).
+  /// Ritorna solo i widget delle azioni: badge "X selezionati" e "Deseleziona tutto" vengono
+  /// gestiti internamente dalla tabella.
+  final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)? selectionActionsBuilder;
+
   final List<int>? pageSizes;
   final int? initialPageSize;
   final bool isFooterVisible;
@@ -176,6 +181,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.showShimmerLoading = true,
     this.expandedRowBuilder,
     this.onRowExpanded,
+    this.selectionActionsBuilder,
     super.key,
   });
 
@@ -274,6 +280,74 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                           isFilterBarRounded,
                         ),
                       ],
+
+                      /* SELECTION TOOLBAR */
+                      if (selectionActionsBuilder != null)
+                        Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
+                          selector: (context, model) => model._rowsSelectionChange,
+                          builder: (context, _, __) {
+                            final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
+                            final selectedCount = st.selectedRows.length;
+                            if (selectedCount == 0) return const SizedBox.shrink();
+                            final selectedItems = st.selectedRows.entries
+                                .where((e) => e.value < st._items.length)
+                                .map((e) => st._items[e.value])
+                                .toList();
+                            final clTheme = CLTheme.of(context);
+                            final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: clTheme.primary.withValues(alpha: 0.06),
+                                border: Border(
+                                  bottom: BorderSide(color: clTheme.primary.withValues(alpha: 0.15), width: 1),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Badge "X selezionati"
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: clTheme.primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                                      style: clTheme.bodyLabel.copyWith(
+                                        color: clTheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  // Azioni custom
+                                  if (actionWidgets.isNotEmpty) ...[
+                                    const SizedBox(width: Sizes.padding),
+                                    ...actionWidgets,
+                                  ],
+                                  const Spacer(),
+                                  // Deseleziona tutto
+                                  TextButton(
+                                    onPressed: () => st.clearAllSelections(),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(
+                                      'Deseleziona tutto',
+                                      style: clTheme.bodyLabel.copyWith(
+                                        color: clTheme.secondaryText,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
 
                       /* HEADER ROW */
                       _PagedDataTableHeaderRow<TKey, TResultId, TResult>(rowsSelectable, width, idGetter, hasActions, hasExpandIcon),

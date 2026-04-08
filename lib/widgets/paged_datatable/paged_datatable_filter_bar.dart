@@ -30,28 +30,31 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
       builder: (context, state, _) {
         final GlobalKey buttonKey = state.filterButtonKey;
         final GlobalKey buttonExtraMenuKey = state.extraMenuButtonKey;
+        // Filtri extra attivi (non main) per i chip
+        final activeExtraFilters = state.filters.entries.where((e) => !e.value._filter.isMainFilter && e.value.hasValue).toList();
+
         Widget child = Container(
-          decoration: BoxDecoration(
-            color: CLTheme.of(context).primaryBackground,
-            borderRadius:
-                isFilterBarRounded
-                    ? BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius))
-                    : null,
-          ),
-          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? Sizes.padding : 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // === SINISTRA: Campo di ricerca + Filtri ===
-              Expanded(
-                child: Row(
-                  children: [
-                    // Campo di ricerca (larghezza fissa)
-                    if (state.filters.isNotEmpty && state.filters.entries.where((element) => element.value._filter.isMainFilter == true).isNotEmpty)
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 4,
-                        child:
-                            state.filters.entries.where((element) => element.value._filter.isMainFilter == true).map((entry) {
+            decoration: BoxDecoration(
+              color: CLTheme.of(context).primaryBackground,
+              borderRadius: isFilterBarRounded
+                  ? BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius))
+                  : null,
+            ),
+            padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? Sizes.padding : 0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // === SINISTRA: Campo di ricerca + Filtri ===
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // Campo di ricerca (larghezza fissa)
+                        if (state.filters.isNotEmpty &&
+                            state.filters.entries.where((element) => element.value._filter.isMainFilter == true).isNotEmpty)
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width / 4,
+                            child: state.filters.entries.where((element) => element.value._filter.isMainFilter == true).map((entry) {
                               TextTableFilter mainFilter = entry.value._filter as TextTableFilter;
                               mainFilter.onChange = (String value) {
                                 entry.value.value = value;
@@ -63,190 +66,231 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                               };
                               return mainFilter.buildPicker(context, entry.value);
                             }).first,
-                      ),
+                          ),
 
-                    // Pulsante filtri (solo se ci sono filtri extra)
-                    if (state.filters.entries.where((element) => element.value._filter.isMainFilter == false).isNotEmpty) ...[
-                      const SizedBox(width: Sizes.borderRadius),
-                      Builder(
-                        builder: (context) {
-                          final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
-                          final activeCount = state.filters.values.where((f) => f.hasValue && !f._filter.isMainFilter).length;
-                          final isDisabled = state.tableState == _TableState.loading;
-
-                          void onTap() {
-                            if (isDesktop) {
-                              final RenderBox renderBox = buttonKey.currentContext!.findRenderObject() as RenderBox;
-                              final position = renderBox.localToGlobal(Offset.zero);
-                              _showFilterOverlayDesktopFromPosition(context, state, buttonKey, position);
-                            } else {
-                              _showFilterOverlayMobile(context, state);
-                            }
-                          }
-
-                          if (isDesktop) {
-                            // Desktop: CLButton con testo + icona + badge
-                            return Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                CLButton(
-                                  key: buttonKey,
-                                  text: "Filtri",
-                                  iconAlignment: IconAlignment.start,
-                                  backgroundColor: CLTheme.of(context).secondaryBackground,
-                                  textStyle: CLTheme.of(context).bodyLabel.copyWith(fontWeight: FontWeight.w500),
-                                  hugeIcon: HugeIcon(
-                                    icon: HugeIcons.strokeRoundedFilterHorizontal,
-                                    color: CLTheme.of(context).secondaryText,
-                                    size: 16,
-                                  ),
-                                  onTap: isDisabled ? () {} : onTap,
-                                  context: context,
-                                ),
-                                if (activeCount > 0)
-                                  Positioned(
-                                    top: -4,
-                                    right: -4,
-                                    child: Container(
-                                      width: 18,
-                                      height: 18,
-                                      decoration: BoxDecoration(
-                                        color: CLTheme.of(context).primary,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1.5),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '$activeCount',
-                                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          } else {
-                            // Mobile: solo icona con badge
-                            return Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                IconButton(
-                                  key: buttonKey,
-                                  icon: HugeIcon(
-                                    icon: HugeIcons.strokeRoundedFilterHorizontal,
-                                    color: CLTheme.of(context).primaryText,
-                                    size: Sizes.medium,
-                                  ),
-                                  onPressed: isDisabled ? null : onTap,
-                                ),
-                                if (activeCount > 0)
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: Container(
-                                      width: 16,
-                                      height: 16,
-                                      decoration: BoxDecoration(
-                                        color: CLTheme.of(context).primary,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '$activeCount',
-                                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // === DESTRA: Azioni ===
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header custom
-                  if (header != null) ...[Flexible(child: header!), const SizedBox(width: Sizes.padding)],
-
-                  // Download button
-                  if (this.downloadPage != null) ...[
-                    CLButton.secondary(
-                      text: this.downloadButtonText ?? "Download",
-                      icon: this.downloadButtonIcon,
-                      onTap: () async {
-                        await state._dispatchDownloadCallback();
-                      },
-                      context: context,
-                    ),
-                    const SizedBox(width: Sizes.padding),
-                  ],
-
-                  // Main menus
-                  if (mainMenus.isNotEmpty) ...mainMenus,
-
-                  // Extra menu
-                  if (extraMenus.isNotEmpty)
-                    IconButton(
-                      key: buttonExtraMenuKey,
-                      splashColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      hoverColor: Colors.transparent,
-                      padding: const EdgeInsets.only(left: Sizes.small),
-                      icon: Icon(Icons.more_vert, color: theme.buttonsColor),
-                      onPressed: () async {
-                        _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
-                      },
-                    ),
-
-                  // Checkbox (solo mobile)
-                  if (rowsSelectable && !ResponsiveBreakpoints.of(context).isDesktop)
-                    Transform.translate(
-                      offset: Offset(6, 0),
-                      child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
-                        selector: (context, model) => model._rowsSelectionChange,
-                        builder: (context, value, _) {
-                          return HookBuilder(
+                        // Pulsante filtri (solo se ci sono filtri extra)
+                        if (state.filters.entries.where((element) => element.value._filter.isMainFilter == false).isNotEmpty) ...[
+                          const SizedBox(width: Sizes.borderRadius),
+                          Builder(
                             builder: (context) {
-                              return Checkbox(
-                                value:
-                                    state.selectedRows.isEmpty
-                                        ? false
-                                        : state._items.every((item) => state.selectedRows.containsKey(idGetter(item)))
-                                        ? true
-                                        : false,
-                                tristate: false,
-                                hoverColor: Colors.transparent,
-                                overlayColor: WidgetStateProperty.all<Color>(Colors.transparent),
-                                activeColor: CLTheme.of(context).secondary,
-                                onChanged: (newValue) {
-                                  switch (newValue) {
-                                    case true:
-                                      state.selectAllRows();
-                                      break;
-                                    case false:
-                                      state.unselectAllRows();
-                                      break;
-                                    case null:
-                                      state.unselectAllRows();
-                                      break;
-                                  }
+                              final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+                              final activeCount = state.filters.values.where((f) => f.hasValue && !f._filter.isMainFilter).length;
+                              final isDisabled = state.tableState == _TableState.loading;
+
+                              void onTap() {
+                                if (isDesktop) {
+                                  final RenderBox renderBox = buttonKey.currentContext!.findRenderObject() as RenderBox;
+                                  final position = renderBox.localToGlobal(Offset.zero);
+                                  _showFilterOverlayDesktopFromPosition(context, state, buttonKey, position);
+                                } else {
+                                  _showFilterOverlayMobile(context, state);
+                                }
+                              }
+
+                              if (isDesktop) {
+                                // Desktop: CLButton con testo + icona + badge
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    CLButton(
+                                      key: buttonKey,
+                                      text: "Filtri",
+                                      iconAlignment: IconAlignment.start,
+                                      backgroundColor: CLTheme.of(context).secondaryBackground,
+                                      textStyle: CLTheme.of(context).bodyLabel.copyWith(fontWeight: FontWeight.w500),
+                                      hugeIcon: HugeIcon(
+                                        icon: HugeIcons.strokeRoundedFilterHorizontal,
+                                        color: CLTheme.of(context).secondaryText,
+                                        size: 16,
+                                      ),
+                                      onTap: isDisabled ? () {} : onTap,
+                                      context: context,
+                                    ),
+                                    if (activeCount > 0)
+                                      Positioned(
+                                        top: -4,
+                                        right: -4,
+                                        child: Container(
+                                          width: 18,
+                                          height: 18,
+                                          decoration: BoxDecoration(
+                                            color: CLTheme.of(context).primary,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1.5),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '$activeCount',
+                                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              } else {
+                                // Mobile: solo icona con badge
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    IconButton(
+                                      key: buttonKey,
+                                      icon: HugeIcon(
+                                        icon: HugeIcons.strokeRoundedFilterHorizontal,
+                                        color: CLTheme.of(context).primaryText,
+                                        size: Sizes.medium,
+                                      ),
+                                      onPressed: isDisabled ? null : onTap,
+                                    ),
+                                    if (activeCount > 0)
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: Container(
+                                          width: 16,
+                                          height: 16,
+                                          decoration: BoxDecoration(
+                                            color: CLTheme.of(context).primary,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '$activeCount',
+                                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // === DESTRA: Azioni ===
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header custom
+                      if (header != null) ...[Flexible(child: header!), const SizedBox(width: Sizes.padding)],
+
+                      // Download button
+                      if (this.downloadPage != null) ...[
+                        CLButton.secondary(
+                          text: this.downloadButtonText ?? "Download",
+                          icon: this.downloadButtonIcon,
+                          onTap: () async {
+                            await state._dispatchDownloadCallback();
+                          },
+                          context: context,
+                        ),
+                        const SizedBox(width: Sizes.padding),
+                      ],
+
+                      // Main menus
+                      if (mainMenus.isNotEmpty) ...mainMenus,
+
+                      // Extra menu
+                      if (extraMenus.isNotEmpty)
+                        IconButton(
+                          key: buttonExtraMenuKey,
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          padding: const EdgeInsets.only(left: Sizes.small),
+                          icon: Icon(Icons.more_vert, color: theme.buttonsColor),
+                          onPressed: () async {
+                            _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
+                          },
+                        ),
+
+                      // Checkbox (solo mobile)
+                      if (rowsSelectable && !ResponsiveBreakpoints.of(context).isDesktop)
+                        Transform.translate(
+                          offset: Offset(6, 0),
+                          child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
+                            selector: (context, model) => model._rowsSelectionChange,
+                            builder: (context, value, _) {
+                              return HookBuilder(
+                                builder: (context) {
+                                  final isAllSelected =
+                                      state._items.isNotEmpty && state._items.every((item) => state.selectedRows.containsKey(idGetter(item)));
+                                  final hasCurrentPageSelection = state._items.any((item) => state.selectedRows.containsKey(idGetter(item)));
+                                  return Checkbox(
+                                    value: isAllSelected ? true : (hasCurrentPageSelection ? null : false),
+                                    tristate: true,
+                                    hoverColor: Colors.transparent,
+                                    overlayColor: WidgetStateProperty.all<Color>(Colors.transparent),
+                                    activeColor: CLTheme.of(context).secondary,
+                                    onChanged: (newValue) {
+                                      switch (newValue) {
+                                        case true:
+                                          state.selectAllRows();
+                                          break;
+                                        case false:
+                                        case null:
+                                          // Clear globale: deseleziona anche pagine precedenti
+                                          state.clearAllSelections();
+                                          break;
+                                      }
+                                    },
+                                  );
                                 },
                               );
                             },
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
+              // === CHIP FILTRI ATTIVI (sotto la barra principale) ===
+              if (activeExtraFilters.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: activeExtraFilters.map((entry) {
+                    final filter = entry.value._filter;
+                    final label = (filter as dynamic).chipFormatter(entry.value.value) as String;
+                    final clTheme = CLTheme.of(context);
+                    return Container(
+                      padding: const EdgeInsets.only(left: 10, right: 4, top: 4, bottom: 4),
+                      decoration: BoxDecoration(
+                        color: clTheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: clTheme.primary.withValues(alpha: 0.2), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${filter.title}: $label',
+                            style: clTheme.bodyLabel.copyWith(
+                              color: clTheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => state.removeFilter(entry.key),
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Icon(Icons.close_rounded, size: 14, color: clTheme.primary.withValues(alpha: 0.7)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         );
@@ -412,7 +456,8 @@ class _FiltersDialogBoxed<TKey extends Comparable, TResultId extends Comparable,
   State<_FiltersDialogBoxed<TKey, TResultId, TResult>> createState() => _FiltersDialogBoxedState<TKey, TResultId, TResult>();
 }
 
-class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends State<_FiltersDialogBoxed<TKey, TResultId, TResult>> {
+class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends State<_FiltersDialogBoxed<TKey, TResultId, TResult>> {
   BaseTableColumn<TResult>? selectedColumn;
   bool descending = false;
 
@@ -465,17 +510,16 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                       key: state.filtersFormKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children:
-                            state.filters.entries
-                                .where((filter) => filter.value._filter.isMainFilter == false)
-                                .where((element) => element.value._filter.visible)
-                                .map(
-                                  (entry) => Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    child: entry.value._filter.buildPicker(context, entry.value),
-                                  ),
-                                )
-                                .toList(),
+                        children: state.filters.entries
+                            .where((filter) => filter.value._filter.isMainFilter == false)
+                            .where((element) => element.value._filter.visible)
+                            .map(
+                              (entry) => Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: entry.value._filter.buildPicker(context, entry.value),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
                   ],

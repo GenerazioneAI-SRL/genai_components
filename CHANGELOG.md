@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.2.2
+
+- **Widgets:** Updated 7 components
+
+
 ## 4.2.1
 
 - **Package:** Updated Pubspec Yaml
