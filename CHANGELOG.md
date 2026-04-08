@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.2.1
+
+- **Package:** Updated Pubspec Yaml
+
+
 ## 4.1.1
 
 - Maintenance and minor improvements
