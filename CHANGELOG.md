@@ -1,8 +1,21 @@
 # Changelog
 
-## 2.0.0
+## 4.0.0
 
-- **Breaking:** Refactored as standalone library for pub.dev publication
+- **Core:** Updated Changelog Md
+- **Package:** Updated Pubspec Yaml
+
+
+## 3.0.2
+
+- **Core:** Updated Changelog Md
+
+
+## 3.0.0
+
+- **Breaking:** Renamed package from `cl_components` to `genai_components`
+- Updated all internal imports to use `genai_components`
+- Refactored as standalone library for pub.dev publication
 - **CLApp:** Generic app bootstrap with `CLAppConfig` — OIDC, routing, providers out of the box
 - **CLTheme:** Light/dark mode with per-module color overrides via `ModuleThemeProvider`
 - **GoRouterModular:** Custom routing system wrapping GoRouter — `Module`, `CLRoute`, `ChildRoute`, `ModuleRoute`, `ShellModularRoute`
@@ -18,4 +31,3 @@
 ## 1.0.0
 
 - Initial release — internal package via GitHub
-
