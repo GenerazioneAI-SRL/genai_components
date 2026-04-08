@@ -1,22 +1,20 @@
 # Changelog
 
-## 4.2.0
+## 4.0.1
+
+- **Core:** Updated Readme Md, Cl
+
+
+## 4.0.0
 
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
 
-## 4.1.0
+## 3.0.2
 
-- **Widgets:** Updated 12 components
+- **Core:** Updated Changelog Md
 
-
-## 4.0.0
-
-- **Widgets:** Fixed unused parameters in CLDropdown and CLFilePicker
-- **Widgets:** Fixed deprecated API usage in stats widget
-- **Widgets:** Fixed public API type exposure in video player
-- **Package:** Cleaned up changelog format and versioning
 
 ## 3.0.0
 
