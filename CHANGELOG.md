@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.0.0
+
+- **Core:** Updated Changelog Md
+- **Package:** Updated Pubspec Yaml
+
+
 ## 4.0.0
 
 - **Core:** Updated Changelog Md
