@@ -136,10 +136,6 @@ class _SurveyState extends State<SurveyWidget> {
     return question.answers.isNotEmpty;
   }
 
-  // Una domanda non è considerata "sentenza" se ha opzioni.
-  bool _isNotSentenceQuestion(Question question) {
-    return question.options.isNotEmpty;
-  }
 }
 
 extension DeepCopy on Question {

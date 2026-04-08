@@ -29,69 +29,8 @@ class _PagedDataTableMenu extends StatelessWidget {
   }
 }
 
-void _showMenu({
-  required BuildContext context,
-  required GlobalKey buttonExtraMenuKey,
-  required List<BaseFilterMenuItem> items,
-}) {
-  final RenderBox renderBox = buttonExtraMenuKey.currentContext?.findRenderObject() as RenderBox;
-  final position = renderBox.localToGlobal(Offset.zero);
-  final size = renderBox.size;
 
-  final screenSize = MediaQuery.of(context).size;
-  final screenWidth = screenSize.width;
-  final screenHeight = screenSize.height;
-
-  final menuWidth = screenWidth / 3; // Stima o larghezza fissa del menu
-  final menuHeight = items.length * 48.0; // Altezza stimata del menu (48.0 per ogni elemento)
-
-  // Calcola la posizione iniziale
-  double dx = position.dx;
-  double dy = position.dy + size.height;
-
-  // Sposta il menu a sinistra
-  // Usa un valore fisso o una percentuale
-  const double leftOffset = 50.0; // Valore fisso in pixel
-  // const double leftOffsetPercentage = 0.25; // Percentuale della larghezza del menu
-  // double leftOffset = menuWidth * leftOffsetPercentage;
-
-  dx -= leftOffset;
-
-  // Assicurati che dx non sia negativo
-  if (dx < 0) {
-    dx = 0;
-  }
-
-  // Regola dx se il menu esce dallo schermo a destra
-  if (dx + menuWidth > screenWidth) {
-    dx = screenWidth - menuWidth - 16.0; // 16.0 come padding
-  }
-
-  // Regola dy se il menu esce dallo schermo in basso
-  if (dy + menuHeight > screenHeight) {
-    dy = position.dy - menuHeight;
-  }
-
-  // Crea il RelativeRect corretto
-  var rect = RelativeRect.fromLTRB(
-    dx,
-    dy - 105,
-    screenWidth - (dx + menuWidth) + 25,
-    screenHeight - (dy + menuHeight),
-  );
-
-  final NavigatorState navigator = Navigator.of(context);
-  Navigator.push(
-    context,
-    _PopupMenuRoute(
-      items: items,
-      position: rect,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      capturedThemes: InheritedTheme.capture(from: context, to: navigator.context),
-    ),
-  );
-}
-
+// ignore: unused_element
 class _PopupMenuRoute<T> extends PopupRoute<T> {
   _PopupMenuRoute({
     required this.position,

@@ -148,7 +148,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
       await downloadResult(_sortModel, Filtering._internal(filters));
       _state = _TableState.displaying;
       notifyListeners();
-    } catch (err, stack) {
+    } catch (err) {
       notifyListeners();
     }
   }
@@ -418,7 +418,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
         index++;
       }
       notifyListeners();
-    } catch (err, stack) {
+    } catch (err) {
       // store the error so the errorBuilder can display it
       _state = _TableState.error;
       _rowsChange++;
