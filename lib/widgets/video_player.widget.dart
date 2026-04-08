@@ -11,7 +11,7 @@ class ClVideoPicker extends StatefulWidget {
   const ClVideoPicker({super.key, this.onPickedFile});
 
   @override
-  _ClVideoPickerState createState() => _ClVideoPickerState();
+  State<ClVideoPicker> createState() => _ClVideoPickerState();
 }
 
 class _ClVideoPickerState extends State<ClVideoPicker> {

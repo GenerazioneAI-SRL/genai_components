@@ -201,9 +201,6 @@ class DropdownState<T extends Object> extends ChangeNotifier {
     final availableSpace = openUpward ? spaceAbove : spaceBelow;
     final listMaxHeight = (availableSpace - (hasSearch ? searchBarHeight : 0) - 16).clamp(80.0, maxDropdownHeight);
 
-    final followerOffset = openUpward
-        ? Offset(0.0, -gap) // CompositedTransformFollower userà targetAnchor/followerAnchor
-        : Offset(0.0, size.height + gap);
 
     return OverlayEntry(
       builder:

@@ -32,7 +32,7 @@ class StatsWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(radius: Sizes.padding * 1.5, backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color, size: Sizes.medium)),
+                    CircleAvatar(radius: Sizes.padding * 1.5, backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: Sizes.medium)),
                     SizedBox(height: Sizes.padding),
                     Text(
                       body,
