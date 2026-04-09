@@ -288,63 +288,90 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                           builder: (context, _, __) {
                             final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
                             final selectedCount = st.selectedRows.length;
-                            if (selectedCount == 0) return const SizedBox.shrink();
-                            final selectedItems = st.selectedRows.entries
-                                .where((e) => e.value < st._items.length)
-                                .map((e) => st._items[e.value])
-                                .toList();
                             final clTheme = CLTheme.of(context);
-                            final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: clTheme.primary.withValues(alpha: 0.06),
-                                border: Border(
-                                  bottom: BorderSide(color: clTheme.primary.withValues(alpha: 0.15), width: 1),
+
+                            Widget toolbarContent;
+                            if (selectedCount == 0) {
+                              toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
+                            } else {
+                              final selectedItems = st.selectedRows.entries
+                                  .where((e) => e.value < st._items.length)
+                                  .map((e) => st._items[e.value])
+                                  .toList();
+                              final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
+                              toolbarContent = Container(
+                                key: const ValueKey('toolbar_visible'),
+                                padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: clTheme.primary.withValues(alpha: 0.06),
+                                  border: Border(
+                                    bottom: BorderSide(color: clTheme.primary.withValues(alpha: 0.15), width: 1),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Badge "X selezionati"
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: clTheme.primary.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                                        style: clTheme.bodyLabel.copyWith(
+                                          color: clTheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    // Azioni custom
+                                    if (actionWidgets.isNotEmpty) ...[
+                                      const SizedBox(width: Sizes.padding),
+                                      ...actionWidgets,
+                                    ],
+                                    const Spacer(),
+                                    // Deseleziona tutto
+                                    TextButton(
+                                      onPressed: () => st.clearAllSelections(),
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Deseleziona tutto',
+                                        style: clTheme.bodyLabel.copyWith(
+                                          color: clTheme.secondaryText,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) => SizeTransition(
+                                sizeFactor: animation,
+                                axisAlignment: -1,
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, -0.3),
+                                      end: Offset.zero,
+                                    ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                                    child: child,
+                                  ),
                                 ),
                               ),
-                              child: Row(
-                                children: [
-                                  // Badge "X selezionati"
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: clTheme.primary.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
-                                      style: clTheme.bodyLabel.copyWith(
-                                        color: clTheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                  // Azioni custom
-                                  if (actionWidgets.isNotEmpty) ...[
-                                    const SizedBox(width: Sizes.padding),
-                                    ...actionWidgets,
-                                  ],
-                                  const Spacer(),
-                                  // Deseleziona tutto
-                                  TextButton(
-                                    onPressed: () => st.clearAllSelections(),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: Text(
-                                      'Deseleziona tutto',
-                                      style: clTheme.bodyLabel.copyWith(
-                                        color: clTheme.secondaryText,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              child: toolbarContent,
                             );
                           },
                         ),

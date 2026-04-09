@@ -838,7 +838,21 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
           child: _expanded
               ? Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
+                  child: Stack(
+                    children: [
+                      // Linea verticale allineata al centro dell'icona del parent (left 12 + 10 = 22px)
+                      Positioned(
+                        left: 21,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 1.5,
+                          color: theme.borderColor.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
+                    ],
+                  ),
                 )
               : const SizedBox.shrink(),
         ),

@@ -44,6 +44,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
   /// Range display helpers
   int get rangeStart => _items.isEmpty ? 0 : (_currentPageIndex * _pageSize) + 1;
+
   int get rangeEnd => _items.isEmpty ? 0 : rangeStart + _items.length - 1;
 
   final Stream? refreshListener;
@@ -267,7 +268,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     }
     selectedRows[itemId] = itemIndex;
     _rowsState[itemIndex].selected = true;
-    _rowsSelectionChange = itemIndex;
+    _rowsSelectionChange++;
     notifyListeners();
   }
 
@@ -279,7 +280,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
     selectedRows.remove(itemId);
     _rowsState[itemIndex].selected = false;
-    _rowsSelectionChange = itemIndex;
+    _rowsSelectionChange++;
     notifyListeners();
   }
 
@@ -290,7 +291,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
       }
       element.selected = true;
     }
-    _rowsSelectionChange = -1;
+    _rowsSelectionChange++;
     notifyListeners();
   }
 
@@ -299,7 +300,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
       selectedRows.remove(element.itemId);
       element.selected = false;
     }
-    _rowsSelectionChange = -2;
+    _rowsSelectionChange++;
     notifyListeners();
   }
 
@@ -311,7 +312,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     }
     // Svuota la mappa globale delle selezioni (cross-page)
     selectedRows.clear();
-    _rowsSelectionChange = -3;
+    _rowsSelectionChange++;
     notifyListeners();
   }
 

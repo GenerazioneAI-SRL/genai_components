@@ -330,7 +330,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
       // Selected: stronger primary tint + solid left border
       rowColor = theme.primary.withValues(alpha: 0.08);
       leftBorderColor = theme.primary;
-      leftBorderWidth = 3.0;
+      leftBorderWidth = 2.5; // mantenuto a 2.5 per evitare overflow (BoxDecoration.border riduce lo spazio figli)
     } else if (_isHovered) {
       // Hover: very subtle neutral tint + faint border
       rowColor = theme.primaryText.withValues(alpha: 0.025);
