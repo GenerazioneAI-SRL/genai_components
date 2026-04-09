@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.4
+
+- **Widgets:** Updated Paged Datatable, Paged Datatable Rows, Paged Datatable State
+- **Layout:** Updated Menu Layout
+
+
 ## 4.2.3
 
 - **Layout:** Updated Menu Layout
