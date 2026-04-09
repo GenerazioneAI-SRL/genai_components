@@ -161,7 +161,7 @@ class _AppLayoutState extends State<AppLayout> with WidgetsBindingObserver, Tick
                     ),
                   ),
                 ),
-                SizedBox(height: p),
+                SizedBox(height: p * 0.5),
                 // Contenuto pagina
                 Expanded(child: widget.shellChild),
               ],
