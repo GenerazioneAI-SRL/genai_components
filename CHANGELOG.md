@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.2.5
+
+- **Widgets:** Updated CLPage_header
+- **Layout:** Updated App Layout, Header Layout, Menu Layout
+- **Theme:** Updated Cl Theme
+
+
 ## 4.2.4
 
 - **Widgets:** Updated Paged Datatable, Paged Datatable Rows, Paged Datatable State
