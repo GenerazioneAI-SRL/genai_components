@@ -87,7 +87,6 @@ class _MenuLayoutState extends State<MenuLayout> {
                     else if (route is ModuleRoute && route.isVisible && route.showInSideMenu && !route.onlyShowLabel)
                       _buildVisibleModuleRoute(navigationState, route)
                     else if (route is ModuleRoute && route.isVisible && (route.onlyShowLabel || !route.showInSideMenu))
-                      // Modulo mostrato come sezione con label + children strutturati
                       ..._buildSectionModule(navigationState, route)
                     else if (route is ShellModularRoute)
                       for (var subRoute in route.routes)
@@ -97,6 +96,27 @@ class _MenuLayoutState extends State<MenuLayout> {
                           _buildVisibleModuleRoute(navigationState, subRoute)
                         else if (subRoute is ModuleRoute && subRoute.isVisible && (subRoute.onlyShowLabel || !subRoute.showInSideMenu))
                           ..._buildSectionModule(navigationState, subRoute),
+
+                  // ── Mobile: Profilo + Logout + Versione ──────────
+                  if (isMobile) ...[
+                    const SizedBox(height: 12),
+                    // Versione (scorre con il menu su mobile)
+                    FutureBuilder<PackageInfo>(
+                      future: PackageInfo.fromPlatform(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const SizedBox.shrink();
+                        final info = snapshot.data!;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(
+                            'v${info.version} (${info.buildNumber})',
+                            textAlign: TextAlign.center,
+                            style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -186,78 +206,77 @@ class _MenuLayoutState extends State<MenuLayout> {
             ),
           ),*/
 
-          // ── Footer: Toggle tema ──────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(Sizes.padding * 0.6, 0, Sizes.padding * 0.6, isMobile ? Sizes.padding * 1.2 : Sizes.padding * 0.75),
-            child: Consumer<ThemeProvider>(
-              builder: (context, themeProvider, _) {
-                final isDarkNow = themeProvider.isDarkMode;
-                return GestureDetector(
-                  onTap: () async => await themeProvider.toggleTheme(),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: Sizes.padding * 0.5),
-                      decoration: BoxDecoration(
-                        color: isMobile
-                            ? (isDark ? theme.secondaryBackground : Colors.white)
-                            : (isDark ? theme.secondaryBackground.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6)),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isDark ? theme.borderColor.withValues(alpha: isMobile ? 1.0 : 0.5) : Colors.white.withValues(alpha: isMobile ? 0.0 : 0.8),
+          // ── Footer: Toggle tema (solo desktop — su mobile è nell'intestazione drawer) ──
+          if (!isMobile)
+            Padding(
+              padding: EdgeInsets.fromLTRB(Sizes.padding * 0.6, 0, Sizes.padding * 0.6, Sizes.padding * 0.75),
+              child: Consumer<ThemeProvider>(
+                builder: (context, themeProvider, _) {
+                  final isDarkNow = themeProvider.isDarkMode;
+                  return GestureDetector(
+                    onTap: () async => await themeProvider.toggleTheme(),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: Sizes.padding * 0.5),
+                        decoration: BoxDecoration(
+                          color: isDark ? theme.secondaryBackground.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark ? theme.borderColor.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.8),
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: isDarkNow ? const Color(0xFF1E293B) : const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(7),
-                            ),
-                            child: Center(
-                              child: HugeIcon(
-                                icon: isDarkNow ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
-                                color: isDarkNow ? const Color(0xFF94A3B8) : const Color(0xFFF59E0B),
-                                size: 15,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: isDarkNow ? const Color(0xFF1E293B) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                              child: Center(
+                                child: HugeIcon(
+                                  icon: isDarkNow ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
+                                  color: isDarkNow ? const Color(0xFF94A3B8) : const Color(0xFFF59E0B),
+                                  size: 15,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              isDarkNow ? 'Modalità scura' : 'Modalità chiara',
-                              style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w500, fontSize: isMobile ? 12.5 : 13),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                isDarkNow ? 'Modalità scura' : 'Modalità chiara',
+                                style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w500, fontSize: 13),
+                              ),
                             ),
-                          ),
-                          // Switch toggle visivo
-                          _ThemeToggleSwitch(isDark: isDarkNow),
-                        ],
+                            _ThemeToggleSwitch(isDark: isDarkNow),
+                          ],
+                        ),
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
+
+          // ── Versione app (solo desktop — su mobile scorre con le voci) ──
+          if (!isMobile)
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox.shrink();
+                final info = snapshot.data!;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'v${info.version} (${info.buildNumber})',
+                    textAlign: TextAlign.center,
+                    style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10),
                   ),
                 );
               },
             ),
-          ),
-
-          // ── Versione app ─────────────────────────────────────
-          FutureBuilder<PackageInfo>(
-            future: PackageInfo.fromPlatform(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const SizedBox.shrink();
-              final info = snapshot.data!;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                  'v${info.version} (${info.buildNumber})',
-                  textAlign: TextAlign.center,
-                  style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10),
-                ),
-              );
-            },
-          ),
 
           // ── Header ──────────────────────────────────────────
         ],
@@ -504,7 +523,7 @@ class _MenuLayoutState extends State<MenuLayout> {
 // Sotto-widget interni
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Header del menu: logo + titolo + close button
+/// Header del menu: logo + (mobile only: tema toggle + close button)
 class _MenuHeader extends StatelessWidget {
   const _MenuHeader({required this.authState, required this.isMobile, required this.onClose});
 
@@ -515,6 +534,7 @@ class _MenuHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
+
     return Padding(
       padding: EdgeInsets.fromLTRB(
         Sizes.padding,
@@ -526,7 +546,39 @@ class _MenuHeader extends StatelessWidget {
         children: [
           // Logo SVG
           Expanded(child: LogoWidget(height: isMobile ? 22 : 24, dark: false, color: theme.primary)),
-          if (isMobile)
+          // Toggle tema + Close (solo mobile)
+          if (isMobile) ...[
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) {
+                final isDarkNow = themeProvider.isDarkMode;
+                return Tooltip(
+                  message: isDarkNow ? 'Modalità chiara' : 'Modalità scura',
+                  child: GestureDetector(
+                    onTap: () async => await themeProvider.toggleTheme(),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: isDarkNow ? const Color(0xFF1E293B) : const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: theme.borderColor),
+                        ),
+                        child: Center(
+                          child: HugeIcon(
+                            icon: isDarkNow ? HugeIcons.strokeRoundedMoon02 : HugeIcons.strokeRoundedSun03,
+                            color: isDarkNow ? const Color(0xFF94A3B8) : const Color(0xFFF59E0B),
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: onClose,
               child: Container(
@@ -540,6 +592,7 @@ class _MenuHeader extends StatelessWidget {
                 child: Center(child: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: theme.secondaryText, size: 17)),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -669,12 +722,9 @@ class _TenantActionButtonState extends State<_TenantActionButton> {
   Widget build(BuildContext context) {
     final t = widget.theme;
     final color = widget.isPrimary ? t.primary : t.secondaryText;
-    final bg = widget.isPrimary
-        ? (_hovered ? t.primary.withValues(alpha: 0.14) : t.primary.withValues(alpha: 0.08))
-        : Colors.transparent;
-    final border = widget.isPrimary
-        ? Border.all(color: Colors.transparent)
-        : Border.all(color: _hovered ? t.borderColor.withValues(alpha: 0.8) : t.borderColor);
+    final bg = widget.isPrimary ? (_hovered ? t.primary.withValues(alpha: 0.14) : t.primary.withValues(alpha: 0.08)) : Colors.transparent;
+    final border =
+        widget.isPrimary ? Border.all(color: Colors.transparent) : Border.all(color: _hovered ? t.borderColor.withValues(alpha: 0.8) : t.borderColor);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -707,8 +757,6 @@ class _TenantActionButtonState extends State<_TenantActionButton> {
                 const SizedBox(width: 4),
                 HugeIcon(icon: widget.icon, size: 11, color: color),
               ] else ...[
-                HugeIcon(icon: widget.icon, size: 12, color: color),
-                const SizedBox(width: 4),
                 Text(widget.label, style: TextStyle(color: color, fontWeight: FontWeight.w500, fontSize: 11, fontFamily: 'Inter')),
               ],
             ],
@@ -1120,6 +1168,75 @@ class _MenuSubTileState extends State<_MenuSubTile> {
                 maxLines: 1,
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Voce logout per il menu mobile — con colore danger
+class _MobileLogoutTile extends StatefulWidget {
+  const _MobileLogoutTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_MobileLogoutTile> createState() => _MobileLogoutTileState();
+}
+
+class _MobileLogoutTileState extends State<_MobileLogoutTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    const h = 42.0;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: SizedBox(
+          height: h,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                top: 1.5,
+                bottom: 1.5,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  decoration: BoxDecoration(
+                    color: _hovered ? theme.danger.withValues(alpha: 0.08) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      child: Center(
+                        child: HugeIcon(icon: HugeIcons.strokeRoundedLogout01, color: theme.danger, size: 19),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Logout',
+                      style: theme.bodyLabel.copyWith(
+                        color: theme.danger,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
