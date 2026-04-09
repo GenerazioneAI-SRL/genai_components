@@ -203,8 +203,7 @@ class _MenuLayoutState extends State<MenuLayout> {
                           : (isDark ? theme.secondaryBackground.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6)),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color:
-                            isDark ? theme.borderColor.withValues(alpha: isMobile ? 1.0 : 0.5) : Colors.white.withValues(alpha: isMobile ? 0.0 : 0.8),
+                        color: isDark ? theme.borderColor.withValues(alpha: isMobile ? 1.0 : 0.5) : Colors.white.withValues(alpha: isMobile ? 0.0 : 0.8),
                       ),
                     ),
                     child: Row(
@@ -429,14 +428,16 @@ class _MenuLayoutState extends State<MenuLayout> {
       isMobile: isMobile,
       onTap: () {
         if (isMobile) _closeDrawer(context);
-        context.customGoNamed(route.routeName ?? route.name);
+        // Usa il path assoluto già calcolato da _buildSectionModule per evitare
+        // che customGoNamed risolva il nome sbagliato quando lo stesso modulo
+        // (es. TrainingPlanModule) è registrato sotto più sezioni.
+        context.go(route.path);
       },
     );
   }
 
   // ── Gruppo espandibile ─────────────────────────────────────────────────────
   Widget _buildGroupRoute(NavigationState navigationState, ModuleRoute subRoute, {String basePath = '', int depth = 0}) {
-
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final currentPath = "$basePath${subRoute.path}".replaceAll('//', '/');
     final isSelected = _isSelected(navigationState, currentPath, isParentRoute: true);
@@ -466,7 +467,8 @@ class _MenuLayoutState extends State<MenuLayout> {
           else if (childRoute is ModuleRoute && childRoute.isVisible)
             if (childRoute.module.routes.where((r) => r is ChildRoute && r.isVisible).length == 1)
               _MenuSubTile(
-                label: (childRoute.module.routes.where((r) => r is ChildRoute && r.isVisible).first as ChildRoute).name,
+                // Usa il nome del ModuleRoute (rispetta label override) invece del ChildRoute interno
+                label: childRoute.name,
                 selected: _isSelected(navigationState, "$currentPath${childRoute.path}".replaceAll('//', '/')),
                 isMobile: isMobile,
                 depth: depth,
@@ -585,8 +587,7 @@ class _TenantCard extends StatelessWidget {
                   ),
                   if (authState.currentTenant!.rawData['vatNumber'] != null) ...[
                     const SizedBox(height: 1),
-                    Text('P.IVA ${authState.currentTenant!.rawData['vatNumber']}',
-                        style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10)),
+                    Text('P.IVA ${authState.currentTenant!.rawData['vatNumber']}', style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 10)),
                   ],
                 ],
               ),
@@ -777,9 +778,7 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
                   duration: const Duration(milliseconds: 160),
                   decoration: BoxDecoration(
                     // Nessun colore persistente se selezionato — solo hover
-                    color: _hovered
-                        ? theme.primary.withValues(alpha: 0.05)
-                        : Colors.transparent,
+                    color: _hovered ? theme.primary.withValues(alpha: 0.05) : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -856,12 +855,10 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
                 height: h,
-                  decoration: BoxDecoration(
-                    color: _hovered
-                        ? theme.primary.withValues(alpha: 0.04)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                decoration: BoxDecoration(
+                  color: _hovered ? theme.primary.withValues(alpha: 0.04) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Row(
                   children: [
                     // Spaziatura icona identica al top-level (12+20+10=42px per il testo)

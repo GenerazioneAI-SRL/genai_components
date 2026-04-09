@@ -12,6 +12,9 @@ class ModuleRoute extends ModularRoute {
   final HugeIcon? hugeIcon;
   final bool isVisible;
 
+  /// Etichetta personalizzata da mostrare nel menu al posto di module.moduleRoute.name.
+  final String? label;
+
   /// Se true, il modulo compare come tab nella top bar.
   final bool showInTopBar;
 
@@ -32,12 +35,13 @@ class ModuleRoute extends ModularRoute {
     this.icon,
     this.hugeIcon,
     this.isVisible = true,
+    this.label,
     this.showInTopBar = true,
     this.showInSideMenu = true,
     this.navigateOnTabTap = false,
     this.onlyShowLabel = false,
   }) {
-    name = module.moduleRoute.name;
+    name = label ?? module.moduleRoute.name;
     path = module.moduleRoute.path;
   }
 
