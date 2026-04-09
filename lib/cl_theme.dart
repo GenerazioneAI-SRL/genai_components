@@ -362,8 +362,12 @@ extension TextStyleHelper on TextStyle {
     TextDecoration? decoration,
     double? lineHeight,
   }) {
+    // Non passare fontFamily se è null: copyWith(fontFamily: null) in Flutter
+    // azzera il fontFamily originale (comportamento Flutter), facendo cadere
+    // il testo sul font di sistema (Roboto/SF). Preserviamo il fontFamily
+    // del TextStyle padre a meno che non sia stato esplicitamente sovrascritto.
     return copyWith(
-      fontFamily: fontFamily,
+      fontFamily: fontFamily ?? this.fontFamily,
       color: color,
       fontSize: fontSize,
       letterSpacing: letterSpacing,
