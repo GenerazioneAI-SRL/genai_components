@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:genai_components/router/go_router_modular/go_router_modular_configure.dart';
-import 'package:genai_components/router/go_router_modular/route_registry.dart';
+import '../router/go_router_modular/go_router_modular_configure.dart';
+import '../router/go_router_modular/route_registry.dart';
 
 
 export 'download_extension_stub.dart'

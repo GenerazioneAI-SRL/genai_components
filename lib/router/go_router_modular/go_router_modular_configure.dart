@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:genai_components/router/go_router_modular/page_transition_enum.dart';
+import './page_transition_enum.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

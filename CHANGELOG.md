@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.2.8
+
+- **Widgets:** Updated 21 components
+- **Layout:** Updated 5 components
+- **Router:** Updated Go Router Modular Configure, Module, Transition
+- **API:** Updated Api Manager
+- **Providers:** Updated App State, Theme Provider
+- **Models:** Updated 12 components
+- **Core:** Updated 6 components
+- **Package:** Updated Pubspec Yaml
+
+
 ## 4.2.7
 
 - **Widgets:** Updated CLPopup_menu

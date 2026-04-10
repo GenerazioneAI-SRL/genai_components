@@ -1,5 +1,5 @@
 
-import 'package:genai_components/widgets/cl_survey/models/question.dart';
+import './question.dart';
 
 class Option {
   final String id;

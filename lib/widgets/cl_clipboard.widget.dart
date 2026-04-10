@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:genai_components/widgets/alertmanager/alert_manager.dart';
+import './alertmanager/alert_manager.dart';
 
 import '../cl_theme.dart';
 

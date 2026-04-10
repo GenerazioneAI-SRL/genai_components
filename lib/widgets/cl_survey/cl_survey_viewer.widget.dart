@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:genai_components/cl_theme.dart';
-import 'package:genai_components/widgets/cl_survey/survey.dart';
+import '../../cl_theme.dart';
+import './survey.dart';
 import '../../layout/constants/sizes.constant.dart';
 import 'models/question.dart';
 import 'models/question_result.dart';

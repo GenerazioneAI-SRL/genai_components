@@ -1,9 +1,9 @@
 import 'package:diffutil_sliverlist/diffutil_sliverlist.dart';
 import 'package:flutter/material.dart';
-import 'package:genai_components/cl_theme.dart';
-import 'package:genai_components/widgets/buttons/cl_button.widget.dart';
+import '../../cl_theme.dart';
+import '../buttons/cl_button.widget.dart';
 import 'package:collection/collection.dart';
-import 'package:genai_components/widgets/cl_survey/question_card.dart';
+import './question_card.dart';
 
 import '../../layout/constants/sizes.constant.dart';
 import 'models/question.dart';

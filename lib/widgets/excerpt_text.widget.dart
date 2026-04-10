@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:genai_components/cl_theme.dart';
+import '../cl_theme.dart';
 
 class ExcerptText<T extends Object> extends StatefulWidget {
   final String text;

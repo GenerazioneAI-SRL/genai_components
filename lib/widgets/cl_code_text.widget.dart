@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:genai_components/cl_theme.dart';
+import '../cl_theme.dart';
 
 /// Widget per visualizzare un codice con prefisso grigio (es: "# - ABC123")
 class CLCodeText extends StatelessWidget {

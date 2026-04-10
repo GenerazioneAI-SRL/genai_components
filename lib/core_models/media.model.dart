@@ -1,6 +1,6 @@
-import 'package:genai_components/utils/models/custom_model.model.dart';
+import '../utils/models/custom_model.model.dart';
 
-import 'package:genai_components/enums/resource_type.enum.dart';
+import '../enums/resource_type.enum.dart';
 
 class Media extends BaseModel {
   @override

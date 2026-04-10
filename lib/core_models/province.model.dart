@@ -2,7 +2,7 @@
 
 import 'city.model.dart';
 import 'country.model.dart';
-import 'package:genai_components/utils/models/custom_model.model.dart';
+import '../utils/models/custom_model.model.dart';
 import 'state.model.dart';
 
 class Province extends BaseModel {
