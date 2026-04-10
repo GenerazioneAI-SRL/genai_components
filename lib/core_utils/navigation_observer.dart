@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:genai_components/utils/models/breadcrumb_item.model.dart';
-import 'package:genai_components/utils/providers/navigation.util.provider.dart';
+import '../utils/models/breadcrumb_item.model.dart';
+import '../utils/providers/navigation.util.provider.dart';
 
 /// Observer che ascolta le navigazioni di GoRouter e aggiorna i breadcrumb.
 ///

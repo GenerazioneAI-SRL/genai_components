@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mime/mime.dart';
-import 'package:genai_components/cl_theme.dart';
+import '../cl_theme.dart';
 
 import 'cl_media_viewer.widget.dart';
 

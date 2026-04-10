@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:genai_components/cl_theme.dart';
+import '../cl_theme.dart';
 
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = CLTheme.themeMode;

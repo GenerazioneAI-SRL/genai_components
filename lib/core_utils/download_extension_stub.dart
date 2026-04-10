@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:genai_components/widgets/alertmanager/alert_manager.dart';
+import '../widgets/alertmanager/alert_manager.dart';
 
 extension DownloadExtension on BuildContext {
   Future<void> downloadFile(String url) async {

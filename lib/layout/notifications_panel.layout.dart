@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:genai_components/providers/notifications_panel_provider.dart';
+import '../providers/notifications_panel_provider.dart';
 import '../cl_theme.dart';
 import 'constants/sizes.constant.dart';
 

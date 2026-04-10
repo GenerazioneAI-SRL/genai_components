@@ -1,19 +1,19 @@
-import 'package:genai_components/widgets/logo.widget.dart';
-import 'package:genai_components/core_utils/extension.util.dart';
+import '../widgets/logo.widget.dart';
+import '../core_utils/extension.util.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:genai_components/auth/cl_auth_state.dart';
-import 'package:genai_components/providers/theme_provider.dart';
+import '../auth/cl_auth_state.dart';
+import '../providers/theme_provider.dart';
 import '../router/go_router_modular/routes/modular_route.dart';
 import 'constants/sizes.constant.dart';
-import 'package:genai_components/router/go_router_modular/routes/child_route.dart';
-import 'package:genai_components/router/go_router_modular/routes/module_route.dart';
-import 'package:genai_components/router/go_router_modular/routes/shell_modular_route.dart';
-import 'package:genai_components/utils/providers/navigation.util.provider.dart';
+import '../router/go_router_modular/routes/child_route.dart';
+import '../router/go_router_modular/routes/module_route.dart';
+import '../router/go_router_modular/routes/shell_modular_route.dart';
+import '../utils/providers/navigation.util.provider.dart';
 import '../cl_theme.dart';
 
 class MenuLayout extends StatefulWidget {

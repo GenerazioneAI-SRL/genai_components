@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:genai_components/cl_theme.dart';
-import 'package:genai_components/layout/constants/sizes.constant.dart';
+import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 /// Widget per visualizzare un badge con icona + testo colorato in un container arrotondato
 /// Usato per figure come Metodologo, Progettista, Ente di Formazione, ecc.
