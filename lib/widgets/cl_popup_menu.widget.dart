@@ -156,45 +156,58 @@ class CLPopupMenu extends StatefulWidget {
                   constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
                   decoration: BoxDecoration(
                     color: theme.secondaryBackground,
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                    borderRadius: BorderRadius.circular(Sizes.radiusLg),
                     border: Border.all(color: theme.borderColor, width: 1),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 8), spreadRadius: -4),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 10), spreadRadius: -4),
                       BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2)),
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                    borderRadius: BorderRadius.circular(Sizes.radiusLg),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Header
+                        // Header con gradient
                         if (title != null || titleWidget != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.65),
+                            padding: const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding * 0.75, Sizes.padding, Sizes.padding * 0.75),
                             decoration: BoxDecoration(
-                              color: theme.primaryBackground,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  theme.primary.withValues(alpha: 0.10),
+                                  theme.secondary.withValues(alpha: 0.05),
+                                ],
+                              ),
                               border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
                             ),
-                            child:
-                                titleWidget ??
+                            child: titleWidget ??
                                 Text(
                                   title!,
-                                  style: theme.smallLabel.copyWith(
-                                    color: theme.secondaryText,
+                                  style: theme.bodyLabel.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
+                                    fontSize: 13,
                                   ),
                                 ),
                           ),
                         // Items
-                        ...items.asMap().entries.map((entry) {
-                          final item = entry.value;
-                          final isLast = entry.key == items.length - 1;
-                          return _CLPopupMenuItemWidget(item: item, isLast: isLast);
-                        }),
+                        Padding(
+                          padding: const EdgeInsets.all(Sizes.sm),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: items.asMap().entries.map((entry) {
+                              final item = entry.value;
+                              final isLast = entry.key == items.length - 1;
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: isLast ? 0 : Sizes.sm * 0.5),
+                                child: _CLPopupMenuItemWidget(item: item),
+                              );
+                            }).toList(),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -236,12 +249,15 @@ class _CLPopupMenuState extends State<CLPopupMenu> {
 /// Allineamento orizzontale del popup rispetto all'anchor.
 enum CLPopupAlignment { start, end }
 
-/// Singola voce del popup con hover state.
+/// Singola voce del popup con hover state — stile card consistente con il resto della UI.
 class _CLPopupMenuItemWidget extends StatefulWidget {
   final CLPopupMenuItem item;
-  final bool isLast;
 
-  const _CLPopupMenuItemWidget({required this.item, required this.isLast});
+  const _CLPopupMenuItemWidget({required this.item, this.isLast = false});
+
+  // isLast mantenuto per compatibilità ma non più usato visivamente
+  // ignore: unused_element
+  final bool isLast;
 
   @override
   State<_CLPopupMenuItemWidget> createState() => _CLPopupMenuItemWidgetState();
@@ -255,19 +271,23 @@ class _CLPopupMenuItemWidgetState extends State<_CLPopupMenuItemWidget> {
     final theme = CLTheme.of(context);
 
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: InkWell(
+      child: GestureDetector(
         onTap: () {
           Navigator.of(context).pop();
           widget.item.onTap();
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.6),
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: Sizes.padding * 0.6),
           decoration: BoxDecoration(
-            color: _isHovered ? theme.primary.withValues(alpha: 0.04) : Colors.transparent,
-            border: !widget.isLast ? Border(bottom: BorderSide(color: theme.borderColor, width: 1)) : null,
+            color: _isHovered ? theme.primary.withValues(alpha: 0.07) : theme.primaryBackground,
+            borderRadius: BorderRadius.circular(Sizes.borderRadius),
+            border: Border.all(
+              color: _isHovered ? theme.primary.withValues(alpha: 0.20) : theme.borderColor,
+            ),
           ),
           child: widget.item.content,
         ),

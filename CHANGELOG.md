@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.6
+
+- **Widgets:** Updated CLPopup_menu
+- **Layout:** Updated Header Layout
+
+
 ## 4.2.5
 
 - **Widgets:** Updated CLPage_header

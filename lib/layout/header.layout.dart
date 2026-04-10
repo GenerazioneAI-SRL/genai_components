@@ -135,18 +135,26 @@ class _HeaderLayoutState extends State<HeaderLayout> {
 
     final popupHeader = Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Text(
-            fullName.isNotEmpty ? fullName : (email.isNotEmpty ? email : 'Utente'),
-            style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, fontSize: 13),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          CLAvatarWidget(medias: const [], name: displayName, iconSize: 38, fontSize: 14),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fullName.isNotEmpty ? fullName : (email.isNotEmpty ? email : 'Utente'),
+                  style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (email.isNotEmpty)
+                  Text(email, style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
-          if (email.isNotEmpty)
-            Text(email, style: theme.smallLabel.copyWith(color: theme.secondaryText, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
