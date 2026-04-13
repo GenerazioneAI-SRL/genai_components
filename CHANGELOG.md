@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.2.9
+
+- **Widgets:** Updated Analogclock, Clockpainter, Digitalclock
+- **Layout:** Updated Footer Layout
+- **Core:** Updated Genai Components
+
+
 ## 4.2.8
 
 - **Widgets:** Updated 21 components
