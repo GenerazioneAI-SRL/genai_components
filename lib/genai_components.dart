@@ -121,7 +121,6 @@ export 'router/page_data.dart';
 export 'layout/app.layout.dart';
 export 'layout/menu.layout.dart';
 export 'layout/header.layout.dart';
-export 'layout/footer.layout.dart';
 export 'layout/breadcrumbs.layout.dart';
 
 // API
