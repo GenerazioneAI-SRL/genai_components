@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.2.10
+
+- **Layout:** Updated 4 components
+- **Core:** Updated Cl App, Cl App Config, Genai Components
+
+
 ## 4.2.9
 
 - **Widgets:** Updated Analogclock, Clockpainter, Digitalclock
