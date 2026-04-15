@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.2.14
+
+- **Widgets:** Updated CLMedia_attach, CLText_field, CLUniversal_repeatable
+- **Core:** Updated Changelog Md, Cl, Genai Components
+- **Package:** Updated Pubspec Yaml
+
+
 ## 4.2.13
 
 - **Widgets:** Updated CLMedia_attach, CLText_field, CLUniversal_repeatable
