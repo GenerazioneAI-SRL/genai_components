@@ -72,10 +72,6 @@ ensure_dart() {
   have_cmd dart || die "dart not found in PATH."
 }
 
-ensure_flutter() {
-  have_cmd flutter || die "flutter not found in PATH."
-}
-
 package_version() {
   grep -E '^version:' "$PACKAGE_DIR/pubspec.yaml" | sed 's/version:[[:space:]]*//'
 }
