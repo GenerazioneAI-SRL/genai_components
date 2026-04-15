@@ -158,8 +158,14 @@ class ApiManager {
   /// Base URL per le API. Deve essere impostato dall'app prima dell'uso.
   static String _baseUrl = '';
   static String get baseUrl => _baseUrl;
-  static void configure({required String baseUrl}) {
+
+  /// Versione API (es. "v1/"). Se impostata viene inserita tra baseUrl e apiUrl.
+  static String _apiVersion = '';
+  static String get apiVersion => _apiVersion;
+
+  static void configure({required String baseUrl, String apiVersion = ''}) {
     _baseUrl = baseUrl;
+    _apiVersion = apiVersion;
   }
 
   static Map<String, String> toStringMap(Map map) => map.map((key, value) => MapEntry(key.toString(), value.toString()));
@@ -439,7 +445,7 @@ class ApiManager {
     if (replaceApiUrl && completeApiUrl != null && completeApiUrl.isNotEmpty) {
       apiUrl = completeApiUrl;
     } else {
-      apiUrl = _baseUrl + apiUrl;
+      apiUrl = _baseUrl + _apiVersion + apiUrl;
       if (!apiUrl.startsWith('http')) {
         apiUrl = 'https://$apiUrl';
       }

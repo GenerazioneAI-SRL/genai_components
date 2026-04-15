@@ -20,8 +20,19 @@ class CLMenuLayout extends StatefulWidget {
   final List<ModularRoute> routes;
   final String? logoImagePath;
   final String? logoImagePathMini;
+  final Widget Function(BuildContext context)? logoBuilder;
+  final Widget Function(BuildContext context)? menuExtraBuilder;
+  final Widget Function(BuildContext context)? menuFooterBuilder;
 
-  const CLMenuLayout({super.key, required this.routes, this.logoImagePath, this.logoImagePathMini});
+  const CLMenuLayout({
+    super.key,
+    required this.routes,
+    this.logoImagePath,
+    this.logoImagePathMini,
+    this.logoBuilder,
+    this.menuExtraBuilder,
+    this.menuFooterBuilder,
+  });
 
   @override
   createState() => _CLMenuLayoutState();
@@ -47,7 +58,7 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Sizes.padding),
-            child: _MenuHeader(authState: authState, isMobile: isMobile, onClose: () => _closeDrawer(context)),
+            child: _MenuHeader(authState: authState, isMobile: isMobile, onClose: () => _closeDrawer(context), logoBuilder: widget.logoBuilder),
           ),
 
           // ── Tenant Card ──────────────────────────────────────
@@ -66,6 +77,10 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
                     }
                   : null,
             ),
+
+          // ── Extra builder (es. Company/Store selector) ──────
+          if (widget.menuExtraBuilder != null)
+            widget.menuExtraBuilder!(context),
 
           // ── Divider ──────────────────────────────────────────
           Padding(
@@ -205,6 +220,10 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
               ),
             ),
           ),*/
+
+          // ── Footer custom (es. card utente con logout) ──────
+          if (widget.menuFooterBuilder != null)
+            widget.menuFooterBuilder!(context),
 
           // ── Footer: Toggle tema (solo desktop — su mobile è nell'intestazione drawer) ──
           if (!isMobile)
@@ -525,11 +544,12 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
 
 /// Header del menu: logo + (mobile only: tema toggle + close button)
 class _MenuHeader extends StatelessWidget {
-  const _MenuHeader({required this.authState, required this.isMobile, required this.onClose});
+  const _MenuHeader({required this.authState, required this.isMobile, required this.onClose, this.logoBuilder});
 
   final CLAuthState authState;
   final bool isMobile;
   final VoidCallback onClose;
+  final Widget Function(BuildContext context)? logoBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -578,8 +598,12 @@ class _MenuHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
           ],
-          // Logo SVG — al centro
-          Expanded(child: LogoWidget(height: isMobile ? 22 : 24, dark: false, color: theme.primary)),
+          // Logo — custom o default
+          Expanded(
+            child: logoBuilder != null
+                ? logoBuilder!(context)
+                : LogoWidget(height: isMobile ? 22 : 24, dark: false, color: theme.primary),
+          ),
           // Close button (solo mobile) — a destra del logo
           if (isMobile) ...[
             const SizedBox(width: 8),

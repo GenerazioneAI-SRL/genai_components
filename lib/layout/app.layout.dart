@@ -16,11 +16,22 @@ import 'ai_chat_drawer.widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class CLAppLayout extends StatefulWidget {
-  const CLAppLayout({super.key, required this.shellChild, this.shellRoutes = const [], this.moduleTabsEnabled = false});
+  const CLAppLayout({
+    super.key,
+    required this.shellChild,
+    this.shellRoutes = const [],
+    this.moduleTabsEnabled = false,
+    this.logoBuilder,
+    this.menuExtraBuilder,
+    this.menuFooterBuilder,
+  });
 
   final Widget shellChild;
   final List<dynamic> shellRoutes;
   final bool moduleTabsEnabled;
+  final Widget Function(BuildContext context)? logoBuilder;
+  final Widget Function(BuildContext context)? menuExtraBuilder;
+  final Widget Function(BuildContext context)? menuFooterBuilder;
 
   @override
   State<CLAppLayout> createState() => _CLAppLayoutState();
@@ -91,7 +102,7 @@ class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, 
       width: MediaQuery.of(context).size.width * 0.85,
       backgroundColor: CLTheme.of(context).secondaryBackground,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(0), bottomRight: Radius.circular(0))),
-      child: SafeArea(child: CLMenuLayout(routes: widget.shellRoutes.cast())),
+      child: SafeArea(child: CLMenuLayout(routes: widget.shellRoutes.cast(), logoBuilder: widget.logoBuilder, menuExtraBuilder: widget.menuExtraBuilder, menuFooterBuilder: widget.menuFooterBuilder)),
     );
   }
 
@@ -127,7 +138,7 @@ class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, 
                       border: Border.all(color: theme.borderColor),
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), blurRadius: 12, offset: const Offset(0, 2))],
                     ),
-                    child: CLMenuLayout(routes: widget.shellRoutes.cast()),
+                    child: CLMenuLayout(routes: widget.shellRoutes.cast(), logoBuilder: widget.logoBuilder, menuExtraBuilder: widget.menuExtraBuilder, menuFooterBuilder: widget.menuFooterBuilder),
                   ),
                 ),
               ),

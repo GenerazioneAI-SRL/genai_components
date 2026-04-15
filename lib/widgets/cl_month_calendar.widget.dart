@@ -184,16 +184,26 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
     final secondaryColor = widget.secondaryColor ?? theme.danger;
     final warningColor = widget.warningColor ?? theme.warning;
 
-    return Column(
-      children: [
-        if (widget.showNavigation) ...[
-          _buildMonthNavigation(theme),
-          SizedBox(height: Sizes.padding),
-        ],
-        Expanded(
-          child: _buildCalendarGrid(theme, primaryColor, secondaryColor, warningColor),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasBoundedHeight = constraints.maxHeight.isFinite;
+
+        final content = [
+          if (widget.showNavigation) ...[
+            _buildMonthNavigation(theme),
+            SizedBox(height: Sizes.padding),
+          ],
+          if (hasBoundedHeight)
+            Expanded(child: _buildCalendarGrid(theme, primaryColor, secondaryColor, warningColor, hasBoundedHeight: true))
+          else
+            _buildCalendarGrid(theme, primaryColor, secondaryColor, warningColor, hasBoundedHeight: false),
+        ];
+
+        return Column(
+          mainAxisSize: hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
+          children: content,
+        );
+      },
     );
   }
 
@@ -293,76 +303,75 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
     );
   }
 
-  Widget _buildCalendarGrid(CLTheme theme, Color primaryColor, Color secondaryColor, Color warningColor) {
+  Widget _buildCalendarGrid(CLTheme theme, Color primaryColor, Color secondaryColor, Color warningColor, {bool hasBoundedHeight = false}) {
     final monthDate = DateTime.parse('$_currentMonth-01');
     final daysInMonth = DateTime(monthDate.year, monthDate.month + 1, 0).day;
     final firstDayWeekday = monthDate.weekday;
     final today = DateTime.now();
     final todayKey = DateFormat('yyyy-MM-dd').format(today);
 
+    Widget gridContent;
+    if (widget.isLoading) {
+      gridContent = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 80),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else {
+      gridContent = GridView.builder(
+        shrinkWrap: !hasBoundedHeight,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                childAspectRatio: 1.4,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: 42,
+              itemBuilder: (context, index) {
+                final dayOffset = index - (firstDayWeekday - 1);
+                if (dayOffset < 0 || dayOffset >= daysInMonth) {
+                  return const SizedBox();
+                }
+
+                final day = dayOffset + 1;
+                final dateKey = '$_currentMonth-${day.toString().padLeft(2, '0')}';
+                final date = DateTime.parse(dateKey);
+                final isWeekend = date.weekday == 6 || date.weekday == 7;
+                final isToday = dateKey == todayKey;
+                final isSelected = widget.selectedDay != null &&
+                    DateFormat('yyyy-MM-dd').format(widget.selectedDay!) == dateKey;
+
+                final dayData = widget.dayDataBuilder(dateKey);
+
+                return _DayCell(
+                  day: day,
+                  dateKey: dateKey,
+                  isWeekend: isWeekend,
+                  isToday: isToday,
+                  isSelected: isSelected,
+                  dayData: dayData,
+                  primaryColor: primaryColor,
+                  secondaryColor: secondaryColor,
+                  warningColor: warningColor,
+                  emptyTooltip: widget.emptyDayTooltip,
+                  tooltipBuilder: widget.tooltipBuilder,
+                  onTap: () => widget.onDayTap?.call(date),
+                );
+              },
+            );
+    }
+
     return CLContainer(
       contentPadding: const EdgeInsets.all(Sizes.padding),
       child: Column(
+        mainAxisSize: hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          // Header giorni settimana
           _buildWeekHeader(theme),
           Divider(color: theme.borderColor, height: Sizes.padding),
-          // Griglia giorni
-          Expanded(
-            child: widget.isLoading
-                ? Center(child: CircularProgressIndicator(color: theme.primary))
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final availableHeight = constraints.maxHeight;
-                      final availableWidth = constraints.maxWidth;
-                      final cellHeight = (availableHeight - 5 * 4) / 6;
-                      final cellWidth = (availableWidth - 6 * 4) / 7;
-                      final aspectRatio = cellWidth / cellHeight;
-
-                      return GridView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          childAspectRatio: aspectRatio > 0 ? aspectRatio : 1.0,
-                          crossAxisSpacing: 4,
-                          mainAxisSpacing: 4,
-                        ),
-                        itemCount: 42,
-                        itemBuilder: (context, index) {
-                          final dayOffset = index - (firstDayWeekday - 1);
-                          if (dayOffset < 0 || dayOffset >= daysInMonth) {
-                            return const SizedBox();
-                          }
-
-                          final day = dayOffset + 1;
-                          final dateKey = '$_currentMonth-${day.toString().padLeft(2, '0')}';
-                          final date = DateTime.parse(dateKey);
-                          final isWeekend = date.weekday == 6 || date.weekday == 7;
-                          final isToday = dateKey == todayKey;
-                          final isSelected = widget.selectedDay != null &&
-                              DateFormat('yyyy-MM-dd').format(widget.selectedDay!) == dateKey;
-
-                          final dayData = widget.dayDataBuilder(dateKey);
-
-                          return _DayCell(
-                            day: day,
-                            dateKey: dateKey,
-                            isWeekend: isWeekend,
-                            isToday: isToday,
-                            isSelected: isSelected,
-                            dayData: dayData,
-                            primaryColor: primaryColor,
-                            secondaryColor: secondaryColor,
-                            warningColor: warningColor,
-                            emptyTooltip: widget.emptyDayTooltip,
-                            tooltipBuilder: widget.tooltipBuilder,
-                            onTap: () => widget.onDayTap?.call(date),
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
+          if (hasBoundedHeight)
+            Expanded(child: gridContent)
+          else
+            gridContent,
           if (widget.showLegend && widget.legendItems != null && widget.legendItems!.isNotEmpty) ...[
             SizedBox(height: Sizes.padding),
             _buildLegend(theme),

@@ -52,7 +52,7 @@ class CLApp {
     WidgetsFlutterBinding.ensureInitialized();
     HttpOverrides.global = _MyHttpOverrides();
     await SharedManager.initPrefs();
-    ApiManager.configure(baseUrl: config.baseUrl);
+    ApiManager.configure(baseUrl: config.baseUrl, apiVersion: config.apiVersion);
 
     // Core providers
     final appState = AppState();
@@ -152,6 +152,9 @@ class _CLAppModule extends Module {
                 shellChild: child,
                 shellRoutes: config.shellRoutes,
                 moduleTabsEnabled: config.moduleTabsEnabled,
+                logoBuilder: config.logoBuilder,
+                menuExtraBuilder: config.menuExtraBuilder,
+                menuFooterBuilder: config.menuFooterBuilder,
               );
             },
             observers: [

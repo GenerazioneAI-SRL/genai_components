@@ -24,6 +24,10 @@ abstract class CLAppConfig {
   /// Base URL delle API
   String get baseUrl;
 
+  /// Versione API da inserire tra baseUrl e path endpoint (es. "v1/").
+  /// Default vuoto — nessuna versione aggiunta.
+  String get apiVersion => '';
+
   /// OIDC endpoint (opzionale)
   String get oidcEndpoint => '';
 
@@ -73,6 +77,20 @@ abstract class CLAppConfig {
 
   /// Callback chiamato dopo l'inizializzazione (before runApp)
   Future<void> onInit() async {}
+
+  /// Widget logo custom da usare nel menu.
+  /// Se null, viene usato il default [LogoWidget] di genai_components.
+  Widget Function(BuildContext context)? get logoBuilder => null;
+
+  /// Widget extra da mostrare nel menu tra l'header e le voci di navigazione.
+  /// Es. selettore Company/Store, info utente, ecc.
+  /// Se null, non viene mostrato nulla.
+  Widget Function(BuildContext context)? get menuExtraBuilder => null;
+
+  /// Widget da mostrare nel footer del menu (sopra il toggle tema).
+  /// Es. card utente con nome, email e logout.
+  /// Se null, non viene mostrato nulla.
+  Widget Function(BuildContext context)? get menuFooterBuilder => null;
 
   /// Builder custom per la shell (layout principale: menu + header + contenuto).
   /// Se null, viene usato il default [CLAppLayout] di genai_components.
