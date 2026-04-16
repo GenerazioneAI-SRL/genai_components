@@ -10,7 +10,11 @@ class ModuleRoute extends ModularRoute {
   late final String name;
   final IconData? icon;
   final HugeIcon? hugeIcon;
-  final bool isVisible;
+  final dynamic _isVisible;
+
+  /// Restituisce true se la route è visibile.
+  /// Accetta sia un [bool] che un [bool Function()] per visibilità dinamica.
+  bool get isVisible => _isVisible is bool Function() ? _isVisible() : (_isVisible as bool);
 
   /// Etichetta personalizzata da mostrare nel menu al posto di module.moduleRoute.name.
   final String? label;
@@ -34,13 +38,13 @@ class ModuleRoute extends ModularRoute {
     required this.module,
     this.icon,
     this.hugeIcon,
-    this.isVisible = true,
+    dynamic isVisible = true,
     this.label,
     this.showInTopBar = true,
     this.showInSideMenu = true,
     this.navigateOnTabTap = false,
     this.onlyShowLabel = false,
-  }) {
+  }) : _isVisible = isVisible {
     name = label ?? module.moduleRoute.name;
     path = module.moduleRoute.path;
   }
