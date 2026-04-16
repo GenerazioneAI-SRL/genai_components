@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.2.19
+
+- **Layout:** Updated App Layout
+
+
 ## 4.2.18
 
 - **Router:** Updated Module Route
