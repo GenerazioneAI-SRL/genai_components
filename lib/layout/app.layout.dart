@@ -172,7 +172,7 @@ class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, 
                     ),
                   ),
                 ),
-                SizedBox(height: p * 0.5),
+                SizedBox(height: p),
                 // Contenuto pagina
                 Expanded(child: widget.shellChild),
               ],
