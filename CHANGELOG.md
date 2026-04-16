@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.20
+
+- **Widgets:** Updated 4 components
+- **Layout:** Updated App Layout, Header Layout, Menu Layout
+- **Providers:** Updated App State
+- **Core:** Updated Cl App, Cl App Config, Genai Components
+
+
 ## 4.2.19
 
 - **Layout:** Updated App Layout
