@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.2.18
+
+- **Router:** Updated Module Route
+- **Core:** Updated Changelog Md
+- **Package:** Updated Pubspec Yaml
+
+
 ## 4.2.17
 
 - **Router:** Updated Module Route
