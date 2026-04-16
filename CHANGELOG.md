@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.2.17
+
+- **Router:** Updated Module Route
+
+
 ## 4.2.16
 
 - **Widgets:** Updated CLMonth_calendar
