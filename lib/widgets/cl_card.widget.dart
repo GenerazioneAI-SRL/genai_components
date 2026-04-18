@@ -26,13 +26,7 @@ class _CLCardState extends State<CLCard> {
             decoration: BoxDecoration(
               color: CLTheme.of(context).secondaryBackground,
               borderRadius: BorderRadius.circular(Sizes.borderRadius),
-              //top border
-              border: Border(
-                top: BorderSide(
-                  color: widget.color,
-                  width: 8.0,
-                ),
-              ),
+              border: Border.all(color: CLTheme.of(context).cardBorder),
             ),
             child: Center(
               child: Padding(
@@ -80,17 +74,9 @@ class _CLCardState extends State<CLCard> {
             decoration: BoxDecoration(
               color: CLTheme.of(context).secondaryBackground,
               borderRadius: BorderRadius.circular(Sizes.borderRadius),
-              //top border
-              border: Border(
-                left: BorderSide(
-                  color: widget.color,
-                  width: 8.0,
-                ),
-              ),
+              border: Border.all(color: CLTheme.of(context).cardBorder),
             ),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Row(
+            child: Row(
                 mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -121,6 +107,6 @@ class _CLCardState extends State<CLCard> {
                   ),
                 ],
               ),
-            ));
+            );
   }
 }

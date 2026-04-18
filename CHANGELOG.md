@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.2.21
+
+- **Widgets:** Updated 22 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Genai Components
+
+
 ## 4.2.20
 
 - **Widgets:** Updated 4 components

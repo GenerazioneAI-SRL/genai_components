@@ -33,7 +33,7 @@ class CLSectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? theme.secondaryBackground : Colors.white,
         borderRadius: BorderRadius.circular(Sizes.borderRadius),
-        border: Border.all(color: theme.borderColor),
+        border: Border.all(color: theme.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

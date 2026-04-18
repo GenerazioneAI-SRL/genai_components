@@ -561,15 +561,11 @@ class CLTextFieldState extends State<CLTextField> {
   bool _ownsFocusNode = false;
   bool _isPasswordVisible = false;
   bool _isFocused = false;
-  bool _isHovered = false;
-
   bool isFilePicked = false;
   bool isDatePicked = false;
   bool isPicking = false;
 
   // ─── Costanti di design ─────────────────────────────────────────────
-  static const _kBorderWidth = 1.0;
-  static const _kBorderWidthFocused = 1.5;
   static const _kIconSize = 16.0;
 
   /// Mostra l'asterisco se [isRequired] è true oppure se [Validators.required]
@@ -825,7 +821,6 @@ class CLTextFieldState extends State<CLTextField> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Callback per GestureDetector (date/color/file picker) — solo picker legacy
     final bool isInlineDateField = widget.dateFieldType != null;
@@ -854,29 +849,7 @@ class CLTextFieldState extends State<CLTextField> {
             ? isDatePicked
             : widget.isReadOnly;
 
-    // ── Stili bordo ──
-    final borderRadius = BorderRadius.circular(widget.isRounded ? 100 : Sizes.borderRadius);
-
-    final Color hoverBorderColor = isDark ? theme.borderColor.withValues(alpha: 0.8) : theme.primary.withValues(alpha: 0.35);
-
-    // ── Fill color ──
-    final Color effectiveFillColor;
-    if (!widget.isEnabled) {
-      effectiveFillColor = widget.fillColor ?? theme.alternate.withValues(alpha: 0.5);
-    } else if (widget.fillColor != null) {
-      effectiveFillColor = widget.fillColor!;
-    } else {
-      effectiveFillColor = isDark ? theme.secondaryBackground.withValues(alpha: 0.4) : Colors.transparent;
-    }
-
-    // ── Content padding: allineare altezza con i CLButton (44px desktop) ──
-    // bodyText 14px, lineHeight ~1.4 → ~20px testo
-    // 44 - 2 (border) - 20 (testo) = 22 → 11px sopra/sotto
-    final vPadding = widget.isTextArea ? 12.0 : 11.5;
-
     return MouseRegion(
-      onEnter: (_) => _safeSetState(() => _isHovered = true),
-      onExit: (_) => _safeSetState(() => _isHovered = false),
       cursor:
           !widget.isEnabled
               ? SystemMouseCursors.forbidden
@@ -919,13 +892,13 @@ class CLTextFieldState extends State<CLTextField> {
                 fontWeight: _isFocused ? FontWeight.w500 : FontWeight.w400,
                 height: 1,
               ),
-              labelStyle: theme.bodyLabel.copyWith(fontSize: 14, height: 1.4),
+              labelStyle: CLTheme.of(context).bodyLabel,
               alignLabelWithHint: widget.isTextArea,
               errorMaxLines: 200,
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: vPadding),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               labelText: _shouldShowRequired ? '${widget.labelText}*' : widget.labelText,
               hintText: widget.dateFieldType?.hint,
-              hintStyle: widget.dateFieldType != null ? theme.bodyLabel.copyWith(fontSize: 14, height: 1.4) : null,
+              hintStyle: CLTheme.of(context).bodyText.copyWith(color: CLTheme.of(context).mutedForeground),
 
               // ── Prefix ──
               prefixIcon: widget.prefixIcon != null ? Padding(padding: const EdgeInsets.only(left: 12, right: 8), child: widget.prefixIcon) : null,
@@ -938,17 +911,29 @@ class CLTextFieldState extends State<CLTextField> {
               // ── Colori ──
               hoverColor: Colors.transparent,
               filled: true,
-              fillColor: effectiveFillColor,
+              fillColor: widget.fillColor ?? CLTheme.of(context).secondaryBackground,
 
               // ── Bordi ──
-              focusedBorder: OutlineInputBorder(borderRadius: borderRadius, borderSide: BorderSide(color: theme.primary, width: _kBorderWidthFocused)),
               enabledBorder: OutlineInputBorder(
-                borderRadius: borderRadius,
-                borderSide: BorderSide(color: _isHovered ? hoverBorderColor : theme.borderColor, width: _isHovered ? _kBorderWidthFocused : _kBorderWidth),
+                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderSide: BorderSide(color: CLTheme.of(context).cardBorder, width: 1.0),
               ),
-              disabledBorder: OutlineInputBorder(borderRadius: borderRadius, borderSide: BorderSide.none),
-              errorBorder: OutlineInputBorder(borderRadius: borderRadius, borderSide: BorderSide(color: theme.danger, width: _kBorderWidthFocused)),
-              focusedErrorBorder: OutlineInputBorder(borderRadius: borderRadius, borderSide: BorderSide(color: theme.danger, width: _kBorderWidthFocused)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderSide: BorderSide(color: CLTheme.of(context).ring, width: 2.0),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderSide: BorderSide(color: CLTheme.of(context).danger, width: 1.0),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderSide: BorderSide(color: CLTheme.of(context).danger, width: 2.0),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderSide: BorderSide(color: CLTheme.of(context).cardBorder.withValues(alpha: 0.5), width: 1.0),
+              ),
               errorStyle: theme.smallLabel.copyWith(color: theme.danger, fontSize: 11, height: 1.3),
             ),
             validator: _combineValidators(_effectiveValidators),
@@ -956,11 +941,6 @@ class CLTextFieldState extends State<CLTextField> {
         ),
       ),
     );
-  }
-
-  void _safeSetState(VoidCallback fn) {
-    if (!mounted) return;
-    setState(fn);
   }
 
   // ─── Input formatters ──────────────────────────────────────────────
