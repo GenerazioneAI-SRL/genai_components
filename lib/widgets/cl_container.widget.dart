@@ -69,10 +69,18 @@ class _CLContainerState extends State<CLContainer> {
       margin: widget.contentMargin ?? EdgeInsets.zero,
       constraints: widget.constraints,
       decoration: BoxDecoration(
-        border: widget.showBorder ? Border.all(color: theme.borderColor, width: 1) : null,
+        border: widget.showBorder ? Border.all(color: CLTheme.of(context).cardBorder, width: 1.0) : null,
         color: widget.backgroundColor ?? theme.secondaryBackground,
         borderRadius: br,
-        boxShadow: widget.showShadow ? [BoxShadow(color: theme.secondaryText.withValues(alpha: 0.08), blurRadius: 8)] : [],
+        boxShadow: widget.showShadow
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(
         borderRadius: innerBr,
