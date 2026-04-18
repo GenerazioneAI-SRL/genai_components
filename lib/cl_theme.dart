@@ -41,6 +41,12 @@ abstract class CLTheme {
     required this.borderColor,
     required this.background,
     required this.fillColor,
+    required this.muted,
+    required this.mutedForeground,
+    required this.accent,
+    required this.accentForeground,
+    required this.ring,
+    required this.cardBorder,
   });
 
   static Color hexToColor(String code) => ColorUtils.fromHex(code);
@@ -96,6 +102,12 @@ abstract class CLTheme {
   final Color borderColor;
   final Color background;
   final Color fillColor;
+  final Color muted;
+  final Color mutedForeground;
+  final Color accent;
+  final Color accentForeground;
+  final Color ring;
+  final Color cardBorder;
 
   /// Typography provider
   Typography get typography => ThemeTypography(this);
@@ -156,6 +168,12 @@ class LightModeTheme extends CLTheme {
     Color borderColor = const Color(0xFFE8EBF0),
     Color background = const Color(0xFFFAF9F7),
     Color fillColor = const Color(0xFFF0F1F4),
+    Color muted = const Color(0xFFF4F4F5),
+    Color mutedForeground = const Color(0xFF71717A),
+    Color accent = const Color(0xFFF4F4F5),
+    Color accentForeground = const Color(0xFF18181B),
+    Color ring = const Color(0xFF0C8EC7),
+    Color cardBorder = const Color(0xFFE4E4E7),
   }) : super(
         primary: primary,
         secondary: secondary,
@@ -172,6 +190,12 @@ class LightModeTheme extends CLTheme {
         borderColor: borderColor,
         background: background,
         fillColor: fillColor,
+        muted: muted,
+        mutedForeground: mutedForeground,
+        accent: accent,
+        accentForeground: accentForeground,
+        ring: ring,
+        cardBorder: cardBorder,
       );
 }
 
@@ -192,6 +216,12 @@ class DarkModeTheme extends CLTheme {
     Color borderColor = const Color(0xFF2A2A34),
     Color background = const Color(0xFF121218),
     Color fillColor = const Color(0xFF1E1E26),
+    Color muted = const Color(0xFF27272A),
+    Color mutedForeground = const Color(0xFFA1A1AA),
+    Color accent = const Color(0xFF27272A),
+    Color accentForeground = const Color(0xFFFAFAFA),
+    Color ring = const Color(0xFF3BA8D8),
+    Color cardBorder = const Color(0xFF27272A),
   }) : super(
         primary: primary,
         secondary: secondary,
@@ -208,6 +238,12 @@ class DarkModeTheme extends CLTheme {
         borderColor: borderColor,
         background: background,
         fillColor: fillColor,
+        muted: muted,
+        mutedForeground: mutedForeground,
+        accent: accent,
+        accentForeground: accentForeground,
+        ring: ring,
+        cardBorder: cardBorder,
       );
 }
 
