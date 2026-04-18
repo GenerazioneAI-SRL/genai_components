@@ -102,12 +102,12 @@ abstract class CLTheme {
   final Color borderColor;
   final Color background;
   final Color fillColor;
-  final Color muted;
-  final Color mutedForeground;
-  final Color accent;
-  final Color accentForeground;
-  final Color ring;
-  final Color cardBorder;
+  final Color muted;            // Subtle background for non-interactive elements
+  final Color mutedForeground;  // Text on muted surfaces
+  final Color accent;           // Hover/interactive surface (defaults to muted)
+  final Color accentForeground; // Text on accent surfaces
+  final Color ring;             // Focus ring / outline color
+  final Color cardBorder;       // Card and panel border
 
   /// Typography provider
   Typography get typography => ThemeTypography(this);
@@ -153,98 +153,54 @@ abstract class CLTheme {
 
 class LightModeTheme extends CLTheme {
   const LightModeTheme({
-    Color primary = const Color(0xFF0C8EC7),
-    Color secondary = const Color(0xFF0A7AAD),
-    Color alternate = const Color(0xFFE8EBF0),
-    Color primaryText = const Color(0xFF2E2E38),
-    Color secondaryText = const Color(0xFF6B7080),
-    Color primaryBackground = const Color(0xFFFAF9F7),
-    Color secondaryBackground = const Color(0xFFFFFFFF),
-    Color tertiaryBackground = const Color(0xFFF0F1F4),
-    Color success = const Color(0xFF16A34A),
-    Color warning = const Color(0xFFD97706),
-    Color danger = const Color(0xFFDC2626),
-    Color info = const Color(0xFF0C8EC7),
-    Color borderColor = const Color(0xFFE8EBF0),
-    Color background = const Color(0xFFFAF9F7),
-    Color fillColor = const Color(0xFFF0F1F4),
-    Color muted = const Color(0xFFF4F4F5),
-    Color mutedForeground = const Color(0xFF71717A),
-    Color accent = const Color(0xFFF4F4F5),
-    Color accentForeground = const Color(0xFF18181B),
-    Color ring = const Color(0xFF0C8EC7),
-    Color cardBorder = const Color(0xFFE4E4E7),
-  }) : super(
-        primary: primary,
-        secondary: secondary,
-        alternate: alternate,
-        primaryText: primaryText,
-        secondaryText: secondaryText,
-        primaryBackground: primaryBackground,
-        secondaryBackground: secondaryBackground,
-        tertiaryBackground: tertiaryBackground,
-        success: success,
-        warning: warning,
-        danger: danger,
-        info: info,
-        borderColor: borderColor,
-        background: background,
-        fillColor: fillColor,
-        muted: muted,
-        mutedForeground: mutedForeground,
-        accent: accent,
-        accentForeground: accentForeground,
-        ring: ring,
-        cardBorder: cardBorder,
-      );
+    super.primary = const Color(0xFF0C8EC7),
+    super.secondary = const Color(0xFF0A7AAD),
+    super.alternate = const Color(0xFFE8EBF0),
+    super.primaryText = const Color(0xFF2E2E38),
+    super.secondaryText = const Color(0xFF6B7080),
+    super.primaryBackground = const Color(0xFFFAF9F7),
+    super.secondaryBackground = const Color(0xFFFFFFFF),
+    super.tertiaryBackground = const Color(0xFFF0F1F4),
+    super.success = const Color(0xFF16A34A),
+    super.warning = const Color(0xFFD97706),
+    super.danger = const Color(0xFFDC2626),
+    super.info = const Color(0xFF0C8EC7),
+    super.borderColor = const Color(0xFFE8EBF0),
+    super.background = const Color(0xFFFAF9F7),
+    super.fillColor = const Color(0xFFF0F1F4),
+    super.muted = const Color(0xFFF4F4F5),
+    super.mutedForeground = const Color(0xFF71717A),
+    super.accent = const Color(0xFFF4F4F5),
+    super.accentForeground = const Color(0xFF18181B),
+    super.ring = const Color(0xFF0C8EC7),
+    super.cardBorder = const Color(0xFFE4E4E7),
+  });
 }
 
 class DarkModeTheme extends CLTheme {
   const DarkModeTheme({
-    Color primary = const Color(0xFF3BA8D8),
-    Color secondary = const Color(0xFF0C8EC7),
-    Color alternate = const Color(0xFF2A2A34),
-    Color primaryText = const Color(0xFFE8E8EC),
-    Color secondaryText = const Color(0xFF8B8FA0),
-    Color primaryBackground = const Color(0xFF121218),
-    Color secondaryBackground = const Color(0xFF1E1E26),
-    Color tertiaryBackground = const Color(0xFF2A2A34),
-    Color success = const Color(0xFF4ADE80),
-    Color warning = const Color(0xFFFBBF24),
-    Color danger = const Color(0xFFF87171),
-    Color info = const Color(0xFF3BA8D8),
-    Color borderColor = const Color(0xFF2A2A34),
-    Color background = const Color(0xFF121218),
-    Color fillColor = const Color(0xFF1E1E26),
-    Color muted = const Color(0xFF27272A),
-    Color mutedForeground = const Color(0xFFA1A1AA),
-    Color accent = const Color(0xFF27272A),
-    Color accentForeground = const Color(0xFFFAFAFA),
-    Color ring = const Color(0xFF3BA8D8),
-    Color cardBorder = const Color(0xFF27272A),
-  }) : super(
-        primary: primary,
-        secondary: secondary,
-        alternate: alternate,
-        primaryText: primaryText,
-        secondaryText: secondaryText,
-        primaryBackground: primaryBackground,
-        secondaryBackground: secondaryBackground,
-        tertiaryBackground: tertiaryBackground,
-        success: success,
-        warning: warning,
-        danger: danger,
-        info: info,
-        borderColor: borderColor,
-        background: background,
-        fillColor: fillColor,
-        muted: muted,
-        mutedForeground: mutedForeground,
-        accent: accent,
-        accentForeground: accentForeground,
-        ring: ring,
-        cardBorder: cardBorder,
-      );
+    super.primary = const Color(0xFF3BA8D8),
+    super.secondary = const Color(0xFF0C8EC7),
+    super.alternate = const Color(0xFF2A2A34),
+    super.primaryText = const Color(0xFFE8E8EC),
+    super.secondaryText = const Color(0xFF8B8FA0),
+    super.primaryBackground = const Color(0xFF121218),
+    super.secondaryBackground = const Color(0xFF1E1E26),
+    super.tertiaryBackground = const Color(0xFF2A2A34),
+    super.success = const Color(0xFF4ADE80),
+    super.warning = const Color(0xFFFBBF24),
+    super.danger = const Color(0xFFF87171),
+    super.info = const Color(0xFF3BA8D8),
+    super.borderColor = const Color(0xFF2A2A34),
+    super.background = const Color(0xFF121218),
+    super.fillColor = const Color(0xFF1E1E26),
+    super.muted = const Color(0xFF27272A),
+    super.mutedForeground = const Color(0xFFA1A1AA),
+    super.accent = const Color(0xFF27272A),
+    super.accentForeground = const Color(0xFFFAFAFA),
+    super.ring = const Color(0xFF3BA8D8),
+    super.cardBorder = const Color(0xFF27272A),
+  });
 }
 
 /// --- Typography ----------------------------------------------------------
