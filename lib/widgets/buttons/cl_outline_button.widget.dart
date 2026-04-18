@@ -268,13 +268,14 @@ class _CLOutlineButtonState extends State<CLOutlineButton> {
                           : null),
               onPressed: _handleTap,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: widget.color, width: 1.5),
+                side: BorderSide(color: CLTheme.of(context).borderColor, width: 1.0),
                 foregroundColor: widget.color,
+                overlayColor: CLTheme.of(context).accent,
                 padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(Sizes.borderRadius),
                 ),
-                minimumSize: Size(isMobile ? 0 : 64, isMobile ? 40 : 44),
+                minimumSize: Size(isMobile ? 0 : 64, isMobile ? 32 : 36),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 iconSize: iconSz,
               ),
@@ -293,9 +294,9 @@ class _CLOutlineButtonState extends State<CLOutlineButton> {
                 overlayColor: WidgetStateProperty.all(widget.color.withValues(alpha: 0.08)),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(Sizes.borderRadius),
-                  side: BorderSide(color: widget.color, width: 1.5),
+                  side: BorderSide(color: CLTheme.of(context).borderColor, width: 1.0),
                 )),
-                minimumSize: WidgetStateProperty.all(Size(isMobile ? 38 : 44, isMobile ? 38 : 44)),
+                minimumSize: WidgetStateProperty.all(Size(isMobile ? 36 : 36, isMobile ? 36 : 36)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: loading

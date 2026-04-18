@@ -283,10 +283,11 @@ class _CLGhostButtonState extends State<CLGhostButton> {
               style: widget.buttonStyle ??
                   TextButton.styleFrom(
                     foregroundColor: widget.foregroundColor ?? widget.color,
+                    overlayColor: CLTheme.of(context).accent,
                     padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius)),
                     elevation: 0,
-                    minimumSize: Size(isMobile ? 0 : 48, isMobile ? 38 : 42),
+                    minimumSize: Size(isMobile ? 0 : 48, isMobile ? 32 : 36),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     iconSize: iconSz,
                   ),
@@ -304,7 +305,7 @@ class _CLGhostButtonState extends State<CLGhostButton> {
                 foregroundColor: WidgetStateProperty.all(widget.color),
                 overlayColor: WidgetStateProperty.all(widget.color.withValues(alpha: 0.08)),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius))),
-                minimumSize: WidgetStateProperty.all(Size(isMobile ? 38 : 42, isMobile ? 38 : 42)),
+                minimumSize: WidgetStateProperty.all(Size(isMobile ? 36 : 36, isMobile ? 36 : 36)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: loading
