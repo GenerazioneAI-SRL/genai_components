@@ -170,3 +170,7 @@ export 'enums/resource_type.enum.dart';
 export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
 export 'widgets/cl_ai_assistant/src/llm/providers/openai_provider.dart';
 export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
+
+// Command Palette
+export 'widgets/cl_command/cl_command_item.model.dart';
+export 'widgets/cl_command/cl_command.widget.dart';
