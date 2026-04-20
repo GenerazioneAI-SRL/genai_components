@@ -4,6 +4,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import 'cl_confirm_dialog.dart';
+import 'cl_loading_spinner.widget.dart';
 
 class CLActionText extends StatefulWidget {
   final Color color;
@@ -280,7 +281,7 @@ class _CLActionTextState extends State<CLActionText> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (loading)
-                  SizedBox.square(dimension: 16, child: CircularProgressIndicator(color: activeColor, strokeWidth: 2))
+                  CLLoadingSpinner(size: 16, color: activeColor)
                 else if (widget.hugeIcon != null)
                   widget.hugeIcon!
                 else if (widget.iconData != null)

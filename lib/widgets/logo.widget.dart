@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../cl_theme.dart';
 
 class LogoWidget extends StatefulWidget {
@@ -37,10 +38,15 @@ class _LogoWidgetState extends State<LogoWidget> {
 
   Future<void> _ensureLoaded() async {
     final path = widget.dark ? 'assets/svgs/logo-dark.svg' : 'assets/svgs/logo-light.svg';
-    if (widget.dark) {
-      _darkSvgRaw ??= await rootBundle.loadString(path);
-    } else {
-      _lightSvgRaw ??= await rootBundle.loadString(path);
+    try {
+      if (widget.dark) {
+        _darkSvgRaw ??= await rootBundle.loadString(path);
+      } else {
+        _lightSvgRaw ??= await rootBundle.loadString(path);
+      }
+    } catch (e) {
+      // Asset non trovato — fallback a placeholder
+      debugPrint('Logo asset non trovato: $path');
     }
     if (mounted && !_loaded) setState(() => _loaded = true);
   }
@@ -57,7 +63,29 @@ class _LogoWidgetState extends State<LogoWidget> {
   @override
   Widget build(BuildContext context) {
     final raw = widget.dark ? _darkSvgRaw : _lightSvgRaw;
-    if (raw == null) return SizedBox(height: widget.height ?? 90);
+
+    // Fallback a placeholder se l'SVG non è caricato
+    if (raw == null) {
+      final theme = CLTheme.of(context);
+      final h = widget.height ?? 90;
+      return SizedBox(
+        height: h,
+        width: h,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.color?.withValues(alpha: 0.1) ?? theme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: HugeIcon(
+              icon: HugeIcons.strokeRounded1Circle,
+              size: h * 0.5,
+              color: widget.color ?? theme.primary,
+            ),
+          ),
+        ),
+      );
+    }
 
     final accentColor = widget.color ?? CLTheme.of(context).primary;
 

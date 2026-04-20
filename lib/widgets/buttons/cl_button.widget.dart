@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
-import 'cl_confirm_dialog.dart';
+import 'cl_async_button_mixin.dart';
+import 'cl_loading_spinner.widget.dart';
 
 class CLButton extends StatefulWidget {
   final Color? backgroundColor;
@@ -240,41 +241,13 @@ class CLButton extends StatefulWidget {
   State<CLButton> createState() => _CLButtonState();
 }
 
-class _CLButtonState extends State<CLButton> {
-  bool loading = false;
-
+class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
   Future<void> _handleTap() async {
-    if (loading) return;
-    if (widget.needConfirmation) {
-      await showDialog(
-        context: context,
-        builder: (BuildContext dialogContext) {
-          return Dialog(
-            child: ConfirmationDialog(
-              confirmationMessage: widget.confirmationMessage,
-              onTap: () async {
-                if (isAsync(widget.onTap)) {
-                  if (mounted) setState(() => loading = true);
-                  await widget.onTap();
-                  if (mounted) setState(() => loading = false);
-                } else {
-                  widget.onTap();
-                }
-                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-              },
-            ),
-          );
-        },
-      );
-    } else {
-      if (isAsync(widget.onTap)) {
-        if (mounted) setState(() => loading = true);
-        await widget.onTap();
-        if (mounted) setState(() => loading = false);
-      } else {
-        widget.onTap();
-      }
-    }
+    await handleAsyncTap(
+      onTap: widget.onTap,
+      needConfirmation: widget.needConfirmation,
+      confirmationMessage: widget.confirmationMessage,
+    );
   }
 
   @override
@@ -294,28 +267,56 @@ class _CLButtonState extends State<CLButton> {
     final iconSz = widget.iconSize ?? (isMobile ? Sizes.small * 0.9 : Sizes.small);
     final bgColor = widget.backgroundColor ?? CLTheme.of(context).primary;
 
+    // Calcola dinamicamente il colore dello spinner based su luminanza
+    final spinnerColor = bgColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
+    // Hover/pressed via background change (DS): niente overlay splash.
+    final hoverBg = bgColor.computeLuminance() > 0.5
+        ? Color.lerp(bgColor, Colors.black, 0.06)!
+        : Color.lerp(bgColor, Colors.white, 0.08)!;
+    final pressedBg = bgColor.computeLuminance() > 0.5
+        ? Color.lerp(bgColor, Colors.black, 0.12)!
+        : Color.lerp(bgColor, Colors.white, 0.16)!;
+
     return Theme(
-      data: Theme.of(context).copyWith(splashColor: Colors.transparent, highlightColor: Colors.transparent),
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        splashFactory: NoSplash.splashFactory,
+      ),
       child: SizedBox(
         width: widget.width,
         child: widget.text.isNotEmpty
             ? ElevatedButton.icon(
                 iconAlignment: widget.iconAlignment,
-                icon: loading
-                    ? SizedBox(width: iconSz, height: iconSz, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : widget.hugeIcon ??
-                        (widget.iconData != null ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: iconSz) : null),
+                icon: (widget.iconData != null || widget.hugeIcon != null || loading)
+                    ? AnimatedCrossFade(
+                        alignment: Alignment.center,
+                        firstChild: widget.hugeIcon ??
+                            (widget.iconData != null
+                                ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: iconSz)
+                                : SizedBox(width: iconSz, height: iconSz)),
+                        secondChild: CLLoadingSpinner(size: iconSz, color: spinnerColor),
+                        crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                        duration: const Duration(milliseconds: 200),
+                      )
+                    : null,
                 onPressed: _handleTap,
                 style: ButtonStyle(
                   padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
-                  backgroundColor: WidgetStateProperty.all(bgColor),
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.pressed)) return pressedBg;
+                    if (states.contains(WidgetState.hovered)) return hoverBg;
+                    return bgColor;
+                  }),
                   shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius))),
                   elevation: WidgetStateProperty.all(0),
                   shadowColor: WidgetStateProperty.all(Colors.transparent),
-                  overlayColor: WidgetStateProperty.all(Colors.black.withValues(alpha: 0.1)),
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
                   splashFactory: NoSplash.splashFactory,
+                  animationDuration: const Duration(milliseconds: 150),
                   foregroundColor: WidgetStateProperty.all(Colors.white),
-                  minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, isMobile ? 32 : 36)),
+                  minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, isMobile ? 40 : 44)),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   iconSize: WidgetStateProperty.all(iconSz),
                 ),
@@ -332,8 +333,12 @@ class _CLButtonState extends State<CLButton> {
                 style: ButtonStyle(
                   elevation: WidgetStateProperty.all(0),
                   shadowColor: WidgetStateProperty.all(Colors.transparent),
-                  backgroundColor: WidgetStateProperty.all(bgColor),
-                  overlayColor: WidgetStateProperty.all(Colors.black.withValues(alpha: 0.1)),
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.pressed)) return pressedBg;
+                    if (states.contains(WidgetState.hovered)) return hoverBg;
+                    return bgColor;
+                  }),
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
                   shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius))),
                   splashFactory: NoSplash.splashFactory,
                   foregroundColor: WidgetStateProperty.all(Colors.white),
@@ -341,21 +346,21 @@ class _CLButtonState extends State<CLButton> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: _handleTap,
-                icon: loading
-                    ? SizedBox(
-                        width: widget.iconSize ?? Sizes.medium,
-                        height: widget.iconSize ?? Sizes.medium,
-                        child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : widget.hugeIcon ??
-                        (widget.iconData != null
-                            ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: widget.iconSize ?? Sizes.medium)
-                            : const SizedBox.shrink()),
+                icon: AnimatedCrossFade(
+                  alignment: Alignment.center,
+                  firstChild: widget.hugeIcon ??
+                      (widget.iconData != null
+                          ? Icon(widget.iconData, color: widget.iconColor ?? Colors.white, size: widget.iconSize ?? Sizes.medium)
+                          : SizedBox(width: widget.iconSize ?? Sizes.medium, height: widget.iconSize ?? Sizes.medium)),
+                  secondChild: CLLoadingSpinner(
+                    size: widget.iconSize ?? Sizes.medium,
+                    color: spinnerColor,
+                  ),
+                  crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 200),
+                ),
               ),
       ),
     );
-  }
-
-  bool isAsync(Function function) {
-    return function is Future Function();
   }
 }
