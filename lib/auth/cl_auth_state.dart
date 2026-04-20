@@ -36,3 +36,4 @@ abstract class CLAuthState extends ChangeNotifier {
 
   bool checkTenantContext(String tenantContext) => true;
 }
+
