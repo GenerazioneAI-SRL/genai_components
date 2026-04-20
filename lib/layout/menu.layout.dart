@@ -74,9 +74,9 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
               },
               onSwitch: authState.tenantList.length > 1
                   ? () {
-                      if (isMobile) _closeDrawer(context);
-                      authState.setCurrentTenant(null);
-                    }
+                if (isMobile) _closeDrawer(context);
+                authState.setCurrentTenant(null);
+              }
                   : null,
             ),
 
@@ -104,15 +104,15 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
                     else if (route is ModuleRoute && route.isVisible && route.showInSideMenu && !route.onlyShowLabel)
                       _buildVisibleModuleRoute(navigationState, route)
                     else if (route is ModuleRoute && route.isVisible && (route.onlyShowLabel || !route.showInSideMenu))
-                      ..._buildSectionModule(navigationState, route)
-                    else if (route is ShellModularRoute)
-                      for (var subRoute in route.routes)
-                        if (subRoute is ChildRoute && subRoute.isVisible)
-                          _buildChildRoute(navigationState, subRoute)
-                        else if (subRoute is ModuleRoute && subRoute.isVisible && subRoute.showInSideMenu && !subRoute.onlyShowLabel)
-                          _buildVisibleModuleRoute(navigationState, subRoute)
-                        else if (subRoute is ModuleRoute && subRoute.isVisible && (subRoute.onlyShowLabel || !subRoute.showInSideMenu))
-                          ..._buildSectionModule(navigationState, subRoute),
+                        ..._buildSectionModule(navigationState, route)
+                      else if (route is ShellModularRoute)
+                          for (var subRoute in route.routes)
+                            if (subRoute is ChildRoute && subRoute.isVisible)
+                              _buildChildRoute(navigationState, subRoute)
+                            else if (subRoute is ModuleRoute && subRoute.isVisible && subRoute.showInSideMenu && !subRoute.onlyShowLabel)
+                              _buildVisibleModuleRoute(navigationState, subRoute)
+                            else if (subRoute is ModuleRoute && subRoute.isVisible && (subRoute.onlyShowLabel || !subRoute.showInSideMenu))
+                                ..._buildSectionModule(navigationState, subRoute),
 
                   // ── Mobile: Profilo + Logout + Versione ──────────
                   if (isMobile) ...[
@@ -808,7 +808,7 @@ class _TenantActionButtonState extends State<_TenantActionButton> {
     final color = widget.isPrimary ? t.primary : t.secondaryText;
     final bg = widget.isPrimary ? (_hovered ? t.primary.withValues(alpha: 0.14) : t.primary.withValues(alpha: 0.08)) : Colors.transparent;
     final border =
-        widget.isPrimary ? Border.all(color: Colors.transparent) : Border.all(color: _hovered ? t.borderColor.withValues(alpha: 0.8) : t.borderColor);
+    widget.isPrimary ? Border.all(color: Colors.transparent) : Border.all(color: _hovered ? t.borderColor.withValues(alpha: 0.8) : t.borderColor);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -900,8 +900,8 @@ class _MenuTileState extends State<_MenuTile> {
                     color: widget.selected
                         ? theme.primary.withValues(alpha: 0.12)
                         : _hovered
-                            ? theme.primary.withValues(alpha: 0.05)
-                            : Colors.transparent,
+                        ? theme.primary.withValues(alpha: 0.05)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -1077,23 +1077,23 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
           curve: Curves.easeInOut,
           child: _expanded
               ? Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Stack(
-                    children: [
-                      // Linea verticale allineata al centro dell'icona del parent (left 12 + 10 = 22px)
-                      Positioned(
-                        left: 21,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 1.5,
-                          color: theme.borderColor.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
-                    ],
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Stack(
+              children: [
+                // Linea verticale allineata al centro dell'icona del parent (left 12 + 10 = 22px)
+                Positioned(
+                  left: 21,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 1.5,
+                    color: theme.borderColor.withValues(alpha: 0.6),
                   ),
-                )
+                ),
+                Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
+              ],
+            ),
+          )
               : const SizedBox.shrink(),
         ),
       ],
@@ -1178,9 +1178,9 @@ class _MenuGroupState extends State<_MenuGroup> with SingleTickerProviderStateMi
             curve: Curves.easeInOut,
             child: _expanded
                 ? Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
-                  )
+              padding: const EdgeInsets.only(bottom: 3),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: widget.children),
+            )
                 : const SizedBox.shrink(),
           ),
         ],
@@ -1236,8 +1236,8 @@ class _MenuSubTileState extends State<_MenuSubTile> {
                 color: widget.selected
                     ? theme.primary.withValues(alpha: 0.1)
                     : _hovered
-                        ? theme.primary.withValues(alpha: 0.04)
-                        : Colors.transparent,
+                    ? theme.primary.withValues(alpha: 0.04)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.centerLeft,

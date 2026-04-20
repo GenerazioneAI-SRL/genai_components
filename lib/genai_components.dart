@@ -148,6 +148,7 @@ export 'utils/providers/navigation.util.provider.dart';
 export 'core_utils/base_viewmodel.dart';
 export 'core_utils/extension.util.dart';
 export 'core_utils/navigation_observer.dart';
+export 'core_utils/cl_window_size.dart';
 
 // Core Models
 export 'core_models/upload_file.model.dart';

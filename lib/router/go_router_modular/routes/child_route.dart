@@ -65,6 +65,8 @@ class ChildRoute extends ModularRoute {
       required Widget Function(BuildContext context, GoRouterState state) childBuilder,
       bool isModuleRoute = false,
       bool isVisible = true,
+      IconData? icon,
+      HugeIcon? hugeIcon,
       List<ChildRoute> routes = const []}) {
     String routePath = "";
     if (!isModuleRoute) {
@@ -79,7 +81,17 @@ class ChildRoute extends ModularRoute {
 
     String name = _extractName(route.name);
 
-    return ChildRoute(fullPath, child: childBuilder, name: name, routeName: route.name, pageTransition: pageTransition, isVisible: isVisible, routes: routes);
+    return ChildRoute(
+      fullPath,
+      child: childBuilder,
+      name: name,
+      routeName: route.name,
+      pageTransition: pageTransition,
+      isVisible: isVisible,
+      icon: icon,
+      hugeIcon: hugeIcon,
+      routes: routes,
+    );
   }
 
   static String _extractName(String path) {
