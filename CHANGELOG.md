@@ -1,12 +1,29 @@
 # Changelog
 
+## 5.0.0
+
+**Breaking — complete new design system (Genai\* prefix)**
+
+- **Design tokens**: `GenaiColorTokens`, `GenaiTypographyTokens`, `GenaiSpacingTokens`, `GenaiSizingTokens`, `GenaiElevationTokens`, `GenaiRadiusTokens` — full token system via `ThemeExtension`
+- **Theme**: `GenaiTheme.light()` / `GenaiTheme.dark()` with `context.colors`, `context.typography`, `context.spacing`, `context.sizing`, `context.elevation`, `context.radius` extensions
+- **50+ components**: all `CL*` widgets replaced by `Genai*` equivalents with design-system tokens
+- **Charts**: `GenaiBarChart` (fl_chart), `GenaiOrgChart`, `GenaiGenogram`
+- **Survey**: `GenaiSurvey`, `GenaiSurveyViewer`, `GenaiSurveyBuilder`, `GenaiSurveyResultViewer`
+- **AI Assistant**: `GenaiAiAssistant` + `GenaiAiAssistantConfig` with OpenAI/tool-call support, integrated in `GenaiShell`
+- **Scaffold / Router**: `GoRouterModular`, `Module`, `ChildRoute`, `ModuleRoute`, `ShellModularRoute`, `GenaiRoute`, `GenaiPageData`, `GenaiResumeObserver`, `GenaiPathUtils`, `RouteRegistry`
+- **Auth abstractions**: `GenaiAuthState`, `GenaiUserInfo`, `GenaiTenant`
+- **Providers**: `GenaiAppState`, `GenaiPageErrorState`, `GenaiNotificationsPanelState`
+- **Utils**: `GenaiValidators`, `GenaiFormatters`, `GenaiFormController`, `GenaiAccessState`
+- **Icons**: `lucide_icons_flutter` (replaces `hugeicons` in all new components)
+- **Tests**: 111 unit + widget tests (validators, formatters, survey models, button, checkbox, badge, alert)
+- Removed all legacy `CL*` exports from the public barrel
+
 ## 4.2.21
 
 - **Widgets:** Updated 22 components
 - **Layout:** Updated Sizes Constant
 - **Theme:** Updated Cl Theme
 - **Core:** Updated Genai Components
-
 
 ## 4.2.20
 
@@ -15,11 +32,9 @@
 - **Providers:** Updated App State
 - **Core:** Updated Cl App, Cl App Config, Genai Components
 
-
 ## 4.2.19
 
 - **Layout:** Updated App Layout
-
 
 ## 4.2.18
 
@@ -27,11 +42,9 @@
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.2.17
 
 - **Router:** Updated Module Route
-
 
 ## 4.2.16
 
@@ -40,13 +53,11 @@
 - **API:** Updated Api Manager
 - **Core:** Updated Cl App, Cl App Config
 
-
 ## 4.2.15
 
 - **Widgets:** Updated CLMedia_attach, CLText_field, CLUniversal_repeatable
 - **Core:** Updated Changelog Md, Cl, Genai Components
 - **Package:** Updated Pubspec Yaml
-
 
 ## 4.2.14
 
@@ -54,13 +65,11 @@
 - **Core:** Updated Changelog Md, Cl, Genai Components
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.2.13
 
 - **Widgets:** Updated CLMedia_attach, CLText_field, CLUniversal_repeatable
 - **Core:** Updated Changelog Md, Cl, Genai Components
 - **Package:** Updated Pubspec Yaml
-
 
 ## 4.2.12
 
@@ -68,25 +77,21 @@
 - **Core:** Updated Changelog Md, Genai Components
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.2.11
 
 - **Widgets:** Updated CLMedia_attach, CLText_field, CLUniversal_repeatable
 - **Core:** Updated Genai Components
-
 
 ## 4.2.10
 
 - **Layout:** Updated 4 components
 - **Core:** Updated Cl App, Cl App Config, Genai Components
 
-
 ## 4.2.9
 
 - **Widgets:** Updated Analogclock, Clockpainter, Digitalclock
 - **Layout:** Updated Footer Layout
 - **Core:** Updated Genai Components
-
 
 ## 4.2.8
 
@@ -99,7 +104,6 @@
 - **Core:** Updated 6 components
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.2.7
 
 - **Widgets:** Updated CLPopup_menu
@@ -107,12 +111,10 @@
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.2.6
 
 - **Widgets:** Updated CLPopup_menu
 - **Layout:** Updated Header Layout
-
 
 ## 4.2.5
 
@@ -120,38 +122,31 @@
 - **Layout:** Updated App Layout, Header Layout, Menu Layout
 - **Theme:** Updated Cl Theme
 
-
 ## 4.2.4
 
 - **Widgets:** Updated Paged Datatable, Paged Datatable Rows, Paged Datatable State
 - **Layout:** Updated Menu Layout
-
 
 ## 4.2.3
 
 - **Layout:** Updated Menu Layout
 - **Router:** Updated Module, Module Route
 
-
 ## 4.2.2
 
 - **Widgets:** Updated 7 components
-
 
 ## 4.2.1
 
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.1.1
 
 - Maintenance and minor improvements
 
-
 ## 4.1.0
 
 - Maintenance and minor improvements
-
 
 ## 4.0.7
 
@@ -159,49 +154,40 @@
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.0.6
 
 - **Widgets:** Updated 9 components
-
 
 ## 4.0.5
 
 - **Widgets:** Updated CLFile_picker, Flutter Responsive Flex Grid, Survey
 
-
 ## 4.0.4
 
 - **Widgets:** Updated Dropdown State, CLFile_picker
-
 
 ## 4.0.3
 
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.0.2
 
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
-
 ## 4.0.1
 
 - **Core:** Updated Readme Md, Cl
-
 
 ## 4.0.0
 
 - **Core:** Updated Changelog Md
 - **Package:** Updated Pubspec Yaml
 
-
 ## 3.0.2
 
 - **Core:** Updated Changelog Md
-
 
 ## 3.0.0
 
