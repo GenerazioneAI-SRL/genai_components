@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../cl_theme.dart';
@@ -8,7 +9,11 @@ import '../cl_text_field.widget.dart';
 
 class DropdownState<T extends Object> extends ChangeNotifier {
   List<T> items = [];
-  final Future<(List<T>, Object?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})? asyncSearchCallback;
+  final Future<(List<T>, Object?)> Function(
+      {int? page,
+      int? perPage,
+      Map<String, dynamic>? searchBy,
+      Map<String, dynamic>? orderBy})? asyncSearchCallback;
   final Future<List<T>> Function(String)? syncSearchCallback;
   int perPage;
   bool loading = false;
@@ -74,9 +79,12 @@ class DropdownState<T extends Object> extends ChangeNotifier {
       _hasMorePages = true;
       notifyListeners();
       try {
-        var (values, pagination) = await asyncSearchCallback!(page: 1, perPage: perPage);
+        var (values, pagination) =
+            await asyncSearchCallback!(page: 1, perPage: perPage);
         items = values;
-        _hasMorePages = pagination != null ? (pagination as dynamic).next != null : values.length >= perPage;
+        _hasMorePages = pagination != null
+            ? (pagination as dynamic).next != null
+            : values.length >= perPage;
       } catch (e) {
         items = [];
         _hasMorePages = false;
@@ -96,15 +104,21 @@ class DropdownState<T extends Object> extends ChangeNotifier {
     try {
       final nextPage = _currentPage + 1;
       final searchQuery = searchController.text;
-      final Map<String, dynamic>? searchBy = searchQuery.isNotEmpty && searchColumn != null ? {searchColumn!: searchQuery} : null;
+      final Map<String, dynamic>? searchBy =
+          searchQuery.isNotEmpty && searchColumn != null
+              ? {searchColumn!: searchQuery}
+              : null;
 
-      var (values, pagination) = await asyncSearchCallback!(page: nextPage, perPage: perPage, searchBy: searchBy);
+      var (values, pagination) = await asyncSearchCallback!(
+          page: nextPage, perPage: perPage, searchBy: searchBy);
 
       if (values.isNotEmpty) {
         _currentPage = nextPage;
         items = [...items, ...values];
       }
-      _hasMorePages = pagination != null ? (pagination as dynamic).next != null : values.length >= perPage;
+      _hasMorePages = pagination != null
+          ? (pagination as dynamic).next != null
+          : values.length >= perPage;
     } catch (e) {
       _hasMorePages = false;
     } finally {
@@ -132,6 +146,33 @@ class DropdownState<T extends Object> extends ChangeNotifier {
         textEditingController.text = valueToShow(selectedItem!);
       }
     }
+  }
+
+  /// Sincronizza lo stato interno con eventuali aggiornamenti esterni
+  /// (es. selectedValues valorizzati dopo un preload asincrono).
+  void syncExternalSelectedItems(List<T> externalSelectedItems) {
+    if (isMultiple) {
+      if (listEquals(selectedItems, externalSelectedItems)) return;
+      selectedItems = List<T>.from(externalSelectedItems);
+      _updateMultipleText();
+      notifyListeners();
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
+
+    final T? externalSelected =
+        externalSelectedItems.isNotEmpty ? externalSelectedItems.first : null;
+    if (selectedItem == externalSelected) return;
+
+    selectedItem = externalSelected;
+    if (externalSelected != null) {
+      textEditingController.text = valueToShow(externalSelected);
+    } else {
+      textEditingController.clear();
+    }
+
+    notifyListeners();
+    _overlayEntry?.markNeedsBuild();
   }
 
   void toggleOverlay() {
@@ -179,7 +220,8 @@ class DropdownState<T extends Object> extends ChangeNotifier {
   }
 
   OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = textFormFieldKey.currentContext!.findRenderObject() as RenderBox;
+    RenderBox renderBox =
+        textFormFieldKey.currentContext!.findRenderObject() as RenderBox;
     var size = renderBox.size;
     var offset = renderBox.localToGlobal(Offset.zero);
 
@@ -189,7 +231,8 @@ class DropdownState<T extends Object> extends ChangeNotifier {
     const maxDropdownHeight = 250.0;
     // Altezza stimata totale dell'overlay (search + lista)
     final hasSearch = syncSearchCallback != null || asyncSearchCallback != null;
-    final estimatedHeight = maxDropdownHeight + (hasSearch ? searchBarHeight : 0) + 16;
+    final estimatedHeight =
+        maxDropdownHeight + (hasSearch ? searchBarHeight : 0) + 16;
 
     final spaceBelow = screenHeight - (offset.dy + size.height + gap);
     final spaceAbove = offset.dy - gap;
@@ -199,121 +242,148 @@ class DropdownState<T extends Object> extends ChangeNotifier {
 
     // Limita l'altezza della lista allo spazio disponibile
     final availableSpace = openUpward ? spaceAbove : spaceBelow;
-    final listMaxHeight = (availableSpace - (hasSearch ? searchBarHeight : 0) - 16).clamp(80.0, maxDropdownHeight);
-
+    final listMaxHeight =
+        (availableSpace - (hasSearch ? searchBarHeight : 0) - 16)
+            .clamp(80.0, maxDropdownHeight);
 
     return OverlayEntry(
-      builder:
-          (context) => Stack(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  closeOverlay();
-                },
-                behavior: HitTestBehavior.translucent,
-              ),
-              Positioned(
-                width: size.width,
-                left: offset.dx,
-                top: offset.dy,
-                child: CompositedTransformFollower(
-                  link: layerLink,
-                  showWhenUnlinked: false,
-                  targetAnchor: openUpward ? Alignment.topLeft : Alignment.bottomLeft,
-                  followerAnchor: openUpward ? Alignment.bottomLeft : Alignment.topLeft,
-                  offset: openUpward ? const Offset(0, -gap) : const Offset(0, gap),
-                  child: CLContainer(
-                    contentMargin: EdgeInsets.zero,
-                    showShadow: true,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Campo di ricerca nell'overlay
-                        if (hasSearch)
-                          Padding(
-                            padding: const EdgeInsets.all(Sizes.padding / 2),
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: CLTextField(
-                                controller: searchController,
-                                labelText: 'Cerca...',
-                                prefixIcon: HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: CLTheme.of(context).secondaryText, size: Sizes.medium),
-                                prefixIconConstraints: BoxConstraints(minWidth: Sizes.medium + 16, minHeight: Sizes.medium + 16),
-                                onChanged: (value) async {
-                                  await onSearch(searchColumn, value);
-                                },
-                              ),
-                            ),
+      builder: (context) => Stack(
+        children: [
+          GestureDetector(
+            onTap: () {
+              closeOverlay();
+            },
+            behavior: HitTestBehavior.translucent,
+          ),
+          Positioned(
+            width: size.width,
+            left: offset.dx,
+            top: offset.dy,
+            child: CompositedTransformFollower(
+              link: layerLink,
+              showWhenUnlinked: false,
+              targetAnchor:
+                  openUpward ? Alignment.topLeft : Alignment.bottomLeft,
+              followerAnchor:
+                  openUpward ? Alignment.bottomLeft : Alignment.topLeft,
+              offset: openUpward ? const Offset(0, -gap) : const Offset(0, gap),
+              child: CLContainer(
+                contentMargin: EdgeInsets.zero,
+                showShadow: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Campo di ricerca nell'overlay
+                    if (hasSearch)
+                      Padding(
+                        padding: const EdgeInsets.all(Sizes.padding / 2),
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: CLTextField(
+                            controller: searchController,
+                            labelText: 'Cerca...',
+                            prefixIcon: HugeIcon(
+                                icon: HugeIcons.strokeRoundedSearch01,
+                                color: CLTheme.of(context).secondaryText,
+                                size: Sizes.medium),
+                            prefixIconConstraints: BoxConstraints(
+                                minWidth: Sizes.medium + 16,
+                                minHeight: Sizes.medium + 16),
+                            onChanged: (value) async {
+                              await onSearch(searchColumn, value);
+                            },
                           ),
-                        // Lista degli elementi
-                        loading && items.isEmpty
+                        ),
+                      ),
+                    // Lista degli elementi
+                    loading && items.isEmpty
+                        ? Material(
+                            type: MaterialType.transparency,
+                            child: Container(
+                              padding: const EdgeInsets.all(Sizes.padding),
+                              child: const Center(
+                                  child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))),
+                            ),
+                          )
+                        : items.isEmpty
                             ? Material(
-                              type: MaterialType.transparency,
-                              child: Container(
-                                padding: const EdgeInsets.all(Sizes.padding),
-                                child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                              ),
-                            )
-                            : items.isEmpty
-                            ? Material(
-                              type: MaterialType.transparency,
-                              child: Container(
-                                padding: const EdgeInsets.all(Sizes.padding),
-                                child: Text('Nessun risultato trovato', style: CLTheme.of(context).bodyLabel),
-                              ),
-                            )
+                                type: MaterialType.transparency,
+                                child: Container(
+                                  padding: const EdgeInsets.all(Sizes.padding),
+                                  child: Text('Nessun risultato trovato',
+                                      style: CLTheme.of(context).bodyLabel),
+                                ),
+                              )
                             : ConstrainedBox(
-                              constraints: BoxConstraints(maxHeight: listMaxHeight),
-                              child: ListView.builder(
-                                controller: _scrollController,
-                                padding: EdgeInsets.zero,
-                                shrinkWrap: true,
-                                itemCount: items.length + (_loadingMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  // Loader di fine lista
-                                  if (index >= items.length) {
-                                    return const Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 12),
-                                      child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
-                                    );
-                                  }
+                                constraints:
+                                    BoxConstraints(maxHeight: listMaxHeight),
+                                child: ListView.builder(
+                                  controller: _scrollController,
+                                  padding: EdgeInsets.zero,
+                                  shrinkWrap: true,
+                                  itemCount:
+                                      items.length + (_loadingMore ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    // Loader di fine lista
+                                    if (index >= items.length) {
+                                      return const Padding(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        child: Center(
+                                            child: SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2))),
+                                      );
+                                    }
 
-                                  var item = items[index];
-                                  final isSelected = isMultiple ? selectedItems.contains(item) : selectedItem == item;
+                                    var item = items[index];
+                                    final isSelected = isMultiple
+                                        ? selectedItems.contains(item)
+                                        : selectedItem == item;
 
-                                  return _DropdownHoverItem(
-                                    onTap: () => _selectItem(item),
-                                    isSelected: isSelected,
-                                    child: Material(
-                                      type: MaterialType.transparency,
-                                      child: ListTile(
-                                        titleTextStyle: CLTheme.of(context).bodyText,
-                                        title: itemBuilder(context, item),
-                                        trailing:
-                                            isMultiple
-                                                ? Checkbox(
+                                    return _DropdownHoverItem(
+                                      onTap: () => _selectItem(item),
+                                      isSelected: isSelected,
+                                      child: Material(
+                                        type: MaterialType.transparency,
+                                        child: ListTile(
+                                          titleTextStyle:
+                                              CLTheme.of(context).bodyText,
+                                          title: itemBuilder(context, item),
+                                          trailing: isMultiple
+                                              ? Checkbox(
                                                   splashRadius: 0,
-                                                  value: selectedItems.contains(item),
+                                                  value: selectedItems
+                                                      .contains(item),
                                                   onChanged: (value) {
                                                     _selectItem(item);
                                                   },
-                                                  activeColor: CLTheme.of(context).primary,
+                                                  activeColor:
+                                                      CLTheme.of(context)
+                                                          .primary,
                                                   checkColor: Colors.white,
                                                 )
-                                                : null,
+                                              : null,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
+        ],
+      ),
     );
   }
 
@@ -347,6 +417,7 @@ class DropdownState<T extends Object> extends ChangeNotifier {
       selectedItem = null;
       textEditingController.clear();
       _init([]);
+      onSelectItem?.call(null);
       onClearItem?.call();
       focusNode.unfocus();
       closeOverlay();
@@ -367,7 +438,8 @@ class DropdownState<T extends Object> extends ChangeNotifier {
     if (selectedItems.isEmpty) {
       textEditingController.clear();
     } else {
-      textEditingController.text = '${selectedItems.length} selezionat${selectedItems.length == 1 ? 'o' : 'i'}';
+      textEditingController.text =
+          '${selectedItems.length} selezionat${selectedItems.length == 1 ? 'o' : 'i'}';
     }
   }
 
@@ -380,13 +452,19 @@ class DropdownState<T extends Object> extends ChangeNotifier {
         notifyListeners();
 
         if (query.isEmpty) {
-          var (values, pagination) = await asyncSearchCallback!.call(page: 1, perPage: perPage);
+          var (values, pagination) =
+              await asyncSearchCallback!.call(page: 1, perPage: perPage);
           items = values;
-          _hasMorePages = pagination != null ? (pagination as dynamic).next != null : values.length >= perPage;
+          _hasMorePages = pagination != null
+              ? (pagination as dynamic).next != null
+              : values.length >= perPage;
         } else {
-          var (values, pagination) = await asyncSearchCallback!.call(page: 1, perPage: perPage, searchBy: {searchColumn!: query});
+          var (values, pagination) = await asyncSearchCallback!.call(
+              page: 1, perPage: perPage, searchBy: {searchColumn!: query});
           items = values;
-          _hasMorePages = pagination != null ? (pagination as dynamic).next != null : values.length >= perPage;
+          _hasMorePages = pagination != null
+              ? (pagination as dynamic).next != null
+              : values.length >= perPage;
         }
       } catch (e) {
         items = [];
@@ -424,7 +502,8 @@ class _DropdownHoverItem extends StatefulWidget {
   final bool isSelected;
   final Widget child;
 
-  const _DropdownHoverItem({required this.onTap, required this.isSelected, required this.child});
+  const _DropdownHoverItem(
+      {required this.onTap, required this.isSelected, required this.child});
 
   @override
   State<_DropdownHoverItem> createState() => _DropdownHoverItemState();
@@ -451,7 +530,12 @@ class _DropdownHoverItemState extends State<_DropdownHoverItem> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(onTap: widget.onTap, child: AnimatedContainer(duration: const Duration(milliseconds: 150), color: bgColor, child: widget.child)),
+      child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              color: bgColor,
+              child: widget.child)),
     );
   }
 }

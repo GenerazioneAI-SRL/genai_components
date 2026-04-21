@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 
@@ -35,7 +36,11 @@ class CLDropdown<T extends Object> extends StatefulWidget {
   final String Function(T) valueToShow;
   final String hint;
   final Future<List<T>> Function(String)? syncSearchCallback;
-  final Future<(List<T>, Object?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})? asyncSearchCallback;
+  final Future<(List<T>, Object?)> Function(
+      {int? page,
+      int? perPage,
+      Map<String, dynamic>? searchBy,
+      Map<String, dynamic>? orderBy})? asyncSearchCallback;
   final String? searchColumn;
   final bool isMultiple;
   final List<T> selectedValues;
@@ -87,7 +92,12 @@ class CLDropdown<T extends Object> extends StatefulWidget {
   factory CLDropdown.singleAsync({
     Key? key,
     required String hint,
-    required Future<(List<T>, Object?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})? searchCallback,
+    required Future<(List<T>, Object?)> Function(
+            {int? page,
+            int? perPage,
+            Map<String, dynamic>? searchBy,
+            Map<String, dynamic>? orderBy})?
+        searchCallback,
     required searchColumn,
     required Widget Function(BuildContext, T) itemBuilder,
     required String Function(T) valueToShow,
@@ -153,7 +163,12 @@ class CLDropdown<T extends Object> extends StatefulWidget {
   factory CLDropdown.multipleAsync({
     Key? key,
     required String hint,
-    required Future<(List<T>, Object?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})? searchCallback,
+    required Future<(List<T>, Object?)> Function(
+            {int? page,
+            int? perPage,
+            Map<String, dynamic>? searchBy,
+            Map<String, dynamic>? orderBy})?
+        searchCallback,
     required searchColumn,
     required Widget Function(BuildContext, T) itemBuilder,
     required String Function(T) valueToShow,
@@ -185,29 +200,46 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
     super.initState();
   }
 
+  bool _isExternalSelectionAligned(DropdownState<T> state) {
+    if (widget.isMultiple) {
+      return listEquals(state.selectedItems, widget.selectedValues);
+    }
+
+    final T? externalSelected =
+        widget.selectedValues.isNotEmpty ? widget.selectedValues.first : null;
+    return state.selectedItem == externalSelected;
+  }
+
   @override
   Widget build(BuildContext context) {
     FocusNode focusNode = FocusNode();
     return ChangeNotifierProvider<DropdownState<T>>(
-      create:
-          (context) => DropdownState(
-            items: widget.items,
-            asyncSearchCallback: widget.asyncSearchCallback,
-            syncSearchCallback: widget.syncSearchCallback,
-            context: context,
-            focusNode: focusNode,
-            itemBuilder: widget.itemBuilder,
-            isMultiple: widget.isMultiple,
-            valueToShow: widget.valueToShow,
-            onSelectItem: widget.onSelectItem,
-            onSelectItems: widget.onSelectItems,
-            onClearItem: widget.onClearItem,
-            previousSelectedItems: widget.selectedValues,
-            perPage: widget.length,
-            searchColumn: widget.searchColumn,
-          ),
+      create: (context) => DropdownState(
+        items: widget.items,
+        asyncSearchCallback: widget.asyncSearchCallback,
+        syncSearchCallback: widget.syncSearchCallback,
+        context: context,
+        focusNode: focusNode,
+        itemBuilder: widget.itemBuilder,
+        isMultiple: widget.isMultiple,
+        valueToShow: widget.valueToShow,
+        onSelectItem: widget.onSelectItem,
+        onSelectItems: widget.onSelectItems,
+        onClearItem: widget.onClearItem,
+        previousSelectedItems: widget.selectedValues,
+        perPage: widget.length,
+        searchColumn: widget.searchColumn,
+      ),
       builder: (context, child) {
         var state = context.watch<DropdownState<T>>();
+
+        if (!_isExternalSelectionAligned(state)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            state.syncExternalSelectedItems(widget.selectedValues);
+          });
+        }
+
         final theme = CLTheme.of(context);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,11 +252,13 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                 children: [
                   ...state.selectedItems.map(
                     (item) => Container(
-                      padding: const EdgeInsets.only(left: 10, right: 4, top: 4, bottom: 4),
+                      padding: const EdgeInsets.only(
+                          left: 10, right: 4, top: 4, bottom: 4),
                       decoration: BoxDecoration(
                         color: theme.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: theme.primary.withValues(alpha: 0.2)),
+                        border: Border.all(
+                            color: theme.primary.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -232,7 +266,10 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                           Flexible(
                             child: Text(
                               widget.valueToShow(item),
-                              style: theme.smallLabel.override(color: theme.primary, fontWeight: FontWeight.w500, fontSize: 12),
+                              style: theme.smallLabel.override(
+                                  color: theme.primary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -245,7 +282,8 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                                 color: theme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Icon(Icons.close_rounded, size: 14, color: theme.primary),
+                              child: Icon(Icons.close_rounded,
+                                  size: 14, color: theme.primary),
                             ),
                           ),
                         ],
@@ -259,18 +297,25 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                         state.clearAll();
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: theme.danger.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: theme.danger.withValues(alpha: 0.2)),
+                          border: Border.all(
+                              color: theme.danger.withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.clear_all_rounded, size: 14, color: theme.danger),
+                            Icon(Icons.clear_all_rounded,
+                                size: 14, color: theme.danger),
                             const SizedBox(width: 4),
-                            Text('Svuota', style: theme.smallLabel.override(color: theme.danger, fontWeight: FontWeight.w500, fontSize: 12)),
+                            Text('Svuota',
+                                style: theme.smallLabel.override(
+                                    color: theme.danger,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12)),
                           ],
                         ),
                       ),
@@ -292,22 +337,26 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                 validators: widget.validators,
                 fillColor: widget.fillColor,
                 onTap: widget.isEnabled ? () => state.toggleOverlay() : null,
-                suffixIcon:
-                    !widget.isEnabled
-                        ? null
-                        : state.loading
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                suffixIcon: !widget.isEnabled
+                    ? null
+                    : state.loading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
                         : state.selectedItem != null
-                        ? _deleteButton(
-                          onPressed: () {
-                            state.removeItem(state.selectedItem!);
-                          },
-                        )
-                        : HugeIcon(
-                          icon: state.isOverlayOpen ? HugeIcons.strokeRoundedArrowUp01 : HugeIcons.strokeRoundedArrowDown01,
-                          color: CLTheme.of(context).secondaryText,
-                          size: 16,
-                        ),
+                            ? _deleteButton(
+                                onPressed: () {
+                                  state.removeItem(state.selectedItem!);
+                                },
+                              )
+                            : HugeIcon(
+                                icon: state.isOverlayOpen
+                                    ? HugeIcons.strokeRoundedArrowUp01
+                                    : HugeIcons.strokeRoundedArrowDown01,
+                                color: CLTheme.of(context).secondaryText,
+                                size: 16,
+                              ),
               ),
             ),
           ],
@@ -317,6 +366,10 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
   }
 
   Widget _deleteButton({required Function() onPressed}) {
-    return GestureDetector(onTap: onPressed, child: Icon(Icons.close_rounded, size: 18, color: CLTheme.of(context).danger.withValues(alpha: 0.8)));
+    return GestureDetector(
+        onTap: onPressed,
+        child: Icon(Icons.close_rounded,
+            size: 18,
+            color: CLTheme.of(context).danger.withValues(alpha: 0.8)));
   }
 }
