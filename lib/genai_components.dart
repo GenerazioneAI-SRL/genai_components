@@ -40,6 +40,7 @@ export 'widgets/cl_code_text.widget.dart';
 export 'widgets/cl_pill.widget.dart';
 export 'widgets/cl_role_badge.widget.dart';
 export 'widgets/cl_status_badge.widget.dart';
+export 'widgets/cl_summary_stat_card.widget.dart';
 export 'widgets/cl_media_viewer.widget.dart';
 export 'widgets/cl_media_attach.widget.dart';
 export 'widgets/excerpt_text.widget.dart';
@@ -113,7 +114,8 @@ export 'auth/cl_tenant.dart';
 
 // App
 export 'app/cl_app.dart';
-export 'app/cl_app_config.dart' show CLAppConfig, ShellLayoutBuilder, AiButtonPosition, ProfilePosition;
+export 'app/cl_app_config.dart'
+    show CLAppConfig, ShellLayoutBuilder, AiButtonPosition, ProfilePosition;
 
 // Router
 export 'router/go_router_modular/module.dart';

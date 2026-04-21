@@ -11,13 +11,18 @@ class CLTabView extends StatefulWidget {
   final String? title;
   final bool showDivider;
 
-  const CLTabView({super.key, required this.clTabItems, this.title, this.showDivider = false});
+  const CLTabView(
+      {super.key,
+      required this.clTabItems,
+      this.title,
+      this.showDivider = false});
 
   @override
   State<CLTabView> createState() => _CLTabViewState();
 }
 
-class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMixin {
+class _CLTabViewState extends State<CLTabView>
+    with SingleTickerProviderStateMixin {
   late TabController _controller;
 
   @override
@@ -33,7 +38,8 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
     if (oldWidget.clTabItems.length != widget.clTabItems.length) {
       _controller.removeListener(_onTabChanged);
       _controller.dispose();
-      _controller = TabController(length: widget.clTabItems.length, vsync: this);
+      _controller =
+          TabController(length: widget.clTabItems.length, vsync: this);
       _controller.addListener(_onTabChanged);
     }
   }
@@ -52,6 +58,8 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
+    final containerRadius = BorderRadius.circular(Sizes.borderRadius + 2);
+    final indicatorRadius = BorderRadius.circular(Sizes.borderRadius);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -59,43 +67,75 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
       children: [
         // ── Titolo opzionale ──
         if (widget.title != null) ...[
-          Padding(padding: const EdgeInsets.only(bottom: Sizes.borderRadius), child: Text(widget.title!, style: theme.bodyLabel)),
+          Padding(
+              padding: const EdgeInsets.only(bottom: Sizes.borderRadius),
+              child: Text(widget.title!, style: theme.bodyLabel)),
         ],
 
         // ── Tab bar ──
-        Theme(
-          data: Theme.of(context).copyWith(splashFactory: NoSplash.splashFactory),
-          child: TabBar(
-            controller: _controller,
-            indicatorColor: theme.primary,
-            indicatorWeight: 2.0,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelColor: theme.primaryText,
-            unselectedLabelColor: theme.mutedForeground,
-            labelStyle: theme.title,
-            unselectedLabelStyle: theme.bodyText,
-            dividerColor: theme.cardBorder,
-            dividerHeight: 1.0,
-            padding: EdgeInsets.zero,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-            tabs: widget.clTabItems.map((item) => Tab(
-              height: 40,
-              child: item.icon != null
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(item.icon, size: 16),
-                        const SizedBox(width: 6),
-                        Text(item.tabName),
-                      ],
-                    )
-                  : Text(item.tabName),
-            )).toList(),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground,
+            borderRadius: containerRadius,
+            border: Border.all(color: theme.cardBorder.withValues(alpha: 0.8)),
+          ),
+          padding: const EdgeInsets.all(4),
+          child: Theme(
+            data: Theme.of(context)
+                .copyWith(splashFactory: NoSplash.splashFactory),
+            child: TabBar(
+              controller: _controller,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: EdgeInsets.zero,
+              indicator: BoxDecoration(
+                color: theme.primaryBackground,
+                borderRadius: indicatorRadius,
+                border:
+                    Border.all(color: theme.cardBorder.withValues(alpha: 0.65)),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primaryText.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              overlayColor: WidgetStateProperty.all(Colors.transparent),
+              labelColor: theme.primaryText,
+              unselectedLabelColor: theme.mutedForeground,
+              labelStyle: theme.bodyText.override(fontWeight: FontWeight.w600),
+              unselectedLabelStyle:
+                  theme.bodyText.override(fontWeight: FontWeight.w500),
+              dividerColor: Colors.transparent,
+              dividerHeight: 0,
+              padding: EdgeInsets.zero,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+              tabs: widget.clTabItems
+                  .map(
+                    (item) => Tab(
+                      height: 40,
+                      child: item.icon != null
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(item.icon, size: 16),
+                                const SizedBox(width: 6),
+                                Text(item.tabName),
+                              ],
+                            )
+                          : Text(item.tabName),
+                    ),
+                  )
+                  .toList(),
+            ),
           ),
         ),
 
         // ── Divider opzionale ──
-        if (widget.showDivider) ...[const SizedBox(height: Sizes.borderRadius), Divider(color: theme.cardBorder, height: 1)],
+        if (widget.showDivider) ...[
+          const SizedBox(height: Sizes.borderRadius),
+          Divider(color: theme.cardBorder, height: 1)
+        ],
 
         const SizedBox(height: Sizes.borderRadius),
 
@@ -103,7 +143,10 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
         IndexedStack(
           index: _controller.index,
           children: List.generate(widget.clTabItems.length, (index) {
-            return Visibility(visible: _controller.index == index, maintainState: true, child: widget.clTabItems[index].tabContent);
+            return Visibility(
+                visible: _controller.index == index,
+                maintainState: true,
+                child: widget.clTabItems[index].tabContent);
           }),
         ),
       ],
