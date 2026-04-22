@@ -309,7 +309,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
                     if (states.contains(WidgetState.hovered)) return hoverBg;
                     return bgColor;
                   }),
-                  shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius))),
+                  shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusSm))),
                   elevation: WidgetStateProperty.all(0),
                   shadowColor: WidgetStateProperty.all(Colors.transparent),
                   overlayColor: WidgetStateProperty.all(Colors.transparent),
@@ -339,7 +339,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
                     return bgColor;
                   }),
                   overlayColor: WidgetStateProperty.all(Colors.transparent),
-                  shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius))),
+                  shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusSm))),
                   splashFactory: NoSplash.splashFactory,
                   foregroundColor: WidgetStateProperty.all(Colors.white),
                   minimumSize: WidgetStateProperty.all(Size(isMobile ? 36 : 36, isMobile ? 36 : 36)),

@@ -270,7 +270,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                  animationDuration: const Duration(milliseconds: 150),
                  padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                  shape: WidgetStateProperty.all(
-                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius)),
+                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusSm)),
                  ),
                  minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, isMobile ? 40 : 44)),
                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -295,7 +295,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                 }),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                  borderRadius: BorderRadius.circular(Sizes.radiusSm),
                   side: BorderSide(color: CLTheme.of(context).cardBorder, width: 1.0),
                 )),
                 minimumSize: WidgetStateProperty.all(Size(isMobile ? 36 : 36, isMobile ? 36 : 36)),

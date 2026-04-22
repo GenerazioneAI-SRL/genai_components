@@ -25,8 +25,9 @@ class _CLCardState extends State<CLCard> {
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: CLTheme.of(context).secondaryBackground,
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
+              borderRadius: BorderRadius.circular(Sizes.radiusCard),
               border: Border.all(color: CLTheme.of(context).cardBorder),
+              boxShadow: CLTheme.of(context).cardShadow,
             ),
             child: Center(
               child: Padding(
@@ -73,8 +74,9 @@ class _CLCardState extends State<CLCard> {
             padding: EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
               color: CLTheme.of(context).secondaryBackground,
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
+              borderRadius: BorderRadius.circular(Sizes.radiusCard),
               border: Border.all(color: CLTheme.of(context).cardBorder),
+              boxShadow: CLTheme.of(context).cardShadow,
             ),
             child: Row(
                 mainAxisSize: MainAxisSize.max,

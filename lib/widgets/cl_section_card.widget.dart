@@ -32,8 +32,9 @@ class CLSectionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? theme.secondaryBackground : Colors.white,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(color: theme.cardBorder),
+        boxShadow: theme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,8 +44,8 @@ class CLSectionCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: isDark ? 0.08 : 0.04),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(Sizes.borderRadius),
-                topRight: Radius.circular(Sizes.borderRadius),
+                topLeft: Radius.circular(Sizes.radiusCard),
+                topRight: Radius.circular(Sizes.radiusCard),
               ),
             ),
             child: Row(
@@ -53,7 +54,7 @@ class CLSectionCard extends StatelessWidget {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: iconColor.withValues(alpha: isDark ? 0.2 : 0.1),
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius - 2),
+                    borderRadius: BorderRadius.circular(Sizes.radiusSm),
                   ),
                   child: HugeIcon(icon: icon, color: iconColor, size: 20),
                 ),

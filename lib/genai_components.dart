@@ -41,6 +41,7 @@ export 'widgets/cl_pill.widget.dart';
 export 'widgets/cl_role_badge.widget.dart';
 export 'widgets/cl_status_badge.widget.dart';
 export 'widgets/cl_summary_stat_card.widget.dart';
+export 'widgets/cl_metric_card.widget.dart';
 export 'widgets/cl_media_viewer.widget.dart';
 export 'widgets/cl_media_attach.widget.dart';
 export 'widgets/excerpt_text.widget.dart';

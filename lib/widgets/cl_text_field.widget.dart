@@ -925,23 +925,23 @@ class CLTextFieldState extends State<CLTextField> {
 
               // ── Bordi ──
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderRadius: BorderRadius.circular(Sizes.radiusSm),
                 borderSide: BorderSide(color: CLTheme.of(context).cardBorder, width: 1.0),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderRadius: BorderRadius.circular(Sizes.radiusSm),
                 borderSide: BorderSide(color: CLTheme.of(context).ring, width: 2.0),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderRadius: BorderRadius.circular(Sizes.radiusSm),
                 borderSide: BorderSide(color: CLTheme.of(context).danger, width: 1.0),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderRadius: BorderRadius.circular(Sizes.radiusSm),
                 borderSide: BorderSide(color: CLTheme.of(context).danger, width: 2.0),
               ),
               disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                borderRadius: BorderRadius.circular(Sizes.radiusSm),
                 borderSide: BorderSide(color: CLTheme.of(context).cardBorder.withValues(alpha: 0.5), width: 1.0),
               ),
               errorStyle: theme.smallLabel.copyWith(color: theme.danger, fontSize: 11, height: 1.3),

@@ -11,6 +11,7 @@ class CLSizes {
   static const borderRadius = 6.0;
   static const radiusSm = 4.0;
   static const radiusLg = 8.0;
+  static const radiusCard = 12.0;
   static const padding = 18.0;
   static const opacity = 0.2;
   static const verticalPadding = 16.0;

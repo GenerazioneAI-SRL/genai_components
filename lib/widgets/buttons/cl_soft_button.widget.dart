@@ -269,7 +269,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                 shape: WidgetStateProperty.resolveWith((states) {
                   return RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                    borderRadius: BorderRadius.circular(Sizes.radiusSm),
                     side: states.contains(WidgetState.focused)
                         ? BorderSide(color: focusBorder, width: 2)
                         : BorderSide.none,
@@ -298,7 +298,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 }),
                 foregroundColor: WidgetStateProperty.all(widget.color),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius))),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusSm))),
                 elevation: WidgetStateProperty.all(0),
                 shadowColor: WidgetStateProperty.all(Colors.transparent),
                 minimumSize: WidgetStateProperty.all(Size(isMobile ? 36 : 36, isMobile ? 36 : 36)),
