@@ -37,18 +37,21 @@ class CLAppLayout extends StatefulWidget {
   State<CLAppLayout> createState() => _CLAppLayoutState();
 }
 
-class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, TickerProviderStateMixin {
+class _CLAppLayoutState extends State<CLAppLayout> {
+  static const double _menuWidth = 268;
+  static const double _aiPanelWidth = 360;
+  static const double _desktopHeaderHeight = 60;
+  static const double _mobileHeaderHeight = 56;
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     timeago.setLocaleMessages("it", timeago.ItMessages());
-    // Ascolta i cambi di route per aggiornare la palette del modulo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       GoRouterModular.routerConfig.routerDelegate.addListener(_onRouteChange);
-      _onRouteChange(); // Check iniziale
+      _onRouteChange();
     });
   }
 
@@ -61,17 +64,7 @@ class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, 
   @override
   void dispose() {
     GoRouterModular.routerConfig.routerDelegate.removeListener(_onRouteChange);
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      // Salva lo stato o ferma determinate azioni
-    } else if (state == AppLifecycleState.resumed) {
-      // Ripristina alcune azioni, se necessario
-    }
   }
 
   @override
@@ -83,26 +76,35 @@ class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, 
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: Colors.transparent,
-          // Drawer solo su mobile/tablet
           drawer: isMobile ? _buildMobileDrawer(context) : null,
           drawerEnableOpenDragGesture: isMobile,
           drawerEdgeDragWidth: isMobile ? 40 : 0,
-          // EndDrawer solo per mobile
           endDrawer: isMobile && appState.showAiButton ? const AiChatDrawer() : null,
           endDrawerEnableOpenDragGesture: false,
-          body: GradientBackgroundWidget(showDecorativeCircles: false, child: _buildResponsiveLayout(context, appState)),
+          body: GradientBackgroundWidget(
+            showDecorativeCircles: false,
+            child: _buildResponsiveLayout(context, appState),
+          ),
         );
       },
     );
   }
 
-  /// Drawer per mobile con overlay scuro e animazione fluida
+  Widget _buildMenu() => CLMenuLayout(
+        routes: widget.shellRoutes.cast(),
+        logoBuilder: widget.logoBuilder,
+        menuExtraBuilder: widget.menuExtraBuilder,
+        menuFooterBuilder: widget.menuFooterBuilder,
+      );
+
   Widget _buildMobileDrawer(BuildContext context) {
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.85,
       backgroundColor: CLTheme.of(context).secondaryBackground,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(0), bottomRight: Radius.circular(0))),
-      child: SafeArea(child: CLMenuLayout(routes: widget.shellRoutes.cast(), logoBuilder: widget.logoBuilder, menuExtraBuilder: widget.menuExtraBuilder, menuFooterBuilder: widget.menuFooterBuilder)),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(topRight: Radius.zero, bottomRight: Radius.zero),
+      ),
+      child: SafeArea(child: _buildMenu()),
     );
   }
 
@@ -117,148 +119,107 @@ class _CLAppLayoutState extends State<CLAppLayout> with WidgetsBindingObserver, 
   Widget _buildDesktopLayout(AppState appState) {
     final theme = CLTheme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final p = Sizes.padding;
     final showAiPanel = appState.showAiButton && appState.aiChatOpen;
 
-    return Padding(
-      padding: EdgeInsets.only(left: p, top: p, bottom: 0),
-      child: Row(
-        children: [
-          // Menu in "bolla" glass
-          Padding(
-            padding: const EdgeInsets.only(bottom: Sizes.padding),
-            child: RepaintBoundary(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    width: 268,
-                    decoration: BoxDecoration(
-                      color: isDark ? theme.primaryBackground.withValues(alpha: 0.85) : theme.secondaryBackground.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
-                      border: Border.all(color: theme.borderColor),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), blurRadius: 12, offset: const Offset(0, 2))],
-                    ),
-                    child: CLMenuLayout(routes: widget.shellRoutes.cast(), logoBuilder: widget.logoBuilder, menuExtraBuilder: widget.menuExtraBuilder, menuFooterBuilder: widget.menuFooterBuilder),
-                  ),
+    return Row(
+      children: [
+        // Menu flat
+        Container(
+          width: _menuWidth,
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground,
+            border: Border(right: BorderSide(color: theme.borderColor)),
+          ),
+          child: _buildMenu(),
+        ),
+
+        // Main area (header + content)
+        Expanded(
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.secondaryBackground,
+                  border: Border(bottom: BorderSide(color: theme.borderColor)),
+                ),
+                child: const HeaderLayout(
+                  headerColor: Colors.transparent,
+                  headerHeight: _desktopHeaderHeight,
                 ),
               ),
-            ),
+              const SizedBox(height: Sizes.padding),
+              Expanded(child: widget.shellChild),
+            ],
           ),
+        ),
 
-          // Contenuto principale con header in "bolla"
-          Expanded(
-            child: Column(
-              children: [
-                // Header in "bolla" glass
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: p),
+        // AI Chat panel (glass bubble preservato)
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          alignment: Alignment.centerRight,
+          child: showAiPanel
+              ? Padding(
+                  padding:
+                      const EdgeInsets.only(left: 0, bottom: Sizes.padding, right: Sizes.padding, top: Sizes.padding),
                   child: RepaintBoundary(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                         child: Container(
+                          width: _aiPanelWidth,
                           decoration: BoxDecoration(
-                            color: isDark ? theme.primaryBackground.withValues(alpha: 0.85) : theme.secondaryBackground.withValues(alpha: 0.85),
+                            color: isDark
+                                ? theme.primaryBackground.withValues(alpha: 0.85)
+                                : theme.secondaryBackground.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
                             border: Border.all(color: theme.borderColor),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), blurRadius: 12, offset: const Offset(0, 2)),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 2),
+                              ),
                             ],
                           ),
-                          child: HeaderLayout(headerColor: Colors.transparent, headerHeight: 60),
+                          child: const AiChatPanel(),
                         ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(height: p),
-                // Contenuto pagina
-                Expanded(child: widget.shellChild),
-              ],
-            ),
-          ),
+                )
+              : const SizedBox.shrink(),
+        ),
 
-          // AI Chat panel (desktop) — stile glass come il menu
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            alignment: Alignment.centerRight,
-            child: showAiPanel
-                ? Padding(
-                    padding: EdgeInsets.only(left: 0, bottom: p, right: p),
-                    child: RepaintBoundary(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            width: 360,
-                            decoration: BoxDecoration(
-                              color: isDark ? theme.primaryBackground.withValues(alpha: 0.85) : theme.secondaryBackground.withValues(alpha: 0.85),
-                              borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.5),
-                              border: Border.all(color: theme.borderColor),
-                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), blurRadius: 12, offset: const Offset(0, 2))],
-                            ),
-                            child: const AiChatPanel(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-
-          // Notifications panel (se presente)
-          const NotificationsPanel(),
-        ],
-      ),
+        const NotificationsPanel(),
+      ],
     );
   }
 
   Widget _buildMobileLayout(AppState appState) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = CLTheme.of(context);
-    final mobileHeaderHeight = 56.0;
-    final p = Sizes.padding;
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          SizedBox(height: p),
-          // Header in "bolla" glass
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: p),
-            child: RepaintBoundary(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.2),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? theme.primaryBackground.withValues(alpha: 0.85) : theme.secondaryBackground.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(Sizes.borderRadius * 1.2),
-                      border: Border.all(color: theme.borderColor.withValues(alpha: .5)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04), blurRadius: 8, offset: const Offset(0, 1))],
-                    ),
-                    child: HeaderLayout(headerColor: Colors.transparent, headerHeight: mobileHeaderHeight),
-                  ),
-                ),
-              ),
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground,
+            border: Border(bottom: BorderSide(color: theme.borderColor)),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: const HeaderLayout(
+              headerColor: Colors.transparent,
+              headerHeight: _mobileHeaderHeight,
             ),
           ),
-          SizedBox(height: p),
-          // Contenuto pagina in "bolla" glass
-          Expanded(child: widget.shellChild),
-        ],
-      ),
+        ),
+        Expanded(child: widget.shellChild),
+      ],
     );
   }
 }
 
 /// Retrocompatibilità: il vecchio nome [AppLayout] resta disponibile come alias.
 typedef AppLayout = CLAppLayout;
-

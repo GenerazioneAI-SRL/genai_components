@@ -462,8 +462,9 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
   }
 
   void _closeDrawer(BuildContext context) {
-    if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
-      Navigator.of(context).pop();
+    final scaffold = Scaffold.maybeOf(context);
+    if (scaffold?.isDrawerOpen ?? false) {
+      scaffold!.closeDrawer();
     }
   }
 

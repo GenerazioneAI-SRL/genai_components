@@ -237,10 +237,12 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         const double leftBorderWidth = 2.5;
         // Actions column width
         const double actionsColumnWidth = 40.0;
-        // Checkbox area: left padding(Sizes.padding - leftBorderWidth = 15.5) + checkbox width(32)
-        const double checkboxAreaWidth = 47.5;
-        // Expand icon area: left padding(Sizes.padding - leftBorderWidth = 15.5) + icon width(24)
-        const double expandIconAreaWidth = 39.5;
+        // Derivati dai token: il padding sinistro in rows/header è `Sizes.padding - leftBorderWidth`,
+        // da non disallineare se Sizes.padding cambia (pena overflow nella Row delle righe).
+        const double checkboxWidth = 32;
+        const double expandIconWidth = 24;
+        final double checkboxAreaWidth = (Sizes.padding - leftBorderWidth) + checkboxWidth;
+        final double expandIconAreaWidth = (Sizes.padding - leftBorderWidth) + expandIconWidth;
 
         Widget child = LayoutBuilder(
           builder: (context, constraints) {

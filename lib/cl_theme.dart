@@ -14,8 +14,7 @@ class ColorUtils {
 
   static Color fromHex(String code) => Color(int.parse(code.substring(1, 7), radix: 16) + 0xFF000000);
 
-  static String toHex(Color color, {bool leadingHashSign = true}) =>
-      '${leadingHashSign ? '#' : ''}'
+  static String toHex(Color color, {bool leadingHashSign = true}) => '${leadingHashSign ? '#' : ''}'
       '${(color.a * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
       '${(color.r * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
       '${(color.g * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}'
@@ -51,7 +50,8 @@ abstract class CLTheme {
 
   static Color hexToColor(String code) => ColorUtils.fromHex(code);
 
-  static String toHex(Color color, {bool leadingHashSign = true}) => ColorUtils.toHex(color, leadingHashSign: leadingHashSign);
+  static String toHex(Color color, {bool leadingHashSign = true}) =>
+      ColorUtils.toHex(color, leadingHashSign: leadingHashSign);
 
   static ThemeMode get themeMode {
     final darkMode = SharedManager.getBool(kThemeModeKey);
@@ -102,12 +102,12 @@ abstract class CLTheme {
   final Color borderColor;
   final Color background;
   final Color fillColor;
-  final Color muted;            // Subtle background for non-interactive elements
-  final Color mutedForeground;  // Text on muted surfaces
-  final Color accent;           // Hover/interactive surface (defaults to muted)
+  final Color muted; // Subtle background for non-interactive elements
+  final Color mutedForeground; // Text on muted surfaces
+  final Color accent; // Hover/interactive surface (defaults to muted)
   final Color accentForeground; // Text on accent surfaces
-  final Color ring;             // Focus ring / outline color
-  final Color cardBorder;       // Card and panel border
+  final Color ring; // Focus ring / outline color
+  final Color cardBorder; // Card and panel border
 
   List<BoxShadow> get cardShadow;
 
@@ -180,11 +180,11 @@ class LightModeTheme extends CLTheme {
 
   @override
   List<BoxShadow> get cardShadow => const [
-    BoxShadow(color: Color(0x0A000000), blurRadius: 18, offset: Offset(0, 4)),
-    BoxShadow(color: Color(0x07000000), blurRadius: 7.85, offset: Offset(0, 2.025)),
-    BoxShadow(color: Color(0x05000000), blurRadius: 2.93, offset: Offset(0, 0.8)),
-    BoxShadow(color: Color(0x03000000), blurRadius: 1.04, offset: Offset(0, 0.175)),
-  ];
+        BoxShadow(color: Color(0x0A000000), blurRadius: 18, offset: Offset(0, 4)),
+        BoxShadow(color: Color(0x07000000), blurRadius: 7.85, offset: Offset(0, 2.025)),
+        BoxShadow(color: Color(0x05000000), blurRadius: 2.93, offset: Offset(0, 0.8)),
+        BoxShadow(color: Color(0x03000000), blurRadius: 1.04, offset: Offset(0, 0.175)),
+      ];
 }
 
 class DarkModeTheme extends CLTheme {
@@ -214,9 +214,9 @@ class DarkModeTheme extends CLTheme {
 
   @override
   List<BoxShadow> get cardShadow => const [
-    BoxShadow(color: Color(0x29000000), blurRadius: 18, offset: Offset(0, 4)),
-    BoxShadow(color: Color(0x1A000000), blurRadius: 8, offset: Offset(0, 2)),
-  ];
+        BoxShadow(color: Color(0x29000000), blurRadius: 18, offset: Offset(0, 4)),
+        BoxShadow(color: Color(0x1A000000), blurRadius: 8, offset: Offset(0, 2)),
+      ];
 }
 
 /// --- Typography ----------------------------------------------------------
@@ -348,7 +348,8 @@ class ThemeTypography extends Typography {
 
   /// Intestazione colonna tabella — Inter SemiBold 11px, spaziatura lettere positiva
   @override
-  TextStyle get bodyLabelTableHead => _text(11, weight: FontWeight.w600, color: theme.secondaryText, letterSpacing: 0.4, lineHeight: 1.4);
+  TextStyle get bodyLabelTableHead =>
+      _text(11, weight: FontWeight.w600, color: theme.secondaryText, letterSpacing: 0.4, lineHeight: 1.4);
 
   /// Label piccola — Inter Regular 12px, colore secondario
   @override
