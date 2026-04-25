@@ -4,14 +4,20 @@ import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
 
 /// Node in a [GenaiTreeView] hierarchy.
-///
-/// Carries a generic [value] (used for selection/callbacks) and a nested list
-/// of [children].
 class GenaiTreeNode<T> {
+  /// Opaque value returned via `onNodeTap` and used for selection.
   final T value;
+
+  /// Label rendered on the row.
   final String label;
+
+  /// Optional leading icon.
   final IconData? icon;
+
+  /// Child nodes. Empty list = leaf.
   final List<GenaiTreeNode<T>> children;
+
+  /// Whether this node starts expanded.
   final bool initiallyExpanded;
 
   const GenaiTreeNode({
@@ -23,11 +29,21 @@ class GenaiTreeNode<T> {
   });
 }
 
-/// Hierarchical tree view (§6.7.8 extended).
+/// Hierarchical tree view — v3 design system.
+///
+/// Renders [nodes] as indented rows with expand/collapse chevrons. Selection
+/// state is externalised via [selectedValue].
 class GenaiTreeView<T> extends StatefulWidget {
+  /// Root-level nodes.
   final List<GenaiTreeNode<T>> nodes;
+
+  /// Fires when a row is tapped.
   final ValueChanged<T>? onNodeTap;
+
+  /// Value of the currently selected node. Renders a selected background.
   final T? selectedValue;
+
+  /// Indent per level. Defaults to `context.spacing.s20`.
   final double? indent;
 
   const GenaiTreeView({
@@ -61,7 +77,7 @@ class _GenaiTreeViewState<T> extends State<GenaiTreeView<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final indent = widget.indent ?? context.spacing.s5;
+    final indent = widget.indent ?? context.spacing.s20;
     final rows = <Widget>[];
     for (final n in widget.nodes) {
       _walk(n, 0, rows, indent);
@@ -78,7 +94,11 @@ class _GenaiTreeViewState<T> extends State<GenaiTreeView<T>> {
   }
 
   void _walk(
-      GenaiTreeNode<T> node, int depth, List<Widget> out, double indent) {
+    GenaiTreeNode<T> node,
+    int depth,
+    List<Widget> out,
+    double indent,
+  ) {
     final hasChildren = node.children.isNotEmpty;
     final expanded = _expanded.contains(node.value);
     out.add(_TreeRow<T>(
@@ -142,13 +162,10 @@ class _TreeRowState<T> extends State<_TreeRow<T>> {
     final colors = context.colors;
     final ty = context.typography;
     final spacing = context.spacing;
-    final accordionMotion = context.motion.accordionOpen;
-    final iconSize = context.sizing.iconInline;
-    final chevronBoxWidth = spacing.s5 - 2;
-
-    final bg = widget.isSelected
-        ? colors.colorPrimarySubtle
-        : (_hovered ? colors.surfaceHover : Colors.transparent);
+    final sizing = context.sizing;
+    final expand = context.motion.expand;
+    final iconSize = sizing.iconSize;
+    final chevronBoxWidth = spacing.s20;
 
     return Semantics(
       button: true,
@@ -170,12 +187,14 @@ class _TreeRowState<T> extends State<_TreeRow<T>> {
           behavior: HitTestBehavior.opaque,
           child: Container(
             padding: EdgeInsets.only(
-              left: spacing.s2 + widget.depth * widget.indent,
-              right: spacing.s2,
-              top: spacing.s1 + 2,
-              bottom: spacing.s1 + 2,
+              left: spacing.s8 + widget.depth * widget.indent,
+              right: spacing.s8,
+              top: spacing.s4,
+              bottom: spacing.s4,
             ),
-            color: bg,
+            color: widget.isSelected
+                ? colors.colorPrimarySubtle
+                : (_hovered ? colors.surfaceHover : Colors.transparent),
             child: Row(
               children: [
                 SizedBox(
@@ -185,30 +204,36 @@ class _TreeRowState<T> extends State<_TreeRow<T>> {
                           onTap: widget.onToggle,
                           child: AnimatedRotation(
                             turns: widget.isExpanded ? 0.25 : 0,
-                            duration: accordionMotion.duration,
-                            curve: accordionMotion.curve,
-                            child: Icon(LucideIcons.chevronRight,
-                                size: iconSize + 2,
-                                color: colors.textSecondary),
+                            duration: expand.duration,
+                            curve: expand.curve,
+                            child: Icon(
+                              LucideIcons.chevronRight,
+                              size: iconSize,
+                              color: colors.textSecondary,
+                            ),
                           ),
                         )
                       : const SizedBox.shrink(),
                 ),
                 if (widget.node.icon != null) ...[
-                  SizedBox(width: spacing.s1),
-                  Icon(widget.node.icon,
-                      size: iconSize + 2, color: colors.textSecondary),
+                  SizedBox(width: spacing.s4),
+                  Icon(
+                    widget.node.icon,
+                    size: iconSize,
+                    color: colors.textSecondary,
+                  ),
                 ],
-                SizedBox(width: spacing.s1 + 2),
+                SizedBox(width: spacing.s6),
                 Expanded(
-                  child: Text(widget.node.label,
-                      style: ty.bodySm.copyWith(
-                        color: colors.textPrimary,
-                        fontWeight: widget.isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                      overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    widget.node.label,
+                    style: ty.bodySm.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight:
+                          widget.isSelected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),

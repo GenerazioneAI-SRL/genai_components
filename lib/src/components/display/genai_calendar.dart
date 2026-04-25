@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../actions/genai_icon_button.dart';
 
-/// Event shown inside a [GenaiCalendar]. `data` is opaque and passed back to
-/// `onEventTap` callbacks.
+/// Event shown on a [GenaiCalendar]. `data` is opaque user state returned
+/// verbatim to `onEventTap`.
 class GenaiCalendarEvent {
+  /// Event start.
   final DateTime start;
+
+  /// Event end.
   final DateTime end;
+
+  /// Title text rendered inside the chip.
   final String title;
+
+  /// Optional chip color. Falls back to `colorInfo` in v3.
   final Color? color;
+
+  /// User-supplied payload returned via `onEventTap`.
   final Object? data;
 
   const GenaiCalendarEvent({
@@ -34,19 +41,29 @@ enum GenaiCalendarView {
   /// Single day.
   day,
 
-  /// Vertical list of upcoming events.
+  /// Upcoming events list.
   agenda,
 }
 
-/// Calendar (§6.7.6).
+/// Lightweight calendar — v3 design system.
 ///
-/// Lightweight month/week/day view — shows event chips per day. For complex
-/// scheduling needs the host app should embed a more specialised solution.
+/// Month / week / day / agenda views with event chips per day. Suitable for
+/// a dashboard sidebar / widget; production scheduling UIs should embed a
+/// dedicated library.
 class GenaiCalendar extends StatefulWidget {
+  /// Initial view.
   final GenaiCalendarView view;
+
+  /// Anchor date. Defaults to `DateTime.now()`.
   final DateTime? initialDate;
+
+  /// Events to render. Multi-day events still anchor to `start`.
   final List<GenaiCalendarEvent> events;
+
+  /// Tap on a day cell.
   final ValueChanged<DateTime>? onDayTap;
+
+  /// Tap on an event chip.
   final ValueChanged<GenaiCalendarEvent>? onEventTap;
 
   const GenaiCalendar({
@@ -123,7 +140,7 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context),
-          SizedBox(height: spacing.s3),
+          SizedBox(height: spacing.s12),
           Expanded(
             child: switch (_view) {
               GenaiCalendarView.month => _buildMonth(context),
@@ -142,45 +159,79 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
     final ty = context.typography;
     final spacing = context.spacing;
     final radius = context.radius;
+    final sizing = context.sizing;
+
+    Widget navBtn(IconData icon, VoidCallback onTap, String label) {
+      return Semantics(
+        button: true,
+        label: label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(radius.md),
+          child: Container(
+            width: sizing.minTouchTarget,
+            height: sizing.minTouchTarget,
+            alignment: Alignment.center,
+            child: Icon(icon, size: sizing.iconSize, color: colors.textPrimary),
+          ),
+        ),
+      );
+    }
+
     return Row(
       children: [
-        GenaiIconButton(
-          icon: LucideIcons.chevronLeft,
-          semanticLabel: 'Precedente',
-          size: GenaiSize.sm,
-          onPressed: () => _shift(-1),
+        navBtn(LucideIcons.chevronLeft, () => _shift(-1), 'Precedente'),
+        navBtn(LucideIcons.chevronRight, () => _shift(1), 'Successivo'),
+        SizedBox(width: spacing.s12),
+        Text(
+          _titleFor(),
+          style: ty.sectionTitle.copyWith(color: colors.textPrimary),
         ),
-        SizedBox(width: spacing.s1),
-        GenaiIconButton(
-          icon: LucideIcons.chevronRight,
-          semanticLabel: 'Successivo',
-          size: GenaiSize.sm,
-          onPressed: () => _shift(1),
-        ),
-        SizedBox(width: spacing.s3),
-        Text(_titleFor(),
-            style: ty.headingSm.copyWith(color: colors.textPrimary)),
         const Spacer(),
-        for (final v in GenaiCalendarView.values) ...[
+        for (final v in GenaiCalendarView.values)
           Padding(
-            padding: EdgeInsets.only(left: spacing.s1),
-            child: ChoiceChip(
-              label: Text(_viewLabel(v),
-                  style: ty.label.copyWith(
-                      color: v == _view
-                          ? colors.textOnPrimary
-                          : colors.textPrimary)),
-              selected: v == _view,
-              selectedColor: colors.colorPrimary,
-              backgroundColor: colors.surfaceCard,
-              side: BorderSide(color: colors.borderDefault),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(radius.sm)),
-              onSelected: (_) => setState(() => _view = v),
+            padding: EdgeInsets.only(left: spacing.s4),
+            child: _viewChip(context, v),
+          ),
+      ],
+    );
+  }
+
+  Widget _viewChip(BuildContext context, GenaiCalendarView v) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final radius = context.radius;
+    final selected = v == _view;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: _viewLabel(v),
+      child: InkWell(
+        onTap: () => setState(() => _view = v),
+        borderRadius: BorderRadius.circular(radius.md),
+        child: AnimatedContainer(
+          duration: context.motion.hover.duration,
+          curve: context.motion.hover.curve,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.s12,
+            vertical: spacing.s6,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? colors.colorPrimary : colors.surfaceCard,
+            borderRadius: BorderRadius.circular(radius.md),
+            border: Border.all(
+              color: selected ? colors.colorPrimary : colors.borderDefault,
             ),
           ),
-        ],
-      ],
+          child: Text(
+            _viewLabel(v),
+            style: ty.labelSm.copyWith(
+              color: selected ? colors.textOnPrimary : colors.textPrimary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -217,9 +268,11 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
       for (final w in _weekdays)
         Center(
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: spacing.s1),
-            child: Text(w,
-                style: ty.caption.copyWith(color: colors.textSecondary)),
+            padding: EdgeInsets.symmetric(vertical: spacing.s4),
+            child: Text(
+              w.toUpperCase(),
+              style: ty.tiny.copyWith(color: colors.textTertiary),
+            ),
           ),
         ),
       for (var i = 0; i < firstWeekday; i++) const SizedBox.shrink(),
@@ -227,29 +280,13 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
         _buildCell(context, DateTime(_current.year, _current.month, d)),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final h =
-            constraints.maxHeight.isFinite ? constraints.maxHeight : 300.0;
-        // 7 weekday labels + up to 6 week rows.
-        final rowCount = ((cells.length + 6) ~/ 7).clamp(6, 7);
-        final cellHeight = ((h - ((rowCount - 1) * spacing.s1)) / rowCount)
-            .clamp(spacing.s8, spacing.s16);
-        final cellWidth =
-            ((constraints.maxWidth.isFinite ? constraints.maxWidth : 700.0) -
-                    (6 * spacing.s1)) /
-                7;
-        final ratio = (cellWidth / cellHeight).clamp(0.8, 2.8);
-
-        return GridView.count(
-          crossAxisCount: 7,
-          childAspectRatio: ratio,
-          mainAxisSpacing: spacing.s1,
-          crossAxisSpacing: spacing.s1,
-          physics: const ClampingScrollPhysics(),
-          children: cells,
-        );
-      },
+    return GridView.count(
+      crossAxisCount: 7,
+      childAspectRatio: 1.2,
+      mainAxisSpacing: spacing.s4,
+      crossAxisSpacing: spacing.s4,
+      physics: const ClampingScrollPhysics(),
+      children: cells,
     );
   }
 
@@ -259,8 +296,8 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
     return GridView.count(
       crossAxisCount: 7,
       childAspectRatio: 0.6,
-      mainAxisSpacing: spacing.s1,
-      crossAxisSpacing: spacing.s1,
+      mainAxisSpacing: spacing.s4,
+      crossAxisSpacing: spacing.s4,
       physics: const ClampingScrollPhysics(),
       children: [
         for (var i = 0; i < 7; i++)
@@ -276,6 +313,7 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
     final radius = context.radius;
     final events = _eventsFor(day);
     final isToday = _sameDay(day, DateTime.now());
+    final accent = colors.colorInfo;
     return Semantics(
       button: true,
       selected: isToday,
@@ -284,48 +322,55 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
       child: GestureDetector(
         onTap: () => widget.onDayTap?.call(day),
         child: Container(
-          padding: EdgeInsets.all(spacing.s1),
+          padding: EdgeInsets.all(spacing.s4),
           decoration: BoxDecoration(
-            color: isToday ? colors.colorPrimarySubtle : colors.surfaceCard,
-            borderRadius: BorderRadius.circular(radius.sm),
-            border: Border.all(
-                color: colors.borderDefault,
-                width: context.sizing.dividerThickness),
+            color: isToday ? colors.colorInfoSubtle : colors.surfaceCard,
+            borderRadius: BorderRadius.circular(radius.md),
+            border: Border.all(color: colors.borderDefault),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('${day.day}',
-                  style: ty.caption.copyWith(
-                      color: colors.textPrimary,
-                      fontWeight: isToday ? FontWeight.w700 : FontWeight.w500)),
-              SizedBox(height: spacing.s1),
+              Text(
+                '${day.day}',
+                style: ty.labelSm.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: spacing.s2),
               for (final e in events.take(2))
                 Padding(
-                  padding: EdgeInsets.only(bottom: spacing.s1 / 2),
+                  padding: EdgeInsets.only(bottom: spacing.s2),
                   child: GestureDetector(
                     onTap: () => widget.onEventTap?.call(e),
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                          horizontal: spacing.s1, vertical: spacing.s1 / 2),
+                        horizontal: spacing.s4,
+                        vertical: spacing.s2,
+                      ),
                       decoration: BoxDecoration(
-                        color: (e.color ?? colors.colorPrimary)
-                            .withValues(alpha: 0.18),
+                        color: (e.color ?? accent).withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(radius.xs),
                       ),
-                      child: Text(e.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: ty.caption.copyWith(
-                              color: e.color ?? colors.colorPrimary,
-                              fontWeight: FontWeight.w500)),
+                      child: Text(
+                        e.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ty.labelSm.copyWith(
+                          color: e.color ?? accent,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               if (events.length > 2)
-                Text('+${events.length - 2}',
-                    style: ty.caption.copyWith(color: colors.textSecondary)),
+                Text(
+                  '+${events.length - 2}',
+                  style: ty.labelSm.copyWith(color: colors.textSecondary),
+                ),
             ],
           ),
         ),
@@ -340,10 +385,12 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
     final events = _eventsFor(day);
     if (events.isEmpty) {
       return Padding(
-        padding: EdgeInsets.all(spacing.s6),
+        padding: EdgeInsets.all(spacing.s24),
         child: Center(
-          child: Text('Nessun evento',
-              style: ty.bodySm.copyWith(color: colors.textSecondary)),
+          child: Text(
+            'Nessun evento',
+            style: ty.bodySm.copyWith(color: colors.textSecondary),
+          ),
         ),
       );
     }
@@ -364,10 +411,12 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
       ..sort((a, b) => a.start.compareTo(b.start));
     if (futureEvents.isEmpty) {
       return Padding(
-        padding: EdgeInsets.all(spacing.s6),
+        padding: EdgeInsets.all(spacing.s24),
         child: Center(
-          child: Text('Nessun evento futuro',
-              style: ty.bodySm.copyWith(color: colors.textSecondary)),
+          child: Text(
+            'Nessun evento futuro',
+            style: ty.bodySm.copyWith(color: colors.textSecondary),
+          ),
         ),
       );
     }
@@ -383,6 +432,7 @@ class _GenaiCalendarState extends State<GenaiCalendar> {
 class _AgendaRow extends StatelessWidget {
   final GenaiCalendarEvent event;
   final ValueChanged<GenaiCalendarEvent>? onTap;
+
   const _AgendaRow({required this.event, this.onTap});
 
   String _f(DateTime t) =>
@@ -402,30 +452,36 @@ class _AgendaRow extends StatelessWidget {
         onTap: onTap == null ? null : () => onTap!(event),
         child: Padding(
           padding: EdgeInsets.symmetric(
-              vertical: spacing.s2, horizontal: spacing.s1),
+            vertical: spacing.s8,
+            horizontal: spacing.s4,
+          ),
           child: Row(
             children: [
               Container(
-                width: spacing.s1,
-                height: spacing.s8 + spacing.s1,
+                width: spacing.s4,
+                height: spacing.s32,
                 decoration: BoxDecoration(
-                  color: event.color ?? colors.colorPrimary,
+                  color: event.color ?? colors.colorInfo,
                   borderRadius: BorderRadius.circular(radius.xs),
                 ),
               ),
-              SizedBox(width: spacing.s3),
+              SizedBox(width: spacing.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(event.title,
-                        style: ty.label.copyWith(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w600)),
-                    Text('${_f(event.start)} – ${_f(event.end)}',
-                        style:
-                            ty.caption.copyWith(color: colors.textSecondary)),
+                    Text(
+                      event.title,
+                      style: ty.bodySm.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${_f(event.start)} – ${_f(event.end)}',
+                      style: ty.monoSm.copyWith(color: colors.textSecondary),
+                    ),
                   ],
                 ),
               ),

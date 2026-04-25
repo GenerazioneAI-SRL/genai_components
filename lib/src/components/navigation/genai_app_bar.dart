@@ -2,26 +2,38 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Top app bar (§6.6.6).
+/// Top app bar — v3 design system (§v3 rule 5).
 ///
-/// Fixed-height chrome surface with optional [leading], [title]/[subtitle],
-/// trailing [actions], and an optional [bottom] sub-bar (e.g. tabs). Heights
-/// resolve from `context.sizing.minTouchTarget` and a semantic bottom height
-/// from tokens.
+/// Fixed 56 px primary row with a hairline bottom border and no shadow.
+/// Title renders in `cardTitle` (14/600). Supports an optional [bottom]
+/// sub-bar (tabs, filter row) that adds to the preferred height.
+///
+/// Note: v3's main navigation chrome is [GenaiTopbar] (sticky, blurred). Use
+/// [GenaiAppBar] inside routes that want a conventional Material-style
+/// top bar instead.
 class GenaiAppBar extends StatelessWidget implements PreferredSizeWidget {
+  /// Leading widget — typically a menu / back button or logo.
   final Widget? leading;
+
+  /// Page/section title. Rendered in `cardTitle`.
   final Widget? title;
+
+  /// Optional subtitle in `bodySm` below the title.
   final Widget? subtitle;
+
+  /// Trailing actions — usually a short horizontal row of icon buttons.
   final List<Widget> actions;
+
+  /// Optional sub-bar widget (tabs, filter row).
   final Widget? bottom;
 
-  /// Override primary bar height. Defaults to `64` (token-aligned).
+  /// Override primary bar height. Defaults to 56.
   final double? height;
 
-  /// Optional override for the bottom sub-bar height.
+  /// Override sub-bar height. Defaults to `minTouchTarget`.
   final double? bottomHeight;
 
-  /// Semantic label for the app bar region.
+  /// Accessible label.
   final String? semanticLabel;
 
   const GenaiAppBar({
@@ -36,23 +48,23 @@ class GenaiAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.semanticLabel,
   });
 
-  double _resolvedHeight(BuildContext context) =>
-      height ?? (context.sizing.minTouchTarget + context.spacing.s4);
+  static const double _defaultHeight = 56;
 
-  double _resolvedBottomHeight(BuildContext context) =>
-      bottomHeight ?? context.sizing.minTouchTarget;
+  double _primaryHeight() => height ?? _defaultHeight;
 
   @override
   Size get preferredSize => Size.fromHeight(
-        (height ?? 64) + (bottom == null ? 0 : (bottomHeight ?? 48)),
+        _primaryHeight() + (bottom == null ? 0 : (bottomHeight ?? 48)),
       );
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final ty = context.typography;
     final spacing = context.spacing;
-    final h = _resolvedHeight(context);
-    final bh = _resolvedBottomHeight(context);
+    final sizing = context.sizing;
+    final h = _primaryHeight();
+    final bh = bottomHeight ?? sizing.minTouchTarget;
 
     return Semantics(
       container: true,
@@ -65,38 +77,45 @@ class GenaiAppBar extends StatelessWidget implements PreferredSizeWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
+              height: h,
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: colors.borderDefault,
-                    width: context.sizing.dividerThickness,
+                    color: colors.borderSubtle,
+                    width: sizing.dividerThickness,
                   ),
                 ),
               ),
-              height: h,
-              padding: EdgeInsets.symmetric(horizontal: spacing.s4),
+              padding: EdgeInsets.symmetric(horizontal: spacing.s16),
               child: Row(
                 children: [
                   if (leading != null) ...[
                     leading!,
-                    SizedBox(width: spacing.s3),
+                    SizedBox(width: spacing.s12),
                   ],
                   if (title != null || subtitle != null)
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (title != null)
                             DefaultTextStyle.merge(
-                              style: context.typography.headingSm
-                                  .copyWith(color: colors.textPrimary),
+                              style: ty.cardTitle.copyWith(
+                                color: colors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               child: title!,
                             ),
                           if (subtitle != null)
                             DefaultTextStyle.merge(
-                              style: context.typography.bodySm
-                                  .copyWith(color: colors.textSecondary),
+                              style: ty.bodySm.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               child: subtitle!,
                             ),
                         ],
@@ -105,7 +124,7 @@ class GenaiAppBar extends StatelessWidget implements PreferredSizeWidget {
                   else
                     const Spacer(),
                   for (var i = 0; i < actions.length; i++) ...[
-                    if (i > 0) SizedBox(width: spacing.s1),
+                    if (i > 0) SizedBox(width: spacing.s4),
                     actions[i],
                   ],
                 ],

@@ -2,56 +2,66 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Visual style of a [GenaiBadge].
+/// Visual style of a [GenaiBadge] — v3 design system (Forma LMS).
 enum GenaiBadgeVariant {
   /// Solid fill with high-contrast foreground.
   filled,
 
-  /// Tinted fill at low alpha with color-matched foreground.
+  /// Tinted fill (`*Subtle`) with color-matched foreground.
   subtle,
 
-  /// Transparent fill with a 1px border and color-matched foreground.
+  /// Transparent fill with a 1-px border and color-matched foreground.
   outlined,
 }
 
 /// Shape/content type of a [GenaiBadge]. Prefer the named constructors
-/// (`.dot`, `.count`, `.text`) over setting this directly.
+/// ([GenaiBadge.dot], [GenaiBadge.count], [GenaiBadge.text]) over setting
+/// this directly.
 enum GenaiBadgeKind {
   /// Small colored circle, no label.
   dot,
 
-  /// Numeric count with `N+` overflow.
+  /// Numeric count with `N+` overflow (mono figures per v3 spec).
   count,
 
-  /// Short string.
+  /// Short string (label).
   text,
 }
 
-/// Compact label/indicator (§6.7.1).
+/// Compact label / notification indicator — v3 design system (Forma LMS).
 ///
-/// Usually constructed via:
-/// - [GenaiBadge.dot] — colored 8px dot.
-/// - [GenaiBadge.count] — numeric count, with `9+` overflow.
+/// Three shapes, selected via named constructors:
+/// - [GenaiBadge.dot] — colored 8-px dot (the rail trailing count in v3).
+/// - [GenaiBadge.count] — numeric count pill with `N+` overflow (default 9+).
+///   Renders with `monoSm` (Geist Mono 11/…) and danger red fill by default,
+///   matching the sidebar rail pills in Dashboard v3.html.
 /// - [GenaiBadge.text] — short string.
 class GenaiBadge extends StatelessWidget {
+  /// Shape/kind of this badge.
   final GenaiBadgeKind kind;
+
+  /// Visual variant (filled/subtle/outlined).
   final GenaiBadgeVariant variant;
 
-  /// Required for [GenaiBadgeKind.count].
+  /// Count value for [GenaiBadgeKind.count].
   final int? count;
 
-  /// Maximum value before showing `N+` (default 9 for count).
+  /// Maximum count before showing `N+`. Default 9.
   final int max;
 
-  /// Required for [GenaiBadgeKind.text].
+  /// Text payload for [GenaiBadgeKind.text].
   final String? text;
 
-  /// Optional explicit color override. Defaults to `colorError`.
+  /// Optional explicit color override. Defaults to `colors.colorDanger`.
   final Color? color;
+
+  /// Screen-reader label override. Defaults to a sensible localized string.
+  final String? semanticLabel;
 
   const GenaiBadge.dot({
     super.key,
     this.color,
+    this.semanticLabel,
   })  : kind = GenaiBadgeKind.dot,
         variant = GenaiBadgeVariant.filled,
         count = null,
@@ -64,6 +74,7 @@ class GenaiBadge extends StatelessWidget {
     this.max = 9,
     this.color,
     this.variant = GenaiBadgeVariant.filled,
+    this.semanticLabel,
   })  : kind = GenaiBadgeKind.count,
         text = null;
 
@@ -72,6 +83,7 @@ class GenaiBadge extends StatelessWidget {
     required String this.text,
     this.color,
     this.variant = GenaiBadgeVariant.filled,
+    this.semanticLabel,
   })  : kind = GenaiBadgeKind.text,
         count = null,
         max = 0;
@@ -83,14 +95,14 @@ class GenaiBadge extends StatelessWidget {
     final radius = context.radius;
     final spacing = context.spacing;
     final sizing = context.sizing;
-    final base = color ?? colors.colorError;
+    final base = color ?? colors.colorDanger;
 
     if (kind == GenaiBadgeKind.dot) {
       return Semantics(
-        label: 'Indicatore',
+        label: semanticLabel ?? 'Indicator',
         child: Container(
-          width: spacing.s2,
-          height: spacing.s2,
+          width: spacing.s8,
+          height: spacing.s8,
           decoration: BoxDecoration(color: base, shape: BoxShape.circle),
         ),
       );
@@ -103,15 +115,26 @@ class GenaiBadge extends StatelessWidget {
     };
 
     final colorset = _resolveStyle(base, colors);
-    // Small 16px target minimum for the pill body.
-    final minDim = spacing.s4;
+    final textStyle = kind == GenaiBadgeKind.count
+        ? ty.monoSm.copyWith(
+            color: colorset.fg,
+            height: 1,
+            fontWeight: FontWeight.w600,
+          )
+        : ty.labelSm.copyWith(color: colorset.fg, height: 1);
 
     return Semantics(
-      label: kind == GenaiBadgeKind.count ? '$label notifiche' : label,
+      label: semanticLabel ??
+          (kind == GenaiBadgeKind.count ? '$label notifications' : label),
       child: Container(
-        constraints: BoxConstraints(minWidth: minDim, minHeight: minDim),
+        constraints: BoxConstraints(
+          minWidth: spacing.s16,
+          minHeight: spacing.s16,
+        ),
         padding: EdgeInsets.symmetric(
-            horizontal: spacing.s1 + 2, vertical: spacing.s1 / 2),
+          horizontal: spacing.s6,
+          vertical: spacing.s2,
+        ),
         decoration: BoxDecoration(
           color: colorset.bg,
           borderRadius: BorderRadius.circular(radius.pill),
@@ -120,14 +143,8 @@ class GenaiBadge extends StatelessWidget {
                   color: colorset.border!, width: sizing.dividerThickness)
               : null,
         ),
-        child: Text(
-          label,
-          style: ty.labelSm.copyWith(
-            color: colorset.fg,
-            height: 1,
-          ),
-          textAlign: TextAlign.center,
-        ),
+        alignment: Alignment.center,
+        child: Text(label, style: textStyle, textAlign: TextAlign.center),
       ),
     );
   }

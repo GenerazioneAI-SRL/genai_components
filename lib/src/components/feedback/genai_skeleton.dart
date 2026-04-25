@@ -1,67 +1,59 @@
 import 'package:flutter/material.dart';
 
-import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
 
-/// Geometric shape of a [GenaiSkeleton] block.
+/// Shape variants for [GenaiSkeleton].
 enum GenaiSkeletonShape {
-  /// Rounded rectangle — text lines, cards, buttons.
-  rect,
+  /// Rectangular with default radius `md`.
+  rectangle,
 
-  /// Circle — avatars, icons.
+  /// Pill — fully rounded.
+  pill,
+
+  /// Circle — equal width/height.
   circle,
+
+  /// Single line of text (height derived from the body line-height).
+  text,
 }
 
-/// Animated placeholder used during loading (§6.6.4).
+/// Loading placeholder — v3 design system.
 ///
-/// Shape and dimensions should mirror the real content to avoid layout shift.
-/// Use the named constructors for common cases:
-/// - [GenaiSkeleton.text]
-/// - [GenaiSkeleton.rect]
-/// - [GenaiSkeleton.circle]
-/// - [GenaiSkeleton.card]
-///
-/// For a multi-cell row use [GenaiSkeletonRow].
+/// Uses a subtle shimmer tween between `surfaceHover` (`--neutral-soft`) and
+/// `surfacePressed`. Respects reduced-motion by rendering a static tinted
+/// rectangle.
 class GenaiSkeleton extends StatefulWidget {
+  /// Desired width. When null, fills parent width.
   final double? width;
+
+  /// Desired height. When null, inferred from [shape] (text → line height,
+  /// circle → width).
   final double? height;
+
+  /// Geometry.
   final GenaiSkeletonShape shape;
+
+  /// Override border radius (rectangular only).
   final BorderRadius? borderRadius;
 
   const GenaiSkeleton({
     super.key,
     this.width,
-    this.height = 16,
-    this.shape = GenaiSkeletonShape.rect,
+    this.height,
+    this.shape = GenaiSkeletonShape.rectangle,
     this.borderRadius,
   });
 
-  const GenaiSkeleton.text({
-    super.key,
-    this.width,
-    this.height = 16,
-  })  : shape = GenaiSkeletonShape.rect,
-        borderRadius = null;
-
-  const GenaiSkeleton.rect({
-    super.key,
-    this.width,
-    this.height,
-    this.borderRadius,
-  }) : shape = GenaiSkeletonShape.rect;
-
-  const GenaiSkeleton.circle({super.key, required double size})
-      : width = size,
-        height = size,
-        shape = GenaiSkeletonShape.circle,
-        borderRadius = null;
-
-  const GenaiSkeleton.card({
-    super.key,
-    this.width,
-    this.height = 120,
-  })  : shape = GenaiSkeletonShape.rect,
-        borderRadius = null;
+  /// Named helper for a text-line skeleton. [lines] renders N stacked bars
+  /// with a `s6` vertical gap; the last line is 60 % of the width to suggest
+  /// a paragraph end.
+  static Widget text(
+    BuildContext context, {
+    int lines = 1,
+    double? width,
+  }) {
+    return _SkeletonTextBlock(lines: lines, width: width);
+  }
 
   @override
   State<GenaiSkeleton> createState() => _GenaiSkeletonState();
@@ -69,115 +61,100 @@ class GenaiSkeleton extends StatefulWidget {
 
 class _GenaiSkeletonState extends State<GenaiSkeleton>
     with SingleTickerProviderStateMixin {
-  AnimationController? _ctrl;
-  Duration? _lastDuration;
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    // Start after first frame so we can read reduced-motion from context.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final reduced = context.motion.hover.duration == Duration.zero;
+      if (!reduced) _ctrl.repeat(reverse: true);
+    });
+  }
 
   @override
   void dispose() {
-    _ctrl?.dispose();
+    _ctrl.dispose();
     super.dispose();
-  }
-
-  void _ensureController(Duration duration, bool reduced) {
-    if (reduced) {
-      _ctrl?.stop();
-      return;
-    }
-    if (_ctrl == null) {
-      _ctrl = AnimationController(vsync: this, duration: duration)..repeat();
-      _lastDuration = duration;
-      return;
-    }
-    if (_lastDuration != duration) {
-      _ctrl!.duration = duration;
-      _lastDuration = duration;
-    }
-    if (!_ctrl!.isAnimating) _ctrl!.repeat();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final radius = context.radius;
-    final motion = context.motion;
+    final ty = context.typography;
 
-    final base = context.isDark ? colors.surfaceHover : colors.borderDefault;
-    final highlight =
-        context.isDark ? colors.borderDefault : colors.surfaceHover;
+    final double resolvedHeight = widget.height ??
+        switch (widget.shape) {
+          GenaiSkeletonShape.text => ty.body.fontSize ?? 14,
+          GenaiSkeletonShape.circle => widget.width ?? 24,
+          _ => 16,
+        };
+    final double? resolvedWidth = widget.shape == GenaiSkeletonShape.circle
+        ? resolvedHeight
+        : widget.width;
 
-    final reduced = GenaiResponsive.reducedMotion(context);
-    _ensureController(motion.skeletonShimmer, reduced);
+    final BorderRadius resolvedRadius = switch (widget.shape) {
+      GenaiSkeletonShape.pill => BorderRadius.circular(radius.pill),
+      GenaiSkeletonShape.circle => BorderRadius.circular(resolvedHeight / 2),
+      GenaiSkeletonShape.text => BorderRadius.circular(radius.xs),
+      GenaiSkeletonShape.rectangle =>
+        widget.borderRadius ?? BorderRadius.circular(radius.md),
+    };
 
-    // Default radii derived from theme radius tokens.
-    final defaultRect = BorderRadius.circular(radius.xs);
-    final circleRadius =
-        BorderRadius.circular((widget.width ?? widget.height ?? 0) / 2);
-
-    final br = widget.shape == GenaiSkeletonShape.circle
-        ? circleRadius
-        : (widget.borderRadius ?? defaultRect);
-
-    return ExcludeSemantics(
-      child: SizedBox(
-        width: widget.width,
-        height: widget.height,
-        child: reduced || _ctrl == null
-            ? DecoratedBox(
-                decoration: BoxDecoration(color: base, borderRadius: br),
-              )
-            : AnimatedBuilder(
-                animation: _ctrl!,
-                builder: (context, _) {
-                  return ShaderMask(
-                    blendMode: BlendMode.srcIn,
-                    shaderCallback: (rect) {
-                      final t = _ctrl!.value;
-                      return LinearGradient(
-                        begin: Alignment(-1 + 2 * t - 1, 0),
-                        end: Alignment(-1 + 2 * t + 1, 0),
-                        colors: [base, highlight, base],
-                        stops: const [0.0, 0.5, 1.0],
-                      ).createShader(rect);
-                    },
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(color: base, borderRadius: br),
-                    ),
-                  );
-                },
-              ),
+    return Semantics(
+      label: 'Loading',
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) {
+          final t = _ctrl.value;
+          final color =
+              Color.lerp(colors.surfaceHover, colors.surfacePressed, t)!;
+          return Container(
+            width: resolvedWidth,
+            height: resolvedHeight,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: resolvedRadius,
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// Row of evenly-spaced skeleton cells. Mirrors a table row structure.
-class GenaiSkeletonRow extends StatelessWidget {
-  final int columns;
-  final double? cellHeight;
-  final double? gap;
+class _SkeletonTextBlock extends StatelessWidget {
+  final int lines;
+  final double? width;
 
-  const GenaiSkeletonRow({
-    super.key,
-    this.columns = 4,
-    this.cellHeight,
-    this.gap,
-  });
+  const _SkeletonTextBlock({required this.lines, this.width});
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.spacing;
-    final resolvedGap = gap ?? spacing.s4;
-    final resolvedHeight = cellHeight ?? spacing.s6;
-    return Row(
-      children: List.generate(columns, (i) {
-        final last = i == columns - 1;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: last ? 0 : resolvedGap),
-            child: GenaiSkeleton.text(height: resolvedHeight),
-          ),
-        );
-      }),
+    final children = <Widget>[];
+    for (var i = 0; i < lines; i++) {
+      // Last line gets a reduced width to suggest paragraph end.
+      final isLast = i == lines - 1 && lines > 1;
+      children.add(GenaiSkeleton(
+        width: isLast ? (width ?? 200) * 0.6 : width,
+        shape: GenaiSkeletonShape.text,
+      ));
+      if (i != lines - 1) {
+        children.add(SizedBox(height: spacing.s6));
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: children,
     );
   }
 }

@@ -3,287 +3,251 @@ import 'package:genai_components/genai_components.dart';
 
 import '../widgets/showcase_section.dart';
 
-class IndicatorsPage extends StatefulWidget {
+class IndicatorsPage extends StatelessWidget {
   const IndicatorsPage({super.key});
-
-  @override
-  State<IndicatorsPage> createState() => _IndicatorsPageState();
-}
-
-class _IndicatorsPageState extends State<IndicatorsPage> {
-  bool _chipA = true;
-  bool _chipB = false;
-  final List<String> _tags = ['Design', 'System', 'Tokens'];
 
   @override
   Widget build(BuildContext context) {
     return ShowcaseScaffold(
       title: 'Indicators',
       description:
-          'Badge · Chip · StatusBadge · Avatar · AvatarGroup · TrendIndicator · ProgressRing. '
-          'Elementi compatti per stati, categorie e metriche inline.',
+          'Badge, Chip (tonalità v3: ok/warn/danger/info/neutral con dot '
+          'obbligatorio), StatusBadge, Avatar, TrendIndicator, ProgressRing, '
+          'Kbd.',
       children: [
         ShowcaseSection(
-          title: 'GenaiBadge',
-          subtitle: 'dot · count · text · con tonalità semantiche via token.',
+          title: 'Badges',
+          subtitle: 'dot / count / text (filled, subtle, outlined).',
           child: Column(
             children: [
-              ShowcaseRow(label: 'Dot', children: [
-                const GenaiBadge.dot(),
-                GenaiBadge.dot(color: context.colors.colorSuccess),
-                GenaiBadge.dot(color: context.colors.colorWarning),
-                GenaiBadge.dot(color: context.colors.colorError),
-                GenaiBadge.dot(color: context.colors.colorInfo),
-              ]),
-              ShowcaseRow(label: 'Count', children: [
-                const GenaiBadge.count(count: 1),
-                const GenaiBadge.count(count: 8),
-                const GenaiBadge.count(count: 12),
-                const GenaiBadge.count(count: 124, max: 99),
-                GenaiBadge.count(count: 5, color: context.colors.colorError),
-              ]),
-              ShowcaseRow(label: 'Text — filled / subtle / outlined', children: [
-                const GenaiBadge.text(text: 'Beta'),
-                const GenaiBadge.text(text: 'Subtle', variant: GenaiBadgeVariant.subtle),
-                const GenaiBadge.text(text: 'Outlined', variant: GenaiBadgeVariant.outlined),
-                GenaiBadge.text(text: 'Success', color: context.colors.colorSuccess),
-                GenaiBadge.text(text: 'Warning', color: context.colors.colorWarning),
-                GenaiBadge.text(text: 'Info', color: context.colors.colorInfo),
-              ]),
+              ShowcaseRow(
+                label: 'dot',
+                children: [
+                  GenaiBadge.dot(),
+                  GenaiBadge.dot(color: context.colors.colorSuccess),
+                  GenaiBadge.dot(color: context.colors.colorWarning),
+                ],
+              ),
+              ShowcaseRow(
+                label: 'count',
+                children: [
+                  GenaiBadge.count(count: 3),
+                  GenaiBadge.count(count: 12),
+                  GenaiBadge.count(count: 150, max: 99),
+                  GenaiBadge.count(count: 4, variant: GenaiBadgeVariant.subtle),
+                  GenaiBadge.count(
+                    count: 4,
+                    variant: GenaiBadgeVariant.outlined,
+                  ),
+                ],
+              ),
+              ShowcaseRow(
+                label: 'text',
+                children: [
+                  GenaiBadge.text(text: 'NEW'),
+                  GenaiBadge.text(
+                    text: 'BETA',
+                    variant: GenaiBadgeVariant.subtle,
+                  ),
+                  GenaiBadge.text(
+                    text: 'PRO',
+                    variant: GenaiBadgeVariant.outlined,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
         ShowcaseSection(
-          title: 'GenaiChip — readonly / removable / selectable',
+          title: 'Chips (tones)',
+          subtitle: 'Pill con dot sempre presente; icona opzionale.',
           child: Column(
             children: [
-              ShowcaseRow(label: 'Readonly', children: [
-                const GenaiChip.readonly(label: 'Read only'),
-                const GenaiChip.readonly(label: 'Con icona', icon: LucideIcons.tag),
-                GenaiChip.readonly(
-                  label: 'Colore brand',
-                  color: context.colors.colorPrimary,
-                  icon: LucideIcons.sparkles,
-                ),
-              ]),
-              ShowcaseRow(label: 'Removable', children: [
-                for (final t in _tags)
+              ShowcaseRow(
+                label: 'readonly',
+                children: [
+                  GenaiChip.readonly(
+                    label: 'Completato',
+                    tone: GenaiChipTone.ok,
+                  ),
+                  GenaiChip.readonly(
+                    label: 'In corso',
+                    tone: GenaiChipTone.info,
+                  ),
+                  GenaiChip.readonly(
+                    label: 'Disponibile',
+                    tone: GenaiChipTone.warn,
+                  ),
+                  GenaiChip.readonly(
+                    label: 'Urgente',
+                    tone: GenaiChipTone.danger,
+                  ),
+                  GenaiChip.readonly(
+                    label: 'Non iniziato',
+                    tone: GenaiChipTone.neutral,
+                  ),
+                ],
+              ),
+              ShowcaseRow(
+                label: 'removable',
+                children: [
                   GenaiChip.removable(
-                    label: t,
-                    onRemove: () => setState(() => _tags.remove(t)),
+                    label: 'Sicurezza',
+                    tone: GenaiChipTone.neutral,
+                    onRemove: () {},
                   ),
-                if (_tags.isEmpty)
-                  GenaiButton.ghost(
-                    label: 'Ripristina',
-                    icon: LucideIcons.rotateCcw,
-                    size: GenaiSize.xs,
-                    onPressed: () => setState(() => _tags
-                      ..addAll(['Design', 'System', 'Tokens'])),
+                  GenaiChip.removable(
+                    label: 'Privacy',
+                    tone: GenaiChipTone.info,
+                    onRemove: () {},
                   ),
-              ]),
-              ShowcaseRow(label: 'Selectable', children: [
-                GenaiChip.selectable(
-                  label: 'Priorità',
-                  isSelected: _chipA,
-                  icon: LucideIcons.flag,
-                  onTap: () => setState(() => _chipA = !_chipA),
-                ),
-                GenaiChip.selectable(
-                  label: 'Favorito',
-                  isSelected: _chipB,
-                  icon: LucideIcons.star,
-                  onTap: () => setState(() => _chipB = !_chipB),
-                ),
-              ]),
-              ShowcaseRow(label: 'Sizes', children: [
-                const GenaiChip.readonly(label: 'xs', size: GenaiSize.xs),
-                const GenaiChip.readonly(label: 'sm', size: GenaiSize.sm),
-                const GenaiChip.readonly(label: 'md', size: GenaiSize.md),
-              ]),
+                ],
+              ),
+              const ShowcaseRow(
+                label: 'size md',
+                children: [
+                  GenaiChip.readonly(
+                    label: 'Media',
+                    tone: GenaiChipTone.info,
+                    size: GenaiChipSize.md,
+                  ),
+                  GenaiChip.readonly(
+                    label: 'OK',
+                    tone: GenaiChipTone.ok,
+                    size: GenaiChipSize.md,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
         ShowcaseSection(
-          title: 'GenaiStatusBadge',
-          subtitle: 'Tutti i tipi semantici — con e senza dot leader.',
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: const [
+          title: 'Status badge',
+          subtitle: 'Chip con stato semantico (active / pending / error / …).',
+          child: const ShowcaseRow(
+            label: 'statuses',
+            children: [
               GenaiStatusBadge(label: 'Attivo', status: GenaiStatusType.active),
-              GenaiStatusBadge(label: 'In attesa', status: GenaiStatusType.pending),
+              GenaiStatusBadge(
+                label: 'Successo',
+                status: GenaiStatusType.success,
+              ),
+              GenaiStatusBadge(
+                label: 'In attesa',
+                status: GenaiStatusType.pending,
+              ),
+              GenaiStatusBadge(
+                label: 'Warning',
+                status: GenaiStatusType.warning,
+              ),
               GenaiStatusBadge(label: 'Errore', status: GenaiStatusType.error),
-              GenaiStatusBadge(label: 'Success', status: GenaiStatusType.success),
-              GenaiStatusBadge(label: 'Warning', status: GenaiStatusType.warning),
               GenaiStatusBadge(label: 'Info', status: GenaiStatusType.info),
-              GenaiStatusBadge(label: 'Neutral', status: GenaiStatusType.neutral),
-              GenaiStatusBadge(label: 'Senza dot', status: GenaiStatusType.active, hasDot: false),
+              GenaiStatusBadge(
+                label: 'Neutro',
+                status: GenaiStatusType.neutral,
+              ),
             ],
           ),
         ),
         ShowcaseSection(
-          title: 'GenaiAvatar — sizes & varianti',
+          title: 'Avatar + AvatarGroup',
+          subtitle: 'xs / sm / md / lg / xl / xxl.',
           child: Column(
             children: [
-              ShowcaseRow(label: 'Iniziali', children: [
-                GenaiAvatar.initials(name: 'Mario Rossi', size: GenaiAvatarSize.xs),
-                GenaiAvatar.initials(name: 'Mario Rossi', size: GenaiAvatarSize.sm),
-                GenaiAvatar.initials(name: 'Mario Rossi'),
-                GenaiAvatar.initials(name: 'Mario Rossi', size: GenaiAvatarSize.lg),
-                GenaiAvatar.initials(name: 'Mario Rossi', size: GenaiAvatarSize.xl),
-              ]),
-              ShowcaseRow(label: 'Placeholder', children: [
-                GenaiAvatar.placeholder(size: GenaiAvatarSize.sm),
-                GenaiAvatar.placeholder(),
-                GenaiAvatar.placeholder(size: GenaiAvatarSize.lg),
-              ]),
-              ShowcaseRow(label: 'Image', children: [
-                GenaiAvatar.image(
-                  imageUrl: 'https://i.pravatar.cc/96?img=1',
-                  name: 'Utente',
-                ),
-                GenaiAvatar.image(
-                  imageUrl: 'https://url-non-esistente.invalid/fail.png',
-                  name: 'Fallback ML',
-                ),
-              ]),
-            ],
-          ),
-        ),
-        ShowcaseSection(
-          title: 'GenaiAvatarGroup',
-          child: Column(
-            children: [
-              ShowcaseRow(label: 'Pochi membri', children: [
-                GenaiAvatarGroup(
-                  avatars: [
-                    GenaiAvatar.initials(name: 'AB'),
-                    GenaiAvatar.initials(name: 'CD'),
-                    GenaiAvatar.initials(name: 'EF'),
-                  ],
-                ),
-              ]),
-              ShowcaseRow(label: 'Overflow +N', children: [
-                GenaiAvatarGroup(
-                  maxVisible: 3,
-                  avatars: [
-                    GenaiAvatar.initials(name: 'AB'),
-                    GenaiAvatar.initials(name: 'CD'),
-                    GenaiAvatar.initials(name: 'EF'),
-                    GenaiAvatar.initials(name: 'GH'),
-                    GenaiAvatar.initials(name: 'IJ'),
-                    GenaiAvatar.initials(name: 'KL'),
-                  ],
-                ),
-              ]),
-            ],
-          ),
-        ),
-        ShowcaseSection(
-          title: 'GenaiTrendIndicator',
-          subtitle: 'Segno, colore e percentuale formattati via GenaiFormatters.',
-          child: const Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              GenaiTrendIndicator(percentage: 12.3),
-              GenaiTrendIndicator(percentage: 0),
-              GenaiTrendIndicator(percentage: -7.0),
-              GenaiTrendIndicator(percentage: 128.4),
-              GenaiTrendIndicator(percentage: -100),
-            ],
-          ),
-        ),
-        ShowcaseSection(
-          title: 'GenaiKbd',
-          subtitle:
-              'Pill monospazio per documentare scorciatoie. Size xs/sm/md, componibile con testo del body.',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ShowcaseRow(label: 'Sizes', children: const [
-                GenaiKbd(keys: '⌘K', size: GenaiSize.xs),
-                GenaiKbd(keys: '⌘K', size: GenaiSize.sm),
-                GenaiKbd(keys: '⌘K', size: GenaiSize.md),
-              ]),
-              ShowcaseRow(label: 'Combo', children: const [
-                GenaiKbd(keys: 'Ctrl+Shift+P'),
-                GenaiKbd(keys: 'Esc'),
-                // Symbols are expanded for screen readers ("Shift Command G").
-                GenaiKbd(keys: '⇧⌘G'),
-                GenaiKbd(keys: '⌘K'),
-                // Explicit override when the default expansion isn't ideal.
-                GenaiKbd(keys: '⌘/', semanticLabel: 'Command slash'),
-              ]),
-              SizedBox(height: context.spacing.s3),
-              Wrap(
-                spacing: context.spacing.s2,
-                runSpacing: context.spacing.s2,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              const ShowcaseRow(
+                label: 'sizes',
                 children: [
-                  Text('Premi',
-                      style: context.typography.bodyMd
-                          .copyWith(color: context.colors.textPrimary)),
-                  const GenaiKbd(keys: '⌘K'),
-                  Text('per aprire la command palette.',
-                      style: context.typography.bodyMd
-                          .copyWith(color: context.colors.textPrimary)),
+                  GenaiAvatar.initials(name: 'Francesco Prisco'),
+                  GenaiAvatar.initials(
+                    name: 'Ada Lovelace',
+                    size: GenaiAvatarSize.lg,
+                  ),
+                  GenaiAvatar.initials(
+                    name: 'Bob Smith',
+                    size: GenaiAvatarSize.xl,
+                  ),
+                  GenaiAvatar.placeholder(size: GenaiAvatarSize.xs),
+                ],
+              ),
+              ShowcaseRow(
+                label: 'presence',
+                children: const [
+                  GenaiAvatar.initials(
+                    name: 'Online',
+                    presence: GenaiAvatarPresence.online,
+                  ),
+                  GenaiAvatar.initials(
+                    name: 'Away',
+                    presence: GenaiAvatarPresence.away,
+                  ),
+                  GenaiAvatar.initials(
+                    name: 'Busy',
+                    presence: GenaiAvatarPresence.busy,
+                  ),
+                  GenaiAvatar.initials(
+                    name: 'Off',
+                    presence: GenaiAvatarPresence.offline,
+                  ),
+                ],
+              ),
+              const ShowcaseRow(
+                label: 'group',
+                children: [
+                  GenaiAvatarGroup(
+                    avatars: [
+                      GenaiAvatar.initials(name: 'FA'),
+                      GenaiAvatar.initials(name: 'BC'),
+                      GenaiAvatar.initials(name: 'DE'),
+                      GenaiAvatar.initials(name: 'FG'),
+                      GenaiAvatar.initials(name: 'HI'),
+                    ],
+                    maxVisible: 3,
+                  ),
                 ],
               ),
             ],
           ),
         ),
         ShowcaseSection(
-          title: 'GenaiProgressRing',
-          child: Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: const [
-              GenaiProgressRing(value: 0.25, centerText: '25%'),
-              GenaiProgressRing(value: 0.6, centerText: '60%'),
-              GenaiProgressRing(value: 0.95, centerText: '95%'),
-              GenaiProgressRing(value: 0.4, size: 80, strokeWidth: 6),
+          title: 'Trend + Progress ring',
+          subtitle: 'Delta chip e cerchio di avanzamento.',
+          child: Column(
+            children: [
+              const ShowcaseRow(
+                label: 'trend',
+                children: [
+                  GenaiTrendIndicator(
+                    percentage: 12.4,
+                    compareLabel: 'vs. sett.',
+                  ),
+                  GenaiTrendIndicator(
+                    percentage: -3.5,
+                    compareLabel: 'vs. mese',
+                  ),
+                  GenaiTrendIndicator(percentage: 0, compareLabel: 'stabile'),
+                ],
+              ),
+              const ShowcaseRow(
+                label: 'ring',
+                children: [
+                  GenaiProgressRing(value: 0.25, size: 48, centerText: '25%'),
+                  GenaiProgressRing(value: 0.58, size: 64, centerText: '58%'),
+                  GenaiProgressRing(value: 0.92, size: 80, centerText: '92%'),
+                ],
+              ),
             ],
           ),
         ),
         ShowcaseSection(
-          title: 'In contesto',
-          subtitle: 'Esempio di composizione con avatar + status + badge.',
-          child: SizedBox(
-            width: 480,
-            child: GenaiCard.outlined(
-              child: GenaiList(
-                showDividers: true,
-                children: [
-                  GenaiListItem(
-                    leading: GenaiAvatar.initials(name: 'Mario Rossi'),
-                    title: 'Mario Rossi',
-                    subtitle: 'Account Manager',
-                    trailing: Wrap(spacing: 8, children: const [
-                      GenaiStatusBadge(label: 'Online', status: GenaiStatusType.active),
-                      GenaiBadge.count(count: 3),
-                    ]),
-                  ),
-                  GenaiListItem(
-                    leading: GenaiAvatar.initials(name: 'Luca Bianchi'),
-                    title: 'Luca Bianchi',
-                    subtitle: 'Developer',
-                    trailing: const GenaiStatusBadge(
-                        label: 'Via', status: GenaiStatusType.pending),
-                  ),
-                  GenaiListItem(
-                    leading: GenaiAvatar.placeholder(),
-                    title: 'Sconosciuto',
-                    subtitle: 'Account non verificato',
-                    trailing: GenaiBadge.text(
-                      text: 'Nuovo',
-                      color: context.colors.colorInfo,
-                      variant: GenaiBadgeVariant.subtle,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          title: 'Keyboard',
+          subtitle: 'Mono pill per scorciatoie.',
+          child: const ShowcaseRow(
+            label: 'kbd',
+            children: [
+              GenaiKbd(keys: '⌘K'),
+              GenaiKbd(keys: '⇧⌘P'),
+              GenaiKbd(keys: 'Esc', size: GenaiKbdSize.md),
+            ],
           ),
         ),
       ],

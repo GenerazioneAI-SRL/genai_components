@@ -1,7 +1,9 @@
-/// Global z-index / layering tokens §2.6 / §13.2.
+/// Global z-index / layering tokens — v3 design system.
 ///
-/// These are primitive integers consumed by overlay machinery; components
-/// should reference them by name to avoid ad-hoc stacking contexts.
+/// Mirror of the v1 / v2 scale (re-declared in the v3 namespace so consumers
+/// using `import as v3;` don't cross-reference sibling libraries). Forma LMS
+/// reference HTML uses `z-index: 20` on the sticky topbar — matches the
+/// `chrome` bucket here by overriding at the component level if needed.
 class GenaiZIndex {
   GenaiZIndex._();
 

@@ -30,9 +30,24 @@ class _OrgChartPageState extends State<OrgChartPage> {
     _Employee(id: '1', name: 'Alice Rossi', role: 'CEO'),
     _Employee(id: '2', name: 'Bruno Bianchi', role: 'CTO', managerId: '1'),
     _Employee(id: '3', name: 'Carla Verdi', role: 'COO', managerId: '1'),
-    _Employee(id: '4', name: 'Davide Neri', role: 'Engineering Lead', managerId: '2'),
-    _Employee(id: '5', name: 'Elena Gialli', role: 'Design Lead', managerId: '2'),
-    _Employee(id: '6', name: 'Fabio Blu', role: 'Operations Lead', managerId: '3'),
+    _Employee(
+      id: '4',
+      name: 'Davide Neri',
+      role: 'Engineering Lead',
+      managerId: '2',
+    ),
+    _Employee(
+      id: '5',
+      name: 'Elena Gialli',
+      role: 'Design Lead',
+      managerId: '2',
+    ),
+    _Employee(
+      id: '6',
+      name: 'Fabio Blu',
+      role: 'Operations Lead',
+      managerId: '3',
+    ),
   ];
 
   @override
@@ -57,7 +72,8 @@ class _OrgChartPageState extends State<OrgChartPage> {
       children: [
         ShowcaseSection(
           title: 'GenaiOrgChart',
-          subtitle: 'Visualizzazione albero gerarchico con drag & drop, hide/show e zoom.',
+          subtitle:
+              'Visualizzazione albero gerarchico con drag & drop, hide/show e zoom.',
           child: SizedBox(
             height: 520,
             child: ClipRRect(
@@ -79,11 +95,21 @@ class _OrgChartPageState extends State<OrgChartPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(details.item.name,
-                              style: ty.bodyMd.copyWith(color: c.textPrimary, fontWeight: FontWeight.w600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                          Text(details.item.role, style: ty.caption.copyWith(color: c.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            details.item.name,
+                            style: ty.body.copyWith(
+                              color: c.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            details.item.role,
+                            style: ty.labelSm.copyWith(color: c.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     );

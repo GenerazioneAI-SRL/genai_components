@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../../foundations/animations.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
+import 'genai_button.dart';
 
-/// Single button inside a [GenaiToggleButtonGroup].
+/// Single entry in a [GenaiToggleButtonGroup] / [GenaiMultiToggleButtonGroup].
 ///
-/// Provide either a [label], an [icon], or both.
+/// Provide at least one of [label] or [icon]. [value] identifies the option.
 class GenaiToggleOption<T> {
+  /// Unique value bound to this option.
   final T value;
+
+  /// Optional visible label.
   final String? label;
+
+  /// Optional leading icon.
   final IconData? icon;
+
+  /// Tooltip shown on hover.
   final String? tooltip;
+
+  /// When `true`, this option cannot be selected regardless of group state.
   final bool isDisabled;
 
   const GenaiToggleOption({
@@ -23,15 +31,28 @@ class GenaiToggleOption<T> {
   });
 }
 
-/// Single-select segmented button group (§6.2.3).
+/// Single-select segmented group — v3 design system (Forma LMS).
 ///
-/// Shares borders between adjacent buttons so they read as one element.
+/// Adjacent segments share borders so the group reads as a single control.
+/// Visually mirrors the `.seg` segmented control in Dashboard v3.html —
+/// neutral-soft container, panel-white selected tile.
 class GenaiToggleButtonGroup<T> extends StatelessWidget {
+  /// Currently selected value. `null` means no selection.
   final T? value;
+
+  /// Options in rendering order.
   final List<GenaiToggleOption<T>> options;
+
+  /// Called with the new selection. `null` disables the group.
   final ValueChanged<T?>? onChanged;
-  final GenaiSize size;
+
+  /// Visual size shared by all segments.
+  final GenaiButtonSize size;
+
+  /// When `true`, disables every segment.
   final bool isDisabled;
+
+  /// When `true`, segments expand to fill available width equally.
   final bool isFullWidth;
 
   const GenaiToggleButtonGroup({
@@ -39,7 +60,7 @@ class GenaiToggleButtonGroup<T> extends StatelessWidget {
     required this.value,
     required this.options,
     this.onChanged,
-    this.size = GenaiSize.sm,
+    this.size = GenaiButtonSize.sm,
     this.isDisabled = false,
     this.isFullWidth = false,
   });
@@ -58,13 +79,24 @@ class GenaiToggleButtonGroup<T> extends StatelessWidget {
   }
 }
 
-/// Multi-select segmented group.
+/// Multi-select segmented group — v3 design system (Forma LMS).
 class GenaiMultiToggleButtonGroup<T> extends StatelessWidget {
+  /// Currently selected values. Order is preserved in callbacks.
   final List<T> values;
+
+  /// Options in rendering order.
   final List<GenaiToggleOption<T>> options;
+
+  /// Called with the new selection. `null` disables the group.
   final ValueChanged<List<T>>? onChanged;
-  final GenaiSize size;
+
+  /// Visual size shared by all segments.
+  final GenaiButtonSize size;
+
+  /// When `true`, disables every segment.
   final bool isDisabled;
+
+  /// When `true`, segments expand to fill available width equally.
   final bool isFullWidth;
 
   const GenaiMultiToggleButtonGroup({
@@ -72,7 +104,7 @@ class GenaiMultiToggleButtonGroup<T> extends StatelessWidget {
     required this.values,
     required this.options,
     this.onChanged,
-    this.size = GenaiSize.sm,
+    this.size = GenaiButtonSize.sm,
     this.isDisabled = false,
     this.isFullWidth = false,
   });
@@ -97,7 +129,7 @@ class _GenaiSegmentedGroup<T> extends StatelessWidget {
   final bool isMulti;
   final ValueChanged<T?>? onSingleChanged;
   final ValueChanged<List<T>>? onMultiChanged;
-  final GenaiSize size;
+  final GenaiButtonSize size;
   final bool isDisabled;
   final bool isFullWidth;
 
@@ -129,9 +161,9 @@ class _GenaiSegmentedGroup<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isCompact = context.isCompact;
-    final divider = context.sizing.dividerThickness;
-    final h = size.resolveHeight(isCompact: isCompact);
+    final radius = context.radius.md;
+    final spec = GenaiButtonSpec.resolve(context, size);
+    final spacing = context.spacing;
 
     final children = <Widget>[];
     for (var i = 0; i < options.length; i++) {
@@ -139,84 +171,62 @@ class _GenaiSegmentedGroup<T> extends StatelessWidget {
       final selected = values.contains(opt.value as Object);
       final disabled = isDisabled || opt.isDisabled;
 
-      final borderRadius = BorderRadius.horizontal(
-        left: Radius.circular(i == 0 ? size.borderRadius : 0),
-        right: Radius.circular(i == options.length - 1 ? size.borderRadius : 0),
-      );
-
       Widget tile = _SegmentedTile(
-        height: h,
-        size: size,
+        height: spec.height,
+        spec: spec,
         label: opt.label,
         icon: opt.icon,
+        tooltip: opt.tooltip,
         selected: selected,
         disabled: disabled,
         onTap: disabled ? null : () => _toggle(opt.value),
-        borderRadius: borderRadius,
       );
 
       if (isFullWidth) tile = Expanded(child: tile);
       children.add(tile);
     }
 
+    // v3 segmented control: a neutral-soft container pad with panel-white
+    // tiles for the selected option (see `.seg` + `.seg button[data-on]`).
     final group = Container(
+      padding: EdgeInsets.all(spacing.s2),
       decoration: BoxDecoration(
-        border:
-            Border.all(color: colors.borderDefault, width: size.borderWidth),
-        borderRadius: BorderRadius.circular(size.borderRadius),
+        color: colors.surfaceHover,
+        borderRadius: BorderRadius.circular(radius),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(size.borderRadius),
-        child: Row(
-          mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
-          children: _withDividers(children, colors.borderDefault, divider),
-        ),
+      child: Row(
+        mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+        children: children,
       ),
     );
 
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      child: Opacity(
-        opacity: isDisabled ? GenaiInteraction.disabledOpacity : 1.0,
-        child: group,
-      ),
+      child: Opacity(opacity: isDisabled ? 0.5 : 1.0, child: group),
     );
-  }
-
-  List<Widget> _withDividers(
-      List<Widget> tiles, Color color, double thickness) {
-    final out = <Widget>[];
-    for (var i = 0; i < tiles.length; i++) {
-      out.add(tiles[i]);
-      if (i < tiles.length - 1) {
-        out.add(VerticalDivider(
-            width: thickness, thickness: thickness, color: color));
-      }
-    }
-    return out;
   }
 }
 
 class _SegmentedTile extends StatefulWidget {
   final double height;
-  final GenaiSize size;
+  final GenaiButtonSpec spec;
   final String? label;
   final IconData? icon;
+  final String? tooltip;
   final bool selected;
   final bool disabled;
   final VoidCallback? onTap;
-  final BorderRadius borderRadius;
 
   const _SegmentedTile({
     required this.height,
-    required this.size,
+    required this.spec,
     required this.label,
     required this.icon,
+    required this.tooltip,
     required this.selected,
     required this.disabled,
     required this.onTap,
-    required this.borderRadius,
   });
 
   @override
@@ -229,58 +239,79 @@ class _SegmentedTileState extends State<_SegmentedTile> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final ty = context.typography;
+    final sizing = context.sizing;
+    final radius = context.radius.sm;
+    final elevation = context.elevation;
 
     final bg = widget.selected
-        ? colors.colorPrimary
-        : (_hovered ? colors.surfaceHover : Colors.transparent);
-    final fg = widget.selected ? colors.textOnPrimary : colors.textPrimary;
+        ? colors.surfaceCard
+        : (_hovered && !widget.disabled
+            ? colors.surfaceHover
+            : Colors.transparent);
+    final fg = widget.selected ? colors.textPrimary : colors.textSecondary;
 
     final children = <Widget>[];
     if (widget.icon != null) {
-      children.add(Icon(widget.icon, size: widget.size.iconSize, color: fg));
+      children.add(Icon(widget.icon, size: widget.spec.iconSize, color: fg));
     }
     if (widget.label != null) {
-      if (children.isNotEmpty) children.add(SizedBox(width: widget.size.gap));
-      final base = widget.size == GenaiSize.xs ? ty.labelSm : ty.label;
-      children.add(Text(widget.label!, style: base.copyWith(color: fg)));
+      if (children.isNotEmpty) {
+        children.add(SizedBox(width: widget.spec.gap));
+      }
+      children.add(
+        Text(
+          widget.label!,
+          style: widget.spec.labelStyleFor(context).copyWith(color: fg),
+        ),
+      );
     }
 
-    final sizing = context.sizing;
+    Widget tile = Container(
+      height:
+          widget.height < sizing.minTouchTarget ? widget.height : widget.height,
+      padding: EdgeInsets.symmetric(horizontal: widget.spec.paddingH),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow:
+            widget.selected ? elevation.shadowForLayer(1) : const <BoxShadow>[],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: children,
+      ),
+    );
+
+    Widget result = MouseRegion(
+      cursor: widget.disabled
+          ? SystemMouseCursors.forbidden
+          : SystemMouseCursors.click,
+      opaque: false,
+      hitTestBehavior: HitTestBehavior.opaque,
+      onEnter: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (_hovered) setState(() => _hovered = false);
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: tile,
+      ),
+    );
+
+    if (widget.tooltip != null) {
+      result = Tooltip(message: widget.tooltip!, child: result);
+    }
+
     return Semantics(
       button: true,
       toggled: widget.selected,
       enabled: !widget.disabled,
       label: widget.label,
-      child: MouseRegion(
-        cursor: widget.disabled
-            ? SystemMouseCursors.forbidden
-            : SystemMouseCursors.click,
-        opaque: false,
-        hitTestBehavior: HitTestBehavior.opaque,
-        onEnter: (_) {
-          if (!_hovered) setState(() => _hovered = true);
-        },
-        onExit: (_) {
-          if (_hovered) setState(() => _hovered = false);
-        },
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: Container(
-            height: widget.height < sizing.minTouchTarget
-                ? sizing.minTouchTarget
-                : widget.height,
-            padding: EdgeInsets.symmetric(horizontal: widget.size.paddingH),
-            color: bg,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: children,
-            ),
-          ),
-        ),
-      ),
+      child: result,
     );
   }
 }

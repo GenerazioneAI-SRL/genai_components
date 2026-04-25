@@ -4,19 +4,21 @@ import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
 
 /// Layout direction for a [GenaiStepper].
-enum GenaiStepperOrientation {
-  /// Steps laid out left-to-right with connecting lines.
-  horizontal,
+enum GenaiStepperOrientation { horizontal, vertical }
 
-  /// Steps stacked vertically with connecting lines.
-  vertical,
-}
-
-/// Single step descriptor consumed by [GenaiStepper].
+/// Single step descriptor.
+@immutable
 class GenaiStepperStep {
+  /// Step title rendered next to the indicator.
   final String title;
+
+  /// Optional secondary copy rendered below the title.
   final String? description;
+
+  /// Optional icon rendered inside the indicator instead of the numeric index.
   final IconData? icon;
+
+  /// When true the step is drawn with danger tokens.
   final bool hasError;
 
   const GenaiStepperStep({
@@ -27,12 +29,25 @@ class GenaiStepperStep {
   });
 }
 
-/// Stepper / wizard (§6.6.4).
+/// Stepper / wizard — v3 design system.
+///
+/// Completed steps use `colorPrimary` (ink); the active step is filled; error
+/// steps use `colorDanger`; upcoming steps render on `borderDefault`.
 class GenaiStepper extends StatelessWidget {
+  /// Ordered step list.
   final List<GenaiStepperStep> steps;
+
+  /// Index of the currently active step (0-based).
   final int currentStep;
+
+  /// Layout direction.
   final GenaiStepperOrientation orientation;
+
+  /// Fires when the user taps a step indicator.
   final ValueChanged<int>? onStepTap;
+
+  /// Accessibility override.
+  final String? semanticLabel;
 
   const GenaiStepper({
     super.key,
@@ -40,199 +55,206 @@ class GenaiStepper extends StatelessWidget {
     required this.currentStep,
     this.orientation = GenaiStepperOrientation.horizontal,
     this.onStepTap,
+    this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (orientation == GenaiStepperOrientation.horizontal) {
-      return _buildHorizontal(context);
-    }
-    return _buildVertical(context);
+    if (steps.isEmpty) return const SizedBox.shrink();
+    return Semantics(
+      container: true,
+      label: semanticLabel ?? 'Stepper',
+      child: orientation == GenaiStepperOrientation.horizontal
+          ? _buildHorizontal(context)
+          : _buildVertical(context),
+    );
   }
 
   Widget _buildHorizontal(BuildContext context) {
     final colors = context.colors;
     final spacing = context.spacing;
-    return Semantics(
-      container: true,
-      label: 'Stepper',
-      child: Row(
-        children: [
-          for (var i = 0; i < steps.length; i++) ...[
-            _Indicator(
-              index: i,
-              step: steps[i],
-              currentStep: currentStep,
-              onTap: onStepTap,
-              totalSteps: steps.length,
+    final sizing = context.sizing;
+    final children = <Widget>[];
+    for (var i = 0; i < steps.length; i++) {
+      children.add(
+        _StepIndicator(
+          index: i,
+          step: steps[i],
+          currentStep: currentStep,
+          onTap: onStepTap,
+          totalSteps: steps.length,
+          compact: false,
+        ),
+      );
+      if (i < steps.length - 1) {
+        children.add(
+          Expanded(
+            child: Container(
+              height: sizing.dividerThickness,
+              color:
+                  i < currentStep ? colors.colorPrimary : colors.borderDefault,
+              margin: EdgeInsets.symmetric(horizontal: spacing.s4),
             ),
-            if (i < steps.length - 1)
-              Expanded(
-                child: Container(
-                  height: context.sizing.focusOutlineWidth,
-                  color: i < currentStep
-                      ? colors.colorPrimary
-                      : colors.borderDefault,
-                  margin: EdgeInsets.symmetric(horizontal: spacing.s2),
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
+          ),
+        );
+      }
+    }
+    return Row(children: children);
   }
 
   Widget _buildVertical(BuildContext context) {
     final colors = context.colors;
     final spacing = context.spacing;
-    return Semantics(
-      container: true,
-      label: 'Stepper',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < steps.length; i++)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    children: [
-                      _Indicator(
-                        index: i,
-                        step: steps[i],
-                        currentStep: currentStep,
-                        onTap: onStepTap,
-                        compact: true,
-                        totalSteps: steps.length,
-                      ),
-                      if (i < steps.length - 1)
-                        Expanded(
-                          child: Container(
-                            width: context.sizing.focusOutlineWidth,
-                            color: i < currentStep
-                                ? colors.colorPrimary
-                                : colors.borderDefault,
-                            margin: EdgeInsets.symmetric(vertical: spacing.s1),
-                          ),
+    final sizing = context.sizing;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < steps.length; i++)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    _StepIndicator(
+                      index: i,
+                      step: steps[i],
+                      currentStep: currentStep,
+                      onTap: onStepTap,
+                      totalSteps: steps.length,
+                      compact: true,
+                    ),
+                    if (i < steps.length - 1)
+                      Expanded(
+                        child: Container(
+                          width: sizing.dividerThickness,
+                          color: i < currentStep
+                              ? colors.colorPrimary
+                              : colors.borderDefault,
+                          margin: EdgeInsets.symmetric(vertical: spacing.s4),
                         ),
-                    ],
-                  ),
-                  SizedBox(width: spacing.s3),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                          bottom: i == steps.length - 1 ? 0 : spacing.s4),
-                      child: _StepLabel(
-                          step: steps[i], index: i, currentStep: currentStep),
+                      ),
+                  ],
+                ),
+                SizedBox(width: spacing.s12),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: i == steps.length - 1 ? 0 : spacing.s16,
+                    ),
+                    child: _StepLabel(
+                      step: steps[i],
+                      index: i,
+                      currentStep: currentStep,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
 
-class _Indicator extends StatelessWidget {
+class _StepIndicator extends StatelessWidget {
   final int index;
   final GenaiStepperStep step;
   final int currentStep;
   final int totalSteps;
-  final ValueChanged<int>? onTap;
   final bool compact;
+  final ValueChanged<int>? onTap;
 
-  const _Indicator({
+  const _StepIndicator({
     required this.index,
     required this.step,
     required this.currentStep,
     required this.totalSteps,
-    this.onTap,
-    this.compact = false,
+    required this.compact,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final ty = context.typography;
-    final spacing = context.spacing;
-    final completed = index < currentStep;
+    final sizing = context.sizing;
+
+    final done = index < currentStep;
     final active = index == currentStep;
+    final error = step.hasError;
+
     Color bg;
-    Color fg = colors.textOnPrimary;
-    if (step.hasError) {
-      bg = colors.colorError;
-    } else if (completed) {
+    Color fg;
+    Color border;
+    if (error) {
+      bg = colors.colorDangerSubtle;
+      fg = colors.colorDangerText;
+      border = colors.colorDanger;
+    } else if (done) {
       bg = colors.colorPrimary;
+      fg = colors.textOnPrimary;
+      border = colors.colorPrimary;
     } else if (active) {
-      bg = colors.colorPrimary;
+      bg = colors.colorInfoSubtle;
+      fg = colors.colorInfo;
+      border = colors.colorInfo;
     } else {
       bg = colors.surfaceCard;
-      fg = colors.textSecondary;
+      fg = colors.textTertiary;
+      border = colors.borderDefault;
     }
 
-    // Step indicator circle: small, derived from caption scale.
-    final indicatorSize = spacing.s6 + spacing.s1;
-    final iconSize = context.sizing.iconInline;
+    final size = sizing.iconSize + 12;
 
-    Widget circle = Container(
-      width: indicatorSize,
-      height: indicatorSize,
+    final iconOrNumber = error
+        ? Icon(LucideIcons.triangleAlert, size: sizing.iconSize - 2, color: fg)
+        : done
+            ? Icon(LucideIcons.check, size: sizing.iconSize - 2, color: fg)
+            : step.icon != null
+                ? Icon(step.icon, size: sizing.iconSize - 2, color: fg)
+                : Text(
+                    '${index + 1}',
+                    style: ty.label.copyWith(color: fg),
+                  );
+
+    final indicator = Container(
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: bg,
+        border: Border.all(color: border, width: sizing.dividerThickness + 1),
         shape: BoxShape.circle,
-        border: !completed && !active && !step.hasError
-            ? Border.all(
-                color: colors.borderDefault,
-                width: context.sizing.focusOutlineWidth,
-              )
-            : null,
       ),
       alignment: Alignment.center,
-      child: completed
-          ? Icon(LucideIcons.check, size: iconSize, color: fg)
-          : (step.hasError
-              ? Icon(LucideIcons.x, size: iconSize, color: fg)
-              : Text('${index + 1}',
-                  style: ty.label
-                      .copyWith(color: fg, fontWeight: FontWeight.w600))),
+      child: iconOrNumber,
     );
 
-    circle = Semantics(
-      label: 'Passo ${index + 1} di $totalSteps: ${step.title}',
+    final row = compact
+        ? indicator
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              indicator,
+              SizedBox(width: context.spacing.s8),
+              _StepLabel(step: step, index: index, currentStep: currentStep),
+            ],
+          );
+
+    return Semantics(
+      button: onTap != null,
       selected: active,
-      enabled: onTap != null,
-      child: circle,
-    );
-
-    if (onTap != null) {
-      final touch = context.sizing.minTouchTarget;
-      circle = MouseRegion(
-        cursor: SystemMouseCursors.click,
+      label: 'Step ${index + 1} of $totalSteps, ${step.title}',
+      child: MouseRegion(
+        cursor:
+            onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
         child: GestureDetector(
-          onTap: () => onTap!(index),
           behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: touch,
-            height: touch,
-            child: Center(child: circle),
-          ),
+          onTap: onTap == null ? null : () => onTap!(index),
+          child: row,
         ),
-      );
-    }
-
-    if (compact) return circle;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        circle,
-        SizedBox(width: spacing.s2),
-        _StepLabel(step: step, index: index, currentStep: currentStep),
-      ],
+      ),
     );
   }
 }
@@ -241,6 +263,7 @@ class _StepLabel extends StatelessWidget {
   final GenaiStepperStep step;
   final int index;
   final int currentStep;
+
   const _StepLabel({
     required this.step,
     required this.index,
@@ -251,20 +274,31 @@ class _StepLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final ty = context.typography;
+
     final active = index == currentStep;
+    final error = step.hasError;
+    final titleColor = error
+        ? colors.colorDangerText
+        : (active ? colors.textPrimary : colors.textSecondary);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(step.title,
-            style: ty.label.copyWith(
-                color: step.hasError
-                    ? colors.colorError
-                    : (active ? colors.textPrimary : colors.textSecondary),
-                fontWeight: active ? FontWeight.w600 : FontWeight.w500)),
-        if (step.description != null)
-          Text(step.description!,
-              style: ty.caption.copyWith(color: colors.textSecondary)),
+        Text(
+          step.title,
+          style: ty.label.copyWith(
+            color: titleColor,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+        if (step.description != null) ...[
+          SizedBox(height: context.spacing.s2),
+          Text(
+            step.description!,
+            style: ty.bodySm.copyWith(color: colors.textTertiary),
+          ),
+        ],
       ],
     );
   }

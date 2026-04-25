@@ -26,38 +26,73 @@ class _UtilsPageState extends State<UtilsPage> {
       children: [
         ShowcaseSection(
           title: 'GenaiFormatters — numeri',
-          child: _KVGrid(entries: [
-            ('number(1234567.89)', GenaiFormatters.number(1234567.89, decimals: 2)),
-            ('currency(1250)', GenaiFormatters.currency(1250)),
-            ('currency(1250, symbolBefore: true)', GenaiFormatters.currency(1250, symbolBefore: true)),
-            ('percent(0.123)', GenaiFormatters.percent(0.123)),
-            ('percent(-0.04, showSign: true)', GenaiFormatters.percent(-0.04)),
-            ('compactNumber(1500)', GenaiFormatters.compactNumber(1500)),
-            ('compactNumber(2_400_000)', GenaiFormatters.compactNumber(2400000)),
-            ('fileSize(1024)', GenaiFormatters.fileSize(1024)),
-            ('fileSize(1234567890)', GenaiFormatters.fileSize(1234567890)),
-          ]),
+          child: _KVGrid(
+            entries: [
+              (
+                'number(1234567.89)',
+                GenaiFormatters.number(1234567.89, decimals: 2),
+              ),
+              ('currency(1250)', GenaiFormatters.currency(1250)),
+              (
+                'currency(1250, symbolBefore: true)',
+                GenaiFormatters.currency(1250, symbolBefore: true),
+              ),
+              ('percent(0.123)', GenaiFormatters.percent(0.123)),
+              (
+                'percent(-0.04, showSign: true)',
+                GenaiFormatters.percent(-0.04),
+              ),
+              ('compactNumber(1500)', GenaiFormatters.compactNumber(1500)),
+              (
+                'compactNumber(2_400_000)',
+                GenaiFormatters.compactNumber(2400000),
+              ),
+              ('fileSize(1024)', GenaiFormatters.fileSize(1024)),
+              ('fileSize(1234567890)', GenaiFormatters.fileSize(1234567890)),
+            ],
+          ),
         ),
         ShowcaseSection(
           title: 'GenaiFormatters — date',
-          child: _KVGrid(entries: [
-            ('date(now)', GenaiFormatters.date(now)),
-            ('dateTime(now)', GenaiFormatters.dateTime(now)),
-            ('time(now)', GenaiFormatters.time(now)),
-            ('dateLong(now)', GenaiFormatters.dateLong(now)),
-            ('dateShort(now)', GenaiFormatters.dateShort(now)),
-            ('monthYear(now)', GenaiFormatters.monthYear(now)),
-            ('relative(-3h)', GenaiFormatters.relative(now.subtract(const Duration(hours: 3)))),
-            ('relative(-2d)', GenaiFormatters.relative(now.subtract(const Duration(days: 2)))),
-          ]),
+          child: _KVGrid(
+            entries: [
+              ('date(now)', GenaiFormatters.date(now)),
+              ('dateTime(now)', GenaiFormatters.dateTime(now)),
+              ('time(now)', GenaiFormatters.time(now)),
+              ('dateLong(now)', GenaiFormatters.dateLong(now)),
+              ('dateShort(now)', GenaiFormatters.dateShort(now)),
+              ('monthYear(now)', GenaiFormatters.monthYear(now)),
+              (
+                'relative(-3h)',
+                GenaiFormatters.relative(
+                  now.subtract(const Duration(hours: 3)),
+                ),
+              ),
+              (
+                'relative(-2d)',
+                GenaiFormatters.relative(now.subtract(const Duration(days: 2))),
+              ),
+            ],
+          ),
         ),
         ShowcaseSection(
           title: 'GenaiFormatters — testo',
-          child: _KVGrid(entries: [
-            ('initials("Mario Rossi")', GenaiFormatters.initials('Mario Rossi')),
-            ('initials("Giovanni della Torre", max: 3)', GenaiFormatters.initials('Giovanni della Torre', max: 3)),
-            ('truncate("testo lungo assai", 10)', GenaiFormatters.truncate('testo lungo assai', 10)),
-          ]),
+          child: _KVGrid(
+            entries: [
+              (
+                'initials("Mario Rossi")',
+                GenaiFormatters.initials('Mario Rossi'),
+              ),
+              (
+                'initials("Giovanni della Torre", max: 3)',
+                GenaiFormatters.initials('Giovanni della Torre', max: 3),
+              ),
+              (
+                'truncate("testo lungo assai", 10)',
+                GenaiFormatters.truncate('testo lungo assai', 10),
+              ),
+            ],
+          ),
         ),
         ShowcaseSection(
           title: 'GenaiValidators',
@@ -68,21 +103,26 @@ class _UtilsPageState extends State<UtilsPage> {
               _ValidatorRow(
                 label: 'Email',
                 initialValue: _emailInput,
-                validator: (v) => GenaiValidators.isValidEmail(v) ? 'Valida' : 'Email non valida',
+                validator: (v) => GenaiValidators.isValidEmail(v)
+                    ? 'Valida'
+                    : 'Email non valida',
                 onChanged: (v) => setState(() => _emailInput = v),
               ),
               const SizedBox(height: 12),
               _ValidatorRow(
                 label: 'Telefono IT',
                 initialValue: _phoneInput,
-                validator: (v) => GenaiValidators.isValidPhone(v) ? 'Valido' : 'Telefono non valido',
+                validator: (v) => GenaiValidators.isValidPhone(v)
+                    ? 'Valido'
+                    : 'Telefono non valido',
                 onChanged: (v) => setState(() => _phoneInput = v),
               ),
               const SizedBox(height: 12),
               _ValidatorRow(
                 label: 'URL',
                 initialValue: _urlInput,
-                validator: (v) => GenaiValidators.isValidUrl(v) ? 'Valido' : 'URL non valido',
+                validator: (v) =>
+                    GenaiValidators.isValidUrl(v) ? 'Valido' : 'URL non valido',
                 onChanged: (v) => setState(() => _urlInput = v),
               ),
             ],
@@ -90,20 +130,31 @@ class _UtilsPageState extends State<UtilsPage> {
         ),
         ShowcaseSection(
           title: 'GenaiAccessState',
-          subtitle: 'Enum semantico per wrappare widget condizionati da permessi / feature flags.',
-          child: Wrap(spacing: 12, runSpacing: 12, children: const [
-            _AccessTile(state: GenaiAccessState.allowed, label: 'allowed'),
-            _AccessTile(state: GenaiAccessState.disabledNoPermission, label: 'disabledNoPermission'),
-            _AccessTile(state: GenaiAccessState.disabledUpgrade, label: 'disabledUpgrade'),
-            _AccessTile(state: GenaiAccessState.hidden, label: 'hidden'),
-          ]),
+          subtitle:
+              'Enum semantico per wrappare widget condizionati da permessi / feature flags.',
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: const [
+              _AccessTile(state: GenaiAccessState.allowed, label: 'allowed'),
+              _AccessTile(
+                state: GenaiAccessState.disabledNoPermission,
+                label: 'disabledNoPermission',
+              ),
+              _AccessTile(
+                state: GenaiAccessState.disabledUpgrade,
+                label: 'disabledUpgrade',
+              ),
+              _AccessTile(state: GenaiAccessState.hidden, label: 'hidden'),
+            ],
+          ),
         ),
         ShowcaseSection(
           title: 'GenaiFormController',
           subtitle: 'Vedi la demo completa in Demo · Form + autosave.',
           child: GenaiAlert.info(
             title: 'Pattern consigliato',
-            message:
+            body:
                 'Instanzia un GenaiFormController in initState, registra i campi con .register(), '
                 'usa AnimatedBuilder per ascoltare i cambi, e isValid / errorOf per feedback.',
           ),
@@ -122,7 +173,10 @@ class _KVGrid extends StatelessWidget {
     final ty = context.typography;
     final col = context.colors;
     return GenaiCard.outlined(
-      padding: EdgeInsets.symmetric(vertical: context.spacing.s2, horizontal: context.spacing.s4),
+      padding: EdgeInsets.symmetric(
+        vertical: context.spacing.s2,
+        horizontal: context.spacing.s4,
+      ),
       child: Column(
         children: [
           for (var i = 0; i < entries.length; i++) ...[
@@ -133,21 +187,27 @@ class _KVGrid extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 3,
-                    child: Text(entries[i].$1,
-                        style: ty.code.copyWith(color: col.textSecondary)),
+                    child: Text(
+                      entries[i].$1,
+                      style: ty.monoSm.copyWith(color: col.textSecondary),
+                    ),
                   ),
                   SizedBox(width: context.spacing.s4),
                   Expanded(
                     flex: 2,
-                    child: Text(entries[i].$2,
-                        style: ty.bodyMd.copyWith(
-                            color: col.textPrimary, fontWeight: FontWeight.w600),
-                        textAlign: TextAlign.right),
+                    child: Text(
+                      entries[i].$2,
+                      style: ty.body.copyWith(
+                        color: col.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
                   ),
                 ],
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -215,14 +275,30 @@ class _AccessTile extends StatelessWidget {
     final col = context.colors;
     final ty = context.typography;
     final (bg, fg, icon) = switch (state) {
-      GenaiAccessState.allowed => (col.colorSuccess.withValues(alpha: 0.12), col.colorSuccess, LucideIcons.check),
-      GenaiAccessState.disabledNoPermission => (col.colorError.withValues(alpha: 0.12), col.colorError, LucideIcons.ban),
-      GenaiAccessState.disabledUpgrade => (col.colorWarning.withValues(alpha: 0.12), col.colorWarning, LucideIcons.sparkles),
-      GenaiAccessState.hidden => (col.surfaceHover, col.textSecondary, LucideIcons.eyeOff),
+      GenaiAccessState.allowed => (
+        col.colorSuccess.withValues(alpha: 0.12),
+        col.colorSuccess,
+        LucideIcons.check,
+      ),
+      GenaiAccessState.disabledNoPermission => (
+        col.colorDanger.withValues(alpha: 0.12),
+        col.colorDanger,
+        LucideIcons.ban,
+      ),
+      GenaiAccessState.disabledUpgrade => (
+        col.colorWarning.withValues(alpha: 0.12),
+        col.colorWarning,
+        LucideIcons.sparkles,
+      ),
+      GenaiAccessState.hidden => (
+        col.surfaceHover,
+        col.textSecondary,
+        LucideIcons.eyeOff,
+      ),
     };
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.s3,
+        horizontal: context.spacing.s6,
         vertical: context.spacing.s2,
       ),
       decoration: BoxDecoration(
@@ -233,7 +309,7 @@ class _AccessTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: fg),
-          SizedBox(width: context.spacing.s1),
+          SizedBox(width: context.spacing.s2),
           Text(label, style: ty.labelSm.copyWith(color: fg)),
         ],
       ),

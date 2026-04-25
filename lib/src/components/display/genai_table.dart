@@ -1,20 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../actions/genai_button.dart';
-import '../actions/genai_icon_button.dart';
-import '../feedback/genai_empty_state.dart';
-import '../feedback/genai_error_state.dart';
-import '../feedback/genai_skeleton.dart';
-import '../feedback/genai_spinner.dart';
-import '../inputs/genai_checkbox.dart';
-import '../inputs/genai_select.dart';
-import '../inputs/genai_text_field.dart';
 
 // ───────── Models ─────────
 
@@ -51,13 +40,14 @@ enum GenaiColumnAlignment {
   end,
 }
 
-/// Current sort applied to a table: which column and in which direction.
+/// Active sort state — column id + direction.
 class GenaiSortState {
   /// Id of the sorted column (matches [GenaiColumn.id]).
   final String columnId;
 
   /// Sort order.
   final GenaiSortDirection direction;
+
   const GenaiSortState({required this.columnId, required this.direction});
 
   /// Returns a new state with [direction] flipped.
@@ -69,13 +59,21 @@ class GenaiSortState {
       );
 }
 
-/// Page request: `pageKey` is the cursor (null on first page),
-/// `pageSize` is rows per page, `sort` and `filters` are applied state.
+/// Async page request for [GenaiTableFetcher].
 class GenaiPageRequest {
+  /// Opaque cursor. Null on first page.
   final Object? pageKey;
+
+  /// Rows per page.
   final int pageSize;
+
+  /// Active sort.
   final GenaiSortState? sort;
+
+  /// Active filters (filter id → value).
   final Map<String, Object?> filters;
+
+  /// Current search string.
   final String search;
 
   const GenaiPageRequest({
@@ -87,19 +85,15 @@ class GenaiPageRequest {
   });
 }
 
-/// Result of a [GenaiTableFetcher] call.
-///
-/// [nextPageKey] is the cursor for the next page (null terminates pagination);
-/// [totalItems] is optional — set it when the total is known for UI hints.
+/// Response from [GenaiTableFetcher].
 class GenaiPageResponse<T> {
   /// Rows returned for the requested page.
   final List<T> items;
 
-  /// Opaque cursor to pass back on the next [GenaiPageRequest]. `null`
-  /// indicates the end of the dataset.
+  /// Opaque cursor for the next page. `null` terminates pagination.
   final Object? nextPageKey;
 
-  /// Total number of rows in the dataset when known.
+  /// Total rows when known — enables paginator "x of y" hints.
   final int? totalItems;
 
   const GenaiPageResponse({
@@ -115,14 +109,33 @@ typedef GenaiTableFetcher<T> = Future<GenaiPageResponse<T>> Function(
 
 /// Describes a column inside a [GenaiTable].
 class GenaiColumn<T> {
+  /// Stable id (used for sort / visibility state).
   final String id;
+
+  /// Header label.
   final String title;
+
+  /// Builds the cell for a row.
   final Widget Function(BuildContext, T) cellBuilder;
+
+  /// Optional fixed width in logical px.
   final double? width;
+
+  /// Optional minimum width.
   final double? minWidth;
+
+  /// Whether the header shows a sort affordance and triggers
+  /// `controller.setSort`.
   final bool sortable;
+
+  /// Cell alignment.
   final GenaiColumnAlignment align;
+
+  /// Whether visible on first render. Users can toggle at runtime.
   final bool initiallyVisible;
+
+  /// Whether the column is pinned (currently advisory — renderer does not
+  /// yet split pinned / unpinned scroll regions).
   final bool pinned;
 
   const GenaiColumn({
@@ -139,42 +152,48 @@ class GenaiColumn<T> {
 }
 
 /// Base interface for a filter applied to a [GenaiTable].
-///
-/// Implementations render their own editor via [buildEditor] and format the
-/// active value for display via [formatValue].
 abstract class GenaiTableFilter {
-  /// Unique id of the filter (matches the key in `GenaiPageRequest.filters`).
+  /// Stable id — matches the key in `GenaiPageRequest.filters`.
   String get id;
 
-  /// Human-readable label shown in the filter bar.
+  /// Human-readable label.
   String get label;
 
   /// Builds the editor widget for this filter.
   Widget buildEditor(
-      BuildContext context, Object? value, ValueChanged<Object?> onChanged);
+    BuildContext context,
+    Object? value,
+    ValueChanged<Object?> onChanged,
+  );
 
   /// Formats the active value for display (e.g. as a chip).
   String formatValue(Object? value);
 }
 
-/// Free-text filter backed by a `GenaiTextField`.
+/// Free-text filter backed by a plain Material [TextField].
 class GenaiTextFilter implements GenaiTableFilter {
   @override
   final String id;
+
   @override
   final String label;
+
+  /// Optional placeholder.
   final String? hint;
 
   const GenaiTextFilter({required this.id, required this.label, this.hint});
 
   @override
   Widget buildEditor(
-      BuildContext context, Object? value, ValueChanged<Object?> onChanged) {
-    return GenaiTextField(
-      hint: hint ?? label,
-      initialValue: value as String?,
+    BuildContext context,
+    Object? value,
+    ValueChanged<Object?> onChanged,
+  ) {
+    return _FallbackTextFilter(
+      label: label,
+      hint: hint,
+      initial: value as String?,
       onChanged: (v) => onChanged(v.isEmpty ? null : v),
-      size: GenaiSize.sm,
     );
   }
 
@@ -182,13 +201,16 @@ class GenaiTextFilter implements GenaiTableFilter {
   String formatValue(Object? value) => value == null ? '' : '$label: "$value"';
 }
 
-/// Single-select filter backed by a `GenaiSelect`.
+/// Single-select options filter.
 class GenaiOptionsFilter<V> implements GenaiTableFilter {
   @override
   final String id;
+
   @override
   final String label;
-  final List<GenaiSelectOption<V>> options;
+
+  /// Available options shown in a dropdown.
+  final List<({String label, V value})> options;
 
   const GenaiOptionsFilter({
     required this.id,
@@ -198,14 +220,15 @@ class GenaiOptionsFilter<V> implements GenaiTableFilter {
 
   @override
   Widget buildEditor(
-      BuildContext context, Object? value, ValueChanged<Object?> onChanged) {
-    return GenaiSelect<V>(
-      hint: label,
+    BuildContext context,
+    Object? value,
+    ValueChanged<Object?> onChanged,
+  ) {
+    return _FallbackOptionsFilter<V>(
+      label: label,
       options: options,
       value: value as V?,
-      onChanged: (v) => onChanged(v),
-      clearable: true,
-      size: GenaiSize.sm,
+      onChanged: onChanged,
     );
   }
 
@@ -217,11 +240,21 @@ class GenaiOptionsFilter<V> implements GenaiTableFilter {
   }
 }
 
-/// Table-scoped action shown in the toolbar (e.g. "Export", "Create new").
-class GenaiTableAction {
+/// Table-scoped toolbar action.
+///
+/// Generic [T] is carried for API symmetry with [GenaiBulkAction]; the
+/// value type is not used by this class directly.
+class GenaiTableAction<T> {
+  /// Button label.
   final String label;
+
+  /// Optional icon.
   final IconData? icon;
+
+  /// Tap callback.
   final VoidCallback onPressed;
+
+  /// Whether the button uses the primary visual.
   final bool isPrimary;
 
   const GenaiTableAction({
@@ -233,12 +266,17 @@ class GenaiTableAction {
 }
 
 /// Action that operates on the current selection (e.g. "Delete selected").
-///
-/// Shown only while one or more rows are selected.
 class GenaiBulkAction<T> {
+  /// Button label.
   final String label;
+
+  /// Optional icon.
   final IconData? icon;
+
+  /// Fires with the current selection.
   final void Function(Set<T> selected) onPressed;
+
+  /// Whether the button uses the destructive visual.
   final bool isDestructive;
 
   const GenaiBulkAction({
@@ -251,7 +289,7 @@ class GenaiBulkAction<T> {
 
 // ───────── Controller ─────────
 
-/// Controls a [GenaiTable]: triggers refresh, exposes current page items.
+/// Controls a [GenaiTable]: triggers refresh and exposes pagination state.
 class GenaiTableController<T> extends ChangeNotifier {
   final List<T> _items = [];
   Object? _nextPageKey;
@@ -265,24 +303,46 @@ class GenaiTableController<T> extends ChangeNotifier {
   bool _loading = false;
   Object? _error;
 
+  /// Items currently loaded (across all fetched pages).
   List<T> get items => List.unmodifiable(_items);
+
+  /// Whether a fetch is in-flight.
   bool get loading => _loading;
+
+  /// Last error, if any.
   Object? get error => _error;
+
+  /// 0-based page index of the most recently loaded page.
   int get currentPage => _currentPage;
+
+  /// Active page size.
   int get pageSize => _pageSize;
+
+  /// Total rows in the dataset when reported by the fetcher.
   int? get totalItems => _totalItems;
+
+  /// Whether more pages remain.
   bool get hasNext => _nextPageKey != null;
+
+  /// Current sort.
   GenaiSortState? get sort => _sort;
+
+  /// Active filters.
   Map<String, Object?> get filters => Map.unmodifiable(_filters);
+
+  /// Current search value.
   String get search => _search;
 
   GenaiTableFetcher<T>? _fetcher;
+
+  /// Binds the controller to a fetcher and kicks off the first fetch.
   void attach(GenaiTableFetcher<T> fetcher, int initialPageSize) {
     _fetcher = fetcher;
     _pageSize = initialPageSize;
     refresh();
   }
 
+  /// Resets paging and refetches from the beginning.
   Future<void> refresh() async {
     if (_fetcher == null) return;
     _items.clear();
@@ -292,6 +352,7 @@ class GenaiTableController<T> extends ChangeNotifier {
     await _loadPage(reset: true);
   }
 
+  /// Loads the next page and appends its rows to [items].
   Future<void> nextPage() async {
     if (!hasNext || _loading) return;
     await _loadPage();
@@ -329,11 +390,13 @@ class GenaiTableController<T> extends ChangeNotifier {
     }
   }
 
+  /// Updates sort and refetches.
   void setSort(GenaiSortState? sort) {
     _sort = sort;
     refresh();
   }
 
+  /// Sets (or clears on null) a single filter and refetches.
   void setFilter(String id, Object? value) {
     if (value == null) {
       _filters.remove(id);
@@ -343,17 +406,20 @@ class GenaiTableController<T> extends ChangeNotifier {
     refresh();
   }
 
+  /// Clears all filters and search, then refetches.
   void clearFilters() {
     _filters.clear();
     _search = '';
     refresh();
   }
 
+  /// Updates the search string and refetches.
   void setSearch(String value) {
     _search = value;
     refresh();
   }
 
+  /// Updates page size and refetches.
   void setPageSize(int size) {
     _pageSize = size;
     refresh();
@@ -362,26 +428,52 @@ class GenaiTableController<T> extends ChangeNotifier {
 
 // ───────── Widget ─────────
 
-/// Data table with pagination, sorting, filters and bulk actions (§6.7.9).
+/// Async data table — v3 design system.
 ///
-/// Rows are supplied asynchronously via [fetcher]; the [controller] exposes
-/// paging state and drives refresh.
+/// Hairline-framed card with uppercase tiny header row (11.5 / 500 tracking),
+/// bodySm cell copy, 14 / 20 row padding, `surfaceHover` row-hover bg.
+/// Toolbar, bulk-action bar, and footer all use v3 tokens.
 class GenaiTable<T> extends StatefulWidget {
+  /// Column definitions.
   final List<GenaiColumn<T>> columns;
+
+  /// External controller — drives refresh and exposes state.
   final GenaiTableController<T> controller;
+
+  /// Async loader invoked with the current page request.
   final GenaiTableFetcher<T> fetcher;
+
+  /// Filters available in the toolbar.
   final List<GenaiTableFilter> filters;
-  final List<GenaiTableAction> actions;
+
+  /// Toolbar actions (right-aligned in the header).
+  final List<GenaiTableAction<T>> actions;
+
+  /// Bulk actions surfaced when rows are selected.
   final List<GenaiBulkAction<T>> bulkActions;
+
+  /// Available page sizes.
   final List<int> pageSizes;
+
+  /// Initial page size.
   final int initialPageSize;
+
+  /// Whether row selection is enabled (renders a checkbox column).
   final bool selectable;
+
+  /// Whether the toolbar shows a search field.
   final bool searchable;
+
+  /// Table title.
   final String title;
+
+  /// Optional subtitle.
   final String? description;
+
+  /// Initial density.
   final GenaiTableDensity initialDensity;
-  final Widget Function(BuildContext, T)? mobileCardBuilder;
-  final Widget Function(BuildContext, T)? expandedRowBuilder;
+
+  /// Stable key extractor — used for selection identity.
   final Object Function(T item) rowKey;
 
   const GenaiTable({
@@ -400,8 +492,6 @@ class GenaiTable<T> extends StatefulWidget {
     this.title = '',
     this.description,
     this.initialDensity = GenaiTableDensity.normal,
-    this.mobileCardBuilder,
-    this.expandedRowBuilder,
   });
 
   @override
@@ -412,9 +502,7 @@ class _GenaiTableState<T> extends State<GenaiTable<T>> {
   late GenaiTableDensity _density;
   late Set<String> _visibleColumns;
   final Set<Object> _selectedKeys = {};
-  final Set<Object> _expandedKeys = {};
   Timer? _searchDebounce;
-  String _searchValue = '';
 
   @override
   void initState() {
@@ -444,9 +532,9 @@ class _GenaiTableState<T> extends State<GenaiTable<T>> {
   double _rowVerticalPadding(BuildContext context) {
     final s = context.spacing;
     return switch (_density) {
-      GenaiTableDensity.compact => s.s1 + 2, // 6
-      GenaiTableDensity.normal => s.s2 + 2, // 10
-      GenaiTableDensity.comfortable => s.s3 + 2, // 14
+      GenaiTableDensity.compact => s.s6,
+      GenaiTableDensity.normal => s.s14,
+      GenaiTableDensity.comfortable => s.s18,
     };
   }
 
@@ -495,56 +583,57 @@ class _GenaiTableState<T> extends State<GenaiTable<T>> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final ty = context.typography;
-    final isCompact = context.isCompact;
+    final sizing = context.sizing;
+    final radius = context.radius;
 
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final bounded = constraints.maxHeight.isFinite;
-        final body = isCompact && widget.mobileCardBuilder != null
-            ? _buildMobile(context)
-            : _buildDesktopTable(context, colors, ty, bounded: bounded);
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.surfaceCard,
-            borderRadius: BorderRadius.circular(context.radius.md),
-            border: Border.all(
-                color: colors.borderDefault,
-                width: context.sizing.dividerThickness),
+    return Semantics(
+      container: true,
+      label: widget.title.isEmpty ? 'Tabella' : widget.title,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: BorderRadius.circular(radius.xl),
+          border: Border.all(
+            color: colors.borderDefault,
+            width: sizing.dividerThickness,
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(context, colors, ty),
-              _buildToolbar(context, colors),
-              if (_selectedKeys.isNotEmpty && widget.bulkActions.isNotEmpty)
-                _buildBulkBar(context, colors, ty),
-              Container(
-                  height: context.sizing.dividerThickness,
-                  color: colors.borderDefault),
-              bounded ? Expanded(child: body) : body,
-              Container(
-                  height: context.sizing.dividerThickness,
-                  color: colors.borderDefault),
-              _buildFooter(context, colors, ty),
-            ],
-          ),
-        );
-      },
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(context),
+            _buildToolbar(context),
+            if (_selectedKeys.isNotEmpty && widget.bulkActions.isNotEmpty)
+              _buildBulkBar(context),
+            Container(
+              height: sizing.dividerThickness,
+              color: colors.borderDefault,
+            ),
+            _buildTable(context),
+            Container(
+              height: sizing.dividerThickness,
+              color: colors.borderDefault,
+            ),
+            _buildFooter(context),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, dynamic colors, dynamic ty) {
+  Widget _buildHeader(BuildContext context) {
     if (widget.title.isEmpty &&
         widget.description == null &&
         widget.actions.isEmpty) {
       return const SizedBox.shrink();
     }
+    final colors = context.colors;
+    final ty = context.typography;
     final s = context.spacing;
     return Padding(
-      padding: EdgeInsets.fromLTRB(s.s4, s.s4, s.s4, 0),
+      padding: EdgeInsets.fromLTRB(s.s20, s.s18, s.s20, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -554,102 +643,77 @@ class _GenaiTableState<T> extends State<GenaiTable<T>> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (widget.title.isNotEmpty)
-                  Text(widget.title,
-                      style: ty.headingSm.copyWith(color: colors.textPrimary)),
+                  Text(
+                    widget.title,
+                    style: ty.sectionTitle.copyWith(color: colors.textPrimary),
+                  ),
                 if (widget.description != null)
                   Padding(
-                    padding: EdgeInsets.only(top: s.s1 / 2),
-                    child: Text(widget.description!,
-                        style: ty.bodySm.copyWith(color: colors.textSecondary)),
+                    padding: EdgeInsets.only(top: s.s2),
+                    child: Text(
+                      widget.description!,
+                      style: ty.bodySm.copyWith(color: colors.textSecondary),
+                    ),
                   ),
               ],
             ),
           ),
           for (final a in widget.actions) ...[
-            SizedBox(width: s.s2),
-            a.isPrimary
-                ? GenaiButton.primary(
-                    label: a.label, icon: a.icon, onPressed: a.onPressed)
-                : GenaiButton.secondary(
-                    label: a.label, icon: a.icon, onPressed: a.onPressed),
+            SizedBox(width: s.s8),
+            _ActionButton<T>(action: a),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildToolbar(BuildContext context, dynamic colors) {
+  Widget _buildToolbar(BuildContext context) {
     final hasFilters = widget.filters.isNotEmpty;
     final s = context.spacing;
     if (!widget.searchable && !hasFilters) {
-      return SizedBox(height: s.s3);
+      return SizedBox(height: s.s12);
     }
     return Padding(
-      padding: EdgeInsets.all(s.s3),
+      padding: EdgeInsets.all(s.s12),
       child: Row(
         children: [
           if (widget.searchable)
             Expanded(
-              child: GenaiTextField.search(
+              child: _FallbackSearch(
                 onChanged: (v) {
-                  _searchValue = v;
                   _searchDebounce?.cancel();
-                  // Search debounce window from motion tokens (§13.4).
-                  _searchDebounce = Timer(context.motion.searchDebounce, () {
-                    widget.controller.setSearch(_searchValue);
-                  });
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 300),
+                    () => widget.controller.setSearch(v),
+                  );
                 },
               ),
             ),
           if (hasFilters) ...[
-            if (widget.searchable) SizedBox(width: s.s2),
-            GenaiIconButton(
+            if (widget.searchable) SizedBox(width: s.s8),
+            _ToolbarIconButton(
               icon: LucideIcons.funnel,
-              semanticLabel: 'Filtri',
               tooltip: 'Filtri',
-              size: GenaiSize.sm,
-              badge: widget.controller.filters.isEmpty
-                  ? null
-                  : Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: s.s1, vertical: s.s1 / 2),
-                      decoration: BoxDecoration(
-                        color: colors.colorPrimary,
-                        borderRadius: BorderRadius.circular(context.radius.sm),
-                      ),
-                      child: Text(
-                        '${widget.controller.filters.length}',
-                        style: context.typography.caption.copyWith(
-                            color: colors.textOnPrimary,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-              onPressed: _openFilterPanel,
+              onTap: _openFilterPanel,
             ),
           ],
-          SizedBox(width: s.s1),
-          GenaiIconButton(
+          SizedBox(width: s.s4),
+          _ToolbarIconButton(
             icon: LucideIcons.columns3,
-            semanticLabel: 'Colonne',
-            tooltip: 'Colonne visibili',
-            size: GenaiSize.sm,
-            onPressed: _openColumnPanel,
+            tooltip: 'Colonne',
+            onTap: _openColumnPanel,
           ),
-          GenaiIconButton(
+          _ToolbarIconButton(
             icon: _density == GenaiTableDensity.compact
                 ? LucideIcons.rows3
                 : LucideIcons.rows4,
-            semanticLabel: 'Densità',
             tooltip: 'Densità',
-            size: GenaiSize.sm,
-            onPressed: _cycleDensity,
+            onTap: _cycleDensity,
           ),
-          GenaiIconButton(
+          _ToolbarIconButton(
             icon: LucideIcons.refreshCw,
-            semanticLabel: 'Ricarica',
             tooltip: 'Ricarica',
-            size: GenaiSize.sm,
-            onPressed: widget.controller.refresh,
+            onTap: widget.controller.refresh,
           ),
         ],
       ),
@@ -670,483 +734,553 @@ class _GenaiTableState<T> extends State<GenaiTable<T>> {
     final temp = Map<String, Object?>.from(widget.controller.filters);
     await showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) {
-        final colors = ctx.colors;
-        final ty = ctx.typography;
-        final s = ctx.spacing;
-        return Dialog(
-          backgroundColor: colors.surfaceCard,
-          child: Padding(
-            padding: EdgeInsets.all(s.s5),
-            child: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('Filtri',
-                      style: ty.headingSm.copyWith(color: colors.textPrimary)),
-                  SizedBox(height: s.s3),
-                  for (final f in widget.filters) ...[
-                    Padding(
-                      padding: EdgeInsets.only(bottom: s.s2),
-                      child: f.buildEditor(ctx, temp[f.id],
-                          (v) => setState(() => temp[f.id] = v)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setInner) {
+          final colors = ctx.colors;
+          final ty = ctx.typography;
+          final s = ctx.spacing;
+          return Dialog(
+            backgroundColor: colors.surfaceCard,
+            child: Padding(
+              padding: EdgeInsets.all(s.s20),
+              child: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Filtri',
+                      style:
+                          ty.sectionTitle.copyWith(color: colors.textPrimary),
+                    ),
+                    SizedBox(height: s.s12),
+                    for (final f in widget.filters)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: s.s8),
+                        child: f.buildEditor(
+                          ctx,
+                          temp[f.id],
+                          (v) => setInner(() => temp[f.id] = v),
+                        ),
+                      ),
+                    SizedBox(height: s.s12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            widget.controller.clearFilters();
+                          },
+                          child: const Text('Reimposta'),
+                        ),
+                        SizedBox(width: s.s8),
+                        FilledButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            for (final e in temp.entries) {
+                              widget.controller.setFilter(e.key, e.value);
+                            }
+                          },
+                          child: const Text('Applica'),
+                        ),
+                      ],
                     ),
                   ],
-                  SizedBox(height: s.s3),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      GenaiButton.ghost(
-                        label: 'Pulisci',
-                        onPressed: () {
-                          widget.controller.clearFilters();
-                          Navigator.of(ctx).pop();
-                        },
-                      ),
-                      SizedBox(width: s.s2),
-                      GenaiButton.primary(
-                        label: 'Applica',
-                        onPressed: () {
-                          for (final f in widget.filters) {
-                            widget.controller.setFilter(f.id, temp[f.id]);
-                          }
-                          Navigator.of(ctx).pop();
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
     );
   }
 
   Future<void> _openColumnPanel() async {
     await showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setState) {
-        final colors = ctx.colors;
-        final ty = ctx.typography;
-        final s = ctx.spacing;
-        return Dialog(
-          backgroundColor: colors.surfaceCard,
-          child: Padding(
-            padding: EdgeInsets.all(s.s5),
-            child: SizedBox(
-              width: 320,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('Colonne visibili',
-                      style: ty.headingSm.copyWith(color: colors.textPrimary)),
-                  SizedBox(height: s.s3),
-                  for (final c in widget.columns)
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: s.s1),
-                      child: GenaiCheckbox(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setInner) {
+          final colors = ctx.colors;
+          final ty = ctx.typography;
+          final s = ctx.spacing;
+          return Dialog(
+            backgroundColor: colors.surfaceCard,
+            child: Padding(
+              padding: EdgeInsets.all(s.s20),
+              child: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Colonne visibili',
+                      style:
+                          ty.sectionTitle.copyWith(color: colors.textPrimary),
+                    ),
+                    SizedBox(height: s.s12),
+                    for (final c in widget.columns)
+                      CheckboxListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          c.title,
+                          style: ty.bodySm.copyWith(color: colors.textPrimary),
+                        ),
                         value: _visibleColumns.contains(c.id),
-                        label: c.title,
-                        onChanged: (v) {
-                          this.setState(() {
-                            setState(() {
-                              if (v == true) {
-                                _visibleColumns.add(c.id);
-                              } else {
-                                _visibleColumns.remove(c.id);
-                              }
-                            });
+                        onChanged: (v) => setInner(() {
+                          setState(() {
+                            if (v == true) {
+                              _visibleColumns.add(c.id);
+                            } else {
+                              _visibleColumns.remove(c.id);
+                            }
                           });
-                        },
+                        }),
                       ),
-                    ),
-                  SizedBox(height: s.s3),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GenaiButton.primary(
-                      label: 'Chiudi',
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildBulkBar(BuildContext context, dynamic colors, dynamic ty) {
-    final s = context.spacing;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: s.s4, vertical: s.s2),
-      color: colors.colorPrimarySubtle,
-      child: Row(
-        children: [
-          Text('${_selectedKeys.length} selezionati',
-              style: ty.label.copyWith(color: colors.colorPrimary)),
-          const Spacer(),
-          for (final a in widget.bulkActions) ...[
-            Padding(
-              padding: EdgeInsets.only(left: s.s2),
-              child: a.isDestructive
-                  ? GenaiButton.destructive(
-                      label: a.label,
-                      icon: a.icon,
-                      size: GenaiSize.sm,
-                      onPressed: () => a.onPressed(_selectedItems),
-                    )
-                  : GenaiButton.secondary(
-                      label: a.label,
-                      icon: a.icon,
-                      size: GenaiSize.sm,
-                      onPressed: () => a.onPressed(_selectedItems),
-                    ),
-            ),
-          ],
-          SizedBox(width: s.s2),
-          GenaiIconButton(
-            icon: LucideIcons.x,
-            semanticLabel: 'Annulla selezione',
-            size: GenaiSize.sm,
-            onPressed: () => setState(_selectedKeys.clear),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopTable(BuildContext context, dynamic colors, dynamic ty,
-      {required bool bounded}) {
-    final ctrl = widget.controller;
-    if (ctrl.error != null && ctrl.items.isEmpty) {
-      return GenaiErrorState(
-        title: 'Errore caricamento dati',
-        description: ctrl.error.toString(),
-        onRetry: ctrl.refresh,
-      );
-    }
-    if (ctrl.loading && ctrl.items.isEmpty) {
-      final s = context.spacing;
-      return Padding(
-        padding: EdgeInsets.all(s.s4),
-        child: Column(
-          children: [
-            for (var i = 0; i < 6; i++)
-              Padding(
-                padding: EdgeInsets.only(bottom: s.s2),
-                child: const GenaiSkeleton.rect(height: 36),
-              ),
-          ],
-        ),
-      );
-    }
-    if (ctrl.items.isEmpty) {
-      return GenaiEmptyState.noResults(
-        title: 'Nessun risultato',
-        description: 'Modifica i filtri o la ricerca per trovare elementi.',
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tableWidth =
-            constraints.maxWidth.isFinite ? constraints.maxWidth : 600.0;
-        if (bounded) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: tableWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.max,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeaderRow(context, colors, ty),
-                  Container(
-                      height: context.sizing.dividerThickness,
-                      color: colors.borderDefault),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: ctrl.items.length,
-                      itemBuilder: (ctx, i) =>
-                          _buildBodyRow(ctx, ctrl.items[i], i, colors, ty),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
-        }
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: tableWidth),
-            child: IntrinsicWidth(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeaderRow(context, colors, ty),
-                  Container(
-                      height: context.sizing.dividerThickness,
-                      color: colors.borderDefault),
-                  for (var i = 0; i < ctrl.items.length; i++)
-                    _buildBodyRow(context, ctrl.items[i], i, colors, ty),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 
-  Widget _buildHeaderRow(BuildContext context, dynamic colors, dynamic ty) {
-    final allSelected = widget.controller.items.isNotEmpty &&
-        _selectedKeys.length == widget.controller.items.length;
-    final someSelected = _selectedKeys.isNotEmpty && !allSelected;
-
+  Widget _buildBulkBar(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
     final s = context.spacing;
     return Container(
-      color: colors.surfaceHover,
-      padding: EdgeInsets.symmetric(
-          horizontal: s.s3, vertical: _rowVerticalPadding(context)),
-      child: Row(
-        children: [
-          if (widget.selectable) ...[
-            GenaiCheckbox(
-              value: someSelected ? null : allSelected,
-              onChanged: _toggleAll,
-            ),
-            SizedBox(width: s.s3),
-          ],
-          if (widget.expandedRowBuilder != null) SizedBox(width: s.s6 + s.s1),
-          for (final c in _activeColumns)
-            _buildHeaderCell(context, c, colors, ty),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderCell(
-      BuildContext context, GenaiColumn<T> col, dynamic colors, dynamic ty) {
-    final sort = widget.controller.sort;
-    final isSorted = sort?.columnId == col.id;
-    final align = switch (col.align) {
-      GenaiColumnAlignment.start => MainAxisAlignment.start,
-      GenaiColumnAlignment.center => MainAxisAlignment.center,
-      GenaiColumnAlignment.end => MainAxisAlignment.end,
-    };
-    final sortMotion = context.motion.sortArrow;
-    final iconSize = ty.label.fontSize ?? 14;
-    Widget header = Row(
-      mainAxisAlignment: align,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(col.title,
-              overflow: TextOverflow.ellipsis,
-              style: ty.label.copyWith(
-                  color: colors.textSecondary, fontWeight: FontWeight.w600)),
-        ),
-        if (col.sortable) ...[
-          SizedBox(width: context.spacing.s1),
-          AnimatedRotation(
-            turns: isSorted && sort!.direction == GenaiSortDirection.desc
-                ? 0.5
-                : 0,
-            duration: sortMotion.duration,
-            curve: sortMotion.curve,
-            child: Icon(
-              LucideIcons.arrowUp,
-              size: iconSize,
-              color: isSorted ? colors.colorPrimary : colors.textSecondary,
-            ),
-          ),
-        ],
-      ],
-    );
-
-    header = Semantics(
-      header: true,
-      sortKey: col.sortable ? OrdinalSortKey(0) : null,
-      label: col.title,
-      child: header,
-    );
-
-    if (col.sortable) {
-      header = GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (isSorted) {
-            widget.controller.setSort(sort!.toggled());
-          } else {
-            widget.controller.setSort(GenaiSortState(
-                columnId: col.id, direction: GenaiSortDirection.asc));
-          }
-        },
-        child: MouseRegion(cursor: SystemMouseCursors.click, child: header),
-      );
-    }
-
-    return _buildCellContainer(col, header);
-  }
-
-  Widget _buildCellContainer(GenaiColumn<T> col, Widget child) {
-    if (col.width != null) {
-      return SizedBox(width: col.width, child: child);
-    }
-    return Expanded(
-      flex: 1,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: col.minWidth ?? 0),
-        child: child,
-      ),
-    );
-  }
-
-  Widget _buildBodyRow(
-      BuildContext context, T item, int index, dynamic colors, dynamic ty) {
-    final key = widget.rowKey(item);
-    final selected = _selectedKeys.contains(key);
-    final expanded = _expandedKeys.contains(key);
-    final zebra = index.isOdd ? colors.surfaceCard : colors.surfacePage;
-    final s = context.spacing;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          color: selected ? colors.colorPrimarySubtle : zebra,
-          padding: EdgeInsets.symmetric(
-              horizontal: s.s3, vertical: _rowVerticalPadding(context)),
-          child: Row(
-            children: [
-              if (widget.selectable) ...[
-                GenaiCheckbox(
-                  value: selected,
-                  onChanged: (_) => _toggleRow(item),
-                ),
-                SizedBox(width: s.s3),
-              ],
-              if (widget.expandedRowBuilder != null)
-                SizedBox(
-                  width: s.s6 + s.s1,
-                  child: GenaiIconButton(
-                    icon: expanded
-                        ? LucideIcons.chevronDown
-                        : LucideIcons.chevronRight,
-                    semanticLabel: expanded ? 'Comprimi' : 'Espandi',
-                    size: GenaiSize.xs,
-                    onPressed: () => setState(() {
-                      if (expanded) {
-                        _expandedKeys.remove(key);
-                      } else {
-                        _expandedKeys.add(key);
-                      }
-                    }),
-                  ),
-                ),
-              for (final c in _activeColumns)
-                _buildCellContainer(
-                  c,
-                  Align(
-                    alignment: switch (c.align) {
-                      GenaiColumnAlignment.start => Alignment.centerLeft,
-                      GenaiColumnAlignment.center => Alignment.center,
-                      GenaiColumnAlignment.end => Alignment.centerRight,
-                    },
-                    child: c.cellBuilder(context, item),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (expanded && widget.expandedRowBuilder != null)
-          Container(
-            color: colors.surfaceHover,
-            padding: EdgeInsets.all(s.s4),
-            child: widget.expandedRowBuilder!(context, item),
-          ),
-        Container(
-            height: context.sizing.dividerThickness,
-            color: colors.borderDefault),
-      ],
-    );
-  }
-
-  Widget _buildMobile(BuildContext context) {
-    final ctrl = widget.controller;
-    final s = context.spacing;
-    if (ctrl.loading && ctrl.items.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.all(s.s4),
-        child: const GenaiSpinner(),
-      );
-    }
-    if (ctrl.items.isEmpty) {
-      return const GenaiEmptyState(title: 'Nessun risultato');
-    }
-    return Padding(
-      padding: EdgeInsets.all(s.s3),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final item in ctrl.items)
-            Padding(
-              padding: EdgeInsets.only(bottom: s.s2),
-              child: widget.mobileCardBuilder!(context, item),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooter(BuildContext context, dynamic colors, dynamic ty) {
-    final ctrl = widget.controller;
-    final s = context.spacing;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: s.s3, vertical: s.s2),
+      color: colors.colorInfoSubtle,
+      padding: EdgeInsets.symmetric(horizontal: s.s12, vertical: s.s8),
       child: Row(
         children: [
           Text(
-            ctrl.totalItems != null
-                ? '${ctrl.items.length} di ${ctrl.totalItems}'
-                : '${ctrl.items.length} elementi',
-            style: ty.caption.copyWith(color: colors.textSecondary),
+            '${_selectedKeys.length} selezionati',
+            style: ty.labelSm.copyWith(color: colors.colorInfoText),
           ),
           const Spacer(),
-          Text('Per pagina:',
-              style: ty.caption.copyWith(color: colors.textSecondary)),
-          SizedBox(width: s.s2),
-          SizedBox(
-            width: s.s20,
-            child: GenaiSelect<int>(
-              options: [
-                for (final sz in widget.pageSizes)
-                  GenaiSelectOption(value: sz, label: '$sz'),
-              ],
-              value: ctrl.pageSize,
-              onChanged: (v) {
-                if (v != null) ctrl.setPageSize(v);
-              },
-              size: GenaiSize.sm,
+          for (final a in widget.bulkActions) ...[
+            SizedBox(width: s.s4),
+            TextButton.icon(
+              onPressed: () => a.onPressed(_selectedItems),
+              icon: a.icon == null ? const SizedBox.shrink() : Icon(a.icon),
+              label: Text(a.label),
+              style: TextButton.styleFrom(
+                foregroundColor: a.isDestructive
+                    ? colors.colorDangerText
+                    : colors.textPrimary,
+              ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTable(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final sizing = context.sizing;
+    final s = context.spacing;
+
+    if (widget.controller.loading && widget.controller.items.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(s.s24),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (widget.controller.error != null) {
+      return Padding(
+        padding: EdgeInsets.all(s.s24),
+        child: Center(
+          child: Text(
+            'Errore: ${widget.controller.error}',
+            style: ty.body.copyWith(color: colors.colorDangerText),
           ),
-          SizedBox(width: s.s3),
-          GenaiIconButton(
-            icon: LucideIcons.chevronRight,
-            semanticLabel: 'Carica altri',
-            size: GenaiSize.sm,
-            onPressed: ctrl.hasNext ? ctrl.nextPage : null,
+        ),
+      );
+    }
+    if (widget.controller.items.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(s.s24),
+        child: Center(
+          child: Text(
+            'Nessun elemento',
+            style: ty.body.copyWith(color: colors.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    final cols = _activeColumns;
+    final allSelected = _selectedKeys.isNotEmpty &&
+        _selectedKeys.length == widget.controller.items.length;
+    final someSelected = _selectedKeys.isNotEmpty && !allSelected;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        headingRowColor: WidgetStateProperty.all(colors.surfaceHover),
+        dataRowMinHeight: sizing.rowHeight,
+        dataRowMaxHeight: sizing.rowHeight + _rowVerticalPadding(context),
+        columnSpacing: s.s24,
+        horizontalMargin: s.s20,
+        dividerThickness: sizing.dividerThickness,
+        headingTextStyle: ty.tiny.copyWith(color: colors.textTertiary),
+        dataTextStyle: ty.bodySm.copyWith(color: colors.textPrimary),
+        columns: [
+          if (widget.selectable)
+            DataColumn(
+              label: Checkbox(
+                value: allSelected
+                    ? true
+                    : someSelected
+                        ? null
+                        : false,
+                tristate: true,
+                onChanged: _toggleAll,
+              ),
+            ),
+          for (final c in cols)
+            DataColumn(
+              label: _HeaderCell<T>(
+                column: c,
+                sort: widget.controller.sort,
+                onSort: c.sortable
+                    ? () {
+                        final existing = widget.controller.sort;
+                        widget.controller.setSort(
+                          existing?.columnId == c.id
+                              ? existing!.toggled()
+                              : GenaiSortState(
+                                  columnId: c.id,
+                                  direction: GenaiSortDirection.asc,
+                                ),
+                        );
+                      }
+                    : null,
+              ),
+              numeric: c.align == GenaiColumnAlignment.end,
+            ),
+        ],
+        rows: [
+          for (final item in widget.controller.items)
+            DataRow(
+              selected: _selectedKeys.contains(widget.rowKey(item)),
+              onSelectChanged:
+                  widget.selectable ? (_) => _toggleRow(item) : null,
+              cells: [
+                if (widget.selectable)
+                  DataCell(Checkbox(
+                    value: _selectedKeys.contains(widget.rowKey(item)),
+                    onChanged: (_) => _toggleRow(item),
+                  )),
+                for (final c in cols) DataCell(c.cellBuilder(context, item)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final s = context.spacing;
+    final controller = widget.controller;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: s.s12, vertical: s.s8),
+      child: Row(
+        children: [
+          Text(
+            controller.totalItems != null
+                ? '${controller.items.length} di ${controller.totalItems}'
+                : '${controller.items.length} elementi',
+            style: ty.labelSm.copyWith(color: colors.textSecondary),
+          ),
+          const Spacer(),
+          DropdownButton<int>(
+            value: controller.pageSize,
+            items: [
+              for (final size in widget.pageSizes)
+                DropdownMenuItem(value: size, child: Text('$size / pagina')),
+            ],
+            onChanged: (v) {
+              if (v != null) controller.setPageSize(v);
+            },
+            style: ty.labelSm.copyWith(color: colors.textPrimary),
+            underline: const SizedBox.shrink(),
+          ),
+          SizedBox(width: s.s8),
+          TextButton(
+            onPressed: controller.hasNext ? controller.nextPage : null,
+            child: const Text('Carica altro'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderCell<T> extends StatelessWidget {
+  final GenaiColumn<T> column;
+  final GenaiSortState? sort;
+  final VoidCallback? onSort;
+
+  const _HeaderCell({
+    required this.column,
+    required this.sort,
+    required this.onSort,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final s = context.spacing;
+    final isSorted = sort?.columnId == column.id;
+    final label = Text(
+      column.title.toUpperCase(),
+      style: ty.tiny.copyWith(color: colors.textTertiary),
+    );
+    if (!column.sortable) return label;
+    final icon = isSorted
+        ? (sort!.direction == GenaiSortDirection.asc
+            ? LucideIcons.chevronUp
+            : LucideIcons.chevronDown)
+        : LucideIcons.chevronsUpDown;
+    return InkWell(
+      onTap: onSort,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          label,
+          SizedBox(width: s.s4),
+          Icon(icon, size: context.sizing.iconSize, color: colors.textTertiary),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton<T> extends StatelessWidget {
+  final GenaiTableAction<T> action;
+  const _ActionButton({required this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final s = context.spacing;
+    final radius = context.radius;
+    return InkWell(
+      onTap: action.onPressed,
+      borderRadius: BorderRadius.circular(radius.md),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: s.s12, vertical: s.s8),
+        decoration: BoxDecoration(
+          color: action.isPrimary ? colors.colorPrimary : colors.surfaceCard,
+          borderRadius: BorderRadius.circular(radius.md),
+          border: Border.all(
+            color: action.isPrimary ? colors.colorPrimary : colors.borderStrong,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (action.icon != null) ...[
+              Icon(
+                action.icon,
+                size: context.sizing.iconSize,
+                color: action.isPrimary
+                    ? colors.textOnPrimary
+                    : colors.textPrimary,
+              ),
+              SizedBox(width: s.s4),
+            ],
+            Text(
+              action.label,
+              style: ty.label.copyWith(
+                color: action.isPrimary
+                    ? colors.textOnPrimary
+                    : colors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _ToolbarIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final sizing = context.sizing;
+    final radius = context.radius;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius.md),
+        child: Container(
+          width: sizing.minTouchTarget,
+          height: sizing.minTouchTarget,
+          alignment: Alignment.center,
+          child: Icon(icon, size: sizing.iconSize, color: colors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+class _FallbackSearch extends StatelessWidget {
+  final ValueChanged<String> onChanged;
+  const _FallbackSearch({required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final radius = context.radius;
+    final sizing = context.sizing;
+    return TextField(
+      onChanged: onChanged,
+      style: ty.bodySm.copyWith(color: colors.textPrimary),
+      decoration: InputDecoration(
+        hintText: 'Cerca…',
+        hintStyle: ty.bodySm.copyWith(color: colors.textTertiary),
+        isDense: true,
+        filled: true,
+        fillColor: colors.surfaceInput,
+        prefixIcon: Icon(LucideIcons.search,
+            size: sizing.iconSize, color: colors.textSecondary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius.md),
+          borderSide: BorderSide(color: colors.borderDefault),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius.md),
+          borderSide: BorderSide(color: colors.borderDefault),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius.md),
+          borderSide: BorderSide(
+            color: colors.borderFocus,
+            width: sizing.focusRingWidth,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FallbackTextFilter extends StatefulWidget {
+  final String label;
+  final String? hint;
+  final String? initial;
+  final ValueChanged<String> onChanged;
+
+  const _FallbackTextFilter({
+    required this.label,
+    required this.hint,
+    required this.initial,
+    required this.onChanged,
+  });
+
+  @override
+  State<_FallbackTextFilter> createState() => _FallbackTextFilterState();
+}
+
+class _FallbackTextFilterState extends State<_FallbackTextFilter> {
+  late final TextEditingController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = TextEditingController(text: widget.initial);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    return TextField(
+      controller: _c,
+      onChanged: widget.onChanged,
+      style: ty.bodySm.copyWith(color: colors.textPrimary),
+      decoration: InputDecoration(
+        labelText: widget.label,
+        hintText: widget.hint,
+        isDense: true,
+      ),
+    );
+  }
+}
+
+class _FallbackOptionsFilter<V> extends StatelessWidget {
+  final String label;
+  final List<({String label, V value})> options;
+  final V? value;
+  final ValueChanged<Object?> onChanged;
+
+  const _FallbackOptionsFilter({
+    required this.label,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    return InputDecorator(
+      decoration: InputDecoration(labelText: label, isDense: true),
+      child: DropdownButton<V>(
+        value: value,
+        isExpanded: true,
+        underline: const SizedBox.shrink(),
+        items: [
+          DropdownMenuItem<V>(
+            value: null,
+            child: Text(
+              'Tutti',
+              style: ty.bodySm.copyWith(color: colors.textSecondary),
+            ),
+          ),
+          for (final o in options)
+            DropdownMenuItem<V>(
+              value: o.value,
+              child: Text(
+                o.label,
+                style: ty.bodySm.copyWith(color: colors.textPrimary),
+              ),
+            ),
+        ],
+        onChanged: (v) => onChanged(v),
       ),
     );
   }

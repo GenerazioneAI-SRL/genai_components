@@ -2,75 +2,86 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Design-system wrapper around Flutter's [AspectRatio] with optional
-/// rounded corners and a 1-px border (shadcn/ui AspectRatio equivalent).
+/// Constrains a child to a fixed aspect ratio inside a themed placeholder —
+/// v3 design system.
 ///
-/// Use this instead of a raw [AspectRatio] so consumers get the standard
-/// Genai border radius, border color, and clipping behavior without
-/// repeating boilerplate.
-///
-/// {@tool snippet}
-/// ```dart
-/// const GenaiAspectRatio(
-///   ratio: 16 / 9,
-///   showBorder: true,
-///   child: Image(image: NetworkImage('...')),
-/// );
-/// ```
-/// {@end-tool}
-///
-/// See also: [GenaiCard].
+/// Unlike Flutter's [AspectRatio], this widget paints a subtle border + v3
+/// `xl` radius matching the card aesthetic, and exposes slots for
+/// loading/error fallbacks.
 class GenaiAspectRatio extends StatelessWidget {
-  /// The content sized to [ratio].
-  final Widget child;
-
-  /// Width-to-height ratio. Defaults to 16:9.
+  /// Required width/height ratio (e.g. 16/9 = 1.777…).
   final double ratio;
 
-  /// Overrides the default corner radius. If null, [GenaiRadiusTokens.md]
-  /// is used.
-  final BorderRadius? borderRadius;
+  /// Main child — typically an image or video.
+  final Widget? child;
 
-  /// If true, paints a 1px border using [GenaiColorTokens.borderDefault]
-  /// around the clipped region.
-  final bool showBorder;
+  /// Optional placeholder shown when [child] is null.
+  final Widget? placeholder;
+
+  /// When true, wraps the child in a themed border + `xl` radius.
+  final bool bordered;
+
+  /// When true, clips the child to the border radius (images).
+  final bool clip;
 
   const GenaiAspectRatio({
     super.key,
-    required this.child,
-    this.ratio = 16 / 9,
-    this.borderRadius,
-    this.showBorder = false,
-  });
+    required this.ratio,
+    this.child,
+    this.placeholder,
+    this.bordered = true,
+    this.clip = true,
+  }) : assert(ratio > 0, 'ratio must be positive');
+
+  /// 16:9 shortcut.
+  const GenaiAspectRatio.video({
+    super.key,
+    this.child,
+    this.placeholder,
+    this.bordered = true,
+    this.clip = true,
+  }) : ratio = 16 / 9;
+
+  /// 1:1 shortcut.
+  const GenaiAspectRatio.square({
+    super.key,
+    this.child,
+    this.placeholder,
+    this.bordered = true,
+    this.clip = true,
+  }) : ratio = 1;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final radius = context.radius;
-    final sizing = context.sizing;
-    final resolvedRadius = borderRadius ?? BorderRadius.circular(radius.md);
 
-    Widget clipped = ClipRRect(
-      borderRadius: resolvedRadius,
-      child: AspectRatio(
-        aspectRatio: ratio,
-        child: child,
-      ),
-    );
+    Widget inner = child ??
+        placeholder ??
+        Container(
+          color: colors.surfaceHover,
+        );
 
-    if (showBorder) {
-      clipped = DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: resolvedRadius,
-          border: Border.all(
-            color: colors.borderDefault,
-            width: sizing.dividerThickness,
-          ),
-        ),
-        child: clipped,
+    if (clip) {
+      inner = ClipRRect(
+        borderRadius: BorderRadius.circular(radius.xl),
+        child: inner,
       );
     }
 
-    return clipped;
+    if (bordered) {
+      inner = Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius.xl),
+          border: Border.all(color: colors.borderSubtle),
+        ),
+        child: inner,
+      );
+    }
+
+    return AspectRatio(
+      aspectRatio: ratio,
+      child: inner,
+    );
   }
 }

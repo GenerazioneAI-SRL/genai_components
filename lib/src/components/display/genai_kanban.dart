@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../indicators/genai_badge.dart';
 
-/// Single column in a [GenaiKanban] board.
-///
-/// [items] are shown in order; drop targets are computed automatically.
+/// Single column in a [GenaiKanban].
 class GenaiKanbanColumn<T> {
+  /// Unique column id — returned to `onReorder`.
   final String id;
+
+  /// Column title rendered in the header.
   final String title;
+
+  /// Cards in order.
   final List<T> items;
+
+  /// Optional accent dot color next to the title.
   final Color? accent;
+
+  /// Optional WIP limit — when exceeded, the count badge turns warning.
   final int? wipLimit;
 
   const GenaiKanbanColumn({
@@ -31,12 +37,23 @@ class GenaiKanbanColumn<T> {
       );
 }
 
-/// Kanban board (§6.7.7) — drag & drop rearrange across columns.
+/// Kanban board — v3 design system.
+///
+/// Horizontally scrollable list of columns with drag-and-drop reordering
+/// across columns. The consumer owns the data model and reacts to
+/// `onReorder` callbacks to mutate it.
 class GenaiKanban<T> extends StatefulWidget {
+  /// Columns rendered left-to-right.
   final List<GenaiKanbanColumn<T>> columns;
+
+  /// Builder for an individual card.
   final Widget Function(BuildContext, T) cardBuilder;
+
+  /// Fires when an item is dropped onto a different column.
   final void Function(T item, String fromColumnId, String toColumnId)?
       onReorder;
+
+  /// Column width. Defaults to 280.
   final double columnWidth;
 
   const GenaiKanban({
@@ -67,9 +84,11 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
           children: [
             for (final col in widget.columns)
               Padding(
-                padding: EdgeInsets.only(right: spacing.s3),
+                padding: EdgeInsets.only(right: spacing.s12),
                 child: SizedBox(
-                    width: widget.columnWidth, child: _buildColumn(col)),
+                  width: widget.columnWidth,
+                  child: _buildColumn(col),
+                ),
               ),
           ],
         ),
@@ -94,8 +113,11 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
       onAcceptWithDetails: (details) {
         setState(() => _hoveringColumn = null);
         if (details.data.fromColumnId != col.id) {
-          widget.onReorder
-              ?.call(details.data.item, details.data.fromColumnId, col.id);
+          widget.onReorder?.call(
+            details.data.item,
+            details.data.fromColumnId,
+            col.id,
+          );
         }
       },
       builder: (ctx, candidate, rejected) {
@@ -105,19 +127,19 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
           child: Container(
             decoration: BoxDecoration(
               color: _hoveringColumn == col.id
-                  ? colors.colorPrimarySubtle
+                  ? colors.colorInfoSubtle
                   : colors.surfaceHover,
-              borderRadius: BorderRadius.circular(radius.md),
+              borderRadius: BorderRadius.circular(radius.xl),
               border: Border.all(
                 color: _hoveringColumn == col.id
-                    ? colors.colorPrimary
+                    ? colors.colorInfo
                     : colors.borderDefault,
                 width: _hoveringColumn == col.id
-                    ? sizing.focusOutlineWidth
+                    ? sizing.focusRingWidth
                     : sizing.dividerThickness,
               ),
             ),
-            padding: EdgeInsets.all(spacing.s2),
+            padding: EdgeInsets.all(spacing.s8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,43 +148,45 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
                   children: [
                     if (col.accent != null) ...[
                       Container(
-                        width: spacing.s2,
-                        height: spacing.s2,
+                        width: spacing.s8,
+                        height: spacing.s8,
                         decoration: BoxDecoration(
                           color: col.accent,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      SizedBox(width: spacing.s2),
+                      SizedBox(width: spacing.s8),
                     ],
                     Expanded(
-                      child: Text(col.title,
-                          style: ty.label.copyWith(
-                              color: colors.textPrimary,
-                              fontWeight: FontWeight.w600)),
+                      child: Text(
+                        col.title,
+                        style: ty.cardTitle.copyWith(
+                          color: colors.textPrimary,
+                        ),
+                      ),
                     ),
-                    GenaiBadge.count(
+                    _CountBadge(
                       count: col.items.length,
-                      variant: overWip
-                          ? GenaiBadgeVariant.filled
-                          : GenaiBadgeVariant.subtle,
-                      color: overWip ? colors.colorWarning : null,
+                      danger: overWip,
                     ),
                   ],
                 ),
                 if (col.wipLimit != null)
                   Padding(
-                    padding: EdgeInsets.only(top: spacing.s1),
-                    child: Text('Limite WIP: ${col.wipLimit}',
-                        style: ty.caption.copyWith(
-                            color: overWip
-                                ? colors.colorWarning
-                                : colors.textSecondary)),
+                    padding: EdgeInsets.only(top: spacing.s4),
+                    child: Text(
+                      'Limite WIP: ${col.wipLimit}',
+                      style: ty.labelSm.copyWith(
+                        color: overWip
+                            ? colors.colorWarningText
+                            : colors.textSecondary,
+                      ),
+                    ),
                   ),
-                SizedBox(height: spacing.s2),
+                SizedBox(height: spacing.s8),
                 for (final item in col.items)
                   Padding(
-                    padding: EdgeInsets.only(bottom: spacing.s2),
+                    padding: EdgeInsets.only(bottom: spacing.s8),
                     child: LongPressDraggable<({T item, String fromColumnId})>(
                       data: (item: item, fromColumnId: col.id),
                       feedback: Material(
@@ -170,7 +194,7 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
                         child: Opacity(
                           opacity: 0.85,
                           child: SizedBox(
-                            width: widget.columnWidth - spacing.s4,
+                            width: widget.columnWidth - spacing.s16,
                             child: widget.cardBuilder(context, item),
                           ),
                         ),
@@ -184,18 +208,22 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
                   ),
                 if (col.items.isEmpty)
                   Padding(
-                    padding: EdgeInsets.all(spacing.s4),
+                    padding: EdgeInsets.all(spacing.s16),
                     child: Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(LucideIcons.inbox,
-                              size: ty.label.fontSize ?? 14,
-                              color: colors.textSecondary),
-                          SizedBox(width: spacing.s1 + 2),
-                          Text('Vuoto',
-                              style: ty.caption
-                                  .copyWith(color: colors.textSecondary)),
+                          Icon(
+                            LucideIcons.inbox,
+                            size: sizing.iconSize,
+                            color: colors.textSecondary,
+                          ),
+                          SizedBox(width: spacing.s6),
+                          Text(
+                            'Vuoto',
+                            style: ty.labelSm
+                                .copyWith(color: colors.textSecondary),
+                          ),
                         ],
                       ),
                     ),
@@ -205,6 +233,42 @@ class _GenaiKanbanState<T> extends State<GenaiKanban<T>> {
           ),
         );
       },
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  final int count;
+  final bool danger;
+  const _CountBadge({required this.count, required this.danger});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final radius = context.radius;
+    final bg = danger ? colors.colorWarningSubtle : colors.surfaceCard;
+    final fg = danger ? colors.colorWarningText : colors.textPrimary;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.s6,
+        vertical: spacing.s2,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(radius.pill),
+        border: Border.all(
+          color: danger ? colors.colorWarning : colors.borderDefault,
+        ),
+      ),
+      child: Text(
+        '$count',
+        style: ty.monoSm.copyWith(
+          color: fg,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

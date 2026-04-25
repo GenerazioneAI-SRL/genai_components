@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:genai_components/genai_components.dart';
 
-/// Standard page chrome: scrollable + max width + spacing.
+/// Standard v3 page chrome — scroll, max-width, page title.
 class ShowcaseScaffold extends StatelessWidget {
   final List<Widget> children;
   final String? title;
@@ -17,33 +17,36 @@ class ShowcaseScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
     return Container(
       color: colors.surfacePage,
       child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: context.spacing.pagePaddingH,
-          vertical: context.spacing.pagePaddingV,
+          horizontal: context.pageMargin,
+          vertical: spacing.s28,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (title != null)
               Padding(
-                padding: EdgeInsets.only(bottom: context.spacing.s2),
+                padding: EdgeInsets.only(bottom: spacing.s4),
                 child: Semantics(
                   header: true,
-                  child: Text(title!,
-                      style: context.typography.headingLg.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.w700)),
+                  child: Text(
+                    title!,
+                    style: ty.pageTitle.copyWith(color: colors.textPrimary),
+                  ),
                 ),
               ),
             if (description != null)
               Padding(
-                padding: EdgeInsets.only(bottom: context.spacing.s6),
-                child: Text(description!,
-                    style: context.typography.bodyMd
-                        .copyWith(color: colors.textSecondary)),
+                padding: EdgeInsets.only(bottom: spacing.s24),
+                child: Text(
+                  description!,
+                  style: ty.bodySm.copyWith(color: colors.textSecondary),
+                ),
               ),
             ...children,
           ],
@@ -53,7 +56,7 @@ class ShowcaseScaffold extends StatelessWidget {
   }
 }
 
-/// Section block: title + subtitle + content.
+/// v3 section block wrapping [GenaiSection] with vertical rhythm.
 class ShowcaseSection extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -69,42 +72,13 @@ class ShowcaseSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 32),
-      child: GenaiSection(
-        title: title,
-        description: subtitle,
-        child: child,
-      ),
+      padding: EdgeInsets.only(bottom: context.spacing.s32),
+      child: GenaiSection(title: title, description: subtitle, child: child),
     );
   }
 }
 
-/// Variant row: small caption + child.
-class ShowcaseVariant extends StatelessWidget {
-  final String label;
-  final Widget child;
-
-  const ShowcaseVariant({super.key, required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(label, style: context.typography.label.copyWith(color: context.colors.textSecondary)),
-          ),
-          Expanded(child: Wrap(spacing: 12, runSpacing: 12, children: [child])),
-        ],
-      ),
-    );
-  }
-}
-
-/// Multi-child variant row.
+/// Label + children row used in variant listings.
 class ShowcaseRow extends StatelessWidget {
   final String label;
   final List<Widget> children;
@@ -119,16 +93,28 @@ class ShowcaseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ty = context.typography;
+    final colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: context.spacing.s8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 140,
-            child: Text(label, style: context.typography.label.copyWith(color: context.colors.textSecondary)),
+            child: Text(
+              label,
+              style: ty.labelSm.copyWith(color: colors.textSecondary),
+            ),
           ),
-          Expanded(child: Wrap(spacing: spacing, runSpacing: spacing, crossAxisAlignment: WrapCrossAlignment.center, children: children)),
+          Expanded(
+            child: Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: children,
+            ),
+          ),
         ],
       ),
     );

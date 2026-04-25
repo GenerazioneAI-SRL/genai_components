@@ -4,16 +4,13 @@ import 'package:flutter/services.dart';
 import '../../foundations/icons.dart';
 import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../actions/genai_icon_button.dart';
 import 'genai_drawer.dart';
 
-/// Edge that a [showGenaiSheet] slides in from.
+/// Edge that a [showGenaiSheet] slides in from — v3 design system (Forma LMS).
 ///
 /// shadcn-style alias of `GenaiDrawerSide` extended to the four cardinal
 /// directions. `top`/`bottom` slide along the vertical axis; `left`/`right`
-/// along the horizontal axis. On compact window sizes every side except
-/// `top` collapses to a bottom-sheet for usability.
+/// along the horizontal axis.
 enum GenaiSheetSide {
   /// Slide down from the top edge.
   top,
@@ -28,13 +25,12 @@ enum GenaiSheetSide {
   left,
 }
 
-/// Shows a side or edge sheet — the shadcn equivalent of `Sheet`.
+/// Shows a side or edge sheet — the shadcn equivalent of `Sheet` (v3).
 ///
 /// For `left` and `right` sides, this delegates to [showGenaiDrawer]. For
-/// `bottom` it delegates to the bottom-sheet helper. For `top` it renders a
+/// `bottom` it delegates to [showGenaiBottomSheet]. For `top` it renders a
 /// custom slide-down panel since top sheets are not supported by the drawer
-/// helper. Compact windows always use the bottom-sheet path (except for
-/// `top` which keeps its native direction).
+/// helper. Reduced motion is honoured automatically via v3's motion tokens.
 ///
 /// Returns the popped value of type `T` when the sheet closes.
 Future<T?> showGenaiSheet<T>(
@@ -96,7 +92,7 @@ Future<T?> _showGenaiTopSheet<T>(
   String dismissSemanticLabel = 'Chiudi pannello',
 }) {
   final reduced = GenaiResponsive.reducedMotion(context);
-  final motion = context.motion;
+  final motion = context.motion.modal;
   final scrim = context.colors.scrimDrawer;
 
   return showGeneralDialog<T>(
@@ -104,7 +100,7 @@ Future<T?> _showGenaiTopSheet<T>(
     barrierDismissible: dismissible,
     barrierLabel: dismissSemanticLabel,
     barrierColor: scrim,
-    transitionDuration: reduced ? Duration.zero : motion.drawerDesktop.duration,
+    transitionDuration: reduced ? Duration.zero : motion.duration,
     pageBuilder: (ctx, _, __) => _GenaiTopSheetShell(
       title: title,
       height: height,
@@ -113,8 +109,7 @@ Future<T?> _showGenaiTopSheet<T>(
     ),
     transitionBuilder: (_, anim, __, page) {
       if (reduced) return page;
-      final curved =
-          CurvedAnimation(parent: anim, curve: motion.drawerDesktop.curve);
+      final curved = CurvedAnimation(parent: anim, curve: motion.curve);
       return SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
             .animate(curved),
@@ -143,16 +138,18 @@ class _GenaiTopSheetShell extends StatelessWidget {
     final ty = context.typography;
     final spacing = context.spacing;
     final radiusTokens = context.radius;
+    final sizing = context.sizing;
 
     final panel = Container(
       width: double.infinity,
       height: height,
       decoration: BoxDecoration(
-        color: colors.surfaceCard,
+        color: colors.surfaceModal,
         borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(radiusTokens.lg),
+          bottom: Radius.circular(radiusTokens.xl),
         ),
-        boxShadow: context.elevation.shadow(5),
+        border: Border.all(color: colors.borderDefault),
+        boxShadow: context.elevation.shadowForLayer(3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -160,14 +157,17 @@ class _GenaiTopSheetShell extends StatelessWidget {
           if (title != null)
             Container(
               padding: EdgeInsets.fromLTRB(
-                spacing.s5,
-                spacing.s4,
-                spacing.s3,
-                spacing.s4,
+                spacing.s20,
+                spacing.s16,
+                spacing.s12,
+                spacing.s16,
               ),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: colors.borderDefault),
+                  bottom: BorderSide(
+                    color: colors.borderDefault,
+                    width: sizing.dividerThickness,
+                  ),
                 ),
               ),
               child: Row(
@@ -177,22 +177,21 @@ class _GenaiTopSheetShell extends StatelessWidget {
                       header: true,
                       child: Text(
                         title!,
-                        style: ty.headingSm.copyWith(color: colors.textPrimary),
+                        style:
+                            ty.sectionTitle.copyWith(color: colors.textPrimary),
                       ),
                     ),
                   ),
-                  GenaiIconButton(
-                    icon: LucideIcons.x,
-                    size: GenaiSize.sm,
+                  _SheetCloseButton(
                     semanticLabel: dismissSemanticLabel,
-                    onPressed: () => Navigator.of(context).pop(),
+                    onTap: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
             ),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(spacing.s5),
+              padding: EdgeInsets.all(spacing.s20),
               child: child,
             ),
           ),
@@ -228,6 +227,40 @@ class _GenaiTopSheetShell extends StatelessWidget {
                 child: Material(color: Colors.transparent, child: panel),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetCloseButton extends StatelessWidget {
+  final String semanticLabel;
+  final VoidCallback onTap;
+  const _SheetCloseButton({
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final sizing = context.sizing;
+    final radius = context.radius;
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius.sm),
+        child: Container(
+          width: sizing.minTouchTarget,
+          height: sizing.minTouchTarget,
+          alignment: Alignment.center,
+          child: Icon(
+            LucideIcons.x,
+            size: sizing.iconSize,
+            color: colors.textSecondary,
           ),
         ),
       ),

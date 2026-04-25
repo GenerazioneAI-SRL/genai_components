@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Logical window size buckets §10.2.
+/// Logical window-size buckets — v3 design system.
 ///
-/// Always classify by **window width**, never by [Platform].
+/// Identical breakpoints to v1 / v2 so responsive helpers behave the same
+/// way across libraries. The Forma LMS reference HTML uses a single desktop
+/// layout (`240px 1fr`) with content max-width 1400 px.
 enum GenaiWindowSize {
   compact, // < 600
   medium, // 600 - 900
@@ -19,99 +21,18 @@ enum GenaiWindowSize {
   }
 }
 
-/// Static helpers for window-size resolution.
+/// Static helpers around window-size and motion-accessibility resolution.
 class GenaiResponsive {
   GenaiResponsive._();
 
+  /// The current [GenaiWindowSize] derived from [MediaQuery].
   static GenaiWindowSize sizeOf(BuildContext context) =>
       GenaiWindowSize.fromWidth(MediaQuery.sizeOf(context).width);
 
-  /// True if the user's accessibility settings request reduced motion.
+  /// True when the user prefers reduced motion (OS accessibility setting).
+  ///
+  /// v3 components should collapse all [GenaiMotion] durations to
+  /// [Duration.zero] when this is true (§5).
   static bool reducedMotion(BuildContext context) =>
       MediaQuery.disableAnimationsOf(context);
-}
-
-/// Picks one of N builders based on the current [GenaiWindowSize].
-///
-/// [compact] is required as the smallest fallback. Larger sizes fall back to
-/// the next-smaller defined builder.
-class GenaiResponsiveLayout extends StatelessWidget {
-  final WidgetBuilder compact;
-  final WidgetBuilder? medium;
-  final WidgetBuilder? expanded;
-  final WidgetBuilder? large;
-  final WidgetBuilder? extraLarge;
-
-  const GenaiResponsiveLayout({
-    super.key,
-    required this.compact,
-    this.medium,
-    this.expanded,
-    this.large,
-    this.extraLarge,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final size = GenaiResponsive.sizeOf(context);
-    return _resolveBuilder(size)(context);
-  }
-
-  WidgetBuilder _resolveBuilder(GenaiWindowSize size) {
-    switch (size) {
-      case GenaiWindowSize.extraLarge:
-        return extraLarge ?? large ?? expanded ?? medium ?? compact;
-      case GenaiWindowSize.large:
-        return large ?? expanded ?? medium ?? compact;
-      case GenaiWindowSize.expanded:
-        return expanded ?? medium ?? compact;
-      case GenaiWindowSize.medium:
-        return medium ?? compact;
-      case GenaiWindowSize.compact:
-        return compact;
-    }
-  }
-}
-
-/// Resolves a single typed value based on the current [GenaiWindowSize].
-///
-/// ```dart
-/// final pad = GenaiResponsiveValue<double>(
-///   compact: 16, expanded: 24, large: 32,
-/// ).resolve(context);
-/// ```
-class GenaiResponsiveValue<T> {
-  final T compact;
-  final T? medium;
-  final T? expanded;
-  final T? large;
-  final T? extraLarge;
-
-  const GenaiResponsiveValue({
-    required this.compact,
-    this.medium,
-    this.expanded,
-    this.large,
-    this.extraLarge,
-  });
-
-  T resolve(BuildContext context) {
-    final size = GenaiResponsive.sizeOf(context);
-    return resolveFor(size);
-  }
-
-  T resolveFor(GenaiWindowSize size) {
-    switch (size) {
-      case GenaiWindowSize.extraLarge:
-        return extraLarge ?? large ?? expanded ?? medium ?? compact;
-      case GenaiWindowSize.large:
-        return large ?? expanded ?? medium ?? compact;
-      case GenaiWindowSize.expanded:
-        return expanded ?? medium ?? compact;
-      case GenaiWindowSize.medium:
-        return medium ?? compact;
-      case GenaiWindowSize.compact:
-        return compact;
-    }
-  }
 }

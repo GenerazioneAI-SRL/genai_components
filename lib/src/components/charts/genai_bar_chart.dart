@@ -5,16 +5,64 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Bar chart generico basato su `fl_chart`, integrato con i token Genai.
+/// Generic bar chart — v3 design system.
 ///
+/// Monochromatic by default — bars use `context.colors.textPrimary` (ink)
+/// unless overridden via [barColor]. Multi-series variants (future work) must
+/// use alpha steps of the same hue to preserve chart discipline. Axis labels
+/// are always rendered — hiding axes violates the Forma LMS chart guidelines.
+///
+/// {@tool snippet}
 /// ```dart
 /// GenaiBarChart<SalesData>(
-///   data: salesList,
-///   xValueMapper: (item, _) => item.month,
-///   yValueMapper: (item, _) => item.amount,
-/// )
+///   data: monthlySales,
+///   xValueMapper: (s, _) => s.month,
+///   yValueMapper: (s, _) => s.amount,
+///   yAxisLabel: 'EUR',
+/// );
 /// ```
+/// {@end-tool}
 class GenaiBarChart<T> extends StatelessWidget {
+  /// Data series rendered as bars.
+  final List<T> data;
+
+  /// Extracts the x-axis label (category) from an item.
+  final String Function(T item, int index) xValueMapper;
+
+  /// Extracts the numeric y-value from an item.
+  final double Function(T item, int index) yValueMapper;
+
+  /// Bar color override. Defaults to `context.colors.textPrimary` (ink).
+  final Color? barColor;
+
+  /// Bar width in logical px.
+  final double barWidth;
+
+  /// Y-axis upper bound. Auto-scaled from [data] when null.
+  final double? maxY;
+
+  /// Y-axis lower bound. Auto-scaled when null.
+  final double? minY;
+
+  /// Whether to draw horizontal gridlines.
+  final bool showGrid;
+
+  /// Y-axis tick interval. Auto-computed when null.
+  final double? leftAxisInterval;
+
+  /// Y-axis unit suffix (e.g. "€", "ms"). Highly encouraged — labels alone
+  /// don't disambiguate semantics.
+  final String? yAxisLabel;
+
+  /// Optional accessible label override.
+  final String? semanticLabel;
+
+  /// Rotate x-axis labels at a narrow chart width.
+  final bool rotateLabels;
+
+  /// Chart width in px below which labels auto-rotate.
+  final double rotateThreshold;
+
   const GenaiBarChart({
     super.key,
     required this.data,
@@ -24,34 +72,13 @@ class GenaiBarChart<T> extends StatelessWidget {
     this.barWidth = 18,
     this.maxY,
     this.minY,
-    this.showGrid = false,
+    this.showGrid = true,
     this.leftAxisInterval,
-    this.leftTitleBuilder,
-    this.bottomTitleBuilder,
-    this.tooltipBuilder,
-    this.borderRadius,
+    this.yAxisLabel,
+    this.semanticLabel,
     this.rotateLabels = true,
     this.rotateThreshold = 400,
   });
-
-  final List<T> data;
-  final String Function(T item, int index) xValueMapper;
-  final double Function(T item, int index) yValueMapper;
-
-  /// Colore delle barre. Default: `context.colors.colorPrimary`.
-  final Color? barColor;
-  final double barWidth;
-  final double? maxY;
-  final double? minY;
-  final bool showGrid;
-  final double? leftAxisInterval;
-  final Widget Function(double value, TitleMeta meta)? leftTitleBuilder;
-  final Widget Function(double value, TitleMeta meta)? bottomTitleBuilder;
-  final BarTooltipItem? Function(T item, int index, BarChartRodData rod)?
-      tooltipBuilder;
-  final BorderRadius? borderRadius;
-  final bool rotateLabels;
-  final double rotateThreshold;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +86,7 @@ class GenaiBarChart<T> extends StatelessWidget {
     final ty = context.typography;
     final spacing = context.spacing;
     final radius = context.radius;
-    final color = barColor ?? colors.colorPrimary;
+    final color = barColor ?? colors.textPrimary;
 
     final values = List<double>.generate(
       data.length,
@@ -72,7 +99,6 @@ class GenaiBarChart<T> extends StatelessWidget {
 
     double computedMinY = (minY != null && minY!.isFinite) ? minY! : 0;
     double computedMaxY;
-
     if (maxY != null && maxY!.isFinite) {
       computedMaxY = maxY!;
     } else if (values.isEmpty) {
@@ -86,13 +112,8 @@ class GenaiBarChart<T> extends StatelessWidget {
       final span = (dataMax - computedMinY).abs();
       computedMaxY = span == 0 ? computedMinY + 1 : dataMax + (span * 0.1);
     }
-
-    if (!computedMaxY.isFinite) {
-      computedMaxY = computedMinY + 1;
-    }
-    if (computedMaxY <= computedMinY) {
-      computedMaxY = computedMinY + 1;
-    }
+    if (!computedMaxY.isFinite) computedMaxY = computedMinY + 1;
+    if (computedMaxY <= computedMinY) computedMaxY = computedMinY + 1;
 
     final effectiveLeftAxisInterval = (leftAxisInterval != null &&
             leftAxisInterval!.isFinite &&
@@ -100,7 +121,7 @@ class GenaiBarChart<T> extends StatelessWidget {
         ? leftAxisInterval
         : null;
 
-    final smallLabel = ty.caption.copyWith(color: colors.textSecondary);
+    final smallLabel = ty.monoSm.copyWith(color: colors.textSecondary);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -112,7 +133,8 @@ class GenaiBarChart<T> extends StatelessWidget {
 
         return Semantics(
           container: true,
-          label: 'Grafico a barre con ${data.length} valori',
+          label: semanticLabel ??
+              'Grafico a barre con ${data.length} valori${yAxisLabel != null ? ' (unità: $yAxisLabel)' : ''}',
           child: SizedBox(
             width: chartWidth,
             height: chartHeight,
@@ -125,8 +147,8 @@ class GenaiBarChart<T> extends StatelessWidget {
                   drawHorizontalLine: showGrid,
                   horizontalInterval: effectiveLeftAxisInterval,
                   getDrawingHorizontalLine: (_) => FlLine(
-                    color: colors.borderDefault.withValues(alpha: 0.5),
-                    strokeWidth: 0.8,
+                    color: colors.borderSubtle,
+                    strokeWidth: 1,
                   ),
                 ),
                 borderData: FlBorderData(show: false),
@@ -134,19 +156,17 @@ class GenaiBarChart<T> extends StatelessWidget {
                   touchTooltipData: BarTouchTooltipData(
                     maxContentWidth: 240,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      if (tooltipBuilder != null) {
-                        return tooltipBuilder!(
-                            data[groupIndex], groupIndex, rod);
-                      }
                       final label = xValueMapper(data[groupIndex], groupIndex);
+                      final unit = yAxisLabel == null ? '' : ' $yAxisLabel';
                       return BarTooltipItem(
-                        '$label\n${rod.toY.toStringAsFixed(rod.toY.truncateToDouble() == rod.toY ? 0 : 1)}',
-                        ty.label.copyWith(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w600),
+                        '$label\n${_formatTooltipValue(rod.toY)}$unit',
+                        ty.labelSm.copyWith(
+                          color: colors.textOnInverse,
+                          fontWeight: FontWeight.w600,
+                        ),
                       );
                     },
-                    getTooltipColor: (_) => colors.surfaceCard,
+                    getTooltipColor: (_) => colors.surfaceInverse,
                   ),
                 ),
                 barGroups: List.generate(data.length, (i) {
@@ -158,8 +178,7 @@ class GenaiBarChart<T> extends StatelessWidget {
                         toY: value,
                         color: color,
                         width: barWidth,
-                        borderRadius:
-                            borderRadius ?? BorderRadius.circular(radius.xs),
+                        borderRadius: BorderRadius.circular(radius.xs),
                       ),
                     ],
                   );
@@ -170,19 +189,29 @@ class GenaiBarChart<T> extends StatelessWidget {
                   rightTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false)),
                   leftTitles: AxisTitles(
+                    axisNameWidget: yAxisLabel == null
+                        ? null
+                        : Padding(
+                            padding: EdgeInsets.only(bottom: spacing.s4),
+                            child: Text(
+                              yAxisLabel!.toUpperCase(),
+                              style:
+                                  ty.tiny.copyWith(color: colors.textTertiary),
+                            ),
+                          ),
+                    axisNameSize: yAxisLabel == null ? 0 : spacing.s16,
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 42,
                       interval: effectiveLeftAxisInterval,
-                      getTitlesWidget: leftTitleBuilder ??
-                          (value, meta) => Padding(
-                                padding: EdgeInsets.only(right: spacing.s1 + 2),
-                                child: Text(
-                                  _formatNumber(value),
-                                  style: smallLabel,
-                                  textAlign: TextAlign.right,
-                                ),
-                              ),
+                      getTitlesWidget: (value, meta) => Padding(
+                        padding: EdgeInsets.only(right: spacing.s6),
+                        child: Text(
+                          _formatAxisValue(value),
+                          style: smallLabel,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
                     ),
                   ),
                   bottomTitles: AxisTitles(
@@ -190,26 +219,25 @@ class GenaiBarChart<T> extends StatelessWidget {
                       showTitles: true,
                       interval: 1,
                       reservedSize: 32,
-                      getTitlesWidget: bottomTitleBuilder ??
-                          (value, meta) {
-                            if (!value.isFinite) {
-                              return const SizedBox.shrink();
-                            }
-                            final idx = value.toInt();
-                            if (idx < 0 || idx >= data.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final label = xValueMapper(data[idx], idx);
-                            return Padding(
-                              padding: EdgeInsets.only(top: spacing.s2),
-                              child: Transform.rotate(
-                                angle: (rotateLabels && narrow)
-                                    ? (-45 * (pi / 180))
-                                    : 0,
-                                child: Text(label, style: smallLabel),
-                              ),
-                            );
-                          },
+                      getTitlesWidget: (value, meta) {
+                        if (!value.isFinite) return const SizedBox.shrink();
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= data.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final label = xValueMapper(data[idx], idx);
+                        return Padding(
+                          padding: EdgeInsets.only(top: spacing.s8),
+                          child: Transform.rotate(
+                            angle: (rotateLabels && narrow)
+                                ? (-45 * (pi / 180))
+                                : 0,
+                            child: Text(label,
+                                style: ty.labelSm
+                                    .copyWith(color: colors.textSecondary)),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -221,9 +249,12 @@ class GenaiBarChart<T> extends StatelessWidget {
     );
   }
 
-  String _formatNumber(double value) {
+  String _formatAxisValue(double value) {
     if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
     if (value >= 1000) return '${(value / 1000).toStringAsFixed(0)}k';
     return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
   }
+
+  String _formatTooltipValue(double value) =>
+      value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
 }

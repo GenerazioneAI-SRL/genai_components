@@ -2,96 +2,110 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Linear progress indicator (§6.6.3).
+/// Tone variants for [GenaiProgressBar] — v3 design system (§4.3).
 ///
-/// Pass `null` to [value] for an indeterminate animation.
+/// Maps to the CSS `.pbar[data-tone="..."]` token set. Default (`ink`) is used
+/// when no semantic meaning is attached (raw completion). Info/ok/warn/danger
+/// pair with the standard v3 semantic palette.
+enum GenaiProgressBarTone {
+  /// `--ink` — neutral default (no semantic meaning).
+  ink,
+
+  /// `--info` — in-progress / selected.
+  info,
+
+  /// `--ok` — complete / healthy.
+  ok,
+
+  /// `--warn` — behind target, partial completion.
+  warn,
+
+  /// `--danger` — critical / blocked.
+  danger,
+
+  /// `--neutral` — quiet, inactive track (zero progress).
+  neutral,
+}
+
+/// Linear progress bar — v3 design system (§4.3).
+///
+/// Spec: 6 px height, rounded pill corners, bg = `--line`, fill is
+/// tone-aware. Supports determinate ([value] 0..1) and indeterminate modes.
 class GenaiProgressBar extends StatelessWidget {
-  /// Value between 0.0 and 1.0, or null for indeterminate.
+  /// 0..1 progress value. `null` renders an indeterminate animation.
   final double? value;
 
-  /// Thickness of the bar. If null, resolves to the theme divider thickness
-  /// multiplied by 4 for a comfortable default (~4 dp).
-  final double? height;
+  /// Track height in logical px. Defaults to 6 per spec.
+  final double height;
 
+  /// Semantic tone of the fill. Defaults to [GenaiProgressBarTone.ink].
+  final GenaiProgressBarTone tone;
+
+  /// Override fill color. Takes precedence over [tone] when set.
   final Color? color;
-  final Color? backgroundColor;
-  final String? label;
-  final bool showPercentage;
 
-  /// Accessible label. Defaults to the visible [label], or "Avanzamento".
-  final String? semanticLabel;
+  /// Override track background. Defaults to `context.colors.borderDefault`
+  /// (i.e. `--line`).
+  final Color? trackColor;
+
+  /// Accessible label for assistive tech.
+  final String semanticLabel;
 
   const GenaiProgressBar({
     super.key,
     this.value,
-    this.height,
+    this.height = 6,
+    this.tone = GenaiProgressBarTone.ink,
     this.color,
-    this.backgroundColor,
-    this.label,
-    this.showPercentage = false,
-    this.semanticLabel,
-  });
+    this.trackColor,
+    this.semanticLabel = 'Progress',
+  }) : assert(value == null || (value >= 0 && value <= 1),
+            'value must be in [0, 1] or null');
+
+  Color _toneColor(BuildContext context) {
+    final c = context.colors;
+    switch (tone) {
+      case GenaiProgressBarTone.ink:
+        return c.colorPrimary;
+      case GenaiProgressBarTone.info:
+        return c.colorInfo;
+      case GenaiProgressBarTone.ok:
+        return c.colorSuccess;
+      case GenaiProgressBarTone.warn:
+        return c.colorWarning;
+      case GenaiProgressBarTone.danger:
+        return c.colorDanger;
+      case GenaiProgressBarTone.neutral:
+        return c.colorNeutral;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final ty = context.typography;
-    final spacing = context.spacing;
-    final sizing = context.sizing;
-    final fg = color ?? colors.colorPrimary;
-    final bg = backgroundColor ?? colors.borderDefault;
-    final h = height ?? sizing.dividerThickness * 4;
+    final radius = context.radius;
+    final fill = color ?? _toneColor(context);
+    final bg = trackColor ?? colors.borderDefault;
+    final reduced = context.motion.hover.duration == Duration.zero;
 
-    final pct = (value == null) ? null : (value!.clamp(0.0, 1.0) * 100).round();
-
-    final bar = ClipRRect(
-      borderRadius: BorderRadius.circular(h),
-      child: SizedBox(
-        height: h,
-        child: LinearProgressIndicator(
-          value: value,
-          backgroundColor: bg,
-          valueColor: AlwaysStoppedAnimation(fg),
-          minHeight: h,
-        ),
-      ),
-    );
-
-    final content = (label == null && !showPercentage)
-        ? bar
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(bottom: spacing.s1 + spacing.s1 / 2),
-                child: Row(
-                  children: [
-                    if (label != null)
-                      Expanded(
-                        child: Text(
-                          label!,
-                          style:
-                              ty.bodySm.copyWith(color: colors.textSecondary),
-                        ),
-                      )
-                    else
-                      const Spacer(),
-                    if (showPercentage && pct != null)
-                      Text(
-                        '$pct%',
-                        style: ty.bodySm.copyWith(color: colors.textSecondary),
-                      ),
-                  ],
-                ),
-              ),
-              bar,
-            ],
-          );
+    // In reduced-motion mode, indeterminate progress becomes a static 10% bar.
+    final effectiveValue = (value == null && reduced) ? 0.1 : value;
 
     return Semantics(
-      label: semanticLabel ?? label ?? 'Avanzamento',
-      value: pct == null ? null : '$pct%',
-      child: content,
+      label: semanticLabel,
+      value: value == null ? null : '${(value! * 100).round()}%',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius.pill),
+        child: SizedBox(
+          height: height,
+          child: LinearProgressIndicator(
+            value: effectiveValue,
+            minHeight: height,
+            backgroundColor: bg,
+            valueColor: AlwaysStoppedAnimation(fill),
+          ),
+        ),
+      ),
     );
   }
 }

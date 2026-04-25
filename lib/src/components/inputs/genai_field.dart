@@ -2,35 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Composable form-field wrapper (shadcn parity: `<Field>`).
+/// Composable form-field wrapper (shadcn parity: `<Field>`) — v3 design system.
 ///
-/// `GenaiField` lays out the standard label + helper + error chrome around any
-/// input widget. It replaces the per-input label/helper plumbing duplicated by
-/// [GenaiTextField], [GenaiSelect], [GenaiCombobox] and similar components so
-/// custom inputs get the same visual + a11y guarantees for free.
+/// Lays out the standard label + helper + error chrome around any input
+/// widget so custom inputs share the visual + a11y guarantees of the built-in
+/// v3 inputs.
 ///
 /// Layout:
-/// - [label] (with red asterisk if [isRequired], dimmed if [isDisabled])
-/// - `spacing.s2` gap
+/// - [label] (with `colorDanger` asterisk if [isRequired], dimmed if
+///   [isDisabled])
+/// - `spacing.s6` gap (matches the v3 `_FieldFrame` cadence)
 /// - [child]
-/// - either [helperText] or [errorText] beneath, mutually exclusive (error
-///   wins). Helper space is **always reserved** so toggling the error state
-///   never causes layout shift.
+/// - either [helperText] or [errorText] — mutually exclusive (error wins).
+///   Helper space is **always reserved** so toggling the error state never
+///   causes layout shift.
 /// - The error line is wrapped in a `Semantics(liveRegion: true)` so screen
 ///   readers announce validation changes.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiField(
-///   label: 'Email',
-///   isRequired: true,
-///   helperText: 'We will never share it.',
-///   child: GenaiTextField(hint: 'name@domain.com'),
-/// );
-/// ```
-/// {@end-tool}
 class GenaiField extends StatelessWidget {
   /// Label rendered above [child].
   final String? label;
@@ -41,21 +29,20 @@ class GenaiField extends StatelessWidget {
   /// Error copy below [child]. Takes precedence over [helperText].
   final String? errorText;
 
-  /// When true, appends a red `*` after [label].
+  /// When true, appends a danger-colored `*` after [label].
   final bool isRequired;
 
   /// When true, dims the label to the disabled text color.
   final bool isDisabled;
 
-  /// The input widget — typically a `GenaiTextField`, `GenaiSelect`, etc.
+  /// The input widget.
   final Widget child;
 
-  /// Overrides the announced field label for assistive tech.
+  /// Overrides the announced field label.
   final String? semanticLabel;
 
   /// When true, reserves a single helper-line height even with no helper or
-  /// error visible. Turn off for inline fields (e.g. a single checkbox) where
-  /// the empty space below would look out of place.
+  /// error visible. Turn off for inline fields.
   final bool reserveHelperSpace;
 
   const GenaiField({
@@ -79,7 +66,8 @@ class GenaiField extends StatelessWidget {
     final spacing = context.spacing;
 
     final labelColor = isDisabled ? colors.textDisabled : colors.textPrimary;
-    final helperColor = _hasError ? colors.textError : colors.textSecondary;
+    final helperColor =
+        _hasError ? colors.colorDangerText : colors.textTertiary;
     final labelStyle = ty.label.copyWith(color: labelColor);
 
     final children = <Widget>[];
@@ -87,7 +75,7 @@ class GenaiField extends StatelessWidget {
     if (label != null) {
       children.add(
         Padding(
-          padding: EdgeInsets.only(bottom: spacing.s2),
+          padding: EdgeInsets.only(bottom: spacing.s6),
           child: Text.rich(
             TextSpan(
               style: labelStyle,
@@ -96,7 +84,7 @@ class GenaiField extends StatelessWidget {
                 if (isRequired)
                   TextSpan(
                     text: ' *',
-                    style: labelStyle.copyWith(color: colors.colorError),
+                    style: labelStyle.copyWith(color: colors.colorDanger),
                   ),
               ],
             ),
@@ -118,16 +106,16 @@ class GenaiField extends StatelessWidget {
                   ExcludeSemantics(
                     child: Icon(
                       LucideIcons.circleAlert,
-                      size: GenaiSize.xs.iconSize * 0.875,
-                      color: colors.textError,
+                      size: (ty.bodySm.fontSize ?? 13) + 1,
+                      color: colors.colorDangerText,
                     ),
                   ),
-                  SizedBox(width: spacing.s1),
+                  SizedBox(width: spacing.s4),
                 ],
                 Flexible(
                   child: Text(
                     _hasError ? errorText! : helperText!,
-                    style: ty.caption.copyWith(color: helperColor),
+                    style: ty.bodySm.copyWith(color: helperColor),
                   ),
                 ),
               ],
@@ -136,11 +124,10 @@ class GenaiField extends StatelessWidget {
 
       children.add(
         Padding(
-          padding: EdgeInsets.only(top: spacing.s2),
+          padding: EdgeInsets.only(top: spacing.s4),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight:
-                  (ty.caption.height ?? 1.4) * (ty.caption.fontSize ?? 11),
+              minHeight: (ty.bodySm.height ?? 1.4) * (ty.bodySm.fontSize ?? 13),
             ),
             child: Semantics(
               liveRegion: _hasError,

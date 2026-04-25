@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 
-import '../../foundations/animations.dart';
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
+import 'genai_button.dart';
 
-/// Inline clickable text styled as a link (§6.2.6).
+/// Inline clickable text styled as a link — v3 design system (Forma LMS).
+///
+/// Underlines on hover, uses `textLink` color. Typical use: the
+/// `.section-h a, .section-h button` style in the reference HTML (12.5 px
+/// info-blue link aligned to the right of section headers).
 class GenaiLinkButton extends StatefulWidget {
+  /// Visible link text.
   final String label;
+
+  /// Tap callback. `null` disables the link.
   final VoidCallback? onPressed;
 
   /// Optional leading icon.
   final IconData? icon;
 
-  /// When `true`, renders a small "external link" icon trailing the label.
+  /// When `true`, appends an external-link glyph after the label.
   final bool isExternal;
 
   /// Optional explicit size. When `null`, inherits from the surrounding
-  /// text style.
-  final GenaiSize? size;
+  /// body text style (13/400 `bodySm`).
+  final GenaiButtonSize? size;
 
   const GenaiLinkButton({
     super.key,
@@ -43,15 +49,25 @@ class _GenaiLinkButtonState extends State<GenaiLinkButton> {
     final spacing = context.spacing;
     final disabled = widget.onPressed == null;
 
-    final base = widget.size == GenaiSize.xs ? ty.labelSm : ty.bodyMd;
+    final base = switch (widget.size) {
+      GenaiButtonSize.sm => ty.labelSm,
+      GenaiButtonSize.lg => ty.body,
+      _ => ty.bodySm,
+    };
+
     final style = base.copyWith(
       color: colors.textLink,
       decoration: _hovered ? TextDecoration.underline : TextDecoration.none,
       decorationColor: colors.textLink,
     );
 
-    final iconSize = (widget.size ?? GenaiSize.sm).iconSize;
-    final gap = SizedBox(width: spacing.s1);
+    final iconSize = switch (widget.size) {
+      GenaiButtonSize.sm => 14.0,
+      GenaiButtonSize.lg => 18.0,
+      _ => 16.0,
+    };
+
+    final gap = SizedBox(width: spacing.s4);
     final children = <Widget>[];
     if (widget.icon != null) {
       children.add(Icon(widget.icon, size: iconSize, color: colors.textLink));
@@ -60,8 +76,9 @@ class _GenaiLinkButtonState extends State<GenaiLinkButton> {
     children.add(Text(widget.label, style: style));
     if (widget.isExternal) {
       children.add(gap);
-      children.add(Icon(LucideIcons.externalLink,
-          size: iconSize, color: colors.textLink));
+      children.add(
+        Icon(LucideIcons.externalLink, size: iconSize, color: colors.textLink),
+      );
     }
 
     Widget result = Row(mainAxisSize: MainAxisSize.min, children: children);
@@ -81,7 +98,7 @@ class _GenaiLinkButtonState extends State<GenaiLinkButton> {
         behavior: HitTestBehavior.opaque,
         onTap: disabled ? null : widget.onPressed,
         child: Opacity(
-          opacity: disabled ? GenaiInteraction.disabledOpacity : 1.0,
+          opacity: disabled ? 0.5 : 1.0,
           child: result,
         ),
       ),

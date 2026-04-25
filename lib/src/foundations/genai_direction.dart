@@ -1,11 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-/// Sets the active text [TextDirection] for descendants — the design-system
-/// alias of Flutter's [Directionality].
+/// Sets the active text [TextDirection] for descendants — v3 design system
+/// (Forma LMS).
 ///
-/// Identical in behaviour to [Directionality]; the wrapper exists so consumers
-/// have a single, discoverable surface for RTL configuration alongside the
-/// rest of the Genai components, matching shadcn's `Direction` primitive.
+/// Identical in behaviour to Flutter's [Directionality]; the wrapper exists
+/// so consumers have a single, discoverable surface for RTL configuration
+/// alongside the rest of the Genai components, matching shadcn's `Direction`
+/// primitive.
 ///
 /// Typical usage at app or page boundary:
 ///

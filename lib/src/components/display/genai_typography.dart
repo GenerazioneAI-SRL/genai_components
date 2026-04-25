@@ -2,28 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Top-level heading for long-form content blocks.
-///
-/// Visual scale maps to `displayLg` with heavy weight (`w800`) and
-/// `textPrimary` color — suited for page titles above marketing/docs
-/// content. Pairs with [GenaiH2]–[GenaiH4], [GenaiP], [GenaiLead].
-///
-/// Wrapped in a [Semantics] node with `header: true` for screen readers.
-///
-/// {@tool snippet}
-/// ```dart
-/// Column(
-///   crossAxisAlignment: CrossAxisAlignment.start,
-///   children: const [
-///     GenaiH1('Release notes'),
-///     GenaiLead('Overview of the 5.3.0 update.'),
-///     GenaiH2('Added'),
-///     GenaiP('Seven new shadcn-parity components.'),
-///     GenaiBlockquote('Run flutter pub upgrade to update.'),
-///   ],
-/// );
-/// ```
-/// {@end-tool}
+/// Top-level heading — maps to `ty.pageTitle` (22 / 600). Wraps the text in
+/// a `Semantics(header: true)` node for assistive tech.
 class GenaiH1 extends StatelessWidget {
   /// The heading text.
   final String text;
@@ -32,9 +12,8 @@ class GenaiH1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = context.typography.displayLg.copyWith(
+    final style = context.typography.pageTitle.copyWith(
       color: context.colors.textPrimary,
-      fontWeight: FontWeight.w800,
     );
     return Semantics(
       header: true,
@@ -43,7 +22,8 @@ class GenaiH1 extends StatelessWidget {
   }
 }
 
-/// Second-level heading. Maps to `headingLg` with `w700`.
+/// Second-level heading — maps to `ty.sectionTitle` (15 / 600).
+/// `Semantics(header: true)`.
 class GenaiH2 extends StatelessWidget {
   /// The heading text.
   final String text;
@@ -52,9 +32,8 @@ class GenaiH2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = context.typography.headingLg.copyWith(
+    final style = context.typography.sectionTitle.copyWith(
       color: context.colors.textPrimary,
-      fontWeight: FontWeight.w700,
     );
     return Semantics(
       header: true,
@@ -63,7 +42,8 @@ class GenaiH2 extends StatelessWidget {
   }
 }
 
-/// Third-level heading. Maps to a mid-sized heading with `w600`.
+/// Third-level heading — maps to `ty.cardTitle` (14 / 600).
+/// `Semantics(header: true)`.
 class GenaiH3 extends StatelessWidget {
   /// The heading text.
   final String text;
@@ -72,12 +52,8 @@ class GenaiH3 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ty = context.typography;
-    // Interpolate between headingLg and headingSm for a "md" heading.
-    final headingMd = TextStyle.lerp(ty.headingLg, ty.headingSm, 0.5)!;
-    final style = headingMd.copyWith(
+    final style = context.typography.cardTitle.copyWith(
       color: context.colors.textPrimary,
-      fontWeight: FontWeight.w600,
     );
     return Semantics(
       header: true,
@@ -86,7 +62,8 @@ class GenaiH3 extends StatelessWidget {
   }
 }
 
-/// Fourth-level heading. Maps to `headingSm` with `w600`.
+/// Fourth-level heading — maps to `ty.label` (12 / 500) with primary ink.
+/// `Semantics(header: true)`.
 class GenaiH4 extends StatelessWidget {
   /// The heading text.
   final String text;
@@ -95,7 +72,7 @@ class GenaiH4 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = context.typography.headingSm.copyWith(
+    final style = context.typography.label.copyWith(
       color: context.colors.textPrimary,
       fontWeight: FontWeight.w600,
     );
@@ -106,7 +83,7 @@ class GenaiH4 extends StatelessWidget {
   }
 }
 
-/// Standard paragraph. Uses `bodyMd` with `textPrimary`.
+/// Standard paragraph — `ty.body` with `textPrimary`.
 class GenaiP extends StatelessWidget {
   /// The paragraph text.
   final String text;
@@ -115,15 +92,15 @@ class GenaiP extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = context.typography.bodyMd.copyWith(
+    final style = context.typography.body.copyWith(
       color: context.colors.textPrimary,
     );
     return Text(text, style: style);
   }
 }
 
-/// Lead paragraph — larger body copy used for intros. `bodyLg` +
-/// `textSecondary`.
+/// Lead paragraph — `ty.body` (14 / 400) with `textSecondary`. Used for
+/// intros and section leads.
 class GenaiLead extends StatelessWidget {
   /// The lead text.
   final String text;
@@ -132,14 +109,14 @@ class GenaiLead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = context.typography.bodyLg.copyWith(
+    final style = context.typography.body.copyWith(
       color: context.colors.textSecondary,
     );
     return Text(text, style: style);
   }
 }
 
-/// Large body copy with semi-bold weight — used for emphasized paragraphs.
+/// Large body copy — `ty.body` (14 / 400) with weight 600 primary ink.
 class GenaiLarge extends StatelessWidget {
   /// The text content.
   final String text;
@@ -148,7 +125,7 @@ class GenaiLarge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = context.typography.bodyLg.copyWith(
+    final style = context.typography.body.copyWith(
       color: context.colors.textPrimary,
       fontWeight: FontWeight.w600,
     );
@@ -156,7 +133,7 @@ class GenaiLarge extends StatelessWidget {
   }
 }
 
-/// Small body copy with medium weight — labels / metadata.
+/// Small body copy — `ty.bodySm` (13 / 400) with medium weight 500.
 class GenaiSmall extends StatelessWidget {
   /// The text content.
   final String text;
@@ -173,7 +150,7 @@ class GenaiSmall extends StatelessWidget {
   }
 }
 
-/// Muted secondary copy — hints / captions. `bodySm` + `textSecondary`.
+/// Muted secondary copy — `ty.bodySm` with `textSecondary`.
 class GenaiMuted extends StatelessWidget {
   /// The text content.
   final String text;
@@ -189,8 +166,7 @@ class GenaiMuted extends StatelessWidget {
   }
 }
 
-/// Block quote with a leading colored bar, italic body, and card-style
-/// padding. Uses `colorPrimary` for the accent bar.
+/// Block quote — left-accent bar + italic body copy.
 class GenaiBlockquote extends StatelessWidget {
   /// The quoted text.
   final String text;
@@ -201,18 +177,17 @@ class GenaiBlockquote extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final spacing = context.spacing;
-    final style = context.typography.bodyMd.copyWith(
-      color: context.colors.textPrimary,
+    final style = context.typography.body.copyWith(
+      color: colors.textPrimary,
       fontStyle: FontStyle.italic,
     );
     return Container(
-      padding: EdgeInsets.all(spacing.s4),
+      padding: EdgeInsets.all(spacing.s16),
       decoration: BoxDecoration(
         border: Border(
           left: BorderSide(
             color: colors.colorPrimary,
-            // Visual 4-px accent — reuses the s1 step so no literal value.
-            width: spacing.s1,
+            width: spacing.s4,
           ),
         ),
       ),
@@ -221,11 +196,7 @@ class GenaiBlockquote extends StatelessWidget {
   }
 }
 
-/// Inline monospace code — `surfaceHover` background, `radius.sm` corners.
-///
-/// Renders as a baseline-aligned `WidgetSpan` so it composes inside a
-/// sentence, e.g. `RichText(...GenaiInlineCode('flutter pub get')...)`.
-/// When used standalone it behaves like any widget.
+/// Inline monospace code chip — `surfaceHover` bg, `ty.monoMd`, `radius.sm`.
 class GenaiInlineCode extends StatelessWidget {
   /// The code text.
   final String text;
@@ -237,12 +208,12 @@ class GenaiInlineCode extends StatelessWidget {
     final colors = context.colors;
     final spacing = context.spacing;
     final radius = context.radius;
-    final style = context.typography.code.copyWith(
-      color: context.colors.textPrimary,
+    final style = context.typography.monoMd.copyWith(
+      color: colors.textPrimary,
     );
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s1,
+        horizontal: spacing.s4,
         vertical: spacing.s0,
       ),
       decoration: BoxDecoration(

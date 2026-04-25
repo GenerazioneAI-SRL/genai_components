@@ -1,24 +1,22 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import '../../theme/context_extensions.dart';
 
-/// v3 sticky topbar — `.topbar` per §3 layout patterns.
+/// v3 sticky topbar — `.topbar` per §v3 rule 2.
 ///
-/// Layout: [leading] on the left (typically a breadcrumb), [center]
-/// (typically a [GenaiAskBar]) and trailing [actions]. Hairline bottom border.
-/// Background: tinted surfacePage with `backdrop-filter: saturate(1.4)
-/// blur(12px)` when [useBlur] is true (web-friendly; some render targets
-/// silently drop the filter).
+/// Layout: crumbs on the left (flex), [GenaiAskBar] (or any widget) in the
+/// center, icon buttons on the right. Padding 12/28, gap 14. Hairline bottom
+/// border. Background: `color-mix(srgb, surfacePage 88%, transparent)` with
+/// `backdrop-filter: saturate(1.4) blur(12px)`.
 ///
 /// The widget is deliberately typed as `PreferredSizeWidget` so it can be
 /// handed off to hosts expecting an `AppBar` shape.
 class GenaiTopbar extends StatelessWidget implements PreferredSizeWidget {
-  /// Leading widget — typically a `GenaiBreadcrumb`.
+  /// Leading widget — typically a [GenaiBreadcrumb].
   final Widget? leading;
 
-  /// Center widget — typically a `GenaiAskBar`.
+  /// Center widget — typically a [GenaiAskBar].
   final Widget? center;
 
   /// Trailing icon buttons.
@@ -57,8 +55,8 @@ class GenaiTopbar extends StatelessWidget implements PreferredSizeWidget {
     final sizing = context.sizing;
     final h = height ?? _defaultHeight;
 
-    // Translucent bg — 88% surface, mirroring CSS color-mix(srgb, bg 88%,
-    // transparent).
+    // Translucent bg — 88% surface + 12% transparent, mirroring CSS
+    // color-mix(srgb, bg 88%, transparent).
     final translucent = colors.surfacePage.withValues(alpha: 0.88);
 
     Widget content = Container(
@@ -67,24 +65,24 @@ class GenaiTopbar extends StatelessWidget implements PreferredSizeWidget {
         color: translucent,
         border: Border(
           bottom: BorderSide(
-            color: colors.borderDefault,
+            color: colors.borderSubtle,
             width: sizing.dividerThickness,
           ),
         ),
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s8,
-        vertical: spacing.s3,
+        horizontal: spacing.topbarPaddingH,
+        vertical: spacing.topbarPaddingV,
       ),
       child: Row(
         children: [
           if (leading != null) Flexible(child: leading!),
-          SizedBox(width: spacing.s3),
+          SizedBox(width: spacing.s14),
           if (center != null) center!,
-          SizedBox(width: spacing.s3),
+          SizedBox(width: spacing.s14),
           const Spacer(),
           for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) SizedBox(width: spacing.s2),
+            if (i > 0) SizedBox(width: spacing.s8),
             actions[i],
           ],
         ],

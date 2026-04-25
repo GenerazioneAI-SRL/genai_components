@@ -1,103 +1,152 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Elevation tokens §2.5 / §13.5.
+/// Elevation tokens — v3 design system (§2.5).
 ///
-/// Carries:
-/// - a 6-level [shadows] table used by light surfaces,
-/// - a parallel [darkOverlayOpacities] table used on dark surfaces
-///   (white overlay instead of shadow per §2.5.2).
+/// Forma LMS is a **flat, hairline** system: cards carry **no shadow** by
+/// default. Interactive cards use a single soft hover shadow
+/// (`0 4px 12px rgba(13,18,32,.04)`). Overlays (popovers, context menus)
+/// get a slightly stronger shadow so they read as floating.
 ///
-/// Components should read elevation via `context.elevation.shadow(level)`
-/// and `context.elevation.surfaceWithDarkOverlay(...)` — never hardcode
-/// [BoxShadow]s.
+/// Shape parity with v2: `layer0`..`layer3` + `darkTintOpacities`. Since v3
+/// is light-only in v3.0, all tint opacities are zero — the field exists to
+/// preserve the shared `surfaceWithTint` helper signature components expect.
 @immutable
 class GenaiElevationTokens {
-  /// 6 levels (0..5) of box shadows for light surfaces.
-  final List<List<BoxShadow>> shadows;
+  /// Layer 0 — surface page (no elevation).
+  final List<BoxShadow> layer0;
 
-  /// 6 levels of white-overlay opacity for dark surfaces.
-  final List<double> darkOverlayOpacities;
+  /// Layer 1 — surface card (no elevation — flat + border only).
+  final List<BoxShadow> layer1;
+
+  /// Layer 1-hover — single soft shadow for interactive cards on hover.
+  /// Value: `0 4px 12px rgba(13,18,32,.04)` per §2.5.
+  final List<BoxShadow> layer1Hover;
+
+  /// Layer 2 — popover / context menu.
+  final List<BoxShadow> layer2;
+
+  /// Layer 3 — modal / drawer.
+  final List<BoxShadow> layer3;
+
+  /// White-tint overlay opacity for dark surfaces (reserved; always zero in
+  /// v3.0 light-only).
+  final List<double> darkTintOpacities;
 
   const GenaiElevationTokens({
-    required this.shadows,
-    required this.darkOverlayOpacities,
+    required this.layer0,
+    required this.layer1,
+    required this.layer1Hover,
+    required this.layer2,
+    required this.layer3,
+    required this.darkTintOpacities,
   });
 
+  /// Default light tokens per §2.5.
   factory GenaiElevationTokens.defaultLight() => const GenaiElevationTokens(
-        // Softened shadows (v5.1): lower alpha, smaller blur, tighter spread
-        // so surfaces feel modern/flat rather than "2016 Material".
-        shadows: [
-          [],
-          [
-            BoxShadow(
-              color: Color(0x0A000000), // rgba(0,0,0,0.04) — barely visible
-              blurRadius: 2,
-              offset: Offset(0, 1),
-            ),
-          ],
-          [
-            BoxShadow(
-              color: Color(0x0F000000), // rgba(0,0,0,0.06)
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
-          [
-            BoxShadow(
-              color: Color(0x14000000), // rgba(0,0,0,0.08)
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-          [
-            BoxShadow(
-              color: Color(0x1A000000), // rgba(0,0,0,0.10)
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-          [
-            BoxShadow(
-              color: Color(0x1F000000), // rgba(0,0,0,0.12)
-              blurRadius: 24,
-              offset: Offset(0, 10),
-            ),
-          ],
+        layer0: [],
+        layer1: [],
+        layer1Hover: [
+          BoxShadow(
+            color: Color(0x0A0D1220), // rgba(13,18,32,0.04)
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
-        darkOverlayOpacities: [0.0, 0.04, 0.06, 0.08, 0.10, 0.12],
+        layer2: [
+          BoxShadow(
+            color: Color(0x140D1220), // rgba(13,18,32,0.08)
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+        layer3: [
+          BoxShadow(
+            color: Color(0x1F0D1220), // rgba(13,18,32,0.12)
+            blurRadius: 32,
+            offset: Offset(0, 12),
+          ),
+        ],
+        darkTintOpacities: [0.0, 0.0, 0.0, 0.0],
       );
 
-  /// Dark mode uses the same shadow table (kept for consistent shapes) but
-  /// surfaces are elevated via [surfaceWithDarkOverlay] per §2.5.2.
-  factory GenaiElevationTokens.defaultDark() =>
-      GenaiElevationTokens.defaultLight();
+  /// Default dark tokens (added in v3.1 to back the dark color presets).
+  /// Shadows are stronger (rgba(0,0,0,.45..)) so they read on near-black
+  /// surfaces; darkTintOpacities provide subtle white lift per layer.
+  factory GenaiElevationTokens.defaultDark() => const GenaiElevationTokens(
+        layer0: [],
+        layer1: [],
+        layer1Hover: [
+          BoxShadow(
+            color: Color(0x66000000), // rgba(0,0,0,0.40)
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+        layer2: [
+          BoxShadow(
+            color: Color(0x80000000), // rgba(0,0,0,0.50)
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+        layer3: [
+          BoxShadow(
+            color: Color(0x99000000), // rgba(0,0,0,0.60)
+            blurRadius: 32,
+            offset: Offset(0, 12),
+          ),
+        ],
+        darkTintOpacities: [0.0, 0.02, 0.04, 0.06],
+      );
 
-  /// Returns shadows for [level] (0..5).
-  List<BoxShadow> shadow(int level) =>
-      shadows[level.clamp(0, shadows.length - 1)];
-
-  /// Returns the dark-mode overlay opacity for [level] (0..5).
-  double darkOverlayOpacity(int level) =>
-      darkOverlayOpacities[level.clamp(0, darkOverlayOpacities.length - 1)];
-
-  /// Apply white overlay on top of [baseSurface] for the given dark elevation.
-  Color surfaceWithDarkOverlay(int level, Color baseSurface) {
-    final opacity = darkOverlayOpacity(level);
-    return Color.alphaBlend(
-        Colors.white.withValues(alpha: opacity), baseSurface);
+  /// Returns the shadow list for [level] (0..3). Clamps out-of-range.
+  List<BoxShadow> shadowForLayer(int level) {
+    switch (level.clamp(0, 3)) {
+      case 0:
+        return layer0;
+      case 1:
+        return layer1;
+      case 2:
+        return layer2;
+      default:
+        return layer3;
+    }
   }
 
-  GenaiElevationTokens copyWith({
-    List<List<BoxShadow>>? shadows,
-    List<double>? darkOverlayOpacities,
-  }) {
-    return GenaiElevationTokens(
-      shadows: shadows ?? this.shadows,
-      darkOverlayOpacities: darkOverlayOpacities ?? this.darkOverlayOpacities,
+  /// White-tint overlay opacity for [level]. Always zero in v3.0.
+  double darkTintForLayer(int level) =>
+      darkTintOpacities[level.clamp(0, darkTintOpacities.length - 1)];
+
+  /// No-op in v3.0 light-only; preserved for API parity with v2.
+  Color surfaceWithTint(int level, Color baseSurface) {
+    final opacity = darkTintForLayer(level);
+    if (opacity == 0) return baseSurface;
+    return Color.alphaBlend(
+      Colors.white.withValues(alpha: opacity),
+      baseSurface,
     );
   }
 
+  GenaiElevationTokens copyWith({
+    List<BoxShadow>? layer0,
+    List<BoxShadow>? layer1,
+    List<BoxShadow>? layer1Hover,
+    List<BoxShadow>? layer2,
+    List<BoxShadow>? layer3,
+    List<double>? darkTintOpacities,
+  }) {
+    return GenaiElevationTokens(
+      layer0: layer0 ?? this.layer0,
+      layer1: layer1 ?? this.layer1,
+      layer1Hover: layer1Hover ?? this.layer1Hover,
+      layer2: layer2 ?? this.layer2,
+      layer3: layer3 ?? this.layer3,
+      darkTintOpacities: darkTintOpacities ?? this.darkTintOpacities,
+    );
+  }
+
+  /// Elevation is categorical — `lerp` snaps at the midpoint.
   static GenaiElevationTokens lerp(
           GenaiElevationTokens a, GenaiElevationTokens b, double t) =>
       t < 0.5 ? a : b;
@@ -107,12 +156,20 @@ class GenaiElevationTokens {
       identical(this, other) ||
       other is GenaiElevationTokens &&
           runtimeType == other.runtimeType &&
-          listEquals(shadows, other.shadows) &&
-          listEquals(darkOverlayOpacities, other.darkOverlayOpacities);
+          listEquals(layer0, other.layer0) &&
+          listEquals(layer1, other.layer1) &&
+          listEquals(layer1Hover, other.layer1Hover) &&
+          listEquals(layer2, other.layer2) &&
+          listEquals(layer3, other.layer3) &&
+          listEquals(darkTintOpacities, other.darkTintOpacities);
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(shadows.map(Object.hashAll)),
-        Object.hashAll(darkOverlayOpacities),
+        Object.hashAll(layer0),
+        Object.hashAll(layer1),
+        Object.hashAll(layer1Hover),
+        Object.hashAll(layer2),
+        Object.hashAll(layer3),
+        Object.hashAll(darkTintOpacities),
       );
 }

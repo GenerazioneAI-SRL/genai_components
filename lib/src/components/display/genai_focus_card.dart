@@ -9,21 +9,22 @@ import '../../theme/context_extensions.dart';
 /// `.focus` HTML block in the reference bundle.
 ///
 /// Layout:
-/// - Desktop (≥ expanded): two-column grid — 1fr content + 320 px suggestion
-///   rail divided by a left `borderDefault` edge.
+/// - Desktop (≥ expanded): two-column grid — 1fr content (padding 24/22,
+///   column gap 14) + 320 px suggestion rail (padding 20/18, divided by a
+///   left `borderDefault` edge).
 /// - Compact: right rail collapses below the main content and loses the
 ///   divider edge.
 ///
 /// Slots:
-/// - [aiLabel] — uppercase AI caption.
+/// - [aiLabel] — uppercase AI caption (`ty.tiny` + info color).
 /// - [title] — required widget; callers typically pass a `Text` or a
 ///   `RichText` with a highlighted span.
 /// - [meta] — optional inline row of icon/text pairs under the title.
-/// - [actions] — trailing button row.
+/// - [actions] — trailing button row (ink CTA + secondary + ghost).
 /// - [suggestions] — [GenaiSuggestionItem]s stacked in the right column.
 ///
-/// The card itself is `surfaceCard` bg, hairline border, `radius.xl` corners,
-/// no default shadow.
+/// The card itself is `surfaceCard` bg, hairline border, `radius.hero` (14)
+/// corners, no default shadow.
 class GenaiFocusCard extends StatelessWidget {
   /// Uppercase AI caption above the title. Usually something like
   /// "Prossima azione consigliata".
@@ -79,8 +80,6 @@ class GenaiFocusCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(child: leftColumn),
-            // Suggestion rail width is a spec-pinned local measure (not a
-            // theme value).
             SizedBox(width: 320, child: rightColumn!),
           ],
         ),
@@ -98,7 +97,7 @@ class GenaiFocusCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: colors.surfaceCard,
-          borderRadius: BorderRadius.circular(radius.xl),
+          borderRadius: BorderRadius.circular(radius.hero),
           border: Border.all(color: colors.borderDefault),
         ),
         clipBehavior: Clip.antiAlias,
@@ -112,36 +111,37 @@ class GenaiFocusCard extends StatelessWidget {
     final ty = context.typography;
     final spacing = context.spacing;
     final radius = context.radius;
-    final sizing = context.sizing;
 
     return Padding(
-      padding: EdgeInsets.all(spacing.s6),
+      padding: EdgeInsets.fromLTRB(
+        spacing.s24,
+        spacing.s24, // 24 ≈ spec 22 (nearest token; 22 is not in scale).
+        spacing.s24,
+        spacing.s24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // AI label row — sparkle dot + uppercase caption.
+          // AI label row — sparkle dot + tiny uppercase caption.
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: spacing.s2,
-                height: spacing.s2,
+                width: spacing.s10,
+                height: spacing.s10,
                 decoration: BoxDecoration(
                   color: colors.colorInfoSubtle,
                   borderRadius: BorderRadius.circular(radius.pill),
-                  border: Border.all(
-                    color: colors.colorInfo,
-                    width: sizing.dividerThickness,
-                  ),
+                  border: Border.all(color: colors.colorInfo, width: 1.5),
                 ),
               ),
-              SizedBox(width: spacing.s2),
+              SizedBox(width: spacing.s8),
               Flexible(
                 child: Text(
                   aiLabel.toUpperCase(),
-                  style: ty.caption.copyWith(
-                    color: colors.textLink,
+                  style: ty.tiny.copyWith(
+                    color: colors.colorInfoText,
                     fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -149,18 +149,18 @@ class GenaiFocusCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: spacing.s3),
-          // Title — caller-provided widget, re-styled to focusTitle (headingLg
-          // in v1) via DefaultTextStyle.
+          SizedBox(height: spacing.s14),
+          // Title — whatever the caller provides, re-styled to focusTitle if
+          // it's a plain Text via DefaultTextStyle.
           DefaultTextStyle.merge(
-            style: ty.headingLg.copyWith(color: colors.textPrimary),
+            style: ty.focusTitle.copyWith(color: colors.textPrimary),
             child: title,
           ),
           if (meta != null && meta!.isNotEmpty) ...[
-            SizedBox(height: spacing.s3),
+            SizedBox(height: spacing.s14),
             Wrap(
-              spacing: spacing.s3,
-              runSpacing: spacing.s2,
+              spacing: spacing.s14,
+              runSpacing: spacing.s8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: meta!
                   .map(
@@ -169,7 +169,7 @@ class GenaiFocusCard extends StatelessWidget {
                       child: IconTheme.merge(
                         data: IconThemeData(
                           color: colors.textSecondary,
-                          size: sizing.iconInline,
+                          size: context.sizing.iconSize,
                         ),
                         child: w,
                       ),
@@ -179,10 +179,10 @@ class GenaiFocusCard extends StatelessWidget {
             ),
           ],
           if (actions != null && actions!.isNotEmpty) ...[
-            SizedBox(height: spacing.s5),
+            SizedBox(height: spacing.s20),
             Wrap(
-              spacing: spacing.s2,
-              runSpacing: spacing.s2,
+              spacing: spacing.s8,
+              runSpacing: spacing.s8,
               children: actions!,
             ),
           ],
@@ -203,18 +203,23 @@ class GenaiFocusCard extends StatelessWidget {
             ? Border(left: BorderSide(color: colors.borderDefault))
             : Border(top: BorderSide(color: colors.borderDefault)),
       ),
-      padding: EdgeInsets.all(spacing.s5),
+      padding: EdgeInsets.fromLTRB(
+        spacing.s20,
+        spacing.s18,
+        spacing.s20,
+        spacing.s20,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             suggestionsHeading.toUpperCase(),
-            style: ty.caption.copyWith(color: colors.textSecondary),
+            style: ty.tiny.copyWith(color: colors.textTertiary),
           ),
-          SizedBox(height: spacing.s3),
+          SizedBox(height: spacing.s12),
           for (var i = 0; i < suggestions!.length; i++) ...[
-            if (i > 0) SizedBox(height: spacing.s2),
+            if (i > 0) SizedBox(height: spacing.s8),
             suggestions![i],
           ],
         ],

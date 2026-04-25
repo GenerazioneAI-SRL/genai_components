@@ -1,20 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../foundations/animations.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// On/off switch (§6.1.6).
+/// Switch-style on/off toggle — v3 Forma LMS (§6 field rules).
+///
+/// Distinct from `GenaiToggleButton` in `actions/` (which is a button-shaped
+/// two-state selector). This is the pill-switch you'd use in a settings row
+/// for booleans.
+///
+/// Task spec §6: track 36×20, radius 999, bg `line-2` (borderStrong) off /
+/// `colorPrimary` on. Thumb 16 px white.
 class GenaiToggle extends StatefulWidget {
+  /// Current state.
   final bool value;
-  final ValueChanged<bool>? onChanged;
-  final String? label;
-  final String? description;
-  final bool isDisabled;
-  final GenaiSize size;
 
-  /// Screen-reader label when [label] is absent.
+  /// Fired with the next state. `null` disables the control.
+  final ValueChanged<bool>? onChanged;
+
+  /// Inline label left of the track.
+  final String? label;
+
+  /// Secondary description below [label].
+  final String? description;
+
+  /// Muted colours, no interaction.
+  final bool isDisabled;
+
+  /// Screen-reader label override.
   final String? semanticLabel;
 
   const GenaiToggle({
@@ -24,7 +37,6 @@ class GenaiToggle extends StatefulWidget {
     this.label,
     this.description,
     this.isDisabled = false,
-    this.size = GenaiSize.sm,
     this.semanticLabel,
   });
 
@@ -34,6 +46,10 @@ class GenaiToggle extends StatefulWidget {
 
 class _GenaiToggleState extends State<GenaiToggle> {
   bool _focused = false;
+
+  static const double _trackW = 36;
+  static const double _trackH = 20;
+  static const double _thumb = 16;
 
   void _toggle() {
     if (widget.isDisabled || widget.onChanged == null) return;
@@ -47,51 +63,43 @@ class _GenaiToggleState extends State<GenaiToggle> {
     final ty = context.typography;
     final spacing = context.spacing;
     final sizing = context.sizing;
-    final elevation = context.elevation;
     final motion = context.motion;
-
-    // Track/thumb scale on size. Defaults aligned with the sm size (36×20).
-    final (double trackW, double trackH, double thumbSize) =
-        switch (widget.size) {
-      GenaiSize.xs => (28.0, 16.0, 12.0),
-      GenaiSize.sm => (36.0, 20.0, 16.0),
-      GenaiSize.md => (44.0, 24.0, 20.0),
-      GenaiSize.lg || GenaiSize.xl => (52.0, 28.0, 24.0),
-    };
-    final thumbPad = (trackH - thumbSize) / 2;
 
     final trackColor = widget.value ? colors.colorPrimary : colors.borderStrong;
 
     Widget toggle = AnimatedContainer(
-      duration: motion.toggleSlide.duration,
-      curve: motion.toggleSlide.curve,
-      width: trackW,
-      height: trackH,
-      padding: EdgeInsets.all(thumbPad),
+      duration: motion.hover.duration,
+      curve: motion.hover.curve,
+      width: _trackW,
+      height: _trackH,
+      padding: EdgeInsets.all((_trackH - _thumb) / 2),
       decoration: BoxDecoration(
         color: trackColor,
-        borderRadius: BorderRadius.circular(trackH / 2),
+        borderRadius: BorderRadius.circular(_trackH / 2),
       ),
       alignment: widget.value ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        width: thumbSize,
-        height: thumbSize,
+      child: AnimatedContainer(
+        duration: motion.press.duration,
+        curve: motion.press.curve,
+        width: _thumb,
+        height: _thumb,
         decoration: BoxDecoration(
           color: colors.textOnPrimary,
           shape: BoxShape.circle,
-          boxShadow: elevation.shadow(1),
         ),
       ),
     );
 
     if (_focused && !widget.isDisabled) {
       toggle = Container(
-        padding: EdgeInsets.all(sizing.focusOutlineOffset),
+        padding: EdgeInsets.all(sizing.focusRingOffset),
         decoration: BoxDecoration(
           borderRadius:
-              BorderRadius.circular(trackH / 2 + sizing.focusOutlineOffset),
+              BorderRadius.circular(_trackH / 2 + sizing.focusRingOffset),
           border: Border.all(
-              color: colors.borderFocus, width: sizing.focusOutlineWidth),
+            color: colors.borderFocus,
+            width: sizing.focusRingWidth,
+          ),
         ),
         child: toggle,
       );
@@ -111,24 +119,28 @@ class _GenaiToggleState extends State<GenaiToggle> {
               children: [
                 if (widget.label != null)
                   Text(widget.label!,
-                      style: ty.label.copyWith(color: colors.textPrimary)),
+                      style: ty.label.copyWith(
+                        color: widget.isDisabled
+                            ? colors.textDisabled
+                            : colors.textPrimary,
+                      )),
                 if (widget.description != null)
                   Padding(
-                    padding: EdgeInsets.only(top: spacing.s1 / 2),
+                    padding: EdgeInsets.only(top: spacing.s2),
                     child: Text(widget.description!,
-                        style: ty.bodySm.copyWith(color: colors.textSecondary)),
+                        style: ty.bodySm.copyWith(color: colors.textTertiary)),
                   ),
               ],
             ),
           ),
-          SizedBox(width: spacing.s3),
+          SizedBox(width: spacing.s12),
           toggle,
         ],
       );
     }
 
     return Opacity(
-      opacity: widget.isDisabled ? GenaiInteraction.disabledOpacity : 1.0,
+      opacity: widget.isDisabled ? 0.5 : 1.0,
       child: Focus(
         onFocusChange: (f) => setState(() => _focused = f),
         child: MouseRegion(
@@ -150,7 +162,10 @@ class _GenaiToggleState extends State<GenaiToggle> {
                   minHeight: hasText ? 0 : sizing.minTouchTarget,
                   minWidth: hasText ? 0 : sizing.minTouchTarget,
                 ),
-                child: Center(child: content),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: content,
+                ),
               ),
             ),
           ),

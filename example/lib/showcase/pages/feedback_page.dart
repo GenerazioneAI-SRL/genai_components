@@ -10,144 +10,208 @@ class FeedbackPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShowcaseScaffold(
       title: 'Feedback',
-      description: 'Spinner · ProgressBar · CircularProgress · Skeleton · Alert · Toast · EmptyState · ErrorState.',
+      description:
+          'Alert (scanable row, no banner), Toast, Spinner, ProgressBar, '
+          'CircularProgress, Skeleton, EmptyState, ErrorState.',
       children: [
         ShowcaseSection(
-          title: 'Spinner & Progress',
+          title: 'Alert list rows',
+          subtitle: 'info / success / warning / danger.',
+          child: GenaiCard.outlined(
+            padding: EdgeInsets.zero,
+            useHeaderSlot: false,
+            child: Column(
+              children: [
+                const GenaiAlert.info(
+                  title: 'Nuovo quiz disponibile',
+                  body: 'Il quiz Fondo N.C. è ora aperto.',
+                  meta: '2h fa',
+                ),
+                const GenaiAlert.success(
+                  title: 'Certificato emesso',
+                  body: 'Il tuo attestato per Privacy 2026 è stato firmato.',
+                  meta: 'ieri',
+                ),
+                const GenaiAlert.warning(
+                  title: 'Scadenza ravvicinata',
+                  body: 'Completa Sicurezza entro 14 giorni.',
+                  meta: '3gg',
+                ),
+                GenaiAlert.danger(
+                  title: 'Scadenza superata',
+                  body: 'Il corso Antiriciclaggio è scaduto il 01/04.',
+                  meta: 'oggi',
+                  isLastInGroup: true,
+                  onDismiss: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+        ShowcaseSection(
+          title: 'Toast',
+          subtitle: 'Surface inverse, azione opzionale.',
           child: Column(
             children: [
-              ShowcaseRow(label: 'Spinner', children: const [
-                GenaiSpinner(size: GenaiSize.xs),
-                GenaiSpinner(size: GenaiSize.sm),
-                GenaiSpinner(),
-                GenaiSpinner(size: GenaiSize.lg),
-              ]),
-              const ShowcaseRow(label: 'Circular', children: [
-                GenaiCircularProgress(value: 0.65),
-                GenaiCircularProgress(),
-              ]),
-              ShowcaseRow(label: 'Bar — determinate', children: [
-                SizedBox(width: 240, child: GenaiProgressBar(value: 0.4, label: 'Caricamento')),
-                SizedBox(width: 240, child: GenaiProgressBar(value: 0.85, showPercentage: true)),
-              ]),
-              const ShowcaseRow(label: 'Bar — indeterminate', children: [
-                SizedBox(width: 240, child: GenaiProgressBar()),
-              ]),
-              ShowcaseRow(label: 'Ring', children: const [
-                GenaiProgressRing(value: 0.72, centerText: '72%'),
-              ]),
+              ShowcaseRow(
+                label: 'variants',
+                children: [
+                  GenaiToast(
+                    message: 'Salvataggio completato.',
+                    type: GenaiAlertType.success,
+                    actionLabel: 'Annulla',
+                    onAction: () {},
+                    onDismiss: () {},
+                  ),
+                ],
+              ),
+              ShowcaseRow(
+                label: 'danger',
+                children: [
+                  GenaiToast(
+                    message: 'Impossibile connettersi al server.',
+                    type: GenaiAlertType.danger,
+                    actionLabel: 'Riprova',
+                    onAction: () {},
+                    onDismiss: () {},
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        ShowcaseSection(
+          title: 'Spinner',
+          subtitle: 'sm / md / lg — colore ink default.',
+          child: const ShowcaseRow(
+            label: 'sizes',
+            children: [
+              GenaiSpinner(size: GenaiSpinnerSize.sm),
+              GenaiSpinner(),
+              GenaiSpinner(size: GenaiSpinnerSize.lg),
+            ],
+          ),
+        ),
+        ShowcaseSection(
+          title: 'Progress bar',
+          subtitle: 'Toni: ink / info / success / warning / danger.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(
+                height: 10,
+                child: GenaiProgressBar(
+                  value: 0.35,
+                  tone: GenaiProgressBarTone.ink,
+                ),
+              ),
+              SizedBox(height: context.spacing.s12),
+              const SizedBox(
+                height: 10,
+                child: GenaiProgressBar(
+                  value: 0.65,
+                  tone: GenaiProgressBarTone.info,
+                ),
+              ),
+              SizedBox(height: context.spacing.s12),
+              const SizedBox(
+                height: 10,
+                child: GenaiProgressBar(
+                  value: 0.90,
+                  tone: GenaiProgressBarTone.ok,
+                ),
+              ),
+              SizedBox(height: context.spacing.s12),
+              const SizedBox(
+                height: 10,
+                child: GenaiProgressBar(
+                  value: 0.25,
+                  tone: GenaiProgressBarTone.warn,
+                ),
+              ),
+              SizedBox(height: context.spacing.s12),
+              const SizedBox(
+                height: 10,
+                child: GenaiProgressBar(
+                  value: 0.15,
+                  tone: GenaiProgressBarTone.danger,
+                ),
+              ),
+              SizedBox(height: context.spacing.s12),
+              const SizedBox(
+                height: 10,
+                child: GenaiProgressBar(),
+              ), // indeterminate
+            ],
+          ),
+        ),
+        ShowcaseSection(
+          title: 'Circular progress',
+          subtitle: 'Con label opzionale.',
+          child: const ShowcaseRow(
+            label: 'values',
+            children: [
+              GenaiCircularProgress(value: 0.25, size: 48, showLabel: true),
+              GenaiCircularProgress(value: 0.60, size: 64, showLabel: true),
+              GenaiCircularProgress(value: 0.90, size: 80, showLabel: true),
             ],
           ),
         ),
         ShowcaseSection(
           title: 'Skeleton',
+          subtitle: 'Rectangle / pill / circle / text.',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              GenaiSkeleton.text(width: 240),
+              GenaiSkeleton(width: 320, height: 18),
               SizedBox(height: 8),
-              GenaiSkeleton.text(width: 320),
-              SizedBox(height: 16),
-              GenaiSkeleton.rect(height: 48),
-              SizedBox(height: 16),
-              GenaiSkeletonRow(),
-              SizedBox(height: 16),
-              GenaiSkeleton.card(),
+              GenaiSkeleton(width: 240, height: 14),
+              SizedBox(height: 8),
+              GenaiSkeleton(
+                width: 32,
+                height: 32,
+                shape: GenaiSkeletonShape.circle,
+              ),
+              SizedBox(height: 8),
+              GenaiSkeleton(
+                width: 80,
+                height: 24,
+                shape: GenaiSkeletonShape.pill,
+              ),
             ],
           ),
         ),
         ShowcaseSection(
-          title: 'GenaiAlert',
+          title: 'Empty / Error state',
+          subtitle: 'Composti con icon + title + description + CTA.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              GenaiAlert.info(
-                title: 'Info',
-                message: 'Questa è una nota informativa.',
-                onDismiss: () {},
-              ),
-              const SizedBox(height: 8),
-              GenaiAlert.success(
-                title: 'Salvato',
-                message: 'Le modifiche sono state salvate.',
-              ),
-              const SizedBox(height: 8),
-              GenaiAlert.warning(
-                title: 'Attenzione',
-                message: 'Stai per uscire senza salvare.',
-              ),
-              const SizedBox(height: 8),
-              GenaiAlert.error(
-                title: 'Errore di rete',
-                message: 'Non è stato possibile contattare il server.',
-                onDismiss: () {},
-              ),
-            ],
-          ),
-        ),
-        ShowcaseSection(
-          title: 'Toast — showGenaiToast',
-          subtitle: 'Tipi semantici, posizionamento e azione inline con onAction.',
-          child: Wrap(spacing: 8, runSpacing: 8, children: [
-            GenaiButton.outline(label: 'Info', onPressed: () => showGenaiToast(context, message: 'Operazione completata', type: GenaiToastType.info)),
-            GenaiButton.outline(
-                label: 'Success', onPressed: () => showGenaiToast(context, message: 'Salvato con successo', type: GenaiToastType.success)),
-            GenaiButton.outline(
-                label: 'Warning', onPressed: () => showGenaiToast(context, message: 'Connessione instabile', type: GenaiToastType.warning)),
-            GenaiButton.destructive(
-                label: 'Error', onPressed: () => showGenaiToast(context, message: 'Errore di salvataggio', type: GenaiToastType.error)),
-            GenaiButton.ghost(
-                label: 'Top center',
-                onPressed: () => showGenaiToast(context, message: 'Posizionamento alto', position: GenaiToastPosition.topCenter)),
-            GenaiButton.ghost(
-                label: 'Con azione',
-                onPressed: () => showGenaiToast(
-                      context,
-                      message: 'Elemento archiviato',
-                      type: GenaiToastType.success,
-                      actionLabel: 'Annulla',
-                      onAction: () {},
-                    )),
-          ]),
-        ),
-        ShowcaseSection(
-          title: 'EmptyState',
-          child: Wrap(spacing: 16, runSpacing: 16, children: [
-            SizedBox(
-              width: 320,
-              child: GenaiCard.outlined(
+              GenaiCard.outlined(
                 child: GenaiEmptyState(
                   icon: LucideIcons.inbox,
-                  title: 'Nessun cliente ancora',
-                  description: 'Aggiungi il tuo primo cliente per iniziare.',
-                  primaryAction: GenaiButton.primary(label: 'Crea cliente', icon: LucideIcons.plus, onPressed: () {}),
+                  title: 'Nessun avviso',
+                  description:
+                      'Quando riceverai una notifica verrà mostrata qui.',
+                  primaryAction: GenaiButton.primary(
+                    label: 'Vai al dashboard',
+                    onPressed: () {},
+                  ),
                 ),
               ),
-            ),
-            SizedBox(
-              width: 320,
-              child: GenaiCard.outlined(
-                child: GenaiEmptyState.noResults(
-                  icon: LucideIcons.search,
-                  title: 'Nessun risultato',
-                  description: 'Prova a modificare i filtri di ricerca.',
+              SizedBox(height: context.spacing.s14),
+              GenaiCard.outlined(
+                child: GenaiErrorState(
+                  icon: LucideIcons.triangleAlert,
+                  title: 'Errore di caricamento',
+                  description: 'Non siamo riusciti a recuperare i tuoi corsi.',
+                  retryAction: GenaiButton.primary(
+                    label: 'Riprova',
+                    onPressed: () {},
+                  ),
                 ),
               ),
-            ),
-          ]),
-        ),
-        ShowcaseSection(
-          title: 'ErrorState',
-          child: SizedBox(
-            width: 480,
-            child: GenaiCard.outlined(
-              child: GenaiErrorState(
-                title: 'Si è verificato un errore',
-                description: 'Impossibile caricare i dati.',
-                errorCode: 'NET-503',
-                onRetry: () {},
-              ),
-            ),
+            ],
           ),
         ),
       ],

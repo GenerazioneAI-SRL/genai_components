@@ -23,7 +23,7 @@ class AiAssistantPage extends StatelessWidget {
           title: 'Requisito di configurazione',
           child: GenaiAlert.warning(
             title: 'API key richieste',
-            message:
+            body:
                 'GenaiAiAssistant invoca provider LLM remoti. Senza chiavi valide la chat non risponde. '
                 'Configura la chiave in un ambiente di sviluppo sicuro (es. --dart-define) '
                 'prima di usarlo in showcase.',
@@ -34,38 +34,39 @@ class AiAssistantPage extends StatelessWidget {
           subtitle: 'Wrap della MaterialApp per abilitare le capacità AI.',
           child: GenaiCard.outlined(
             padding: EdgeInsets.all(spacing.s4),
-            child: SelectableText(
-              '''GenaiAiAssistant(
+            child: SelectableText('''GenaiAiAssistant(
   config: GenaiAiAssistantConfig(
     provider: GeminiProvider(apiKey: key),
     systemPrompt: 'Assistente interno',
     tools: [ /* ToolDefinition(...) */ ],
   ),
   child: MaterialApp(home: HomeScreen()),
-)''',
-              style: ty.code.copyWith(color: col.textPrimary),
-            ),
+)''', style: ty.monoSm.copyWith(color: col.textPrimary)),
           ),
         ),
         ShowcaseSection(
           title: 'Provider disponibili',
-          child: Wrap(spacing: 12, runSpacing: 12, children: [
-            _ProviderCard(
-              icon: LucideIcons.sparkles,
-              title: 'ClaudeProvider',
-              description: 'Anthropic Claude — tool use, vision, streaming.',
-            ),
-            _ProviderCard(
-              icon: LucideIcons.gem,
-              title: 'GeminiProvider',
-              description: 'Google Gemini — multimodale, function calling.',
-            ),
-            _ProviderCard(
-              icon: LucideIcons.brainCircuit,
-              title: 'OpenAIProvider',
-              description: 'OpenAI GPT-4o / mini — completions + tools.',
-            ),
-          ]),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _ProviderCard(
+                icon: LucideIcons.sparkles,
+                title: 'ClaudeProvider',
+                description: 'Anthropic Claude — tool use, vision, streaming.',
+              ),
+              _ProviderCard(
+                icon: LucideIcons.gem,
+                title: 'GeminiProvider',
+                description: 'Google Gemini — multimodale, function calling.',
+              ),
+              _ProviderCard(
+                icon: LucideIcons.brainCircuit,
+                title: 'OpenAIProvider',
+                description: 'OpenAI GPT-4o / mini — completions + tools.',
+              ),
+            ],
+          ),
         ),
         ShowcaseSection(
           title: 'Mock conversazione',
@@ -80,10 +81,11 @@ class AiAssistantPage extends StatelessWidget {
                   body: 'Genera un riepilogo delle vendite del mese scorso.',
                   color: col.surfaceHover,
                 ),
-                SizedBox(height: spacing.s3),
+                SizedBox(height: spacing.s6),
                 _ChatBubble(
                   role: 'Assistant',
-                  body: 'Ho aggregato 342 ordini per un totale di 128.450 €. '
+                  body:
+                      'Ho aggregato 342 ordini per un totale di 128.450 €. '
                       'Top città: Milano (+18%), Roma (+12%). Conversione 8,4%.',
                   color: col.colorPrimarySubtle,
                   isAssistant: true,
@@ -92,7 +94,9 @@ class AiAssistantPage extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: GenaiTextField.search(hint: 'Scrivi un messaggio...'),
+                      child: GenaiTextField.search(
+                        hintText: 'Scrivi un messaggio...',
+                      ),
                     ),
                     SizedBox(width: spacing.s2),
                     GenaiIconButton(
@@ -115,7 +119,11 @@ class _ProviderCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
-  const _ProviderCard({required this.icon, required this.title, required this.description});
+  const _ProviderCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -130,13 +138,19 @@ class _ProviderCard extends StatelessWidget {
             children: [
               Icon(icon, color: context.colors.colorPrimary, size: 22),
               SizedBox(height: context.spacing.s2),
-              Text(title,
-                  style: context.typography.headingSm
-                      .copyWith(color: context.colors.textPrimary)),
-              SizedBox(height: context.spacing.s1),
-              Text(description,
-                  style: context.typography.bodySm
-                      .copyWith(color: context.colors.textSecondary)),
+              Text(
+                title,
+                style: context.typography.cardTitle.copyWith(
+                  color: context.colors.textPrimary,
+                ),
+              ),
+              SizedBox(height: context.spacing.s2),
+              Text(
+                description,
+                style: context.typography.bodySm.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),
@@ -160,12 +174,13 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment:
-          isAssistant ? MainAxisAlignment.start : MainAxisAlignment.end,
+      mainAxisAlignment: isAssistant
+          ? MainAxisAlignment.start
+          : MainAxisAlignment.end,
       children: [
         Flexible(
           child: Container(
-            padding: EdgeInsets.all(context.spacing.s3),
+            padding: EdgeInsets.all(context.spacing.s6),
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(context.radius.md),
@@ -174,13 +189,19 @@ class _ChatBubble extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(role,
-                    style: context.typography.labelSm
-                        .copyWith(color: context.colors.textSecondary)),
-                SizedBox(height: context.spacing.s1),
-                Text(body,
-                    style: context.typography.bodyMd
-                        .copyWith(color: context.colors.textPrimary)),
+                Text(
+                  role,
+                  style: context.typography.labelSm.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+                SizedBox(height: context.spacing.s2),
+                Text(
+                  body,
+                  style: context.typography.body.copyWith(
+                    color: context.colors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),

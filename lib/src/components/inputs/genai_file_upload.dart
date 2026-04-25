@@ -1,108 +1,234 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../actions/genai_button.dart';
-import '../actions/genai_icon_button.dart';
-import '../feedback/genai_progress_bar.dart';
+import '_field_frame.dart';
 
-/// Descriptor of a file attached to a [GenaiFileUpload].
+/// Metadata for a single uploaded file — v3 Forma LMS.
 ///
-/// `progress` is a value in `[0, 1]` while the upload is in flight, and `null`
-/// once the upload completes or has not started. `errorMessage` marks a
-/// failed upload.
+/// Rendered as a row below the drop zone. Consumers choose whatever transport
+/// they like (multipart, direct upload, AI ingest) and merely feed progress +
+/// status back via [GenaiUploadedFile].
+@immutable
 class GenaiUploadedFile {
+  /// Display name (typically the filename).
   final String name;
-  final int sizeBytes;
+
+  /// File size in bytes. Null = unknown.
+  final int? sizeBytes;
+
+  /// MIME type (e.g. `image/png`). Null = unknown.
   final String? mimeType;
-  final Uint8List? bytes;
-  final String? path;
-  final double? progress; // 0..1, null when complete or not started
-  final String? errorMessage;
+
+  /// 0.0 to 1.0 progress. Ignored when [status] != uploading.
+  final double progress;
+
+  /// Current upload status.
+  final GenaiUploadStatus status;
+
+  /// Error copy — shown instead of progress when [status] is `error`.
+  final String? errorText;
 
   const GenaiUploadedFile({
     required this.name,
-    required this.sizeBytes,
+    this.sizeBytes,
     this.mimeType,
-    this.bytes,
-    this.path,
-    this.progress,
-    this.errorMessage,
+    this.progress = 0.0,
+    this.status = GenaiUploadStatus.done,
+    this.errorText,
   });
-
-  GenaiUploadedFile copyWith({double? progress, String? errorMessage}) =>
-      GenaiUploadedFile(
-        name: name,
-        sizeBytes: sizeBytes,
-        mimeType: mimeType,
-        bytes: bytes,
-        path: path,
-        progress: progress ?? this.progress,
-        errorMessage: errorMessage ?? this.errorMessage,
-      );
 }
 
-/// File upload (§6.1.10).
+/// Upload lifecycle state for a single [GenaiUploadedFile].
+enum GenaiUploadStatus {
+  /// Transfer in progress — `progress` is displayed as a determinate bar.
+  uploading,
+
+  /// Transfer completed successfully.
+  done,
+
+  /// Transfer failed — `errorText` is surfaced instead of progress.
+  error,
+}
+
+/// Drop-zone + file-list uploader — v3 Forma LMS.
 ///
-/// Logic-only widget: file picking is delegated to [onPickRequested] so the
-/// host app can use whatever picker (file_picker / image_picker / web input).
+/// UI-only: calls [onPickFiles] when the user clicks the zone or drops files
+/// (drop-detection is web-only and left to the host app). The host feeds
+/// back [files] with any progress/error metadata.
 class GenaiFileUpload extends StatefulWidget {
-  final String? label;
-  final String? helperText;
-  final String? errorText;
+  /// Files currently displayed under the drop zone.
   final List<GenaiUploadedFile> files;
-  final ValueChanged<List<GenaiUploadedFile>>? onChanged;
-  final VoidCallback? onPickRequested;
-  final bool isMulti;
+
+  /// Fired when the user clicks the zone.
+  final VoidCallback? onPickFiles;
+
+  /// Fired when the user removes a file row.
+  final ValueChanged<int>? onRemove;
+
+  /// Field label above the zone.
+  final String? label;
+
+  /// Placeholder inside the zone — defaults to standard Italian copy.
+  final String? hintText;
+
+  /// Helper copy below.
+  final String? helperText;
+
+  /// Error copy; takes precedence over helper.
+  final String? errorText;
+
+  /// Appends a red asterisk after [label].
+  final bool isRequired;
+
+  /// Muted colours, no interaction.
   final bool isDisabled;
-  final List<String> acceptedExtensions;
-  final int? maxSizeBytes;
+
+  /// Screen-reader label override.
+  final String? semanticLabel;
 
   const GenaiFileUpload({
     super.key,
+    this.files = const [],
+    this.onPickFiles,
+    this.onRemove,
     this.label,
+    this.hintText,
     this.helperText,
     this.errorText,
-    required this.files,
-    this.onChanged,
-    this.onPickRequested,
-    this.isMulti = false,
+    this.isRequired = false,
     this.isDisabled = false,
-    this.acceptedExtensions = const [],
-    this.maxSizeBytes,
+    this.semanticLabel,
   });
-
-  const GenaiFileUpload.multi({
-    super.key,
-    this.label,
-    this.helperText,
-    this.errorText,
-    required this.files,
-    this.onChanged,
-    this.onPickRequested,
-    this.isDisabled = false,
-    this.acceptedExtensions = const [],
-    this.maxSizeBytes,
-  }) : isMulti = true;
 
   @override
   State<GenaiFileUpload> createState() => _GenaiFileUploadState();
 }
 
 class _GenaiFileUploadState extends State<GenaiFileUpload> {
-  bool _hovering = false;
+  bool _hovered = false;
+  bool _focused = false;
 
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+  bool get _hasError =>
+      widget.errorText != null && widget.errorText!.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final sizing = context.sizing;
+    final radius = context.radius;
+    final motion = context.motion;
+
+    final borderColor = widget.isDisabled
+        ? colors.borderSubtle
+        : _hasError
+            ? colors.colorDanger
+            : _focused || _hovered
+                ? colors.textPrimary
+                : colors.borderStrong;
+
+    final dropZone = Focus(
+      onFocusChange: (f) => setState(() => _focused = f),
+      child: MouseRegion(
+        cursor: widget.isDisabled
+            ? SystemMouseCursors.forbidden
+            : SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.isDisabled ? null : widget.onPickFiles,
+          child: AnimatedContainer(
+            duration: motion.hover.duration,
+            curve: motion.hover.curve,
+            padding: EdgeInsets.all(spacing.s20),
+            decoration: BoxDecoration(
+              color:
+                  widget.isDisabled ? colors.surfaceHover : colors.surfaceCard,
+              borderRadius: BorderRadius.circular(radius.xl),
+              border: Border.all(
+                color: borderColor,
+                width: (_focused || _hovered || _hasError)
+                    ? sizing.focusRingWidth
+                    : 1.0,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.cloudUpload,
+                    size: sizing.iconEmptyState, color: colors.textTertiary),
+                SizedBox(height: spacing.s8),
+                Text(
+                  widget.hintText ??
+                      'Clicca per caricare o rilascia i file qui',
+                  style: ty.bodySm.copyWith(color: colors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final fileList = widget.files.isEmpty
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: EdgeInsets.only(top: spacing.s8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < widget.files.length; i++) ...[
+                  if (i > 0) SizedBox(height: spacing.s4),
+                  _FileRow(
+                    file: widget.files[i],
+                    onRemove: widget.isDisabled
+                        ? null
+                        : () => widget.onRemove?.call(i),
+                  ),
+                ],
+              ],
+            ),
+          );
+
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel ?? widget.label ?? 'Caricamento file',
+      enabled: !widget.isDisabled,
+      focused: _focused,
+      child: FieldFrame(
+        label: widget.label,
+        isRequired: widget.isRequired,
+        isDisabled: widget.isDisabled,
+        helperText: widget.helperText,
+        errorText: widget.errorText,
+        control: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [dropZone, fileList],
+        ),
+      ),
+    );
   }
+}
 
-  void _remove(GenaiUploadedFile f) {
-    widget.onChanged?.call(widget.files.where((x) => x != f).toList());
+class _FileRow extends StatelessWidget {
+  final GenaiUploadedFile file;
+  final VoidCallback? onRemove;
+
+  const _FileRow({required this.file, this.onRemove});
+
+  String _formatBytes(int? b) {
+    if (b == null) return '';
+    if (b < 1024) return '$b B';
+    if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(1)} KB';
+    if (b < 1024 * 1024 * 1024) {
+      return '${(b / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(b / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   @override
@@ -110,241 +236,94 @@ class _GenaiFileUploadState extends State<GenaiFileUpload> {
     final colors = context.colors;
     final ty = context.typography;
     final spacing = context.spacing;
-    final radius = context.radius;
     final sizing = context.sizing;
-    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
+    final radius = context.radius;
 
-    final children = <Widget>[];
-    if (widget.label != null) {
-      children.add(Padding(
-        padding: EdgeInsets.only(bottom: spacing.s1 + 2),
-        child: Text(widget.label!,
-            style: ty.label.copyWith(color: colors.textPrimary)),
-      ));
-    }
+    final isError = file.status == GenaiUploadStatus.error;
+    final isUploading = file.status == GenaiUploadStatus.uploading;
 
-    final dropzone = MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      child: Semantics(
-        button: true,
-        enabled: !widget.isDisabled,
-        label: widget.label ?? 'Carica file',
-        hint: widget.isMulti
-            ? 'Trascina o clicca per selezionare uno o più file'
-            : 'Trascina o clicca per selezionare un file',
-        child: GestureDetector(
-          onTap: widget.isDisabled ? null : widget.onPickRequested,
-          child: DottedBorderBox(
-            color: hasError
-                ? colors.borderError
-                : (_hovering ? colors.colorPrimary : colors.borderStrong),
-            radius: radius.md,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                  vertical: spacing.s6, horizontal: spacing.s4),
-              color: _hovering ? colors.colorPrimarySubtle : Colors.transparent,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(LucideIcons.cloudUpload,
-                      size: spacing.s8, color: colors.textSecondary),
-                  SizedBox(height: spacing.s2),
-                  Text(
-                    widget.isMulti
-                        ? 'Trascina i file qui o clicca per selezionare'
-                        : 'Trascina un file qui o clicca per selezionare',
-                    style: ty.bodyMd.copyWith(color: colors.textPrimary),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (widget.acceptedExtensions.isNotEmpty ||
-                      widget.maxSizeBytes != null) ...[
-                    SizedBox(height: spacing.s1),
-                    Text(
-                      [
-                        if (widget.acceptedExtensions.isNotEmpty)
-                          widget.acceptedExtensions.join(', '),
-                        if (widget.maxSizeBytes != null)
-                          'max ${_formatSize(widget.maxSizeBytes!)}',
-                      ].join(' • '),
-                      style: ty.caption.copyWith(color: colors.textSecondary),
+    final statusIcon = switch (file.status) {
+      GenaiUploadStatus.uploading => LucideIcons.loader,
+      GenaiUploadStatus.done => LucideIcons.check,
+      GenaiUploadStatus.error => LucideIcons.circleAlert,
+    };
+    final statusColor = switch (file.status) {
+      GenaiUploadStatus.uploading => colors.textTertiary,
+      GenaiUploadStatus.done => colors.colorSuccess,
+      GenaiUploadStatus.error => colors.colorDanger,
+    };
+
+    return Container(
+      padding:
+          EdgeInsets.symmetric(horizontal: spacing.s12, vertical: spacing.s8),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: BorderRadius.circular(radius.md),
+        border: Border.all(
+            color: isError ? colors.colorDanger : colors.borderDefault),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.file,
+              size: sizing.iconSize, color: colors.textSecondary),
+          SizedBox(width: spacing.iconLabelGap),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(file.name,
+                    style: ty.bodySm.copyWith(color: colors.textPrimary),
+                    overflow: TextOverflow.ellipsis),
+                if (file.sizeBytes != null || isError)
+                  Padding(
+                    padding: EdgeInsets.only(top: spacing.s2),
+                    child: Text(
+                      isError
+                          ? file.errorText ?? 'Caricamento non riuscito'
+                          : _formatBytes(file.sizeBytes),
+                      style: ty.labelSm.copyWith(
+                        color: isError
+                            ? colors.colorDangerText
+                            : colors.textTertiary,
+                      ),
                     ),
-                  ],
-                  SizedBox(height: spacing.s3),
-                  GenaiButton.outline(
-                    label: 'Seleziona file',
-                    size: GenaiSize.sm,
-                    onPressed:
-                        widget.isDisabled ? null : widget.onPickRequested,
+                  ),
+                if (isUploading) ...[
+                  SizedBox(height: spacing.s4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(radius.xs),
+                    child: LinearProgressIndicator(
+                      value: file.progress.clamp(0.0, 1.0),
+                      minHeight: 4,
+                      backgroundColor: colors.borderSubtle,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(colors.colorPrimary),
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    children.add(dropzone);
-
-    if (widget.files.isNotEmpty) {
-      children.add(SizedBox(height: spacing.s2));
-      for (final f in widget.files) {
-        children.add(Padding(
-          padding: EdgeInsets.only(top: spacing.s1),
-          child: Container(
-            padding: EdgeInsets.all(spacing.s2),
-            decoration: BoxDecoration(
-              color: colors.surfaceCard,
-              borderRadius: BorderRadius.circular(radius.sm),
-              border: Border.all(
-                  color: f.errorMessage != null
-                      ? colors.borderError
-                      : colors.borderDefault,
-                  width: sizing.dividerThickness),
-            ),
-            child: Row(
-              children: [
-                Icon(LucideIcons.file,
-                    size: GenaiSize.md.iconSize, color: colors.textSecondary),
-                SizedBox(width: spacing.s2),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(f.name,
-                          style: ty.label.copyWith(color: colors.textPrimary),
-                          overflow: TextOverflow.ellipsis),
-                      Text(
-                        f.errorMessage ?? _formatSize(f.sizeBytes),
-                        style: ty.caption.copyWith(
-                            color: f.errorMessage != null
-                                ? colors.textError
-                                : colors.textSecondary),
-                      ),
-                      if (f.progress != null && f.progress! < 1) ...[
-                        SizedBox(height: spacing.s1),
-                        GenaiProgressBar(value: f.progress),
-                      ],
-                    ],
-                  ),
-                ),
-                GenaiIconButton(
-                  icon: LucideIcons.x,
-                  size: GenaiSize.xs,
-                  semanticLabel: 'Rimuovi',
-                  onPressed: () => _remove(f),
-                ),
               ],
             ),
           ),
-        ));
-      }
-    }
-
-    if (widget.helperText != null || hasError) {
-      children.add(Padding(
-        padding: EdgeInsets.only(top: spacing.s1 + 2),
-        child: Semantics(
-          liveRegion: hasError,
-          child: Text(
-            widget.errorText ?? widget.helperText!,
-            style: ty.caption.copyWith(
-                color: hasError ? colors.textError : colors.textSecondary),
-          ),
-        ),
-      ));
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: children,
-    );
-  }
-}
-
-/// Dashed border container used by [GenaiFileUpload].
-class DottedBorderBox extends StatelessWidget {
-  final Widget child;
-  final Color color;
-  final double radius;
-  final double dashWidth;
-  final double dashSpace;
-  final double strokeWidth;
-
-  const DottedBorderBox({
-    super.key,
-    required this.child,
-    required this.color,
-    this.radius = 8,
-    this.dashWidth = 6,
-    this.dashSpace = 4,
-    this.strokeWidth = 1.5,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(
-        color: color,
-        radius: radius,
-        dashWidth: dashWidth,
-        dashSpace: dashSpace,
-        strokeWidth: strokeWidth,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: child,
+          SizedBox(width: spacing.iconLabelGap),
+          Icon(statusIcon, size: sizing.iconSize, color: statusColor),
+          if (onRemove != null) ...[
+            SizedBox(width: spacing.s4),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Semantics(
+                  button: true,
+                  label: 'Rimuovi ${file.name}',
+                  child: Icon(LucideIcons.x,
+                      size: sizing.iconSize, color: colors.textTertiary),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-  final double dashWidth;
-  final double dashSpace;
-  final double strokeWidth;
-
-  _DashedBorderPainter({
-    required this.color,
-    required this.radius,
-    required this.dashWidth,
-    required this.dashSpace,
-    required this.strokeWidth,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    for (final metric in path.computeMetrics()) {
-      double dist = 0;
-      while (dist < metric.length) {
-        final next = dist + dashWidth;
-        canvas.drawPath(
-            metric.extractPath(dist, next.clamp(0, metric.length)), paint);
-        dist = next + dashSpace;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
-      old.color != color ||
-      old.radius != radius ||
-      old.dashWidth != dashWidth ||
-      old.dashSpace != dashSpace ||
-      old.strokeWidth != strokeWidth;
 }

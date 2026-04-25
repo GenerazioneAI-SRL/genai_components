@@ -1,353 +1,487 @@
 import 'package:flutter/material.dart';
 
-/// Primitive color palette — DO NOT use directly in components.
-/// Components must reference [GenaiColorTokens] semantic tokens.
+/// Primitive color palette for the v3 design system — Forma LMS.
+///
+/// Translated verbatim from the CSS `:root` block of the LMS Dashboard v3
+/// reference HTML (`docs/DESIGN_SYSTEM_V3.md` §2.1 / §2.2). DO NOT use these
+/// directly in components — components consume semantic tokens via
+/// `context.colors` (see [GenaiColorTokens]).
+///
+/// v3 is **light-only** in v3.0; dark mode is deferred to v3.1.
 class GenaiColorsPrimitive {
   GenaiColorsPrimitive._();
 
-  // Primary (brand)
-  static const primary50 = Color(0xFFEFF6FF);
-  static const primary100 = Color(0xFFDBEAFE);
-  static const primary200 = Color(0xFFBFDBFE);
-  static const primary300 = Color(0xFF93C5FD);
-  static const primary400 = Color(0xFF60A5FA);
-  static const primary500 = Color(0xFF2563EB);
-  static const primary600 = Color(0xFF1D4ED8);
-  static const primary700 = Color(0xFF1E40AF);
-  static const primary800 = Color(0xFF1E3A8A);
-  static const primary900 = Color(0xFF172554);
+  // ─── Surface + ink ramp ───────────────────────────────────────────────────
+  /// `--bg` — page background (warm cool neutral).
+  static const Color bg = Color(0xFFF6F7F9);
 
-  // Neutral
-  static const neutral50 = Color(0xFFF9FAFB);
-  static const neutral100 = Color(0xFFF3F4F6);
-  static const neutral200 = Color(0xFFE5E7EB);
-  static const neutral300 = Color(0xFFD1D5DB);
-  static const neutral400 = Color(0xFF9CA3AF);
-  static const neutral500 = Color(0xFF6B7280);
-  static const neutral600 = Color(0xFF4B5563);
-  static const neutral700 = Color(0xFF374151);
-  static const neutral800 = Color(0xFF1F2937);
-  static const neutral850 = Color(0xFF18212F);
-  static const neutral900 = Color(0xFF111827);
-  static const neutral950 = Color(0xFF030712);
+  /// `--panel` — card / surface white.
+  static const Color panel = Color(0xFFFFFFFF);
 
-  // Success
-  static const success50 = Color(0xFFECFDF5);
-  static const success100 = Color(0xFFD1FAE5);
-  static const success200 = Color(0xFFA7F3D0);
-  static const success300 = Color(0xFF6EE7B7);
-  static const success400 = Color(0xFF34D399);
-  static const success500 = Color(0xFF10B981);
-  static const success600 = Color(0xFF059669);
-  static const success700 = Color(0xFF047857);
-  static const success800 = Color(0xFF065F46);
-  static const success900 = Color(0xFF064E3B);
+  /// `--ink` — primary text (near-black).
+  static const Color ink = Color(0xFF0D1220);
 
-  // Warning
-  static const warning50 = Color(0xFFFFFBEB);
-  static const warning100 = Color(0xFFFEF3C7);
-  static const warning200 = Color(0xFFFDE68A);
-  static const warning300 = Color(0xFFFCD34D);
-  static const warning400 = Color(0xFFFBBF24);
-  static const warning500 = Color(0xFFF59E0B);
-  static const warning600 = Color(0xFFD97706);
-  static const warning700 = Color(0xFFB45309);
-  static const warning800 = Color(0xFF92400E);
-  static const warning900 = Color(0xFF78350F);
+  /// Hover variant of [ink] — used for ink-primary CTA hover.
+  ///
+  /// Not in the CSS `:root` block; matches the inline hover declared in
+  /// `.cta[data-ink="1"]:hover` and in §6 preset spec.
+  static const Color inkHover = Color(0xFF1E2642);
 
-  // Error
-  static const error50 = Color(0xFFFEF2F2);
-  static const error100 = Color(0xFFFEE2E2);
-  static const error200 = Color(0xFFFECACA);
-  static const error300 = Color(0xFFFCA5A5);
-  static const error400 = Color(0xFFF87171);
-  static const error500 = Color(0xFFEF4444);
-  static const error600 = Color(0xFFDC2626);
-  static const error700 = Color(0xFFB91C1C);
-  static const error800 = Color(0xFF991B1B);
-  static const error900 = Color(0xFF7F1D1D);
+  /// `--ink-2` — secondary text.
+  static const Color ink2 = Color(0xFF4A5268);
 
-  // Info
-  static const info50 = Color(0xFFEFF6FF);
-  static const info100 = Color(0xFFDBEAFE);
-  static const info200 = Color(0xFFBFDBFE);
-  static const info300 = Color(0xFF93C5FD);
-  static const info400 = Color(0xFF60A5FA);
-  static const info500 = Color(0xFF3B82F6);
-  static const info600 = Color(0xFF2563EB);
-  static const info700 = Color(0xFF1D4ED8);
-  static const info800 = Color(0xFF1E40AF);
-  static const info900 = Color(0xFF1E3A8A);
+  /// `--ink-3` — tertiary / disabled text.
+  static const Color ink3 = Color(0xFF8891A3);
+
+  /// `--line` — default hairline border.
+  static const Color line = Color(0xFFE6E9EF);
+
+  /// `--line-2` — strong border (outline buttons, ask-bar).
+  static const Color line2 = Color(0xFFD6DAE3);
+
+  // ─── Semantic quartet + neutral (base / soft) ─────────────────────────────
+  /// `--ok` — success base.
+  static const Color ok = Color(0xFF0A7D50);
+
+  /// `--ok-soft` — success tinted surface.
+  static const Color okSoft = Color(0xFFE3F4EC);
+
+  /// `--warn` — warning base.
+  static const Color warn = Color(0xFFA35F00);
+
+  /// `--warn-soft` — warning tinted surface.
+  static const Color warnSoft = Color(0xFFFDF1DF);
+
+  /// `--danger` — danger base.
+  static const Color danger = Color(0xFFB3261E);
+
+  /// `--danger-soft` — danger tinted surface.
+  static const Color dangerSoft = Color(0xFFFCE8E6);
+
+  /// `--info` — info base (also primary accent + focus ring in v3).
+  static const Color info = Color(0xFF0B5FD9);
+
+  /// `--info-soft` — info tinted surface.
+  static const Color infoSoft = Color(0xFFE5EFFC);
+
+  /// `--neutral` — neutral base (muted label, quiet chip).
+  static const Color neutral = Color(0xFF5A6277);
+
+  /// `--neutral-soft` — neutral tinted surface (hover bg, kbd pill, sidebar).
+  static const Color neutralSoft = Color(0xFFEEF0F4);
+
+  /// `--focus` — focus ring color (identical to [info] per spec §2.2).
+  static const Color focus = Color(0xFF0B5FD9);
+
+  // ─── Dark companion ramp (added in v3.1 for color presets) ────────────────
+  // The Forma LMS spec is light-first; these dark equivalents back the new
+  // dark presets (formaAurora / formaShadcnDark) without altering the canonical
+  // Forma look. They mirror the light ramp's role assignments on a dark base.
+
+  /// Dark page background — near-black, slight blue cast to match ink.
+  static const Color bgDark = Color(0xFF0B0F1A);
+
+  /// Dark card / panel surface.
+  static const Color panelDark = Color(0xFF141926);
+
+  /// Dark inverse ink — paper white for primary text on dark.
+  static const Color inkDark = Color(0xFFE6E9EF);
+
+  /// Dark hover variant of [inkDark] — for inverted ink CTA hover.
+  static const Color inkDarkHover = Color(0xFFFFFFFF);
+
+  /// Dark secondary text.
+  static const Color ink2Dark = Color(0xFFA1A8B8);
+
+  /// Dark tertiary / disabled text.
+  static const Color ink3Dark = Color(0xFF6B7385);
+
+  /// Dark hairline border.
+  static const Color lineDark = Color(0xFF242A38);
+
+  /// Dark strong border.
+  static const Color line2Dark = Color(0xFF353C4D);
+
+  /// Dark neutral-soft (hover bg, sidebar tint).
+  static const Color neutralSoftDark = Color(0xFF1B2130);
 }
 
-/// Semantic color tokens — the only colors components should reference.
+/// Semantic color tokens — the only colors v3 components should reference.
+///
+/// Class name matches v1 / v2 (`GenaiColorTokens`) so consumers can swap
+/// libraries by changing the import alias. Shape is tuned for Forma LMS:
+///
+/// - Primary CTA is **ink-black** (`#0d1220`), not the info blue. Info remains
+///   the focus-ring + link + informational accent color.
+/// - All semantic intents expose a `base` + `soft` pair per §2.2. No
+///   `Hover` / `Pressed` stops beyond ink — v3 HTML rarely tints semantic
+///   fills, relying on base+soft plus label+icon pairing for contrast.
+/// - `borderSubtle` / `borderDefault` / `borderStrong` mirror `--line` /
+///   `--line` / `--line-2`.
 @immutable
 class GenaiColorTokens {
-  // Brand
-  final Color colorPrimary;
-  final Color colorPrimaryHover;
-  final Color colorPrimaryPressed;
-  final Color colorPrimarySubtle;
+  // ─── Surfaces ────────────────────────────────────────────────────────────
+  /// Deepest background layer (behind [surfacePage]). In light-only v3 this
+  /// equals [surfacePage]; reserved for future dark-mode parity.
+  final Color surfaceDeepest;
 
-  // Surfaces
+  /// Page background — `--bg`.
   final Color surfacePage;
+
+  /// Card / grouped content — `--panel`.
   final Color surfaceCard;
+
+  /// Input / text-field background — `--panel`.
   final Color surfaceInput;
+
+  /// Popover / menu overlay — `--panel`.
   final Color surfaceOverlay;
+
+  /// Modal dialog content — `--panel`.
+  final Color surfaceModal;
+
+  /// Sidebar / navigation chrome — `--panel` in v3 (`--neutral-soft` is used
+  /// inline for row hovers, not as rail bg).
   final Color surfaceSidebar;
+
+  /// Row/button hover tint — `--neutral-soft`.
   final Color surfaceHover;
+
+  /// Row/button pressed tint — slightly stronger than hover. Not in CSS vars;
+  /// derived from `rgba(13,18,32,.06)` (ink @ 6%).
   final Color surfacePressed;
 
-  // Borders
-  final Color borderDefault;
-  final Color borderStrong;
-  final Color borderFocus;
-  final Color borderError;
-  final Color borderSuccess;
-
-  // Text
-  final Color textPrimary;
-  final Color textSecondary;
-  final Color textDisabled;
-  final Color textOnPrimary;
-  final Color textLink;
-  final Color textError;
-  final Color textSuccess;
-  final Color textWarning;
-
-  // Semantic
-  final Color colorSuccess;
-  final Color colorSuccessHover;
-  final Color colorWarning;
-  final Color colorWarningHover;
-  final Color colorError;
-  final Color colorErrorHover;
-  final Color colorInfo;
-  final Color colorInfoHover;
-
-  final Color colorSuccessSubtle;
-  final Color colorWarningSubtle;
-  final Color colorErrorSubtle;
-  final Color colorInfoSubtle;
-
-  // Inverse / overlay — inverse chips (toast, tooltip) and scrims behind
-  // modals and drawers. Kept distinct from surface/text primaries so brand
-  // theming of those tokens doesn't warp overlay semantics.
+  /// Inverse surface — toast, tooltip chip background. Uses `--ink`.
   final Color surfaceInverse;
+
+  // ─── Borders ─────────────────────────────────────────────────────────────
+  /// Subtle divider inside cards — `--line`.
+  final Color borderSubtle;
+
+  /// Default component border (inputs, cards) — `--line`.
+  final Color borderDefault;
+
+  /// Strong border (button outline, ask-bar) — `--line-2`.
+  final Color borderStrong;
+
+  /// Focus ring color — `--focus` (= `--info`).
+  final Color borderFocus;
+
+  // ─── Text ────────────────────────────────────────────────────────────────
+  /// Primary text — `--ink`.
+  final Color textPrimary;
+
+  /// Secondary text — `--ink-2`.
+  final Color textSecondary;
+
+  /// Tertiary text (captions, meta) — `--ink-3`.
+  final Color textTertiary;
+
+  /// Disabled text — same token as [textTertiary] (`--ink-3`). v3 HTML uses
+  /// a single low-contrast step for both.
+  final Color textDisabled;
+
+  /// Text painted on top of [colorPrimary] (ink CTA) — white.
+  final Color textOnPrimary;
+
+  /// Text painted on top of [surfaceInverse] (toast over ink) — white.
   final Color textOnInverse;
+
+  /// Hyperlink color — `--info`.
+  final Color textLink;
+
+  // ─── Brand accent (primary CTA = ink-black) ──────────────────────────────
+  /// Primary CTA base — ink `#0d1220` per §6 preset.
+  final Color colorPrimary;
+
+  /// Primary CTA hover — `#1e2642`.
+  final Color colorPrimaryHover;
+
+  /// Primary CTA pressed — same as [colorPrimary] (no additional stop in v3).
+  final Color colorPrimaryPressed;
+
+  /// Low-contrast accent tint for backgrounds (selected rows) — `--info-soft`.
+  /// Components should prefer the info quartet for tinted accents; this alias
+  /// exists for API parity with v2.
+  final Color colorPrimarySubtle;
+
+  /// Readable accent text on tinted surfaces — `--info`.
+  final Color colorPrimaryText;
+
+  // ─── Semantic quartet (base + soft + textOn{Base,Soft}) ─────────────────
+  // v3 shape: each intent ships a `base` fill and a `soft` tinted-surface
+  // variant. `Hover` stops intentionally omitted — §2.6 keeps hover deltas
+  // to border-color changes, not fill shifts.
+  final Color colorSuccess;
+  final Color colorSuccessSubtle;
+  final Color colorSuccessText;
+
+  final Color colorWarning;
+  final Color colorWarningSubtle;
+  final Color colorWarningText;
+
+  final Color colorDanger;
+  final Color colorDangerSubtle;
+  final Color colorDangerText;
+
+  final Color colorInfo;
+  final Color colorInfoSubtle;
+  final Color colorInfoText;
+
+  final Color colorNeutral;
+  final Color colorNeutralSubtle;
+  final Color colorNeutralText;
+
+  // ─── Scrims ──────────────────────────────────────────────────────────────
+  /// Modal backdrop — ink @ 40%.
   final Color scrimModal;
+
+  /// Drawer backdrop — ink @ 60%.
   final Color scrimDrawer;
 
   const GenaiColorTokens({
-    required this.colorPrimary,
-    required this.colorPrimaryHover,
-    required this.colorPrimaryPressed,
-    required this.colorPrimarySubtle,
+    required this.surfaceDeepest,
     required this.surfacePage,
     required this.surfaceCard,
     required this.surfaceInput,
     required this.surfaceOverlay,
+    required this.surfaceModal,
     required this.surfaceSidebar,
     required this.surfaceHover,
     required this.surfacePressed,
+    required this.surfaceInverse,
+    required this.borderSubtle,
     required this.borderDefault,
     required this.borderStrong,
     required this.borderFocus,
-    required this.borderError,
-    required this.borderSuccess,
     required this.textPrimary,
     required this.textSecondary,
+    required this.textTertiary,
     required this.textDisabled,
     required this.textOnPrimary,
-    required this.textLink,
-    required this.textError,
-    required this.textSuccess,
-    required this.textWarning,
-    required this.colorSuccess,
-    required this.colorSuccessHover,
-    required this.colorWarning,
-    required this.colorWarningHover,
-    required this.colorError,
-    required this.colorErrorHover,
-    required this.colorInfo,
-    required this.colorInfoHover,
-    required this.colorSuccessSubtle,
-    required this.colorWarningSubtle,
-    required this.colorErrorSubtle,
-    required this.colorInfoSubtle,
-    required this.surfaceInverse,
     required this.textOnInverse,
+    required this.textLink,
+    required this.colorPrimary,
+    required this.colorPrimaryHover,
+    required this.colorPrimaryPressed,
+    required this.colorPrimarySubtle,
+    required this.colorPrimaryText,
+    required this.colorSuccess,
+    required this.colorSuccessSubtle,
+    required this.colorSuccessText,
+    required this.colorWarning,
+    required this.colorWarningSubtle,
+    required this.colorWarningText,
+    required this.colorDanger,
+    required this.colorDangerSubtle,
+    required this.colorDangerText,
+    required this.colorInfo,
+    required this.colorInfoSubtle,
+    required this.colorInfoText,
+    required this.colorNeutral,
+    required this.colorNeutralSubtle,
+    required this.colorNeutralText,
     required this.scrimModal,
     required this.scrimDrawer,
   });
 
+  /// Canonical light Forma LMS palette — verbatim from `Dashboard v3.html`.
   factory GenaiColorTokens.defaultLight() => const GenaiColorTokens(
-        colorPrimary: GenaiColorsPrimitive.primary500,
-        colorPrimaryHover: GenaiColorsPrimitive.primary600,
-        colorPrimaryPressed: GenaiColorsPrimitive.primary700,
-        colorPrimarySubtle: GenaiColorsPrimitive.primary50,
-        surfacePage: GenaiColorsPrimitive.neutral50,
-        surfaceCard: Colors.white,
-        surfaceInput: Colors.white,
-        surfaceOverlay: Colors.white,
-        surfaceSidebar: Colors.white,
-        surfaceHover: GenaiColorsPrimitive.neutral100,
-        surfacePressed: GenaiColorsPrimitive.neutral200,
-        borderDefault: GenaiColorsPrimitive.neutral200,
-        borderStrong: GenaiColorsPrimitive.neutral300,
-        borderFocus: GenaiColorsPrimitive.primary500,
-        borderError: GenaiColorsPrimitive.error500,
-        borderSuccess: GenaiColorsPrimitive.success500,
-        textPrimary: GenaiColorsPrimitive.neutral900,
-        textSecondary: GenaiColorsPrimitive.neutral500,
-        textDisabled: GenaiColorsPrimitive.neutral300,
-        textOnPrimary: Colors.white,
-        textLink: GenaiColorsPrimitive.primary600,
-        textError: GenaiColorsPrimitive.error600,
-        textSuccess: GenaiColorsPrimitive.success600,
-        textWarning: GenaiColorsPrimitive.warning600,
-        colorSuccess: GenaiColorsPrimitive.success500,
-        colorSuccessHover: GenaiColorsPrimitive.success600,
-        colorWarning: GenaiColorsPrimitive.warning500,
-        colorWarningHover: GenaiColorsPrimitive.warning600,
-        colorError: GenaiColorsPrimitive.error500,
-        colorErrorHover: GenaiColorsPrimitive.error600,
-        colorInfo: GenaiColorsPrimitive.info500,
-        colorInfoHover: GenaiColorsPrimitive.info600,
-        colorSuccessSubtle: GenaiColorsPrimitive.success50,
-        colorWarningSubtle: GenaiColorsPrimitive.warning50,
-        colorErrorSubtle: GenaiColorsPrimitive.error50,
-        colorInfoSubtle: GenaiColorsPrimitive.info50,
-        surfaceInverse: GenaiColorsPrimitive.neutral800,
-        textOnInverse: Colors.white,
-        scrimModal: Color(0x66000000),
-        scrimDrawer: Color(0x99000000),
+        // Surfaces
+        surfaceDeepest: GenaiColorsPrimitive.bg,
+        surfacePage: GenaiColorsPrimitive.bg,
+        surfaceCard: GenaiColorsPrimitive.panel,
+        surfaceInput: GenaiColorsPrimitive.panel,
+        surfaceOverlay: GenaiColorsPrimitive.panel,
+        surfaceModal: GenaiColorsPrimitive.panel,
+        surfaceSidebar: GenaiColorsPrimitive.panel,
+        surfaceHover: GenaiColorsPrimitive.neutralSoft,
+        surfacePressed: Color(0x0F0D1220), // ink @ 6%
+        surfaceInverse: GenaiColorsPrimitive.ink,
+        // Borders
+        borderSubtle: GenaiColorsPrimitive.line,
+        borderDefault: GenaiColorsPrimitive.line,
+        borderStrong: GenaiColorsPrimitive.line2,
+        borderFocus: GenaiColorsPrimitive.focus,
+        // Text
+        textPrimary: GenaiColorsPrimitive.ink,
+        textSecondary: GenaiColorsPrimitive.ink2,
+        textTertiary: GenaiColorsPrimitive.ink3,
+        textDisabled: GenaiColorsPrimitive.ink3,
+        textOnPrimary: GenaiColorsPrimitive.panel,
+        textOnInverse: GenaiColorsPrimitive.panel,
+        textLink: GenaiColorsPrimitive.info,
+        // Primary accent — ink, per §6
+        colorPrimary: GenaiColorsPrimitive.ink,
+        colorPrimaryHover: GenaiColorsPrimitive.inkHover,
+        colorPrimaryPressed: GenaiColorsPrimitive.ink,
+        colorPrimarySubtle: GenaiColorsPrimitive.infoSoft,
+        colorPrimaryText: GenaiColorsPrimitive.info,
+        // Semantic — verbatim from CSS vars
+        colorSuccess: GenaiColorsPrimitive.ok,
+        colorSuccessSubtle: GenaiColorsPrimitive.okSoft,
+        colorSuccessText: GenaiColorsPrimitive.ok,
+        colorWarning: GenaiColorsPrimitive.warn,
+        colorWarningSubtle: GenaiColorsPrimitive.warnSoft,
+        colorWarningText: GenaiColorsPrimitive.warn,
+        colorDanger: GenaiColorsPrimitive.danger,
+        colorDangerSubtle: GenaiColorsPrimitive.dangerSoft,
+        colorDangerText: GenaiColorsPrimitive.danger,
+        colorInfo: GenaiColorsPrimitive.info,
+        colorInfoSubtle: GenaiColorsPrimitive.infoSoft,
+        colorInfoText: GenaiColorsPrimitive.info,
+        colorNeutral: GenaiColorsPrimitive.neutral,
+        colorNeutralSubtle: GenaiColorsPrimitive.neutralSoft,
+        colorNeutralText: GenaiColorsPrimitive.neutral,
+        // Scrims
+        scrimModal: Color(0x660D1220), // ink @ 40%
+        scrimDrawer: Color(0x990D1220), // ink @ 60%
       );
 
+  /// Dark companion to [defaultLight] — added in v3.1 to back the dark color
+  /// presets (formaAurora / formaShadcnDark). Surfaces flip to a near-black
+  /// ramp keyed off [GenaiColorsPrimitive.bgDark]; text inverts to paper. The
+  /// primary CTA is paper-white (inverted ink) so the spec's "primary = ink"
+  /// rule still reads as maximum-contrast on the surface.
   factory GenaiColorTokens.defaultDark() => const GenaiColorTokens(
-        colorPrimary: GenaiColorsPrimitive.primary400,
-        colorPrimaryHover: GenaiColorsPrimitive.primary300,
-        colorPrimaryPressed: GenaiColorsPrimitive.primary200,
-        colorPrimarySubtle: GenaiColorsPrimitive.primary900,
-        surfacePage: GenaiColorsPrimitive.neutral950,
-        surfaceCard: GenaiColorsPrimitive.neutral900,
-        surfaceInput: GenaiColorsPrimitive.neutral800,
-        surfaceOverlay: GenaiColorsPrimitive.neutral850,
-        surfaceSidebar: GenaiColorsPrimitive.neutral900,
-        surfaceHover: GenaiColorsPrimitive.neutral800,
-        surfacePressed: GenaiColorsPrimitive.neutral700,
-        borderDefault: GenaiColorsPrimitive.neutral700,
-        borderStrong: GenaiColorsPrimitive.neutral600,
-        borderFocus: GenaiColorsPrimitive.primary400,
-        borderError: GenaiColorsPrimitive.error400,
-        borderSuccess: GenaiColorsPrimitive.success400,
-        textPrimary: GenaiColorsPrimitive.neutral50,
-        textSecondary: GenaiColorsPrimitive.neutral400,
-        textDisabled: GenaiColorsPrimitive.neutral600,
-        textOnPrimary: Colors.white,
-        textLink: GenaiColorsPrimitive.primary400,
-        textError: GenaiColorsPrimitive.error400,
-        textSuccess: GenaiColorsPrimitive.success400,
-        textWarning: GenaiColorsPrimitive.warning400,
-        colorSuccess: GenaiColorsPrimitive.success400,
-        colorSuccessHover: GenaiColorsPrimitive.success300,
-        colorWarning: GenaiColorsPrimitive.warning400,
-        colorWarningHover: GenaiColorsPrimitive.warning300,
-        colorError: GenaiColorsPrimitive.error400,
-        colorErrorHover: GenaiColorsPrimitive.error300,
-        colorInfo: GenaiColorsPrimitive.info400,
-        colorInfoHover: GenaiColorsPrimitive.info300,
-        colorSuccessSubtle: GenaiColorsPrimitive.success900,
-        colorWarningSubtle: GenaiColorsPrimitive.warning900,
-        colorErrorSubtle: GenaiColorsPrimitive.error900,
-        colorInfoSubtle: GenaiColorsPrimitive.info900,
-        surfaceInverse: GenaiColorsPrimitive.neutral100,
-        textOnInverse: GenaiColorsPrimitive.neutral900,
-        scrimModal: Color(0x66000000),
-        scrimDrawer: Color(0x99000000),
+        // Surfaces
+        surfaceDeepest: GenaiColorsPrimitive.bgDark,
+        surfacePage: GenaiColorsPrimitive.bgDark,
+        surfaceCard: GenaiColorsPrimitive.panelDark,
+        surfaceInput: GenaiColorsPrimitive.panelDark,
+        surfaceOverlay: GenaiColorsPrimitive.panelDark,
+        surfaceModal: GenaiColorsPrimitive.panelDark,
+        surfaceSidebar: GenaiColorsPrimitive.panelDark,
+        surfaceHover: GenaiColorsPrimitive.neutralSoftDark,
+        surfacePressed: Color(0x1FFFFFFF), // white @ 12%
+        surfaceInverse: GenaiColorsPrimitive.inkDark,
+        // Borders
+        borderSubtle: GenaiColorsPrimitive.lineDark,
+        borderDefault: GenaiColorsPrimitive.lineDark,
+        borderStrong: GenaiColorsPrimitive.line2Dark,
+        borderFocus: GenaiColorsPrimitive.focus,
+        // Text
+        textPrimary: GenaiColorsPrimitive.inkDark,
+        textSecondary: GenaiColorsPrimitive.ink2Dark,
+        textTertiary: GenaiColorsPrimitive.ink3Dark,
+        textDisabled: GenaiColorsPrimitive.ink3Dark,
+        textOnPrimary: GenaiColorsPrimitive.bgDark,
+        textOnInverse: GenaiColorsPrimitive.bgDark,
+        textLink: GenaiColorsPrimitive.info,
+        // Primary accent — inverted ink (paper) so CTAs read on dark surfaces
+        colorPrimary: GenaiColorsPrimitive.inkDark,
+        colorPrimaryHover: GenaiColorsPrimitive.inkDarkHover,
+        colorPrimaryPressed: GenaiColorsPrimitive.inkDark,
+        colorPrimarySubtle: Color(0x330B5FD9), // info @ 20%
+        colorPrimaryText: GenaiColorsPrimitive.info,
+        // Semantic — bases unchanged, subtles tinted to fit dark surfaces
+        colorSuccess: GenaiColorsPrimitive.ok,
+        colorSuccessSubtle: Color(0x330A7D50), // ok @ 20%
+        colorSuccessText: Color(0xFF34D399), // emerald400 readable on dark
+        colorWarning: GenaiColorsPrimitive.warn,
+        colorWarningSubtle: Color(0x33A35F00), // warn @ 20%
+        colorWarningText: Color(0xFFFBBF24), // amber400 readable on dark
+        colorDanger: GenaiColorsPrimitive.danger,
+        colorDangerSubtle: Color(0x33B3261E), // danger @ 20%
+        colorDangerText: Color(0xFFFB7185), // rose400 readable on dark
+        colorInfo: GenaiColorsPrimitive.info,
+        colorInfoSubtle: Color(0x330B5FD9), // info @ 20%
+        colorInfoText: Color(0xFF60A5FA), // azure400 readable on dark
+        colorNeutral: GenaiColorsPrimitive.ink2Dark,
+        colorNeutralSubtle: GenaiColorsPrimitive.neutralSoftDark,
+        colorNeutralText: GenaiColorsPrimitive.ink2Dark,
+        // Scrims
+        scrimModal: Color(0x99000000),
+        scrimDrawer: Color(0xB3000000),
       );
 
   GenaiColorTokens copyWith({
-    Color? colorPrimary,
-    Color? colorPrimaryHover,
-    Color? colorPrimaryPressed,
-    Color? colorPrimarySubtle,
+    Color? surfaceDeepest,
     Color? surfacePage,
     Color? surfaceCard,
     Color? surfaceInput,
     Color? surfaceOverlay,
+    Color? surfaceModal,
     Color? surfaceSidebar,
     Color? surfaceHover,
     Color? surfacePressed,
+    Color? surfaceInverse,
+    Color? borderSubtle,
     Color? borderDefault,
     Color? borderStrong,
     Color? borderFocus,
-    Color? borderError,
-    Color? borderSuccess,
     Color? textPrimary,
     Color? textSecondary,
+    Color? textTertiary,
     Color? textDisabled,
     Color? textOnPrimary,
-    Color? textLink,
-    Color? textError,
-    Color? textSuccess,
-    Color? textWarning,
-    Color? colorSuccess,
-    Color? colorSuccessHover,
-    Color? colorWarning,
-    Color? colorWarningHover,
-    Color? colorError,
-    Color? colorErrorHover,
-    Color? colorInfo,
-    Color? colorInfoHover,
-    Color? colorSuccessSubtle,
-    Color? colorWarningSubtle,
-    Color? colorErrorSubtle,
-    Color? colorInfoSubtle,
-    Color? surfaceInverse,
     Color? textOnInverse,
+    Color? textLink,
+    Color? colorPrimary,
+    Color? colorPrimaryHover,
+    Color? colorPrimaryPressed,
+    Color? colorPrimarySubtle,
+    Color? colorPrimaryText,
+    Color? colorSuccess,
+    Color? colorSuccessSubtle,
+    Color? colorSuccessText,
+    Color? colorWarning,
+    Color? colorWarningSubtle,
+    Color? colorWarningText,
+    Color? colorDanger,
+    Color? colorDangerSubtle,
+    Color? colorDangerText,
+    Color? colorInfo,
+    Color? colorInfoSubtle,
+    Color? colorInfoText,
+    Color? colorNeutral,
+    Color? colorNeutralSubtle,
+    Color? colorNeutralText,
     Color? scrimModal,
     Color? scrimDrawer,
   }) {
     return GenaiColorTokens(
-      colorPrimary: colorPrimary ?? this.colorPrimary,
-      colorPrimaryHover: colorPrimaryHover ?? this.colorPrimaryHover,
-      colorPrimaryPressed: colorPrimaryPressed ?? this.colorPrimaryPressed,
-      colorPrimarySubtle: colorPrimarySubtle ?? this.colorPrimarySubtle,
+      surfaceDeepest: surfaceDeepest ?? this.surfaceDeepest,
       surfacePage: surfacePage ?? this.surfacePage,
       surfaceCard: surfaceCard ?? this.surfaceCard,
       surfaceInput: surfaceInput ?? this.surfaceInput,
       surfaceOverlay: surfaceOverlay ?? this.surfaceOverlay,
+      surfaceModal: surfaceModal ?? this.surfaceModal,
       surfaceSidebar: surfaceSidebar ?? this.surfaceSidebar,
       surfaceHover: surfaceHover ?? this.surfaceHover,
       surfacePressed: surfacePressed ?? this.surfacePressed,
+      surfaceInverse: surfaceInverse ?? this.surfaceInverse,
+      borderSubtle: borderSubtle ?? this.borderSubtle,
       borderDefault: borderDefault ?? this.borderDefault,
       borderStrong: borderStrong ?? this.borderStrong,
       borderFocus: borderFocus ?? this.borderFocus,
-      borderError: borderError ?? this.borderError,
-      borderSuccess: borderSuccess ?? this.borderSuccess,
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
+      textTertiary: textTertiary ?? this.textTertiary,
       textDisabled: textDisabled ?? this.textDisabled,
       textOnPrimary: textOnPrimary ?? this.textOnPrimary,
-      textLink: textLink ?? this.textLink,
-      textError: textError ?? this.textError,
-      textSuccess: textSuccess ?? this.textSuccess,
-      textWarning: textWarning ?? this.textWarning,
-      colorSuccess: colorSuccess ?? this.colorSuccess,
-      colorSuccessHover: colorSuccessHover ?? this.colorSuccessHover,
-      colorWarning: colorWarning ?? this.colorWarning,
-      colorWarningHover: colorWarningHover ?? this.colorWarningHover,
-      colorError: colorError ?? this.colorError,
-      colorErrorHover: colorErrorHover ?? this.colorErrorHover,
-      colorInfo: colorInfo ?? this.colorInfo,
-      colorInfoHover: colorInfoHover ?? this.colorInfoHover,
-      colorSuccessSubtle: colorSuccessSubtle ?? this.colorSuccessSubtle,
-      colorWarningSubtle: colorWarningSubtle ?? this.colorWarningSubtle,
-      colorErrorSubtle: colorErrorSubtle ?? this.colorErrorSubtle,
-      colorInfoSubtle: colorInfoSubtle ?? this.colorInfoSubtle,
-      surfaceInverse: surfaceInverse ?? this.surfaceInverse,
       textOnInverse: textOnInverse ?? this.textOnInverse,
+      textLink: textLink ?? this.textLink,
+      colorPrimary: colorPrimary ?? this.colorPrimary,
+      colorPrimaryHover: colorPrimaryHover ?? this.colorPrimaryHover,
+      colorPrimaryPressed: colorPrimaryPressed ?? this.colorPrimaryPressed,
+      colorPrimarySubtle: colorPrimarySubtle ?? this.colorPrimarySubtle,
+      colorPrimaryText: colorPrimaryText ?? this.colorPrimaryText,
+      colorSuccess: colorSuccess ?? this.colorSuccess,
+      colorSuccessSubtle: colorSuccessSubtle ?? this.colorSuccessSubtle,
+      colorSuccessText: colorSuccessText ?? this.colorSuccessText,
+      colorWarning: colorWarning ?? this.colorWarning,
+      colorWarningSubtle: colorWarningSubtle ?? this.colorWarningSubtle,
+      colorWarningText: colorWarningText ?? this.colorWarningText,
+      colorDanger: colorDanger ?? this.colorDanger,
+      colorDangerSubtle: colorDangerSubtle ?? this.colorDangerSubtle,
+      colorDangerText: colorDangerText ?? this.colorDangerText,
+      colorInfo: colorInfo ?? this.colorInfo,
+      colorInfoSubtle: colorInfoSubtle ?? this.colorInfoSubtle,
+      colorInfoText: colorInfoText ?? this.colorInfoText,
+      colorNeutral: colorNeutral ?? this.colorNeutral,
+      colorNeutralSubtle: colorNeutralSubtle ?? this.colorNeutralSubtle,
+      colorNeutralText: colorNeutralText ?? this.colorNeutralText,
       scrimModal: scrimModal ?? this.scrimModal,
       scrimDrawer: scrimDrawer ?? this.scrimDrawer,
     );
@@ -355,54 +489,51 @@ class GenaiColorTokens {
 
   static GenaiColorTokens lerp(
       GenaiColorTokens a, GenaiColorTokens b, double t) {
+    Color c(Color x, Color y) => Color.lerp(x, y, t)!;
     return GenaiColorTokens(
-      colorPrimary: Color.lerp(a.colorPrimary, b.colorPrimary, t)!,
-      colorPrimaryHover:
-          Color.lerp(a.colorPrimaryHover, b.colorPrimaryHover, t)!,
-      colorPrimaryPressed:
-          Color.lerp(a.colorPrimaryPressed, b.colorPrimaryPressed, t)!,
-      colorPrimarySubtle:
-          Color.lerp(a.colorPrimarySubtle, b.colorPrimarySubtle, t)!,
-      surfacePage: Color.lerp(a.surfacePage, b.surfacePage, t)!,
-      surfaceCard: Color.lerp(a.surfaceCard, b.surfaceCard, t)!,
-      surfaceInput: Color.lerp(a.surfaceInput, b.surfaceInput, t)!,
-      surfaceOverlay: Color.lerp(a.surfaceOverlay, b.surfaceOverlay, t)!,
-      surfaceSidebar: Color.lerp(a.surfaceSidebar, b.surfaceSidebar, t)!,
-      surfaceHover: Color.lerp(a.surfaceHover, b.surfaceHover, t)!,
-      surfacePressed: Color.lerp(a.surfacePressed, b.surfacePressed, t)!,
-      borderDefault: Color.lerp(a.borderDefault, b.borderDefault, t)!,
-      borderStrong: Color.lerp(a.borderStrong, b.borderStrong, t)!,
-      borderFocus: Color.lerp(a.borderFocus, b.borderFocus, t)!,
-      borderError: Color.lerp(a.borderError, b.borderError, t)!,
-      borderSuccess: Color.lerp(a.borderSuccess, b.borderSuccess, t)!,
-      textPrimary: Color.lerp(a.textPrimary, b.textPrimary, t)!,
-      textSecondary: Color.lerp(a.textSecondary, b.textSecondary, t)!,
-      textDisabled: Color.lerp(a.textDisabled, b.textDisabled, t)!,
-      textOnPrimary: Color.lerp(a.textOnPrimary, b.textOnPrimary, t)!,
-      textLink: Color.lerp(a.textLink, b.textLink, t)!,
-      textError: Color.lerp(a.textError, b.textError, t)!,
-      textSuccess: Color.lerp(a.textSuccess, b.textSuccess, t)!,
-      textWarning: Color.lerp(a.textWarning, b.textWarning, t)!,
-      colorSuccess: Color.lerp(a.colorSuccess, b.colorSuccess, t)!,
-      colorSuccessHover:
-          Color.lerp(a.colorSuccessHover, b.colorSuccessHover, t)!,
-      colorWarning: Color.lerp(a.colorWarning, b.colorWarning, t)!,
-      colorWarningHover:
-          Color.lerp(a.colorWarningHover, b.colorWarningHover, t)!,
-      colorError: Color.lerp(a.colorError, b.colorError, t)!,
-      colorErrorHover: Color.lerp(a.colorErrorHover, b.colorErrorHover, t)!,
-      colorInfo: Color.lerp(a.colorInfo, b.colorInfo, t)!,
-      colorInfoHover: Color.lerp(a.colorInfoHover, b.colorInfoHover, t)!,
-      colorSuccessSubtle:
-          Color.lerp(a.colorSuccessSubtle, b.colorSuccessSubtle, t)!,
-      colorWarningSubtle:
-          Color.lerp(a.colorWarningSubtle, b.colorWarningSubtle, t)!,
-      colorErrorSubtle: Color.lerp(a.colorErrorSubtle, b.colorErrorSubtle, t)!,
-      colorInfoSubtle: Color.lerp(a.colorInfoSubtle, b.colorInfoSubtle, t)!,
-      surfaceInverse: Color.lerp(a.surfaceInverse, b.surfaceInverse, t)!,
-      textOnInverse: Color.lerp(a.textOnInverse, b.textOnInverse, t)!,
-      scrimModal: Color.lerp(a.scrimModal, b.scrimModal, t)!,
-      scrimDrawer: Color.lerp(a.scrimDrawer, b.scrimDrawer, t)!,
+      surfaceDeepest: c(a.surfaceDeepest, b.surfaceDeepest),
+      surfacePage: c(a.surfacePage, b.surfacePage),
+      surfaceCard: c(a.surfaceCard, b.surfaceCard),
+      surfaceInput: c(a.surfaceInput, b.surfaceInput),
+      surfaceOverlay: c(a.surfaceOverlay, b.surfaceOverlay),
+      surfaceModal: c(a.surfaceModal, b.surfaceModal),
+      surfaceSidebar: c(a.surfaceSidebar, b.surfaceSidebar),
+      surfaceHover: c(a.surfaceHover, b.surfaceHover),
+      surfacePressed: c(a.surfacePressed, b.surfacePressed),
+      surfaceInverse: c(a.surfaceInverse, b.surfaceInverse),
+      borderSubtle: c(a.borderSubtle, b.borderSubtle),
+      borderDefault: c(a.borderDefault, b.borderDefault),
+      borderStrong: c(a.borderStrong, b.borderStrong),
+      borderFocus: c(a.borderFocus, b.borderFocus),
+      textPrimary: c(a.textPrimary, b.textPrimary),
+      textSecondary: c(a.textSecondary, b.textSecondary),
+      textTertiary: c(a.textTertiary, b.textTertiary),
+      textDisabled: c(a.textDisabled, b.textDisabled),
+      textOnPrimary: c(a.textOnPrimary, b.textOnPrimary),
+      textOnInverse: c(a.textOnInverse, b.textOnInverse),
+      textLink: c(a.textLink, b.textLink),
+      colorPrimary: c(a.colorPrimary, b.colorPrimary),
+      colorPrimaryHover: c(a.colorPrimaryHover, b.colorPrimaryHover),
+      colorPrimaryPressed: c(a.colorPrimaryPressed, b.colorPrimaryPressed),
+      colorPrimarySubtle: c(a.colorPrimarySubtle, b.colorPrimarySubtle),
+      colorPrimaryText: c(a.colorPrimaryText, b.colorPrimaryText),
+      colorSuccess: c(a.colorSuccess, b.colorSuccess),
+      colorSuccessSubtle: c(a.colorSuccessSubtle, b.colorSuccessSubtle),
+      colorSuccessText: c(a.colorSuccessText, b.colorSuccessText),
+      colorWarning: c(a.colorWarning, b.colorWarning),
+      colorWarningSubtle: c(a.colorWarningSubtle, b.colorWarningSubtle),
+      colorWarningText: c(a.colorWarningText, b.colorWarningText),
+      colorDanger: c(a.colorDanger, b.colorDanger),
+      colorDangerSubtle: c(a.colorDangerSubtle, b.colorDangerSubtle),
+      colorDangerText: c(a.colorDangerText, b.colorDangerText),
+      colorInfo: c(a.colorInfo, b.colorInfo),
+      colorInfoSubtle: c(a.colorInfoSubtle, b.colorInfoSubtle),
+      colorInfoText: c(a.colorInfoText, b.colorInfoText),
+      colorNeutral: c(a.colorNeutral, b.colorNeutral),
+      colorNeutralSubtle: c(a.colorNeutralSubtle, b.colorNeutralSubtle),
+      colorNeutralText: c(a.colorNeutralText, b.colorNeutralText),
+      scrimModal: c(a.scrimModal, b.scrimModal),
+      scrimDrawer: c(a.scrimDrawer, b.scrimDrawer),
     );
   }
 
@@ -411,87 +542,93 @@ class GenaiColorTokens {
       identical(this, other) ||
       other is GenaiColorTokens &&
           runtimeType == other.runtimeType &&
-          colorPrimary == other.colorPrimary &&
-          colorPrimaryHover == other.colorPrimaryHover &&
-          colorPrimaryPressed == other.colorPrimaryPressed &&
-          colorPrimarySubtle == other.colorPrimarySubtle &&
+          surfaceDeepest == other.surfaceDeepest &&
           surfacePage == other.surfacePage &&
           surfaceCard == other.surfaceCard &&
           surfaceInput == other.surfaceInput &&
           surfaceOverlay == other.surfaceOverlay &&
+          surfaceModal == other.surfaceModal &&
           surfaceSidebar == other.surfaceSidebar &&
           surfaceHover == other.surfaceHover &&
           surfacePressed == other.surfacePressed &&
+          surfaceInverse == other.surfaceInverse &&
+          borderSubtle == other.borderSubtle &&
           borderDefault == other.borderDefault &&
           borderStrong == other.borderStrong &&
           borderFocus == other.borderFocus &&
-          borderError == other.borderError &&
-          borderSuccess == other.borderSuccess &&
           textPrimary == other.textPrimary &&
           textSecondary == other.textSecondary &&
+          textTertiary == other.textTertiary &&
           textDisabled == other.textDisabled &&
           textOnPrimary == other.textOnPrimary &&
-          textLink == other.textLink &&
-          textError == other.textError &&
-          textSuccess == other.textSuccess &&
-          textWarning == other.textWarning &&
-          colorSuccess == other.colorSuccess &&
-          colorSuccessHover == other.colorSuccessHover &&
-          colorWarning == other.colorWarning &&
-          colorWarningHover == other.colorWarningHover &&
-          colorError == other.colorError &&
-          colorErrorHover == other.colorErrorHover &&
-          colorInfo == other.colorInfo &&
-          colorInfoHover == other.colorInfoHover &&
-          colorSuccessSubtle == other.colorSuccessSubtle &&
-          colorWarningSubtle == other.colorWarningSubtle &&
-          colorErrorSubtle == other.colorErrorSubtle &&
-          colorInfoSubtle == other.colorInfoSubtle &&
-          surfaceInverse == other.surfaceInverse &&
           textOnInverse == other.textOnInverse &&
+          textLink == other.textLink &&
+          colorPrimary == other.colorPrimary &&
+          colorPrimaryHover == other.colorPrimaryHover &&
+          colorPrimaryPressed == other.colorPrimaryPressed &&
+          colorPrimarySubtle == other.colorPrimarySubtle &&
+          colorPrimaryText == other.colorPrimaryText &&
+          colorSuccess == other.colorSuccess &&
+          colorSuccessSubtle == other.colorSuccessSubtle &&
+          colorSuccessText == other.colorSuccessText &&
+          colorWarning == other.colorWarning &&
+          colorWarningSubtle == other.colorWarningSubtle &&
+          colorWarningText == other.colorWarningText &&
+          colorDanger == other.colorDanger &&
+          colorDangerSubtle == other.colorDangerSubtle &&
+          colorDangerText == other.colorDangerText &&
+          colorInfo == other.colorInfo &&
+          colorInfoSubtle == other.colorInfoSubtle &&
+          colorInfoText == other.colorInfoText &&
+          colorNeutral == other.colorNeutral &&
+          colorNeutralSubtle == other.colorNeutralSubtle &&
+          colorNeutralText == other.colorNeutralText &&
           scrimModal == other.scrimModal &&
           scrimDrawer == other.scrimDrawer;
 
   @override
   int get hashCode => Object.hashAll([
-        colorPrimary,
-        colorPrimaryHover,
-        colorPrimaryPressed,
-        colorPrimarySubtle,
+        surfaceDeepest,
         surfacePage,
         surfaceCard,
         surfaceInput,
         surfaceOverlay,
+        surfaceModal,
         surfaceSidebar,
         surfaceHover,
         surfacePressed,
+        surfaceInverse,
+        borderSubtle,
         borderDefault,
         borderStrong,
         borderFocus,
-        borderError,
-        borderSuccess,
         textPrimary,
         textSecondary,
+        textTertiary,
         textDisabled,
         textOnPrimary,
-        textLink,
-        textError,
-        textSuccess,
-        textWarning,
-        colorSuccess,
-        colorSuccessHover,
-        colorWarning,
-        colorWarningHover,
-        colorError,
-        colorErrorHover,
-        colorInfo,
-        colorInfoHover,
-        colorSuccessSubtle,
-        colorWarningSubtle,
-        colorErrorSubtle,
-        colorInfoSubtle,
-        surfaceInverse,
         textOnInverse,
+        textLink,
+        colorPrimary,
+        colorPrimaryHover,
+        colorPrimaryPressed,
+        colorPrimarySubtle,
+        colorPrimaryText,
+        colorSuccess,
+        colorSuccessSubtle,
+        colorSuccessText,
+        colorWarning,
+        colorWarningSubtle,
+        colorWarningText,
+        colorDanger,
+        colorDangerSubtle,
+        colorDangerText,
+        colorInfo,
+        colorInfoSubtle,
+        colorInfoText,
+        colorNeutral,
+        colorNeutralSubtle,
+        colorNeutralText,
         scrimModal,
         scrimDrawer,
       ]);

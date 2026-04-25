@@ -3,43 +3,60 @@ import 'package:flutter/services.dart';
 
 import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../ai_assistant/src/core/ai_assistant.dart';
-import '../ai_assistant/src/core/ai_assistant_config.dart';
 import 'genai_bottom_nav.dart';
 import 'genai_command_palette.dart';
 import 'genai_navigation_rail.dart';
 import 'genai_sidebar.dart';
 
-/// Application shell (§5 + §6.6.12).
+/// Application shell — v3 design system (§3 layout pattern).
 ///
-/// Composes sidebar (or rail or bottom-nav) + app bar + body, switching
-/// layout automatically based on the window size.
+/// Composes sidebar + topbar + body:
+/// - **Compact** (`<600`): sidebar is hidden; if [bottomNavItems] is provided
+///   the first 5 appear as a bottom nav (per §v3 rule 6).
+/// - **Medium** (`600–1279`): icon-only [GenaiNavigationRail].
+/// - **Expanded** (`>=1280`): full 240 px [GenaiSidebar].
 ///
-/// Cmd/Ctrl+K opens an optional command palette driven by [commands].
+/// `Cmd/Ctrl+K` opens the optional command palette when [commands] is
+/// provided.
 class GenaiShell extends StatefulWidget {
-  /// Sidebar configuration (always provided; collapses/transforms on small
-  /// breakpoints).
+  /// Sidebar groups driving expanded and rail layouts.
   final List<GenaiSidebarGroup> sidebarGroups;
-  final String? selectedId;
-  final ValueChanged<String>? onNavigate;
-  final Widget? sidebarHeader;
-  final Widget? sidebarFooter;
 
-  /// Top app bar (kept on all sizes).
-  final PreferredSizeWidget? appBar;
+  /// Currently selected item id.
+  final String? selectedId;
+
+  /// Fires when a sidebar entry is activated.
+  final ValueChanged<String>? onNavigate;
+
+  /// Brand block at the top of the sidebar.
+  final GenaiSidebarBrand? sidebarBrand;
+
+  /// Footer block at the bottom of the sidebar.
+  final GenaiSidebarFooter? sidebarFooter;
+
+  /// Optional custom sidebar header (overrides [sidebarBrand] when set).
+  final Widget? sidebarHeader;
+
+  /// Optional custom sidebar footer (overrides [sidebarFooter] when set).
+  final Widget? sidebarFooterOverride;
+
+  /// Top bar — typically a [GenaiTopbar]. Rendered on all window sizes.
+  final PreferredSizeWidget? topBar;
+
+  /// Main content body.
   final Widget body;
 
-  /// If non-null, enables Cmd/Ctrl+K command palette.
+  /// Command palette entries. When non-null enables `Cmd/Ctrl+K`.
   final List<GenaiCommand>? commands;
 
-  /// If non-null, mobile uses these primary destinations as bottom nav.
+  /// Optional mobile bottom-nav destinations. Truncated to the first 5.
   final List<GenaiBottomNavItem>? bottomNavItems;
-  final int? bottomNavIndex;
-  final ValueChanged<int>? onBottomNavChanged;
 
-  /// If non-null, wraps the shell in a [GenaiAiAssistant] overlay (FAB +
-  /// chat). The assistant scope sees the full shell as its child.
-  final GenaiAiAssistantConfig? aiAssistantConfig;
+  /// Currently selected bottom-nav index.
+  final int? bottomNavIndex;
+
+  /// Fires when a bottom-nav destination is activated.
+  final ValueChanged<int>? onBottomNavChanged;
 
   const GenaiShell({
     super.key,
@@ -47,14 +64,15 @@ class GenaiShell extends StatefulWidget {
     required this.body,
     this.selectedId,
     this.onNavigate,
-    this.sidebarHeader,
+    this.sidebarBrand,
     this.sidebarFooter,
-    this.appBar,
+    this.sidebarHeader,
+    this.sidebarFooterOverride,
+    this.topBar,
     this.commands,
     this.bottomNavItems,
     this.bottomNavIndex,
     this.onBottomNavChanged,
-    this.aiAssistantConfig,
   });
 
   @override
@@ -62,10 +80,6 @@ class GenaiShell extends StatefulWidget {
 }
 
 class _GenaiShellState extends State<GenaiShell> {
-  bool _sidebarCollapsed = false;
-
-  // Convert sidebar groups to a flat list of rail items (icons only, top
-  // level entries only).
   List<GenaiNavigationRailItem> _railItems() {
     final out = <GenaiNavigationRailItem>[];
     for (final g in widget.sidebarGroups) {
@@ -89,103 +103,128 @@ class _GenaiShellState extends State<GenaiShell> {
     return idx < 0 ? 0 : idx;
   }
 
-  void _railSelect(int index) {
+  void _onRailSelected(int idx) {
     final flat = <GenaiSidebarItem>[];
     for (final g in widget.sidebarGroups) {
       flat.addAll(g.items);
     }
-    if (index < flat.length) widget.onNavigate?.call(flat[index].id);
+    if (idx < 0 || idx >= flat.length) return;
+    widget.onNavigate?.call(flat[idx].id);
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = context.windowSize;
     final colors = context.colors;
-    final size = GenaiResponsive.sizeOf(context);
 
-    Widget content = Scaffold(
-      backgroundColor: colors.surfacePage,
-      appBar: widget.appBar,
-      body: _buildBody(size),
-      bottomNavigationBar:
-          size == GenaiWindowSize.compact && widget.bottomNavItems != null
-              ? GenaiBottomNav(
-                  items: widget.bottomNavItems!,
-                  selectedIndex: widget.bottomNavIndex ?? 0,
-                  onChanged: widget.onBottomNavChanged,
-                )
-              : null,
+    Widget layout;
+    switch (size) {
+      case GenaiWindowSize.compact:
+      case GenaiWindowSize.medium:
+        layout = _buildCompactOrMedium(context, size);
+        break;
+      case GenaiWindowSize.expanded:
+      case GenaiWindowSize.large:
+      case GenaiWindowSize.extraLarge:
+        layout = _buildExpanded(context);
+        break;
+    }
+
+    final scaffold = Material(
+      type: MaterialType.canvas,
+      color: colors.surfacePage,
+      textStyle: context.typography.body.copyWith(color: colors.textPrimary),
+      child: layout,
     );
-
-    if (widget.commands != null) {
-      content = _CommandShortcutHost(
-        onOpen: () =>
-            showGenaiCommandPalette(context, commands: widget.commands!),
-        child: content,
-      );
-    }
-    if (widget.aiAssistantConfig != null) {
-      content = GenaiAiAssistant(
-        config: widget.aiAssistantConfig!,
-        child: content,
-      );
-    }
-    return content;
+    if (widget.commands == null) return scaffold;
+    return _CommandShortcutHost(
+      commands: widget.commands!,
+      child: scaffold,
+    );
   }
 
-  Widget _buildBody(GenaiWindowSize size) {
-    // Layout decisions based on window width, not platform (§10.2).
-    if (size == GenaiWindowSize.compact) {
-      // Mobile: just the body; sidebar replaced by bottom nav (above).
-      return widget.body;
-    }
-    if (size == GenaiWindowSize.medium) {
-      return Row(
-        children: [
-          GenaiNavigationRail(
-            items: _railItems(),
-            selectedIndex: _railSelectedIndex(),
-            onChanged: _railSelect,
+  Widget _buildCompactOrMedium(BuildContext context, GenaiWindowSize size) {
+    final compact = size == GenaiWindowSize.compact;
+    final items = widget.bottomNavItems;
+    final showBottomNav = compact && items != null && items.isNotEmpty;
+
+    return Column(
+      children: [
+        if (widget.topBar != null) widget.topBar!,
+        Expanded(
+          child: Row(
+            children: [
+              if (!compact)
+                GenaiNavigationRail(
+                  items: _railItems(),
+                  selectedIndex: _railSelectedIndex(),
+                  onChanged: _onRailSelected,
+                  leading: widget.sidebarHeader,
+                  trailing: widget.sidebarFooterOverride,
+                ),
+              Expanded(child: widget.body),
+            ],
           ),
-          Expanded(child: widget.body),
-        ],
-      );
-    }
+        ),
+        if (showBottomNav)
+          GenaiBottomNav(
+            items: items.take(5).toList(),
+            selectedIndex: widget.bottomNavIndex ?? 0,
+            onChanged: widget.onBottomNavChanged,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildExpanded(BuildContext context) {
     return Row(
       children: [
         GenaiSidebar(
           groups: widget.sidebarGroups,
           selectedId: widget.selectedId,
           onSelected: widget.onNavigate,
-          isCollapsed: _sidebarCollapsed,
-          onCollapsedChanged: (v) => setState(() => _sidebarCollapsed = v),
-          header: widget.sidebarHeader,
+          brand: widget.sidebarBrand,
           footer: widget.sidebarFooter,
+          header: widget.sidebarHeader,
+          footerOverride: widget.sidebarFooterOverride,
         ),
-        Expanded(child: widget.body),
+        Expanded(
+          child: Column(
+            children: [
+              if (widget.topBar != null) widget.topBar!,
+              Expanded(child: widget.body),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
+class _OpenPaletteIntent extends Intent {
+  const _OpenPaletteIntent();
+}
+
 class _CommandShortcutHost extends StatelessWidget {
-  final VoidCallback onOpen;
+  final List<GenaiCommand> commands;
   final Widget child;
-  const _CommandShortcutHost({required this.onOpen, required this.child});
+
+  const _CommandShortcutHost({required this.commands, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      shortcuts: <ShortcutActivator, Intent>{
-        const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-            const _OpenCommandIntent(),
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
-            const _OpenCommandIntent(),
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+            _OpenPaletteIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _OpenPaletteIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          _OpenCommandIntent: CallbackAction<_OpenCommandIntent>(
+          _OpenPaletteIntent: CallbackAction<_OpenPaletteIntent>(
             onInvoke: (_) {
-              onOpen();
+              showGenaiCommandPalette(context, commands: commands);
               return null;
             },
           ),
@@ -194,8 +233,4 @@ class _CommandShortcutHost extends StatelessWidget {
       ),
     );
   }
-}
-
-class _OpenCommandIntent extends Intent {
-  const _OpenCommandIntent();
 }

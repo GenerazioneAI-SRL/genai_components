@@ -2,31 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../foundations/icons.dart';
-import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 import 'genai_button.dart';
 import 'genai_icon_button.dart';
 
-/// Copies [valueToCopy] to the system clipboard. The icon flips to a check
-/// for the `toastSuccess` lifetime as feedback (§6.2.7).
+/// Copy-to-clipboard icon button with a checkmark flash confirmation —
+/// v3 design system (Forma LMS).
+///
+/// The icon flips from `copy` to `check` on tap for a brief window, then
+/// restores. Tooltip and semantic label track the same state.
 class GenaiCopyButton extends StatefulWidget {
+  /// The string written to the system clipboard on tap.
   final String valueToCopy;
-  final GenaiSize size;
+
+  /// Visual size scale.
+  final GenaiButtonSize size;
+
+  /// Default semantic label / tooltip ("Copy" state).
   final String semanticLabel;
 
-  /// Label shown as tooltip/semantic label while the copied state is active.
+  /// Label used while the "copied" flash is active.
   final String copiedLabel;
 
-  /// Optional override for how long the "copied" confirmation lasts. Defaults
-  /// to `context.motion.toastSuccess / ~2.6` so the flash feels brief.
+  /// How long the "copied" confirmation remains. Defaults to 1500 ms to feel
+  /// brisk without blocking a subsequent copy attempt.
   final Duration? feedbackDuration;
 
   const GenaiCopyButton({
     super.key,
     required this.valueToCopy,
-    this.size = GenaiSize.xs,
-    this.semanticLabel = 'Copia',
-    this.copiedLabel = 'Copiato',
+    this.size = GenaiButtonSize.sm,
+    this.semanticLabel = 'Copy',
+    this.copiedLabel = 'Copied',
     this.feedbackDuration,
   });
 
@@ -41,10 +47,7 @@ class _GenaiCopyButtonState extends State<GenaiCopyButton> {
     await Clipboard.setData(ClipboardData(text: widget.valueToCopy));
     if (!mounted) return;
     setState(() => _copied = true);
-    final delay = widget.feedbackDuration ??
-        Duration(
-            milliseconds:
-                (context.motion.toastSuccess.inMilliseconds / 2.6).round());
+    final delay = widget.feedbackDuration ?? const Duration(milliseconds: 1500);
     await Future<void>.delayed(delay);
     if (!mounted) return;
     setState(() => _copied = false);

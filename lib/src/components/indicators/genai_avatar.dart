@@ -3,16 +3,29 @@ import 'package:flutter/material.dart';
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
 
-/// Avatar size scale §6.7.4.
+/// Avatar size scale — v3 design system (Forma LMS).
 enum GenaiAvatarSize {
+  /// 20 px — inline dense rows.
   xs(20),
+
+  /// 28 px — compact list items.
   sm(28),
+
+  /// 36 px — default.
   md(36),
+
+  /// 48 px — comment, chat author.
   lg(48),
+
+  /// 64 px — profile header.
   xl(64),
+
+  /// 96 px — profile hero.
   xxl(96);
 
+  /// Resolved pixel dimension.
   final double size;
+
   const GenaiAvatarSize(this.size);
 }
 
@@ -31,18 +44,31 @@ enum GenaiAvatarPresence {
   offline,
 }
 
-/// User avatar with image / initials / placeholder fallback (§6.7.4).
+/// User avatar with image / initials / placeholder fallback — v3 design
+/// system (Forma LMS).
 ///
-/// Use named constructors:
-/// - [GenaiAvatar.image] — loads from URL.
+/// Three modes via named constructors:
+/// - [GenaiAvatar.image] — loads from a URL (falls back to initials or icon).
 /// - [GenaiAvatar.initials] — derives 1-2 char initials from a name.
 /// - [GenaiAvatar.placeholder] — generic icon fallback.
 class GenaiAvatar extends StatelessWidget {
+  /// Image URL for [GenaiAvatar.image].
   final String? imageUrl;
+
+  /// Full name; drives initials and deterministic background color.
   final String? name;
+
+  /// Optional icon for [GenaiAvatar.placeholder]. Defaults to `LucideIcons.user`.
   final IconData? placeholderIcon;
+
+  /// Size scale.
   final GenaiAvatarSize size;
+
+  /// Optional presence dot in the bottom-right.
   final GenaiAvatarPresence? presence;
+
+  /// Screen-reader label override. Defaults to [name] or "Avatar".
+  final String? semanticLabel;
 
   const GenaiAvatar.image({
     super.key,
@@ -50,6 +76,7 @@ class GenaiAvatar extends StatelessWidget {
     this.name,
     this.size = GenaiAvatarSize.md,
     this.presence,
+    this.semanticLabel,
   }) : placeholderIcon = null;
 
   const GenaiAvatar.initials({
@@ -57,6 +84,7 @@ class GenaiAvatar extends StatelessWidget {
     required String this.name,
     this.size = GenaiAvatarSize.md,
     this.presence,
+    this.semanticLabel,
   })  : imageUrl = null,
         placeholderIcon = null;
 
@@ -65,6 +93,7 @@ class GenaiAvatar extends StatelessWidget {
     this.placeholderIcon,
     this.size = GenaiAvatarSize.md,
     this.presence,
+    this.semanticLabel,
   })  : imageUrl = null,
         name = null;
 
@@ -107,7 +136,9 @@ class GenaiAvatar extends StatelessWidget {
                 color: _presenceColor(colors),
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: colors.surfaceCard, width: sizing.focusOutlineWidth),
+                  color: colors.surfaceCard,
+                  width: sizing.focusRingWidth,
+                ),
               ),
             ),
           ),
@@ -116,7 +147,7 @@ class GenaiAvatar extends StatelessWidget {
     }
 
     return Semantics(
-      label: name ?? 'Avatar',
+      label: semanticLabel ?? name ?? 'Avatar',
       image: imageUrl != null,
       child: result,
     );
@@ -128,7 +159,7 @@ class GenaiAvatar extends StatelessWidget {
 
     if (name != null && name!.trim().isNotEmpty) {
       final initials = _computeInitials(name!);
-      final bg = _generatedBg(name!, context.isDark, colors);
+      final bg = _generatedBg(name!, colors);
       final fg = _contrastForeground(bg, colors);
       return Container(
         width: dim,
@@ -170,19 +201,16 @@ class GenaiAvatar extends StatelessWidget {
         .toUpperCase();
   }
 
-  /// Deterministic background color based on the user's name. Uses the
-  /// semantic status/info palette so the choice adapts to light/dark themes
-  /// without hardcoded hex values.
-  Color _generatedBg(String key, bool isDark, dynamic colors) {
+  /// Deterministic background color seeded from [key]. v3 uses the semantic
+  /// quartet + primary so the selection stays theme-aware.
+  Color _generatedBg(String key, dynamic colors) {
     final palette = <Color>[
       colors.colorInfo as Color,
       colors.colorPrimary as Color,
       colors.colorSuccess as Color,
       colors.colorWarning as Color,
-      colors.colorError as Color,
-      colors.colorPrimaryHover as Color,
-      colors.colorInfoHover as Color,
-      colors.colorSuccessHover as Color,
+      colors.colorDanger as Color,
+      colors.colorNeutral as Color,
     ];
     final hash = key.codeUnits.fold<int>(0, (a, b) => (a + b) & 0x7FFFFFFF);
     return palette[hash % palette.length];
@@ -200,7 +228,7 @@ class GenaiAvatar extends StatelessWidget {
       case GenaiAvatarPresence.away:
         return colors.colorWarning;
       case GenaiAvatarPresence.busy:
-        return colors.colorError;
+        return colors.colorDanger;
       case GenaiAvatarPresence.offline:
         return colors.textDisabled;
     }

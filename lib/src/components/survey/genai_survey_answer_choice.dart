@@ -4,6 +4,7 @@ import 'package:star_rating/star_rating.dart';
 
 import '../../theme/context_extensions.dart';
 import '../inputs/genai_text_field.dart';
+import '../inputs/genai_textarea.dart';
 import 'models/genai_survey_option.dart';
 import 'models/genai_survey_question.dart';
 
@@ -366,10 +367,11 @@ class _SentenceState extends State<_Sentence> {
         ]),
       );
     }
-    return GenaiTextField.multiline(
+    return GenaiTextarea(
       controller: _ctrl,
       label: 'Inserisci la tua risposta',
-      maxLines: 3,
+      minLines: 3,
+      maxLines: 6,
       onChanged: (v) => widget.onChange([
         {'text': _ctrl.text}
       ]),

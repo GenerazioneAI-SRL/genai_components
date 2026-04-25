@@ -3,39 +3,18 @@ import 'package:flutter/services.dart';
 
 import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-// ignore: unused_import — referenced in doc comment on [_alertDialogZ].
-import '../../tokens/z_index.dart';
-import '../actions/genai_button.dart';
 
-/// Shows a shadcn/ui `AlertDialog`-equivalent: a critical/destructive
-/// confirmation dialog with locked title + description + Cancel/Confirm
-/// content pattern.
+/// Shows a shadcn-style alert dialog — v3 design system.
 ///
-/// Unlike [showGenaiModal] this helper is intentionally opinionated:
-/// - barrier taps are disabled (shadcn convention for alert dialogs)
-/// - `Esc` dismisses and returns `false`
-/// - focus is trapped on the confirm button by default
-/// - semantic container uses `scopesRoute` + `namesRoute` + `liveRegion`
-///   so screen readers announce it like `role="alertdialog"`
+/// Differences vs. [showGenaiModal]:
+/// - Barrier taps do **not** dismiss (shadcn `AlertDialog` convention).
+/// - `Esc` dismisses and resolves with `false`.
+/// - Initial focus is trapped on the confirm button.
+/// - Semantics mark the container as `liveRegion` + `scopesRoute` so it
+///   announces like `role="alertdialog"`.
 ///
-/// Returns `true` if the user confirms, `false` on cancel/Esc, or `null`
-/// only if the route is popped programmatically.
-///
-/// {@tool snippet}
-/// ```dart
-/// final confirmed = await showGenaiAlertDialog(
-///   context,
-///   title: 'Elimina progetto',
-///   description: 'Questa operazione non è reversibile.',
-///   confirmLabel: 'Elimina',
-///   isDestructive: true,
-///   icon: const Icon(LucideIcons.alertTriangle),
-/// );
-/// if (confirmed == true) {
-///   // perform delete
-/// }
-/// ```
-/// {@end-tool}
+/// Resolves to `true` on confirm, `false` on cancel / Esc, or `null` only if
+/// the route is popped programmatically.
 Future<bool?> showGenaiAlertDialog(
   BuildContext context, {
   required String title,
@@ -48,15 +27,14 @@ Future<bool?> showGenaiAlertDialog(
   String? barrierSemanticLabel,
 }) {
   final reduced = GenaiResponsive.reducedMotion(context);
-  final motion = context.motion;
+  final motion = context.motion.modal;
   return showGeneralDialog<bool>(
     context: context,
-    // Alert dialogs do NOT dismiss on barrier tap — shadcn convention.
     barrierDismissible: false,
     barrierLabel:
         barrierSemanticLabel ?? dismissSemanticLabel ?? 'Finestra di avviso',
     barrierColor: context.colors.scrimModal,
-    transitionDuration: reduced ? Duration.zero : motion.modalOpen.duration,
+    transitionDuration: reduced ? Duration.zero : motion.duration,
     pageBuilder: (ctx, _, __) => _GenaiAlertDialogShell(
       title: title,
       description: description,
@@ -64,12 +42,10 @@ Future<bool?> showGenaiAlertDialog(
       confirmLabel: confirmLabel,
       isDestructive: isDestructive,
       icon: icon,
-      dismissSemanticLabel: dismissSemanticLabel,
     ),
     transitionBuilder: (_, anim, __, dialog) {
       if (reduced) return dialog;
-      final curved =
-          CurvedAnimation(parent: anim, curve: motion.modalOpen.curve);
+      final curved = CurvedAnimation(parent: anim, curve: motion.curve);
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
@@ -88,7 +64,6 @@ class _GenaiAlertDialogShell extends StatefulWidget {
   final String confirmLabel;
   final bool isDestructive;
   final Widget? icon;
-  final String? dismissSemanticLabel;
 
   const _GenaiAlertDialogShell({
     required this.title,
@@ -97,7 +72,6 @@ class _GenaiAlertDialogShell extends StatefulWidget {
     required this.confirmLabel,
     required this.isDestructive,
     required this.icon,
-    required this.dismissSemanticLabel,
   });
 
   @override
@@ -111,7 +85,6 @@ class _GenaiAlertDialogShellState extends State<_GenaiAlertDialogShell> {
   @override
   void initState() {
     super.initState();
-    // Trap initial focus on the confirm button (shadcn AlertDialog default).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _confirmFocus.requestFocus();
     });
@@ -129,26 +102,31 @@ class _GenaiAlertDialogShellState extends State<_GenaiAlertDialogShell> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final typography = context.typography;
+    final ty = context.typography;
     final spacing = context.spacing;
-    final radiusTokens = context.radius;
+    final radius = context.radius;
 
     final iconColor =
-        widget.isDestructive ? colors.colorError : colors.colorWarning;
+        widget.isDestructive ? colors.colorDanger : colors.colorWarning;
 
-    final content = ConstrainedBox(
-      // sm width (~360) per spec.
-      constraints: const BoxConstraints(maxWidth: 360),
+    final dialog = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 400),
       child: Material(
-        color: colors.surfaceCard,
-        borderRadius: BorderRadius.circular(radiusTokens.md),
+        color: colors.surfaceModal,
+        borderRadius: BorderRadius.circular(radius.xl),
         clipBehavior: Clip.antiAlias,
-        child: Padding(
+        elevation: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius.xl),
+            border: Border.all(color: colors.borderDefault),
+            boxShadow: context.elevation.shadowForLayer(3),
+          ),
           padding: EdgeInsets.fromLTRB(
-            spacing.s5,
-            spacing.s5,
-            spacing.s5,
-            spacing.s4,
+            spacing.s20,
+            spacing.s20,
+            spacing.s20,
+            spacing.s18,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -165,41 +143,39 @@ class _GenaiAlertDialogShellState extends State<_GenaiAlertDialogShell> {
                     child: widget.icon!,
                   ),
                 ),
-                SizedBox(height: spacing.s3),
+                SizedBox(height: spacing.s12),
               ],
               Semantics(
                 header: true,
                 child: Text(
                   widget.title,
-                  style:
-                      typography.headingSm.copyWith(color: colors.textPrimary),
+                  style: ty.sectionTitle.copyWith(color: colors.textPrimary),
                 ),
               ),
-              SizedBox(height: spacing.s2),
+              SizedBox(height: spacing.s8),
               Text(
                 widget.description,
-                style: typography.bodySm.copyWith(color: colors.textSecondary),
+                style: ty.bodySm.copyWith(color: colors.textSecondary),
               ),
-              SizedBox(height: spacing.s5),
+              SizedBox(height: spacing.s20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  GenaiButton.ghost(
+                  _DialogButton(
                     label: widget.cancelLabel,
                     onPressed: _cancel,
+                    isPrimary: false,
+                    isDestructive: false,
                   ),
-                  SizedBox(width: spacing.s2),
+                  SizedBox(width: spacing.s8),
                   Focus(
                     focusNode: _confirmFocus,
-                    child: widget.isDestructive
-                        ? GenaiButton.destructive(
-                            label: widget.confirmLabel,
-                            onPressed: _confirm,
-                          )
-                        : GenaiButton.primary(
-                            label: widget.confirmLabel,
-                            onPressed: _confirm,
-                          ),
+                    child: _DialogButton(
+                      label: widget.confirmLabel,
+                      onPressed: _confirm,
+                      isPrimary: !widget.isDestructive,
+                      isDestructive: widget.isDestructive,
+                    ),
                   ),
                 ],
               ),
@@ -237,10 +213,10 @@ class _GenaiAlertDialogShellState extends State<_GenaiAlertDialogShell> {
                 alignment: Alignment.center,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: spacing.s6,
-                    vertical: spacing.s6,
+                    horizontal: spacing.s24,
+                    vertical: spacing.s24,
                   ),
-                  child: content,
+                  child: dialog,
                 ),
               ),
             ),
@@ -251,6 +227,73 @@ class _GenaiAlertDialogShellState extends State<_GenaiAlertDialogShell> {
   }
 }
 
-// Alert dialog renders over the modal backdrop / content layers.
+/// Locally-scoped button so the alert dialog has no button dependency.
+class _DialogButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+  final bool isDestructive;
+
+  const _DialogButton({
+    required this.label,
+    required this.onPressed,
+    required this.isPrimary,
+    required this.isDestructive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final radius = context.radius;
+    final spacing = context.spacing;
+    final sizing = context.sizing;
+
+    Color bg;
+    Color fg;
+    Color border;
+    if (isDestructive) {
+      bg = colors.colorDanger;
+      fg = colors.textOnPrimary;
+      border = colors.colorDanger;
+    } else if (isPrimary) {
+      bg = colors.colorPrimary;
+      fg = colors.textOnPrimary;
+      border = colors.colorPrimary;
+    } else {
+      bg = colors.surfaceCard;
+      fg = colors.textPrimary;
+      border = colors.borderStrong;
+    }
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(radius.md),
+        child: Container(
+          constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.s16,
+            vertical: spacing.s8,
+          ),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(radius.md),
+            border: Border.all(color: border),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: ty.label.copyWith(color: fg),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// AlertDialog renders over the modal backdrop / content layers (§z-index).
 // ignore: unused_element
 const int _alertDialogZ = GenaiZIndex.modalContent;

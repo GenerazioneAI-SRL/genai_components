@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
+import '_field_frame.dart';
 
-/// One option inside a [GenaiNativeSelect].
+/// One option inside a [GenaiNativeSelect] — v3 design system (Forma LMS).
 ///
 /// A lightweight twin of `GenaiSelectOption` purpose-built for the native
-/// dropdown — no description, no per-option disable state (consumers can
-/// simply omit unavailable values).
+/// dropdown — no description, no per-option disable state.
 class GenaiNativeSelectOption<T> {
   /// Value identifying the option.
   final T value;
@@ -26,17 +25,12 @@ class GenaiNativeSelectOption<T> {
   });
 }
 
-/// A platform-feeling dropdown styled with the Genai design system.
+/// Platform-feeling dropdown styled to v3 tokens.
 ///
-/// Wraps Flutter's [DropdownButton] so consumers get the OS-native open/close
-/// behaviour (instant menu, no overlay layer), while inheriting tokens for
-/// border, focus ring, typography and colours. Use this instead of
-/// `GenaiSelect` when forms benefit from minimal chrome and you don't need
-/// search, multi-select or async loading.
-///
-/// All states (default, hover, focused, disabled, error) read from the active
-/// theme. Hit target is enforced to `sizing.minTouchTarget` even on tighter
-/// sizes so keyboard / pointer users get a 48-px+ activation area.
+/// Wraps Flutter's [DropdownButton] so consumers get the OS-native menu
+/// behaviour (instant open/close, no overlay layer) while inheriting border,
+/// focus ring, typography and colours from the v3 theme. Use this when
+/// `GenaiSelect`'s richer affordances (search, async, multi) are overkill.
 class GenaiNativeSelect<T> extends StatefulWidget {
   /// Available options. Pass an empty list to render a disabled trigger.
   final List<GenaiNativeSelectOption<T>> options;
@@ -59,13 +53,10 @@ class GenaiNativeSelect<T> extends StatefulWidget {
   /// Error line below the trigger; takes precedence over [helperText].
   final String? errorText;
 
-  /// Visual height of the trigger.
-  final GenaiSize size;
-
   /// Disables the control regardless of [onChanged].
   final bool isDisabled;
 
-  /// Renders a red asterisk after [label].
+  /// Renders a danger-coloured asterisk after [label].
   final bool isRequired;
 
   /// Screen-reader label override.
@@ -80,7 +71,6 @@ class GenaiNativeSelect<T> extends StatefulWidget {
     this.label,
     this.helperText,
     this.errorText,
-    this.size = GenaiSize.md,
     this.isDisabled = false,
     this.isRequired = false,
     this.semanticLabel,
@@ -104,38 +94,43 @@ class _GenaiNativeSelectState<T> extends State<GenaiNativeSelect<T>> {
     final ty = context.typography;
     final spacing = context.spacing;
     final sizing = context.sizing;
-    final radius = widget.size.borderRadius;
-    final isCompact = context.isCompact;
-    final height = widget.size.resolveHeight(isCompact: isCompact);
+    final radius = context.radius;
 
-    final borderColor = _hasError
-        ? colors.borderError
-        : (_focused ? colors.borderFocus : colors.borderDefault);
-    final borderWidth = _focused || _hasError
-        ? sizing.focusOutlineWidth
-        : widget.size.borderWidth;
+    // Mirror GenaiSelect's per-density trigger heights for visual parity.
+    final height = switch (sizing.density.name) {
+      'compact' => 36.0,
+      'spacious' => 44.0,
+      _ => 40.0,
+    };
 
-    final textStyle = ty.bodyMd.copyWith(
+    final borderColor = _disabled
+        ? colors.borderSubtle
+        : _hasError
+            ? colors.colorDanger
+            : (_focused ? colors.borderFocus : colors.borderDefault);
+    final borderWidth = (_focused || _hasError)
+        ? sizing.focusRingWidth
+        : sizing.dividerThickness;
+
+    final textStyle = ty.body.copyWith(
       color: _disabled ? colors.textDisabled : colors.textPrimary,
-      fontSize: widget.size.fontSize,
     );
-    final hintStyle = textStyle.copyWith(color: colors.textSecondary);
+    final hintStyle = textStyle.copyWith(color: colors.textTertiary);
 
     Widget trigger = AnimatedContainer(
       duration: context.motion.hover.duration,
       curve: context.motion.hover.curve,
       constraints: BoxConstraints(minHeight: height),
-      padding: EdgeInsets.symmetric(horizontal: widget.size.paddingH),
+      padding: EdgeInsets.symmetric(horizontal: spacing.s12),
       decoration: BoxDecoration(
         color: _disabled ? colors.surfaceHover : colors.surfaceInput,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(radius.sm),
         border: Border.all(color: borderColor, width: borderWidth),
       ),
       child: DropdownButtonHideUnderline(
         child: Theme(
-          // Reset Material colour leaks so the menu inherits ours via tokens.
           data: Theme.of(context).copyWith(
-            canvasColor: colors.surfaceCard,
+            canvasColor: colors.surfaceOverlay,
             focusColor: Colors.transparent,
             hoverColor: Colors.transparent,
             splashColor: Colors.transparent,
@@ -146,17 +141,17 @@ class _GenaiNativeSelectState<T> extends State<GenaiNativeSelect<T>> {
             isExpanded: true,
             icon: Icon(
               LucideIcons.chevronDown,
-              size: widget.size.iconSize,
-              color: colors.textSecondary,
+              size: sizing.iconSize,
+              color: colors.textTertiary,
             ),
-            iconEnabledColor: colors.textSecondary,
+            iconEnabledColor: colors.textTertiary,
             iconDisabledColor: colors.textDisabled,
             style: textStyle,
             hint: widget.hintText == null
                 ? null
                 : Text(widget.hintText!, style: hintStyle),
-            borderRadius: BorderRadius.circular(radius),
-            dropdownColor: colors.surfaceCard,
+            borderRadius: BorderRadius.circular(radius.md),
+            dropdownColor: colors.surfaceOverlay,
             focusColor: Colors.transparent,
             elevation: 8,
             menuMaxHeight: 320,
@@ -172,10 +167,10 @@ class _GenaiNativeSelectState<T> extends State<GenaiNativeSelect<T>> {
                       if (o.icon != null) ...[
                         Icon(
                           o.icon,
-                          size: widget.size.iconSize,
+                          size: sizing.iconSize,
                           color: colors.textSecondary,
                         ),
-                        SizedBox(width: spacing.s2),
+                        SizedBox(width: spacing.iconLabelGap),
                       ],
                       Flexible(
                         child: Text(
@@ -200,58 +195,6 @@ class _GenaiNativeSelectState<T> extends State<GenaiNativeSelect<T>> {
       );
     }
 
-    final children = <Widget>[];
-
-    if (widget.label != null) {
-      children.add(
-        Padding(
-          padding: EdgeInsets.only(bottom: spacing.s1 + 2),
-          child: Text.rich(
-            TextSpan(
-              style: ty.label.copyWith(
-                color: _disabled ? colors.textDisabled : colors.textPrimary,
-              ),
-              children: [
-                TextSpan(text: widget.label),
-                if (widget.isRequired)
-                  TextSpan(
-                    text: ' *',
-                    style: ty.label.copyWith(color: colors.colorError),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    children.add(
-      Focus(
-        onFocusChange: (f) {
-          if (_focused != f) setState(() => _focused = f);
-        },
-        canRequestFocus: !_disabled,
-        child: trigger,
-      ),
-    );
-
-    if (widget.helperText != null || _hasError) {
-      children.add(
-        Padding(
-          padding: EdgeInsets.only(top: spacing.s1 + 2),
-          child: Semantics(
-            liveRegion: _hasError,
-            child: Text(
-              widget.errorText ?? widget.helperText!,
-              style: ty.caption.copyWith(
-                color: _hasError ? colors.textError : colors.textSecondary,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return Semantics(
       button: true,
       enabled: !_disabled,
@@ -261,10 +204,19 @@ class _GenaiNativeSelectState<T> extends State<GenaiNativeSelect<T>> {
           .where((o) => o.value == widget.value)
           .map((o) => o.label)
           .firstOrNull,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
+      child: FieldFrame(
+        label: widget.label,
+        isRequired: widget.isRequired,
+        isDisabled: _disabled,
+        helperText: widget.helperText,
+        errorText: widget.errorText,
+        control: Focus(
+          onFocusChange: (f) {
+            if (_focused != f) setState(() => _focused = f);
+          },
+          canRequestFocus: !_disabled,
+          child: trigger,
+        ),
       ),
     );
   }

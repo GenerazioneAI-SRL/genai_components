@@ -1,41 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../foundations/animations.dart';
-import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
+import 'genai_button.dart';
 
-/// Visual variant of a [GenaiToggleButton].
-// ignore: constant_identifier_names
-enum GenaiToggleButtonVariant { default_, outline }
+/// Visual variant of a [GenaiToggleButton] — v3 design system (Forma LMS).
+enum GenaiToggleButtonVariant {
+  /// No border; background fills when pressed.
+  solid,
 
-/// Single pressable toggle button — shadcn parity: `<Toggle>`.
+  /// 1-px border; accent-tinted background when pressed.
+  outline,
+}
+
+/// Single pressable toggle — v3 design system (Forma LMS).
 ///
-/// Distinct from `GenaiToggle` (switch-style). Renders as a button that holds
-/// pressed / unpressed state. Useful for bold / italic / mute / pin style
-/// affordances where the control visually "stays down" when active.
+/// Controlled component: the caller owns [pressed] state and rebuilds on
+/// [onChanged]. Renders as a button that holds its "down" state when
+/// `pressed == true`. Typical uses: bold / italic / mute / pin.
 ///
-/// Controlled: pass [pressed] and handle [onChanged].
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiToggleButton(
-///   pressed: _bold,
-///   icon: LucideIcons.bold,
-///   tooltip: 'Bold',
-///   variant: GenaiToggleButtonVariant.outline,
-///   onChanged: (v) => setState(() => _bold = v),
-/// );
-/// ```
-/// {@end-tool}
+/// When pressed, uses `colorPrimarySubtle` (info-soft) background with
+/// `colorPrimaryText` (info) label — matches the `.seg button[data-on="1"]`
+/// segmented-control pattern in Dashboard v3.html.
 class GenaiToggleButton extends StatefulWidget {
-  /// Current pressed state. Controlled.
+  /// Current pressed state.
   final bool pressed;
 
-  /// Called when the user toggles the button.
-  ///
-  /// When `null` the button is considered disabled.
+  /// Called when the user toggles the button. `null` disables the control.
   final ValueChanged<bool>? onChanged;
 
   /// Optional text label. Pair with [icon] for icon + label layout.
@@ -44,19 +35,19 @@ class GenaiToggleButton extends StatefulWidget {
   /// Optional icon. Rendered before the label, or alone when [label] is null.
   final IconData? icon;
 
-  /// Size token.
-  final GenaiSize size;
+  /// Size scale.
+  final GenaiButtonSize size;
 
-  /// Visual variant. See [GenaiToggleButtonVariant].
+  /// Visual variant.
   final GenaiToggleButtonVariant variant;
 
-  /// When `true`, disables interaction and dims the button.
+  /// When `true`, the button is disabled independently of [onChanged].
   final bool isDisabled;
 
-  /// Tooltip shown on hover.
+  /// Tooltip on hover.
   final String? tooltip;
 
-  /// Semantic label for assistive tech. Falls back to [label].
+  /// Screen-reader label. Falls back to [label].
   final String? semanticLabel;
 
   const GenaiToggleButton({
@@ -65,8 +56,8 @@ class GenaiToggleButton extends StatefulWidget {
     this.onChanged,
     this.label,
     this.icon,
-    this.size = GenaiSize.md,
-    this.variant = GenaiToggleButtonVariant.default_,
+    this.size = GenaiButtonSize.md,
+    this.variant = GenaiToggleButtonVariant.solid,
     this.isDisabled = false,
     this.tooltip,
     this.semanticLabel,
@@ -92,22 +83,18 @@ class _GenaiToggleButtonState extends State<GenaiToggleButton> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final ty = context.typography;
     final sizing = context.sizing;
-    final motion = context.motion;
-    final reduced = GenaiResponsive.reducedMotion(context);
-    final radius = widget.size.borderRadius;
-    final isCompact = context.isCompact;
-    final height = widget.size.resolveHeight(isCompact: isCompact);
+    final radius = context.radius.md;
+    final spec = GenaiButtonSpec.resolve(context, widget.size);
+    final hasLabel = widget.label != null;
 
-    // Resolve fg / bg / border based on variant + pressed state.
     Color bg;
     Color fg;
     Color? borderColor;
 
     if (widget.pressed) {
       bg = colors.colorPrimarySubtle;
-      fg = colors.colorPrimary;
+      fg = colors.colorPrimaryText;
       if (widget.variant == GenaiToggleButtonVariant.outline) {
         borderColor = colors.colorPrimary;
       }
@@ -119,95 +106,72 @@ class _GenaiToggleButtonState extends State<GenaiToggleButton> {
       }
     }
 
-    // Hover / pressing overlays — applied on top of resting bg, matching ghost.
     if (!_disabled) {
       if (_pressing) {
-        bg = widget.pressed
-            ? colors.colorPrimarySubtle
-            : colors.textPrimary.withValues(alpha: 0.12);
+        bg = widget.pressed ? colors.colorPrimarySubtle : colors.surfacePressed;
       } else if (_hovered) {
-        bg = widget.pressed
-            ? colors.colorPrimarySubtle
-            : colors.textPrimary.withValues(alpha: 0.06);
+        bg = widget.pressed ? colors.colorPrimarySubtle : colors.surfaceHover;
       }
     }
 
     final children = <Widget>[];
     if (widget.icon != null) {
-      children.add(Icon(widget.icon, size: widget.size.iconSize, color: fg));
+      children.add(Icon(widget.icon, size: spec.iconSize, color: fg));
     }
     if (widget.label != null) {
-      if (children.isNotEmpty) {
-        children.add(SizedBox(width: widget.size.gap));
-      }
-      final base = widget.size == GenaiSize.xs ? ty.labelSm : ty.label;
-      children.add(Text(widget.label!, style: base.copyWith(color: fg)));
+      if (children.isNotEmpty) children.add(SizedBox(width: spec.gap));
+      children.add(
+        Text(
+          widget.label!,
+          style: spec.labelStyleFor(context).copyWith(color: fg),
+        ),
+      );
     }
 
-    // Minimum width for icon-only.
-    final hasLabel = widget.label != null;
-
-    // AnimatedScale wraps only the inner content so press shrink doesn't
-    // shift the MouseRegion hit-test bounds (kept the layout container
-    // size-stable).
     Widget button = Container(
-      height: height,
-      constraints: BoxConstraints(
-        minWidth: hasLabel ? height : height,
-      ),
+      height: spec.height,
+      constraints: BoxConstraints(minWidth: spec.height),
       padding: EdgeInsets.symmetric(
-        horizontal: hasLabel ? widget.size.paddingH : widget.size.paddingV,
+        horizontal: hasLabel ? spec.paddingH : 0,
       ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(radius),
         border: borderColor != null
-            ? Border.all(color: borderColor, width: widget.size.borderWidth)
+            ? Border.all(color: borderColor, width: sizing.dividerThickness)
             : null,
       ),
       child: Center(
-        child: AnimatedScale(
-          scale: (_pressing && !_disabled) ? GenaiInteraction.pressScale : 1.0,
-          alignment: Alignment.center,
-          duration: reduced
-              ? Duration.zero
-              : (_pressing
-                  ? motion.pressIn.duration
-                  : motion.pressOut.duration),
-          curve: _pressing ? motion.pressIn.curve : motion.pressOut.curve,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: children,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: children,
         ),
       ),
     );
 
-    Widget result = Opacity(
-      opacity: _disabled ? GenaiInteraction.disabledOpacity : 1.0,
-      child: button,
-    );
+    Widget result = Opacity(opacity: _disabled ? 0.5 : 1.0, child: button);
 
-    // Focus ring as non-layout overlay → bounds remain stable on focus toggle.
+    // Focus ring as non-layout overlay (no bounds shift on focus toggle).
     if (_focused && !_disabled) {
       result = Stack(
         clipBehavior: Clip.none,
         children: [
           result,
           Positioned(
-            left: -sizing.focusOutlineOffset,
-            top: -sizing.focusOutlineOffset,
-            right: -sizing.focusOutlineOffset,
-            bottom: -sizing.focusOutlineOffset,
+            left: -sizing.focusRingOffset,
+            top: -sizing.focusRingOffset,
+            right: -sizing.focusRingOffset,
+            bottom: -sizing.focusRingOffset,
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(radius + sizing.focusOutlineOffset),
+                  borderRadius: BorderRadius.circular(
+                    context.radius.xs + sizing.focusRingOffset,
+                  ),
                   border: Border.all(
                     color: colors.borderFocus,
-                    width: sizing.focusOutlineWidth,
+                    width: sizing.focusRingWidth,
                   ),
                 ),
               ),
@@ -249,8 +213,7 @@ class _GenaiToggleButtonState extends State<GenaiToggleButton> {
       ),
     );
 
-    // Ensure 48px min touch target for small sizes.
-    if (height < sizing.minTouchTarget) {
+    if (spec.height < sizing.minTouchTarget) {
       result = ConstrainedBox(
         constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
         child: Align(
@@ -271,11 +234,7 @@ class _GenaiToggleButtonState extends State<GenaiToggleButton> {
     );
 
     if (widget.tooltip != null) {
-      result = Tooltip(
-        message: widget.tooltip!,
-        waitDuration: motion.tooltipDelay,
-        child: result,
-      );
+      result = Tooltip(message: widget.tooltip!, child: result);
     }
 
     return result;

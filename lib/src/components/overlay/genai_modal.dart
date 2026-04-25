@@ -4,34 +4,30 @@ import 'package:flutter/services.dart';
 import '../../foundations/icons.dart';
 import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../../tokens/z_index.dart';
-import '../actions/genai_button.dart';
-import '../actions/genai_icon_button.dart';
 
-/// Preset widths for [showGenaiModal] on desktop. `fullscreen` covers the
-/// whole viewport minus safe areas.
+/// Preset widths for [showGenaiModal]. `fullscreen` covers the whole viewport.
 enum GenaiModalSize {
-  /// Small — ~360px.
+  /// Small — ~400 px.
   sm,
 
-  /// Medium — ~560px (default).
+  /// Medium — ~560 px (default).
   md,
 
-  /// Large — ~720px.
+  /// Large — ~760 px.
   lg,
 
-  /// Extra large — ~960px.
+  /// Extra large — ~1024 px.
   xl,
 
   /// Full viewport.
   fullscreen,
 }
 
-/// Show a modal dialog (§6.5.1).
+/// Shows a modal dialog — v3 design system.
 ///
-/// Mobile (compact window size) auto-converts to bottom-sheet style
-/// (full width, anchored to bottom).
+/// Panel bg, hairline border, `radius.xl` corners (14 on focus hero), layer 3
+/// shadow. Compact window sizes convert to a bottom-sheet-style slide-up.
+/// `Esc` closes, scrim uses `context.colors.scrimModal`.
 Future<T?> showGenaiModal<T>(
   BuildContext context, {
   String? title,
@@ -46,13 +42,13 @@ Future<T?> showGenaiModal<T>(
 }) {
   final isCompact = GenaiResponsive.sizeOf(context) == GenaiWindowSize.compact;
   final reduced = GenaiResponsive.reducedMotion(context);
-  final motion = context.motion;
+  final motion = context.motion.modal;
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: dismissible,
     barrierLabel: barrierSemanticLabel,
     barrierColor: context.colors.scrimModal,
-    transitionDuration: reduced ? Duration.zero : motion.modalOpen.duration,
+    transitionDuration: reduced ? Duration.zero : motion.duration,
     pageBuilder: (ctx, _, __) => _GenaiModalShell(
       title: title,
       description: description,
@@ -65,8 +61,7 @@ Future<T?> showGenaiModal<T>(
     ),
     transitionBuilder: (_, anim, __, modal) {
       if (reduced) return modal;
-      final curved =
-          CurvedAnimation(parent: anim, curve: motion.modalOpen.curve);
+      final curved = CurvedAnimation(parent: anim, curve: motion.curve);
       if (isCompact) {
         return SlideTransition(
           position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
@@ -85,7 +80,9 @@ Future<T?> showGenaiModal<T>(
   );
 }
 
-/// Confirmation dialog with primary + cancel CTA. Returns true if confirmed.
+/// Shows a confirmation dialog with primary + cancel CTA.
+///
+/// Resolves to `true` when confirmed, `false` otherwise.
 Future<bool> showGenaiConfirm(
   BuildContext context, {
   required String title,
@@ -99,106 +96,86 @@ Future<bool> showGenaiConfirm(
     title: title,
     description: description,
     child: const SizedBox.shrink(),
-    actions: [
-      Builder(
-        builder: (ctx) => GenaiButton.ghost(
-          label: cancelLabel,
-          onPressed: () => Navigator.of(ctx).pop(false),
-        ),
-      ),
-      Builder(builder: (ctx) {
-        final btn = isDestructive
-            ? GenaiButton.destructive(
-                label: confirmLabel,
-                onPressed: () => Navigator.of(ctx).pop(true),
-              )
-            : GenaiButton.primary(
-                label: confirmLabel,
-                onPressed: () => Navigator.of(ctx).pop(true),
-              );
-        return btn;
-      }),
-    ],
     size: GenaiModalSize.sm,
+    actions: [
+      _ConfirmButton(
+        label: cancelLabel,
+        isPrimary: false,
+        isDestructive: false,
+        onTap: (ctx) => Navigator.of(ctx).pop(false),
+      ),
+      _ConfirmButton(
+        label: confirmLabel,
+        isPrimary: !isDestructive,
+        isDestructive: isDestructive,
+        onTap: (ctx) => Navigator.of(ctx).pop(true),
+      ),
+    ],
   );
   return result ?? false;
 }
 
-/// Strong confirmation requiring the user to type a string (e.g. resource
-/// name) before the destructive action is enabled (§6.5.4).
-Future<bool> showGenaiStrongConfirm(
-  BuildContext context, {
-  required String title,
-  required String description,
-  required String requiredText,
-  String confirmLabel = 'Elimina',
-  String cancelLabel = 'Annulla',
-}) async {
-  final controller = TextEditingController();
-  final result = await showGenaiModal<bool>(
-    context,
-    title: title,
-    description: description,
-    size: GenaiModalSize.sm,
-    child: StatefulBuilder(builder: (ctx, setState) {
-      final colors = ctx.colors;
-      final ty = ctx.typography;
-      final spacing = ctx.spacing;
-      final radius = ctx.radius;
-      final sizing = ctx.sizing;
-      final matches = controller.text == requiredText;
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Digita "$requiredText" per confermare:',
-            style: ty.bodySm.copyWith(color: colors.textSecondary),
+class _ConfirmButton extends StatelessWidget {
+  final String label;
+  final bool isPrimary;
+  final bool isDestructive;
+  final void Function(BuildContext ctx) onTap;
+
+  const _ConfirmButton({
+    required this.label,
+    required this.isPrimary,
+    required this.isDestructive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final radius = context.radius;
+    final spacing = context.spacing;
+    final sizing = context.sizing;
+
+    Color bg;
+    Color fg;
+    Color border;
+    if (isDestructive) {
+      bg = colors.colorDanger;
+      fg = colors.textOnPrimary;
+      border = colors.colorDanger;
+    } else if (isPrimary) {
+      bg = colors.colorPrimary;
+      fg = colors.textOnPrimary;
+      border = colors.colorPrimary;
+    } else {
+      bg = colors.surfaceCard;
+      fg = colors.textPrimary;
+      border = colors.borderStrong;
+    }
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: () => onTap(context),
+        borderRadius: BorderRadius.circular(radius.md),
+        child: Container(
+          constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.s16,
+            vertical: spacing.s8,
           ),
-          SizedBox(height: spacing.s2),
-          TextField(
-            controller: controller,
-            autofocus: true,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radius.sm),
-                borderSide: BorderSide(color: colors.borderDefault),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radius.sm),
-                borderSide: BorderSide(color: colors.borderDefault),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radius.sm),
-                borderSide: BorderSide(
-                  color: colors.borderFocus,
-                  width: sizing.focusOutlineWidth,
-                ),
-              ),
-            ),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(radius.md),
+            border: Border.all(color: border),
           ),
-          SizedBox(height: spacing.s4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GenaiButton.ghost(
-                label: cancelLabel,
-                onPressed: () => Navigator.of(ctx).pop(false),
-              ),
-              SizedBox(width: spacing.s2),
-              GenaiButton.destructive(
-                label: confirmLabel,
-                onPressed: matches ? () => Navigator.of(ctx).pop(true) : null,
-              ),
-            ],
-          ),
-        ],
-      );
-    }),
-  );
-  return result ?? false;
+          alignment: Alignment.center,
+          child: Text(label, style: ty.label.copyWith(color: fg)),
+        ),
+      ),
+    );
+  }
 }
 
 class _GenaiModalShell extends StatelessWidget {
@@ -243,10 +220,11 @@ class _GenaiModalShell extends StatelessWidget {
     final ty = context.typography;
     final spacing = context.spacing;
     final radiusTokens = context.radius;
+    final sizing = context.sizing;
 
-    final radius = isCompact
-        ? BorderRadius.vertical(top: Radius.circular(radiusTokens.lg))
-        : BorderRadius.circular(radiusTokens.md);
+    final borderRadius = isCompact
+        ? BorderRadius.vertical(top: Radius.circular(radiusTokens.xl))
+        : BorderRadius.circular(radiusTokens.xl);
     final align = isCompact ? Alignment.bottomCenter : Alignment.center;
 
     final content = ConstrainedBox(
@@ -255,96 +233,106 @@ class _GenaiModalShell extends StatelessWidget {
         maxHeight: size == GenaiModalSize.fullscreen ? double.infinity : 720,
       ),
       child: Material(
-        color: colors.surfaceCard,
-        borderRadius: radius,
+        color: colors.surfaceModal,
+        borderRadius: borderRadius,
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (title != null || showClose)
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.s5,
-                  spacing.s4,
-                  spacing.s3,
-                  0,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (title != null)
-                            Semantics(
-                              header: true,
-                              child: Text(
-                                title!,
-                                style: ty.headingSm
-                                    .copyWith(color: colors.textPrimary),
-                              ),
-                            ),
-                          if (description != null)
-                            Padding(
-                              padding: EdgeInsets.only(top: spacing.s1),
-                              child: Text(
-                                description!,
-                                style: ty.bodySm.copyWith(
-                                  color: colors.textSecondary,
+        elevation: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            border: Border.all(color: colors.borderDefault),
+            boxShadow: context.elevation.shadowForLayer(3),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (title != null || showClose)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.s20,
+                    spacing.s18,
+                    spacing.s12,
+                    0,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (title != null)
+                              Semantics(
+                                header: true,
+                                child: Text(
+                                  title!,
+                                  style: ty.sectionTitle.copyWith(
+                                    color: colors.textPrimary,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                            if (description != null)
+                              Padding(
+                                padding: EdgeInsets.only(top: spacing.s4),
+                                child: Text(
+                                  description!,
+                                  style: ty.bodySm.copyWith(
+                                    color: colors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    if (showClose)
-                      GenaiIconButton(
-                        icon: LucideIcons.x,
-                        size: GenaiSize.sm,
-                        semanticLabel: dismissSemanticLabel,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                  ],
-                ),
-              ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.s5,
-                  spacing.s4,
-                  spacing.s5,
-                  spacing.s4,
-                ),
-                child: child,
-              ),
-            ),
-            if (actions.isNotEmpty)
-              Container(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.s5,
-                  spacing.s3,
-                  spacing.s5,
-                  spacing.s4,
-                ),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: colors.borderDefault),
+                      if (showClose)
+                        _CloseIconButton(
+                          semanticLabel: dismissSemanticLabel,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    for (var i = 0; i < actions.length; i++) ...[
-                      if (i > 0) SizedBox(width: spacing.s2),
-                      actions[i],
-                    ],
-                  ],
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.s20,
+                    spacing.s16,
+                    spacing.s20,
+                    spacing.s16,
+                  ),
+                  child: child,
                 ),
               ),
-          ],
+              if (actions.isNotEmpty)
+                Container(
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.s20,
+                    spacing.s12,
+                    spacing.s20,
+                    spacing.s18,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: colors.borderDefault,
+                        width: sizing.dividerThickness,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      for (var i = 0; i < actions.length; i++) ...[
+                        if (i > 0) SizedBox(width: spacing.s8),
+                        actions[i],
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -376,8 +364,8 @@ class _GenaiModalShell extends StatelessWidget {
                 alignment: align,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: isCompact ? 0 : spacing.s6,
-                    vertical: isCompact ? 0 : spacing.s6,
+                    horizontal: isCompact ? 0 : spacing.s24,
+                    vertical: isCompact ? 0 : spacing.s24,
                   ),
                   child: content,
                 ),
@@ -390,7 +378,41 @@ class _GenaiModalShell extends StatelessWidget {
   }
 }
 
-// Modal backdrop + content live on dedicated z-index layers (§13.2).
+class _CloseIconButton extends StatelessWidget {
+  final String semanticLabel;
+  final VoidCallback onTap;
+  const _CloseIconButton({
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final sizing = context.sizing;
+    final radius = context.radius;
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius.md),
+        child: Container(
+          width: sizing.minTouchTarget,
+          height: sizing.minTouchTarget,
+          alignment: Alignment.center,
+          child: Icon(
+            LucideIcons.x,
+            size: sizing.iconSize,
+            color: colors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Modal backdrop + content live on dedicated z-index layers.
 // ignore: unused_element
 const int _modalBackdropZ = GenaiZIndex.modalBackdrop;
 // ignore: unused_element

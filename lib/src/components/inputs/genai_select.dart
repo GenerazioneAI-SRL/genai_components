@@ -1,24 +1,26 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../feedback/genai_spinner.dart';
-import '../indicators/genai_chip.dart';
+import '_field_frame.dart';
 
-/// Single option inside a [GenaiSelect].
-///
-/// [group] is an optional header label used to visually cluster related
-/// options inside the dropdown.
+/// A single selectable option in a [GenaiSelect] / combobox.
 class GenaiSelectOption<T> {
+  /// The value returned by the group.
   final T value;
+
+  /// Visible label.
   final String label;
+
+  /// Secondary description below the label.
   final String? description;
+
+  /// Optional leading icon.
   final IconData? icon;
+
+  /// When true, the option cannot be selected.
   final bool isDisabled;
-  final String? group;
 
   const GenaiSelectOption({
     required this.value,
@@ -26,157 +28,72 @@ class GenaiSelectOption<T> {
     this.description,
     this.icon,
     this.isDisabled = false,
-    this.group,
   });
 }
 
-/// Signature of the async loader passed to [GenaiSelect.async] — receives the
-/// current search query and returns matching options.
-typedef GenaiAsyncOptionsLoader<T> = Future<List<GenaiSelectOption<T>>>
-    Function(String query);
-
-/// Dropdown select (§6.1.2).
+/// Dropdown single-select — v3 Forma LMS (§8 field rules).
 ///
-/// Modes:
-/// - default ([GenaiSelect.new]) — single value
-/// - multi ([GenaiSelect.multi]) — multiple values rendered as chips
-/// - searchable ([GenaiSelect.searchable]) — text filter inside menu
-/// - creatable ([GenaiSelect.creatable]) — allows creating new option
-/// - async ([GenaiSelect.async]) — loads options via callback
+/// The trigger shares shape with [GenaiTextField] — same 32/36/40 height,
+/// same `surfaceCard` fill, `borderStrong` at rest that flips to
+/// `textPrimary` on hover and `borderFocus` when focused or open. Tapping
+/// opens an overlay with the option list; an optional search box filters
+/// when [searchable] is true.
+///
+/// Overlay chrome per task spec §8: panel bg, `borderDefault`, radius
+/// `xl` (12), `layer2` shadow.
 class GenaiSelect<T> extends StatefulWidget {
+  /// Currently selected value. Must match one of [options]' values (or be
+  /// null when nothing is selected).
+  final T? value;
+
+  /// Options to render in the overlay.
+  final List<GenaiSelectOption<T>> options;
+
+  /// Fired with the picked value.
+  final ValueChanged<T>? onChanged;
+
+  /// Placeholder when no value is selected.
+  final String? hintText;
+
+  /// Field label above the trigger.
   final String? label;
-  final String? hint;
+
+  /// Helper copy below the trigger.
   final String? helperText;
+
+  /// Error copy; takes precedence over helper.
   final String? errorText;
 
-  final List<GenaiSelectOption<T>> options;
-  final T? value;
-  final List<T> values;
-  final ValueChanged<T?>? onChanged;
-  final ValueChanged<List<T>>? onMultiChanged;
+  /// Appends a red asterisk after [label].
+  final bool isRequired;
 
-  final bool isMulti;
-  final bool isSearchable;
-  final bool isCreatable;
-  final ValueChanged<String>? onCreate;
-
-  final GenaiAsyncOptionsLoader<T>? asyncLoader;
-
+  /// Muted colours, no interaction.
   final bool isDisabled;
-  final bool isLoading;
-  final bool clearable;
-  final GenaiSize size;
+
+  /// When true, renders a search box at the top of the overlay.
+  final bool searchable;
+
+  /// Placeholder for the search box when [searchable] is true.
+  final String searchHint;
+
+  /// Screen-reader label override.
   final String? semanticLabel;
 
   const GenaiSelect({
     super.key,
-    this.label,
-    this.hint = 'Seleziona...',
-    this.helperText,
-    this.errorText,
+    required this.value,
     required this.options,
-    this.value,
     this.onChanged,
-    this.isDisabled = false,
-    this.isLoading = false,
-    this.clearable = false,
-    this.size = GenaiSize.md,
-    this.semanticLabel,
-  })  : isMulti = false,
-        isSearchable = false,
-        isCreatable = false,
-        onCreate = null,
-        asyncLoader = null,
-        values = const [],
-        onMultiChanged = null;
-
-  const GenaiSelect.multi({
-    super.key,
+    this.hintText,
     this.label,
-    this.hint = 'Seleziona...',
     this.helperText,
     this.errorText,
-    required this.options,
-    this.values = const [],
-    this.onMultiChanged,
+    this.isRequired = false,
     this.isDisabled = false,
-    this.isLoading = false,
-    this.clearable = false,
-    this.size = GenaiSize.md,
+    this.searchable = false,
+    this.searchHint = 'Cerca',
     this.semanticLabel,
-  })  : isMulti = true,
-        isSearchable = false,
-        isCreatable = false,
-        onCreate = null,
-        asyncLoader = null,
-        value = null,
-        onChanged = null;
-
-  const GenaiSelect.searchable({
-    super.key,
-    this.label,
-    this.hint = 'Seleziona...',
-    this.helperText,
-    this.errorText,
-    required this.options,
-    this.value,
-    this.onChanged,
-    this.isDisabled = false,
-    this.isLoading = false,
-    this.clearable = true,
-    this.size = GenaiSize.md,
-    this.semanticLabel,
-  })  : isMulti = false,
-        isSearchable = true,
-        isCreatable = false,
-        onCreate = null,
-        asyncLoader = null,
-        values = const [],
-        onMultiChanged = null;
-
-  const GenaiSelect.creatable({
-    super.key,
-    this.label,
-    this.hint = 'Seleziona o crea...',
-    this.helperText,
-    this.errorText,
-    required this.options,
-    this.value,
-    this.onChanged,
-    this.onCreate,
-    this.isDisabled = false,
-    this.isLoading = false,
-    this.clearable = true,
-    this.size = GenaiSize.md,
-    this.semanticLabel,
-  })  : isMulti = false,
-        isSearchable = true,
-        isCreatable = true,
-        asyncLoader = null,
-        values = const [],
-        onMultiChanged = null;
-
-  const GenaiSelect.async({
-    super.key,
-    this.label,
-    this.hint = 'Cerca...',
-    this.helperText,
-    this.errorText,
-    required this.asyncLoader,
-    this.value,
-    this.onChanged,
-    this.isDisabled = false,
-    this.clearable = true,
-    this.size = GenaiSize.md,
-    this.semanticLabel,
-  })  : options = const [],
-        isMulti = false,
-        isSearchable = true,
-        isCreatable = false,
-        isLoading = false,
-        onCreate = null,
-        values = const [],
-        onMultiChanged = null;
+  });
 
   @override
   State<GenaiSelect<T>> createState() => _GenaiSelectState<T>();
@@ -184,288 +101,450 @@ class GenaiSelect<T> extends StatefulWidget {
 
 class _GenaiSelectState<T> extends State<GenaiSelect<T>> {
   final LayerLink _link = LayerLink();
-  final GlobalKey _fieldKey = GlobalKey();
   OverlayEntry? _overlay;
-  bool _open = false;
+  final FocusNode _focusNode = FocusNode();
   bool _focused = false;
-
+  bool _hovered = false;
   String _query = '';
-  List<GenaiSelectOption<T>> _asyncResults = [];
-  bool _asyncLoading = false;
-  Timer? _debounce;
 
+  /// v3 field heights — 32/36/40 (compact/normal/spacious).
+  double _triggerHeight(GenaiDensity d) {
+    switch (d) {
+      case GenaiDensity.compact:
+        return 32;
+      case GenaiDensity.normal:
+        return 36;
+      case GenaiDensity.spacious:
+        return 40;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode
+        .addListener(() => setState(() => _focused = _focusNode.hasFocus));
+  }
+
+  @override
+  void dispose() {
+    _overlay?.remove();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  GenaiSelectOption<T>? get _selected {
+    for (final o in widget.options) {
+      if (o.value == widget.value) return o;
+    }
+    return null;
+  }
+
+  bool get _isOpen => _overlay != null;
   bool get _hasError =>
       widget.errorText != null && widget.errorText!.isNotEmpty;
 
-  void _toggle() {
+  void _toggleOverlay() {
     if (widget.isDisabled) return;
-    _open ? _close() : _openMenu();
+    if (_isOpen) {
+      _hideOverlay();
+    } else {
+      _showOverlay();
+    }
   }
 
-  void _openMenu() {
-    final overlay = Overlay.of(context);
-    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final width = box.size.width;
-    _overlay = OverlayEntry(
-      builder: (ctx) => _SelectMenu(
-        link: _link,
-        width: width,
-        onClose: _close,
-        builder: (menuCtx) => _buildMenuBody(menuCtx),
-      ),
-    );
-    overlay.insert(_overlay!);
-    setState(() => _open = true);
-    if (widget.asyncLoader != null) _runAsync('');
-  }
-
-  void _close() {
-    _overlay?.remove();
-    _overlay = null;
-    if (mounted) setState(() => _open = false);
+  void _showOverlay() {
     _query = '';
+    final entry = OverlayEntry(builder: _buildOverlay);
+    Overlay.of(context).insert(entry);
+    setState(() => _overlay = entry);
   }
 
-  void _runAsync(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(context.motion.searchDebounce, () async {
-      if (!mounted) return;
-      setState(() => _asyncLoading = true);
-      try {
-        final results = await widget.asyncLoader!(q);
-        if (!mounted) return;
-        setState(() {
-          _asyncResults = results;
-          _asyncLoading = false;
-        });
-        _overlay?.markNeedsBuild();
-      } catch (_) {
-        if (!mounted) return;
-        setState(() => _asyncLoading = false);
-      }
-    });
+  void _hideOverlay() {
+    _overlay?.remove();
+    setState(() => _overlay = null);
   }
 
-  List<GenaiSelectOption<T>> get _filteredOptions {
-    final source = widget.asyncLoader != null ? _asyncResults : widget.options;
-    if (_query.isEmpty) return source;
+  void _select(GenaiSelectOption<T> option) {
+    widget.onChanged?.call(option.value);
+    _hideOverlay();
+  }
+
+  List<GenaiSelectOption<T>> get _filtered {
+    if (_query.isEmpty) return widget.options;
     final q = _query.toLowerCase();
-    return source.where((o) => o.label.toLowerCase().contains(q)).toList();
+    return widget.options
+        .where((o) =>
+            o.label.toLowerCase().contains(q) ||
+            (o.description?.toLowerCase().contains(q) ?? false))
+        .toList();
   }
 
-  void _selectSingle(T v) {
-    widget.onChanged?.call(v);
-    _close();
-  }
+  Widget _buildOverlay(BuildContext overlayContext) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final radius = context.radius;
+    final elevation = context.elevation;
+    final sizing = context.sizing;
 
-  void _toggleMulti(T v) {
-    final current = List<T>.from(widget.values);
-    if (current.contains(v)) {
-      current.remove(v);
-    } else {
-      current.add(v);
-    }
-    widget.onMultiChanged?.call(current);
-    _overlay?.markNeedsBuild();
-  }
-
-  void _clear() {
-    if (widget.isMulti) {
-      widget.onMultiChanged?.call(const []);
-    } else {
-      widget.onChanged?.call(null);
-    }
-  }
-
-  Widget _buildMenuBody(BuildContext menuCtx) {
-    final colors = menuCtx.colors;
-    final ty = menuCtx.typography;
-    final spacing = menuCtx.spacing;
-    final radius = menuCtx.radius;
-    final sizing = menuCtx.sizing;
-    final filtered = _filteredOptions;
-
-    return Material(
-      color: colors.surfaceCard,
-      elevation: 0,
-      borderRadius: BorderRadius.circular(radius.md),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radius.md),
-          border: Border.all(color: colors.borderDefault),
-          boxShadow: menuCtx.elevation.shadow(3),
-        ),
-        constraints: const BoxConstraints(maxHeight: 320),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.isSearchable || widget.asyncLoader != null)
-              Padding(
-                padding: EdgeInsets.all(spacing.s2),
-                child: SizedBox(
-                  height: GenaiSize.sm.height - spacing.s2,
-                  child: TextField(
-                    autofocus: true,
-                    style: ty.bodyMd.copyWith(color: colors.textPrimary),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Cerca...',
-                      hintStyle:
-                          ty.bodyMd.copyWith(color: colors.textSecondary),
-                      prefixIcon: Icon(LucideIcons.search,
-                          size: GenaiSize.xs.iconSize,
-                          color: colors.textSecondary),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: spacing.s1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radius.sm),
-                        borderSide: BorderSide(color: colors.borderDefault),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _hideOverlay,
+      child: Stack(
+        children: [
+          Positioned.fill(child: Container(color: Colors.transparent)),
+          CompositedTransformFollower(
+            link: _link,
+            offset: Offset(0, _triggerHeight(sizing.density) + spacing.s4),
+            showWhenUnlinked: false,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                color: Colors.transparent,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight: 320,
+                    minWidth: 200,
+                  ),
+                  child: IntrinsicWidth(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceOverlay,
+                        borderRadius: BorderRadius.circular(radius.xl),
+                        border: Border.all(color: colors.borderDefault),
+                        boxShadow: elevation.shadowForLayer(2),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radius.sm),
-                        borderSide: BorderSide(color: colors.borderDefault),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radius.sm),
-                        borderSide: BorderSide(
-                            color: colors.borderFocus,
-                            width: sizing.focusOutlineWidth),
+                      child: StatefulBuilder(
+                        builder: (ctx, setOverlayState) {
+                          final filtered = _filtered;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.searchable)
+                                Padding(
+                                  padding: EdgeInsets.all(spacing.s8),
+                                  child: InternalSearchRow(
+                                    hint: widget.searchHint,
+                                    onChanged: (v) {
+                                      _query = v;
+                                      setOverlayState(() {});
+                                    },
+                                  ),
+                                ),
+                              Flexible(
+                                child: filtered.isEmpty
+                                    ? Padding(
+                                        padding: EdgeInsets.all(spacing.s16),
+                                        child: Text(
+                                          'Nessun risultato',
+                                          style: ty.bodySm.copyWith(
+                                              color: colors.textTertiary),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        shrinkWrap: true,
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: spacing.s4),
+                                        itemCount: filtered.length,
+                                        itemBuilder: (_, i) {
+                                          final o = filtered[i];
+                                          return InternalOptionRow(
+                                            label: o.label,
+                                            description: o.description,
+                                            icon: o.icon,
+                                            selected: o.value == widget.value,
+                                            disabled: o.isDisabled,
+                                            onTap: o.isDisabled
+                                                ? null
+                                                : () => _select(o),
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
-                    onChanged: (v) {
-                      _query = v;
-                      if (widget.asyncLoader != null) {
-                        _runAsync(v);
-                      } else {
-                        _overlay?.markNeedsBuild();
-                      }
-                    },
                   ),
                 ),
               ),
-            Flexible(
-              child: _asyncLoading
-                  ? Padding(
-                      padding: EdgeInsets.all(spacing.s4),
-                      child: const Center(child: GenaiSpinner()),
-                    )
-                  : (filtered.isEmpty
-                      ? _buildEmpty(menuCtx)
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          padding: EdgeInsets.symmetric(vertical: spacing.s1),
-                          itemCount: filtered.length,
-                          itemBuilder: (_, i) =>
-                              _buildOption(menuCtx, filtered[i]),
-                        )),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmpty(BuildContext menuCtx) {
-    final colors = menuCtx.colors;
-    final ty = menuCtx.typography;
-    final spacing = menuCtx.spacing;
-    if (widget.isCreatable && _query.isNotEmpty) {
-      return InkWell(
-        onTap: () {
-          widget.onCreate?.call(_query);
-          _close();
-        },
-        child: Padding(
-          padding: EdgeInsets.all(spacing.s3),
-          child: Row(
-            children: [
-              Icon(LucideIcons.plus,
-                  size: GenaiSize.xs.iconSize, color: colors.colorPrimary),
-              SizedBox(width: spacing.s2),
-              Expanded(
-                child: Text('Crea "$_query"',
-                    style: ty.bodyMd.copyWith(color: colors.colorPrimary)),
-              ),
-            ],
           ),
-        ),
-      );
-    }
-    return Padding(
-      padding: EdgeInsets.all(spacing.s4),
-      child: Center(
-        child: Text('Nessun risultato',
-            style: ty.bodySm.copyWith(color: colors.textSecondary)),
-      ),
-    );
-  }
-
-  Widget _buildOption(BuildContext menuCtx, GenaiSelectOption<T> o) {
-    final colors = menuCtx.colors;
-    final ty = menuCtx.typography;
-    final spacing = menuCtx.spacing;
-    final selected = widget.isMulti
-        ? widget.values.contains(o.value)
-        : widget.value == o.value;
-
-    return InkWell(
-      onTap: o.isDisabled
-          ? null
-          : () =>
-              widget.isMulti ? _toggleMulti(o.value) : _selectSingle(o.value),
-      child: Container(
-        padding:
-            EdgeInsets.symmetric(horizontal: spacing.s3, vertical: spacing.s2),
-        color: selected ? colors.colorPrimarySubtle : null,
-        child: Row(
-          children: [
-            if (widget.isMulti) ...[
-              Icon(
-                selected ? LucideIcons.squareCheck : LucideIcons.square,
-                size: GenaiSize.xs.iconSize,
-                color: selected ? colors.colorPrimary : colors.textSecondary,
-              ),
-              SizedBox(width: spacing.s2),
-            ],
-            if (o.icon != null) ...[
-              Icon(o.icon,
-                  size: GenaiSize.xs.iconSize, color: colors.textSecondary),
-              SizedBox(width: spacing.s2),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(o.label,
-                      style: ty.bodyMd.copyWith(
-                        color: o.isDisabled
-                            ? colors.textDisabled
-                            : colors.textPrimary,
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.w400,
-                      )),
-                  if (o.description != null)
-                    Text(o.description!,
-                        style:
-                            ty.caption.copyWith(color: colors.textSecondary)),
-                ],
-              ),
-            ),
-            if (selected && !widget.isMulti)
-              Icon(LucideIcons.check,
-                  size: GenaiSize.xs.iconSize, color: colors.colorPrimary),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final sizing = context.sizing;
+    final radius = context.radius;
+
+    final selected = _selected;
+    final height = _triggerHeight(sizing.density);
+
+    // Resting border kept at 1 px so layout never reflows on focus / hover.
+    // Focus ring rendered as a non-layout overlay below.
+    final borderColor = widget.isDisabled
+        ? colors.borderSubtle
+        : _hasError
+            ? colors.colorDanger
+            : (_hovered ? colors.textPrimary : colors.borderStrong);
+    const borderWidth = 1.0;
+
+    final trigger = CompositedTransformTarget(
+      link: _link,
+      child: Shortcuts(
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.enter): _ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): _ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _ActivateIntent(),
+        },
+        child: Actions(
+          actions: {
+            _ActivateIntent: CallbackAction<_ActivateIntent>(
+              onInvoke: (_) {
+                _toggleOverlay();
+                return null;
+              },
+            ),
+          },
+          child: Focus(
+            focusNode: _focusNode,
+            child: MouseRegion(
+              cursor: widget.isDisabled
+                  ? SystemMouseCursors.forbidden
+                  : SystemMouseCursors.click,
+              opaque: false,
+              hitTestBehavior: HitTestBehavior.opaque,
+              onEnter: (_) {
+                if (!_hovered) setState(() => _hovered = true);
+              },
+              onExit: (_) {
+                if (_hovered) setState(() => _hovered = false);
+              },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _toggleOverlay,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      height: height,
+                      padding: EdgeInsets.symmetric(horizontal: spacing.s12),
+                      decoration: BoxDecoration(
+                        color: widget.isDisabled
+                            ? colors.surfaceHover
+                            : colors.surfaceCard,
+                        borderRadius: BorderRadius.circular(radius.md),
+                        border:
+                            Border.all(color: borderColor, width: borderWidth),
+                      ),
+                      child: Row(
+                        children: [
+                          if (selected?.icon != null) ...[
+                            Icon(selected!.icon,
+                                size: sizing.iconSize,
+                                color: widget.isDisabled
+                                    ? colors.textDisabled
+                                    : colors.textSecondary),
+                            SizedBox(width: spacing.iconLabelGap),
+                          ],
+                          Expanded(
+                            child: Text(
+                              selected?.label ?? widget.hintText ?? '',
+                              style: ty.bodySm.copyWith(
+                                color: selected == null
+                                    ? colors.textTertiary
+                                    : (widget.isDisabled
+                                        ? colors.textDisabled
+                                        : colors.textPrimary),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: spacing.iconLabelGap),
+                          Icon(
+                            _isOpen
+                                ? LucideIcons.chevronUp
+                                : LucideIcons.chevronDown,
+                            size: sizing.iconSize,
+                            color: colors.textTertiary,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if ((_focused || _isOpen || _hasError) &&
+                        !widget.isDisabled)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(radius.md),
+                              border: Border.all(
+                                color: _hasError
+                                    ? colors.colorDanger
+                                    : colors.borderFocus,
+                                width: sizing.focusRingWidth,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel ?? widget.label,
+      hint: widget.hintText,
+      value: selected?.label,
+      enabled: !widget.isDisabled,
+      focused: _focused,
+      child: FieldFrame(
+        label: widget.label,
+        isRequired: widget.isRequired,
+        isDisabled: widget.isDisabled,
+        helperText: widget.helperText,
+        errorText: widget.errorText,
+        control: trigger,
+      ),
+    );
+  }
+}
+
+class _ActivateIntent extends Intent {
+  const _ActivateIntent();
+}
+
+/// Shared option row used inside [GenaiSelect] / `GenaiCombobox` overlays.
+///
+/// Package-private — exposed via a library-prefixed name so the combobox in
+/// the same folder can reuse it without going through the public barrel.
+class InternalOptionRow extends StatefulWidget {
+  final String label;
+  final String? description;
+  final IconData? icon;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback? onTap;
+
+  const InternalOptionRow({
+    super.key,
+    required this.label,
+    this.description,
+    this.icon,
+    this.selected = false,
+    this.disabled = false,
+    this.onTap,
+  });
+
+  @override
+  State<InternalOptionRow> createState() => _InternalOptionRowState();
+}
+
+class _InternalOptionRowState extends State<InternalOptionRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final sizing = context.sizing;
+
+    final bg = widget.disabled
+        ? Colors.transparent
+        : (_hovered ? colors.surfaceHover : Colors.transparent);
+
+    return Opacity(
+      opacity: widget.disabled ? 0.5 : 1,
+      child: MouseRegion(
+        cursor: widget.disabled
+            ? SystemMouseCursors.forbidden
+            : SystemMouseCursors.click,
+        opaque: false,
+        hitTestBehavior: HitTestBehavior.opaque,
+        onEnter: (_) {
+          if (!_hovered) setState(() => _hovered = true);
+        },
+        onExit: (_) {
+          if (_hovered) setState(() => _hovered = false);
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing.s12,
+              vertical: spacing.s8,
+            ),
+            color: bg,
+            child: Row(
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon,
+                      size: sizing.iconSize, color: colors.textSecondary),
+                  SizedBox(width: spacing.iconLabelGap),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(widget.label,
+                          style: ty.bodySm.copyWith(color: colors.textPrimary)),
+                      if (widget.description != null)
+                        Text(widget.description!,
+                            style: ty.labelSm
+                                .copyWith(color: colors.textTertiary)),
+                    ],
+                  ),
+                ),
+                if (widget.selected)
+                  Icon(LucideIcons.check,
+                      size: sizing.iconSize, color: colors.colorPrimary),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shared search row used inside [GenaiSelect] / `GenaiCombobox` overlays.
+class InternalSearchRow extends StatefulWidget {
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  const InternalSearchRow({
+    super.key,
+    required this.hint,
+    required this.onChanged,
+  });
+
+  @override
+  State<InternalSearchRow> createState() => _InternalSearchRowState();
+}
+
+class _InternalSearchRowState extends State<InternalSearchRow> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
   void dispose() {
-    _debounce?.cancel();
-    _overlay?.remove();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -475,218 +554,39 @@ class _GenaiSelectState<T> extends State<GenaiSelect<T>> {
     final ty = context.typography;
     final spacing = context.spacing;
     final sizing = context.sizing;
-    final motion = context.motion;
-    final isCompact = context.isCompact;
-    final h = widget.size.resolveHeight(isCompact: isCompact);
-
-    // Resting border kept thin so layout never reflows on focus / open.
-    // Focus / error ring rendered as a non-layout overlay below.
-    final borderColor =
-        _hasError ? colors.borderError : colors.borderDefault;
-    final borderWidth = widget.size.borderWidth;
-
-    final hasValue =
-        widget.isMulti ? widget.values.isNotEmpty : widget.value != null;
-
-    String? singleLabel;
-    if (!widget.isMulti && widget.value != null) {
-      final all = widget.asyncLoader != null ? _asyncResults : widget.options;
-      singleLabel = all
-          .where((o) => o.value == widget.value)
-          .map((o) => o.label)
-          .firstOrNull;
-    }
-
-    Widget content;
-    if (widget.isMulti && hasValue) {
-      content = Padding(
-        padding: EdgeInsets.symmetric(vertical: spacing.s1),
-        child: Wrap(
-          spacing: spacing.s1,
-          runSpacing: spacing.s1,
-          children: [
-            for (final v in widget.values)
-              GenaiChip.removable(
-                label: widget.options
-                        .where((o) => o.value == v)
-                        .map((o) => o.label)
-                        .firstOrNull ??
-                    '$v',
-                onRemove: () => _toggleMulti(v),
+    final radius = context.radius;
+    return Container(
+      height: 32,
+      padding: EdgeInsets.symmetric(horizontal: spacing.s8),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: BorderRadius.circular(radius.md),
+        border: Border.all(color: colors.borderDefault),
+      ),
+      child: Row(
+        children: [
+          Icon(LucideIcons.search,
+              size: sizing.iconSize, color: colors.textTertiary),
+          SizedBox(width: spacing.iconLabelGap),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              autofocus: true,
+              style: ty.bodySm.copyWith(color: colors.textPrimary),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: widget.hint,
+                hintStyle: ty.bodySm.copyWith(color: colors.textTertiary),
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
               ),
-          ],
-        ),
-      );
-    } else {
-      content = Text(
-        hasValue ? (singleLabel ?? '${widget.value}') : (widget.hint ?? ''),
-        style: ty.bodyMd.copyWith(
-          color: hasValue ? colors.textPrimary : colors.textSecondary,
-          fontSize: widget.size.fontSize,
-        ),
-        overflow: TextOverflow.ellipsis,
-      );
-    }
-
-    final children = <Widget>[];
-    if (widget.label != null) {
-      children.add(Padding(
-        padding: EdgeInsets.only(bottom: spacing.s1 + 2),
-        child: Text(widget.label!,
-            style: ty.label.copyWith(color: colors.textPrimary)),
-      ));
-    }
-
-    children.add(CompositedTransformTarget(
-      link: _link,
-      child: Focus(
-        onFocusChange: (f) {
-          if (_focused != f) setState(() => _focused = f);
-        },
-        child: MouseRegion(
-          cursor: widget.isDisabled
-              ? SystemMouseCursors.forbidden
-              : SystemMouseCursors.click,
-          opaque: false,
-          hitTestBehavior: HitTestBehavior.opaque,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _toggle,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  key: _fieldKey,
-                  constraints: BoxConstraints(minHeight: h),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: widget.size.paddingH,
-                    vertical: widget.isMulti && hasValue
-                        ? spacing.s1
-                        : widget.size.paddingV,
-                  ),
-                  decoration: BoxDecoration(
-                    color: widget.isDisabled
-                        ? colors.surfaceHover
-                        : colors.surfaceInput,
-                    borderRadius:
-                        BorderRadius.circular(widget.size.borderRadius),
-                    border: Border.all(color: borderColor, width: borderWidth),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(child: content),
-                      if (widget.isLoading)
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: spacing.s1),
-                          child: const GenaiSpinner(size: GenaiSize.xs),
-                        ),
-                      if (widget.clearable && hasValue)
-                        GestureDetector(
-                          onTap: _clear,
-                          child: Padding(
-                            padding:
-                                EdgeInsets.symmetric(horizontal: spacing.s1),
-                            child: Icon(LucideIcons.x,
-                                size: GenaiSize.xs.iconSize,
-                                color: colors.textSecondary),
-                          ),
-                        ),
-                      AnimatedRotation(
-                        turns: _open ? 0.5 : 0,
-                        duration: motion.dropdownOpen.duration,
-                        curve: motion.dropdownOpen.curve,
-                        child: Icon(LucideIcons.chevronDown,
-                            size: GenaiSize.xs.iconSize,
-                            color: colors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                if ((_focused || _open || _hasError) && !widget.isDisabled)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(widget.size.borderRadius),
-                          border: Border.all(
-                            color: _hasError
-                                ? colors.borderError
-                                : colors.borderFocus,
-                            width: sizing.focusOutlineWidth,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+              onChanged: widget.onChanged,
             ),
           ),
-        ),
+        ],
       ),
-    ));
-
-    if (widget.helperText != null || _hasError) {
-      children.add(Padding(
-        padding: EdgeInsets.only(top: spacing.s1 + 2),
-        child: Semantics(
-          liveRegion: _hasError,
-          child: Text(
-            widget.errorText ?? widget.helperText!,
-            style: ty.caption.copyWith(
-              color: _hasError ? colors.textError : colors.textSecondary,
-            ),
-          ),
-        ),
-      ));
-    }
-
-    return Semantics(
-      button: true,
-      expanded: _open,
-      label: widget.semanticLabel ?? widget.label,
-      hint: widget.hint,
-      enabled: !widget.isDisabled,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
-      ),
-    );
-  }
-}
-
-class _SelectMenu extends StatelessWidget {
-  final LayerLink link;
-  final double width;
-  final VoidCallback onClose;
-  final WidgetBuilder builder;
-
-  const _SelectMenu({
-    required this.link,
-    required this.width,
-    required this.onClose,
-    required this.builder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: onClose,
-          ),
-        ),
-        CompositedTransformFollower(
-          link: link,
-          showWhenUnlinked: false,
-          offset: const Offset(0, 4),
-          targetAnchor: Alignment.bottomLeft,
-          child: SizedBox(width: width, child: builder(context)),
-        ),
-      ],
     );
   }
 }

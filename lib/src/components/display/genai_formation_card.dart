@@ -6,14 +6,14 @@ import '../../theme/context_extensions.dart';
 ///
 /// Domain card for Forma LMS "formazione" grids. Matches the
 /// `.formation-card` pattern in the reference HTML:
-/// - 34×34 icon badge, `radius.lg`, [iconBg] tint, white glyph.
-/// - name: `headingSm`/600 primary.
-/// - description: `bodySm` secondary, min 36 px height to align cards.
+/// - 34×34 icon badge, `radius.lg` (10), [iconBg] tint, white glyph.
+/// - name: 14.5 / 600 primary.
+/// - description: 12.5 / 400 secondary, min 36 px height to align cards.
 /// - footer row (space-between): optional hours (`ore` totali, mono) + linear
 ///   progress.
 ///
-/// Card: `surfaceCard` bg, hairline border, `radius.xl`. Hover upgrades the
-/// shadow to `elevation.shadow(2)` when [onTap] is set.
+/// Card: `surfaceCard` bg, hairline border, `radius.xl` (12). Hover
+/// upgrades the shadow to `layer1Hover` when [onTap] is set.
 class GenaiFormationCard extends StatefulWidget {
   /// Icon glyph rendered inside the colored badge.
   final IconData icon;
@@ -69,12 +69,10 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
     final spacing = context.spacing;
     final radius = context.radius;
     final sizing = context.sizing;
-    final elevation = context.elevation;
 
     final isInteractive = widget.onTap != null;
-    final border = isInteractive && _hovered
-        ? colors.borderStrong
-        : colors.borderDefault;
+    final border =
+        isInteractive && _hovered ? colors.borderStrong : colors.borderDefault;
 
     final a11y = widget.semanticLabel ??
         [
@@ -86,7 +84,6 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
         ].join(' — ');
 
     final iconBadge = Container(
-      // Icon badge size — spec-pinned local measure (34×34).
       width: 34,
       height: 34,
       decoration: BoxDecoration(
@@ -96,7 +93,7 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
       alignment: Alignment.center,
       child: Icon(
         widget.icon,
-        size: sizing.iconSidebar,
+        size: sizing.iconSize,
         color: colors.textOnPrimary,
       ),
     );
@@ -108,21 +105,14 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
         if (widget.oreTotali != null)
           Text(
             '${widget.oreTotali} ore',
-            style: ty.caption.copyWith(
-              color: colors.textSecondary,
-              fontFamily: 'monospace',
-            ),
+            style: ty.monoSm.copyWith(color: colors.textSecondary),
           )
         else
           const SizedBox.shrink(),
         if (widget.progress != null)
           Text(
             '${(widget.progress! * 100).round()}%',
-            style: ty.caption.copyWith(
-              color: colors.textPrimary,
-              fontFamily: 'monospace',
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: ty.monoSm.copyWith(color: colors.textPrimary),
           ),
       ],
     );
@@ -132,30 +122,28 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
       decoration: BoxDecoration(
         color: colors.surfaceCard,
         borderRadius: BorderRadius.circular(radius.xl),
-        border: Border.all(color: border, width: sizing.dividerThickness),
+        border: Border.all(color: border, width: 1.0),
         boxShadow: isInteractive && _hovered
-            ? elevation.shadow(2)
-            : elevation.shadow(1),
+            ? context.elevation.layer1Hover
+            : context.elevation.layer1,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           iconBadge,
-          SizedBox(height: spacing.s3),
+          SizedBox(height: spacing.s12),
           Text(
             widget.name,
-            style: ty.headingSm.copyWith(
+            style: ty.cardTitle.copyWith(
               color: colors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: spacing.s1),
+          SizedBox(height: spacing.s4),
           ConstrainedBox(
-            // Description min height — spec-pinned (36 px) to align cards in
-            // a grid.
             constraints: const BoxConstraints(minHeight: 36),
             child: Text(
               widget.description ?? '',
@@ -164,14 +152,13 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          SizedBox(height: spacing.s3),
+          SizedBox(height: spacing.s14),
           footer,
           if (widget.progress != null) ...[
-            SizedBox(height: spacing.s2),
+            SizedBox(height: spacing.s8),
             ClipRRect(
               borderRadius: BorderRadius.circular(radius.pill),
               child: SizedBox(
-                // Thin progress track height — spec-pinned (4 px).
                 height: 4,
                 child: Stack(
                   children: [
@@ -202,7 +189,7 @@ class _GenaiFormationCardState extends State<GenaiFormationCard> {
                   borderRadius: BorderRadius.circular(radius.xl),
                   border: Border.all(
                     color: colors.borderFocus,
-                    width: sizing.focusOutlineWidth,
+                    width: sizing.focusRingWidth,
                   ),
                 ),
               ),

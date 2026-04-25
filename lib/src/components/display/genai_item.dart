@@ -2,26 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
 
-/// Generic row primitive (shadcn parity: `<Item>`).
+/// Generic row primitive (shadcn parity: `<Item>`) — v3 design system.
 ///
 /// Building block for list rows, menu items, command results, settings rows.
 /// Renders `Row(leading, gap, Expanded(child), gap, trailing)` with token-
-/// driven padding, hover/selected/disabled visuals, and a 48-px touch target
-/// floor.
+/// driven padding, hover/selected/disabled visuals, and a touch target floor
+/// equal to the current density's `minTouchTarget`.
 ///
-/// Selected rows tint with `colorPrimarySubtle`; hover uses `surfaceHover`.
-/// Disabled rows reduce opacity and disable interaction.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiItem(
-///   leading: const Icon(LucideIcons.user),
-///   child: const Text('Profilo'),
-///   trailing: const GenaiKbd(keys: '⌘P'),
-///   onTap: () => Navigator.pushNamed(context, '/profile'),
-/// );
-/// ```
-/// {@end-tool}
+/// v3 selected rows tint with `colorPrimarySubtle`; hover uses `surfaceHover`.
+/// Body uses the v3 `bodySm` style by default (matches list rows in the Forma
+/// LMS reference HTML).
 class GenaiItem extends StatefulWidget {
   /// Leading slot — typically an icon or avatar.
   final Widget? leading;
@@ -29,10 +19,10 @@ class GenaiItem extends StatefulWidget {
   /// Trailing slot — typically a chevron, kbd shortcut, or badge.
   final Widget? trailing;
 
-  /// Main content (title / label / inline description).
+  /// Main content.
   final Widget child;
 
-  /// Tap handler. Null disables interaction (no hover/press visuals).
+  /// Tap handler. Null disables interaction.
   final VoidCallback? onTap;
 
   /// When true, applies the selected background tint.
@@ -82,8 +72,8 @@ class _GenaiItemState extends State<GenaiItem> {
 
     final padding = widget.padding ??
         EdgeInsets.symmetric(
-          horizontal: spacing.s3,
-          vertical: spacing.s2,
+          horizontal: spacing.s12,
+          vertical: spacing.s8,
         );
 
     final iconColor = widget.isDisabled
@@ -123,24 +113,24 @@ class _GenaiItemState extends State<GenaiItem> {
               padding: padding,
               decoration: BoxDecoration(
                 color: bg,
-                borderRadius: BorderRadius.circular(radius.sm),
+                borderRadius: BorderRadius.circular(radius.md),
                 border: Border.all(
                   color: _focused ? colors.borderFocus : Colors.transparent,
-                  width: sizing.focusOutlineWidth,
+                  width: sizing.focusRingWidth,
                 ),
               ),
               child: IconTheme.merge(
-                data: IconThemeData(color: iconColor, size: sizing.iconInline),
+                data: IconThemeData(color: iconColor, size: sizing.iconSize),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (widget.leading != null) ...[
                       widget.leading!,
-                      SizedBox(width: spacing.s2),
+                      SizedBox(width: spacing.s8),
                     ],
                     Expanded(child: widget.child),
                     if (widget.trailing != null) ...[
-                      SizedBox(width: spacing.s2),
+                      SizedBox(width: spacing.s8),
                       widget.trailing!,
                     ],
                   ],

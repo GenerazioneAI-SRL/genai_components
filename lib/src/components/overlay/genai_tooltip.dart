@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
-import '../../tokens/z_index.dart';
 
-/// Tooltip (§6.5.2). Uses the theme `tooltipDelay` motion token.
+/// Inverse-chip tooltip — v3 design system.
+///
+/// Flat ink-chip tooltip styled to Forma LMS: `context.colors.surfaceInverse`
+/// bg, `textOnInverse` copy, `radius.xs` corners, positioned below the anchor
+/// by default. Waits [waitDuration] before showing and stays visible for
+/// [showDuration].
+///
+/// v3 class signature matches v1 / v2 so consumers can swap libraries by
+/// changing the import alias.
 class GenaiTooltip extends StatelessWidget {
+  /// Tooltip text.
   final String message;
+
+  /// Widget that triggers the tooltip.
   final Widget child;
+
+  /// How the tooltip is triggered on touch platforms.
   final TooltipTriggerMode triggerMode;
 
-  /// How long the tooltip stays visible after it appears. Defaults to 1.5s.
+  /// How long the tooltip stays visible after showing.
   final Duration showDuration;
+
+  /// How long to wait before showing on hover.
+  final Duration waitDuration;
 
   const GenaiTooltip({
     super.key,
@@ -18,6 +33,7 @@ class GenaiTooltip extends StatelessWidget {
     required this.child,
     this.triggerMode = TooltipTriggerMode.longPress,
     this.showDuration = const Duration(milliseconds: 1500),
+    this.waitDuration = const Duration(milliseconds: 400),
   });
 
   @override
@@ -26,33 +42,24 @@ class GenaiTooltip extends StatelessWidget {
     final ty = context.typography;
     final radius = context.radius;
     final spacing = context.spacing;
-    final motion = context.motion;
-
-    // Inverse chip: flipped bg/fg via semantic inverse tokens.
-    final bg = colors.surfaceInverse;
-    final fg = colors.textOnInverse;
 
     return Tooltip(
       message: message,
-      waitDuration: motion.tooltipDelay,
+      waitDuration: waitDuration,
       showDuration: showDuration,
       preferBelow: true,
-      verticalOffset: spacing.s3,
+      verticalOffset: spacing.s12,
       triggerMode: triggerMode,
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(radius.xs),
+        color: colors.surfaceInverse,
+        borderRadius: BorderRadius.circular(radius.sm),
       ),
-      textStyle: ty.bodySm.copyWith(color: fg),
+      textStyle: ty.labelSm.copyWith(color: colors.textOnInverse),
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s2,
-        vertical: spacing.s1 + spacing.s1 / 2,
+        horizontal: spacing.s8,
+        vertical: spacing.s4,
       ),
       child: child,
     );
   }
 }
-
-// Tooltips render on the overlay z-index layer.
-// ignore: unused_element
-const int _tooltipZ = GenaiZIndex.overlay;

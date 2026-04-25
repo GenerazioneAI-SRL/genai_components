@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Entry inside a context menu (§6.5.7).
+/// Entry inside a [showGenaiContextMenu] invocation.
 ///
-/// The generic [T] is the value returned from [showGenaiContextMenu] when
-/// this item is selected.
+/// The generic [T] is the value returned when this item is selected.
 class GenaiContextMenuItem<T> {
+  /// Value returned when this item is selected.
   final T value;
+
+  /// Row label.
   final String label;
+
+  /// Optional leading icon.
   final IconData? icon;
+
+  /// When true, renders in the danger color and announces as destructive.
   final bool isDestructive;
+
+  /// Disabled rows are still rendered but non-interactive.
   final bool isDisabled;
+
+  /// Optional keyboard shortcut hint rendered on the right.
   final String? shortcut;
 
   const GenaiContextMenuItem({
@@ -25,7 +34,11 @@ class GenaiContextMenuItem<T> {
   });
 }
 
-/// Show a context menu near the given [position] (§6.5.7).
+/// Shows a context menu near [position] — v3 design system.
+///
+/// Panel bg, hairline border, `radius.md` (8) corners, layer 2 shadow. Rows
+/// use `bodySm` copy; shortcuts render in `monoSm`. Returns the selected
+/// item's `value`, or null if dismissed.
 Future<T?> showGenaiContextMenu<T>(
   BuildContext context, {
   required Offset position,
@@ -46,7 +59,7 @@ Future<T?> showGenaiContextMenu<T>(
     color: colors.surfaceOverlay,
     elevation: 0,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(radius.sm),
+      borderRadius: BorderRadius.circular(radius.md),
       side: BorderSide(color: colors.borderDefault),
     ),
     constraints: BoxConstraints(minWidth: width, maxWidth: width),
@@ -56,54 +69,52 @@ Future<T?> showGenaiContextMenu<T>(
           value: item.value,
           enabled: !item.isDisabled,
           padding: EdgeInsets.zero,
-          child: Builder(builder: (ctx) {
-            final c = ctx.colors;
-            final ty = ctx.typography;
-            final s = ctx.spacing;
-            final fg = item.isDisabled
-                ? c.textDisabled
-                : item.isDestructive
-                    ? c.colorError
-                    : c.textPrimary;
-            return Semantics(
-              button: true,
-              enabled: !item.isDisabled,
-              label: item.label,
-              hint: item.shortcut,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: s.s3,
-                    vertical: s.s2,
-                  ),
-                  child: Row(
-                    children: [
-                      if (item.icon != null) ...[
-                        Icon(
-                          item.icon,
-                          size: GenaiSize.xs.iconSize,
-                          color: fg,
+          child: Builder(
+            builder: (ctx) {
+              final c = ctx.colors;
+              final ty = ctx.typography;
+              final s = ctx.spacing;
+              final fg = item.isDisabled
+                  ? c.textDisabled
+                  : item.isDestructive
+                      ? c.colorDangerText
+                      : c.textPrimary;
+              return Semantics(
+                button: true,
+                enabled: !item.isDisabled,
+                label: item.label,
+                hint: item.shortcut,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: s.s12,
+                      vertical: s.s8,
+                    ),
+                    child: Row(
+                      children: [
+                        if (item.icon != null) ...[
+                          Icon(item.icon, size: ctx.sizing.iconSize, color: fg),
+                          SizedBox(width: s.s8),
+                        ],
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            style: ty.bodySm.copyWith(color: fg),
+                          ),
                         ),
-                        SizedBox(width: s.s2),
+                        if (item.shortcut != null)
+                          Text(
+                            item.shortcut!,
+                            style: ty.monoSm.copyWith(color: c.textTertiary),
+                          ),
                       ],
-                      Expanded(
-                        child: Text(
-                          item.label,
-                          style: ty.bodyMd.copyWith(color: fg),
-                        ),
-                      ),
-                      if (item.shortcut != null)
-                        Text(
-                          item.shortcut!,
-                          style: ty.caption.copyWith(color: c.textSecondary),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ),
     ],
   );

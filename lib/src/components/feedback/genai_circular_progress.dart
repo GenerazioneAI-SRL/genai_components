@@ -1,58 +1,82 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Circular determinate/indeterminate progress (§6.6.3).
+/// Determinate circular progress — v3 design system.
+///
+/// Use [GenaiSpinner] for indeterminate loading. This widget always shows a
+/// measurable percentage; optionally renders the numeric label inside using
+/// the v3 mono scale.
 class GenaiCircularProgress extends StatelessWidget {
-  final double? value;
-  final GenaiSize size;
-  final Color? color;
-  final double? strokeWidth;
-  final Widget? centerChild;
+  /// 0..1 progress value.
+  final double value;
 
-  /// Accessible label. Defaults to a generic "Caricamento" for indeterminate.
-  final String? semanticLabel;
+  /// Outer diameter in logical px.
+  final double size;
+
+  /// Stroke width. Defaults to `context.sizing.dividerThickness * 3`.
+  final double? strokeWidth;
+
+  /// Fill color. Defaults to `context.colors.colorPrimary` (ink).
+  final Color? color;
+
+  /// Track background color. Defaults to `context.colors.borderDefault`
+  /// (the `--line` hairline).
+  final Color? trackColor;
+
+  /// When true, renders `${(value * 100).round()}%` at the center using
+  /// `context.typography.monoSm`.
+  final bool showLabel;
+
+  /// Accessible label for assistive tech.
+  final String semanticLabel;
 
   const GenaiCircularProgress({
     super.key,
-    this.value,
-    this.size = GenaiSize.md,
-    this.color,
+    required this.value,
+    this.size = 48,
     this.strokeWidth,
-    this.centerChild,
-    this.semanticLabel,
-  });
+    this.color,
+    this.trackColor,
+    this.showLabel = false,
+    this.semanticLabel = 'Progress',
+  }) : assert(value >= 0 && value <= 1, 'value must be in [0, 1]');
 
   @override
   Widget build(BuildContext context) {
-    final dim = size.height;
-    final stroke = strokeWidth ?? (size.iconSize * 0.18);
-    final fg = color ?? context.colors.colorPrimary;
-    final bg = context.colors.borderDefault;
-
-    final pct = value == null ? null : (value!.clamp(0.0, 1.0) * 100).round();
+    final colors = context.colors;
+    final ty = context.typography;
+    final stroke = strokeWidth ?? context.sizing.dividerThickness * 3;
+    final fill = color ?? colors.colorPrimary;
+    final bg = trackColor ?? colors.borderDefault;
+    final percent = (value * 100).round();
 
     return Semantics(
-      label: semanticLabel ?? 'Caricamento',
-      value: pct == null ? null : '$pct%',
+      label: semanticLabel,
+      value: '$percent%',
       child: SizedBox(
-        width: dim,
-        height: dim,
+        width: size,
+        height: size,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            SizedBox(
-              width: dim,
-              height: dim,
-              child: CircularProgressIndicator(
-                value: value,
-                strokeWidth: stroke,
-                valueColor: AlwaysStoppedAnimation(fg),
-                backgroundColor: bg,
+            ExcludeSemantics(
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: CircularProgressIndicator(
+                  value: value,
+                  strokeWidth: stroke,
+                  backgroundColor: bg,
+                  valueColor: AlwaysStoppedAnimation(fill),
+                ),
               ),
             ),
-            if (centerChild != null) centerChild!,
+            if (showLabel)
+              Text(
+                '$percent%',
+                style: ty.monoSm.copyWith(color: colors.textPrimary),
+              ),
           ],
         ),
       ),

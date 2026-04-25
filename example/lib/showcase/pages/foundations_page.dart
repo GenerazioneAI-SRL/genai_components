@@ -11,249 +11,205 @@ class FoundationsPage extends StatelessWidget {
     return ShowcaseScaffold(
       title: 'Foundations',
       description:
-          'Token semantici, scale spaziali, tipografia, raggi, ombre e dimensioni — tutti accessibili tramite extension `context.colors`, `context.spacing`, `context.typography`, `context.radius`, `context.elevation`.',
-      children: [
-        ShowcaseSection(
-          title: 'Colori — Brand & semantici',
-          subtitle: 'Token primary + success/warning/error/info con varianti subtle e hover.',
-          child: _ColorGrid(swatches: _brandSwatches(context)),
-        ),
-        ShowcaseSection(
-          title: 'Colori — Surface & border',
-          child: _ColorGrid(swatches: _surfaceSwatches(context)),
-        ),
-        ShowcaseSection(
-          title: 'Colori — Testo',
-          child: _ColorGrid(swatches: _textSwatches(context)),
-        ),
-        ShowcaseSection(
-          title: 'Tipografia',
-          subtitle: 'Inter (UI) + JetBrains Mono (code).',
-          child: const _TypographyShowcase(),
-        ),
-        ShowcaseSection(
-          title: 'Spacing — scala 4px',
-          child: const _SpacingShowcase(),
-        ),
-        ShowcaseSection(
-          title: 'Radius',
-          child: const _RadiusShowcase(),
-        ),
-        ShowcaseSection(
-          title: 'Elevation',
-          subtitle: '6 livelli (0..5) — ombre in light, overlay opacity in dark.',
-          child: const _ElevationShowcase(),
-        ),
-      ],
+          'Color tokens, spacing scale, radius — ricavati dal Dashboard v3.',
+      children: const [_ColorSwatches(), _SpacingScale(), _RadiusScale()],
     );
   }
-
-  List<_Swatch> _brandSwatches(BuildContext c) {
-    final col = c.colors;
-    return [
-      _Swatch('colorPrimary', col.colorPrimary),
-      _Swatch('colorPrimaryHover', col.colorPrimaryHover),
-      _Swatch('colorPrimaryPressed', col.colorPrimaryPressed),
-      _Swatch('colorPrimarySubtle', col.colorPrimarySubtle),
-      _Swatch('colorSuccess', col.colorSuccess),
-      _Swatch('colorSuccessSubtle', col.colorSuccessSubtle),
-      _Swatch('colorWarning', col.colorWarning),
-      _Swatch('colorWarningSubtle', col.colorWarningSubtle),
-      _Swatch('colorError', col.colorError),
-      _Swatch('colorErrorSubtle', col.colorErrorSubtle),
-      _Swatch('colorInfo', col.colorInfo),
-      _Swatch('colorInfoSubtle', col.colorInfoSubtle),
-    ];
-  }
-
-  List<_Swatch> _surfaceSwatches(BuildContext c) {
-    final col = c.colors;
-    return [
-      _Swatch('surfacePage', col.surfacePage),
-      _Swatch('surfaceCard', col.surfaceCard),
-      _Swatch('surfaceInput', col.surfaceInput),
-      _Swatch('surfaceOverlay', col.surfaceOverlay),
-      _Swatch('surfaceSidebar', col.surfaceSidebar),
-      _Swatch('surfaceHover', col.surfaceHover),
-      _Swatch('surfacePressed', col.surfacePressed),
-      _Swatch('borderDefault', col.borderDefault),
-      _Swatch('borderStrong', col.borderStrong),
-      _Swatch('borderFocus', col.borderFocus),
-      _Swatch('borderError', col.borderError),
-      _Swatch('borderSuccess', col.borderSuccess),
-    ];
-  }
-
-  List<_Swatch> _textSwatches(BuildContext c) {
-    final col = c.colors;
-    return [
-      _Swatch('textPrimary', col.textPrimary),
-      _Swatch('textSecondary', col.textSecondary),
-      _Swatch('textDisabled', col.textDisabled),
-      _Swatch('textOnPrimary', col.textOnPrimary),
-      _Swatch('textLink', col.textLink),
-    ];
-  }
 }
 
-class _Swatch {
-  final String name;
-  final Color color;
-  const _Swatch(this.name, this.color);
-}
-
-class _ColorGrid extends StatelessWidget {
-  final List<_Swatch> swatches;
-  const _ColorGrid({required this.swatches});
+class _ColorSwatches extends StatelessWidget {
+  const _ColorSwatches();
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        for (final s in swatches)
-          SizedBox(
-            width: 200,
-            child: GenaiCard.outlined(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+    final c = context.colors;
+    final groups = <String, List<(String, Color)>>{
+      'Surfaces': [
+        ('surfacePage', c.surfacePage),
+        ('surfaceCard', c.surfaceCard),
+        ('surfaceHover', c.surfaceHover),
+        ('surfaceInverse', c.surfaceInverse),
+      ],
+      'Text': [
+        ('textPrimary', c.textPrimary),
+        ('textSecondary', c.textSecondary),
+        ('textTertiary', c.textTertiary),
+        ('textLink', c.textLink),
+      ],
+      'Borders': [
+        ('borderSubtle', c.borderSubtle),
+        ('borderDefault', c.borderDefault),
+        ('borderStrong', c.borderStrong),
+        ('borderFocus', c.borderFocus),
+      ],
+      'Primary (ink)': [
+        ('colorPrimary', c.colorPrimary),
+        ('colorPrimaryHover', c.colorPrimaryHover),
+        ('colorPrimarySubtle', c.colorPrimarySubtle),
+      ],
+      'Semantic — base': [
+        ('colorSuccess', c.colorSuccess),
+        ('colorWarning', c.colorWarning),
+        ('colorDanger', c.colorDanger),
+        ('colorInfo', c.colorInfo),
+        ('colorNeutral', c.colorNeutral),
+      ],
+      'Semantic — soft': [
+        ('colorSuccessSubtle', c.colorSuccessSubtle),
+        ('colorWarningSubtle', c.colorWarningSubtle),
+        ('colorDangerSubtle', c.colorDangerSubtle),
+        ('colorInfoSubtle', c.colorInfoSubtle),
+        ('colorNeutralSubtle', c.colorNeutralSubtle),
+      ],
+    };
+    return ShowcaseSection(
+      title: 'Color tokens',
+      subtitle: 'Forma LMS palette verbatim dal reference HTML.',
+      child: Column(
+        children: [
+          for (final g in groups.entries)
+            Padding(
+              padding: EdgeInsets.only(bottom: context.spacing.s16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: s.color,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: context.colors.borderDefault),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: context.spacing.s8),
+                    child: Text(
+                      g.key,
+                      style: context.typography.labelSm.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(s.name,
-                            style: context.typography.label.copyWith(
-                              color: context.colors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            )),
-                        Text(_hex(s.color), style: context.typography.code.copyWith(color: context.colors.textSecondary)),
-                      ],
-                    ),
+                  Wrap(
+                    spacing: context.spacing.s10,
+                    runSpacing: context.spacing.s10,
+                    children: [
+                      for (final s in g.value) _Swatch(name: s.$1, color: s.$2),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
-  }
-
-  String _hex(Color c) {
-    final v = c.toARGB32() & 0xFFFFFF;
-    return '#${v.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 }
 
-class _TypographyShowcase extends StatelessWidget {
-  const _TypographyShowcase();
+class _Swatch extends StatelessWidget {
+  final String name;
+  final Color color;
+  const _Swatch({required this.name, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    final ty = context.typography;
-    final col = context.colors.textPrimary;
-    final samples = <(String, TextStyle)>[
-      ('displayLg', ty.displayLg),
-      ('displaySm', ty.displaySm),
-      ('headingLg', ty.headingLg),
-      ('headingSm', ty.headingSm),
-      ('bodyLg', ty.bodyLg),
-      ('bodyMd', ty.bodyMd),
-      ('bodySm', ty.bodySm),
-      ('label', ty.label),
-      ('labelSm', ty.labelSm),
-      ('caption', ty.caption),
-      ('code', ty.code),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final s in samples)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                SizedBox(
-                  width: 110,
-                  child: Text(s.$1, style: ty.caption.copyWith(color: context.colors.textSecondary)),
-                ),
-                Expanded(
-                  child: Text('Aa Bb Cc — Sphinx of black quartz, 1234,56', style: s.$2.copyWith(color: col)),
-                ),
-              ],
+    return SizedBox(
+      width: 160,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(context.radius.md),
+              border: Border.all(color: context.colors.borderSubtle),
             ),
           ),
-      ],
+          SizedBox(height: context.spacing.s4),
+          Text(
+            name,
+            style: context.typography.labelSm.copyWith(
+              color: context.colors.textPrimary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+            style: context.typography.monoSm.copyWith(
+              color: context.colors.textTertiary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _SpacingShowcase extends StatelessWidget {
-  const _SpacingShowcase();
+class _SpacingScale extends StatelessWidget {
+  const _SpacingScale();
 
   @override
   Widget build(BuildContext context) {
-    final spec = context.spacing;
-    final values = <(String, double)>[
-      ('s1', spec.s1),
-      ('s2', spec.s2),
-      ('s3', spec.s3),
-      ('s4', spec.s4),
-      ('s5', spec.s5),
-      ('s6', spec.s6),
-      ('s8', spec.s8),
-      ('s10', spec.s10),
-      ('s12', spec.s12),
-      ('s16', spec.s16),
+    final steps = <(String, double)>[
+      ('s2', 2),
+      ('s4', 4),
+      ('s6', 6),
+      ('s8', 8),
+      ('s10', 10),
+      ('s12', 12),
+      ('s14', 14),
+      ('s16', 16),
+      ('s20', 20),
+      ('s24', 24),
+      ('s28', 28),
+      ('s32', 32),
+      ('s48', 48),
+      ('s64', 64),
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final v in values)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 40,
-                  child: Text(v.$1, style: context.typography.label.copyWith(color: context.colors.textSecondary)),
+    return ShowcaseSection(
+      title: 'Spacing scale',
+      subtitle: 'Base 4 con stop 14/18/28 per parità HTML.',
+      child: GenaiCard.outlined(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final s in steps)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: context.spacing.s4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 60,
+                      child: Text(
+                        s.$1,
+                        style: context.typography.monoSm.copyWith(
+                          color: context.colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: s.$2,
+                      height: 10,
+                      color: context.colors.colorPrimary,
+                    ),
+                    SizedBox(width: context.spacing.s12),
+                    Text(
+                      '${s.$2.toInt()}px',
+                      style: context.typography.labelSm.copyWith(
+                        color: context.colors.textTertiary,
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  width: v.$2,
-                  height: 16,
-                  color: context.colors.colorPrimary,
-                ),
-                const SizedBox(width: 8),
-                Text('${v.$2.toStringAsFixed(0)} px', style: context.typography.code.copyWith(color: context.colors.textSecondary)),
-              ],
-            ),
-          ),
-      ],
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _RadiusShowcase extends StatelessWidget {
-  const _RadiusShowcase();
+class _RadiusScale extends StatelessWidget {
+  const _RadiusScale();
 
   @override
   Widget build(BuildContext context) {
     final r = context.radius;
-    final values = <(String, double)>[
+    final steps = <(String, double)>[
       ('xs', r.xs),
       ('sm', r.sm),
       ('md', r.md),
@@ -261,59 +217,39 @@ class _RadiusShowcase extends StatelessWidget {
       ('xl', r.xl),
       ('pill', r.pill),
     ];
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        for (final v in values)
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: context.colors.colorPrimarySubtle,
-                  border: Border.all(color: context.colors.colorPrimary),
-                  borderRadius: BorderRadius.circular(v.$2),
-                ),
+    return ShowcaseSection(
+      title: 'Radius scale',
+      child: Wrap(
+        spacing: context.spacing.s12,
+        runSpacing: context.spacing.s12,
+        children: [
+          for (final s in steps)
+            SizedBox(
+              width: 120,
+              child: Column(
+                children: [
+                  Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: context.colors.colorPrimarySubtle,
+                      borderRadius: BorderRadius.circular(
+                        s.$2.clamp(0, 32).toDouble(),
+                      ),
+                      border: Border.all(color: context.colors.borderDefault),
+                    ),
+                  ),
+                  SizedBox(height: context.spacing.s4),
+                  Text(
+                    '${s.$1} · ${s.$2.toStringAsFixed(0)}',
+                    style: context.typography.labelSm.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text('${v.$1} · ${v.$2.toStringAsFixed(0)}px', style: context.typography.caption.copyWith(color: context.colors.textSecondary)),
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-class _ElevationShowcase extends StatelessWidget {
-  const _ElevationShowcase();
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 24,
-      children: [
-        for (var i = 0; i < 6; i++)
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 100,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: context.colors.surfaceCard,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: context.elevation.shadow(i),
-                ),
-                alignment: Alignment.center,
-                child: Text('lvl $i', style: context.typography.label.copyWith(color: context.colors.textPrimary)),
-              ),
-            ],
-          ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 }

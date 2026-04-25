@@ -3,64 +3,111 @@ import 'package:flutter/services.dart';
 
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../actions/genai_icon_button.dart';
-import '../feedback/genai_spinner.dart';
+import '_field_frame.dart';
 
-/// When validation runs.
-enum GenaiValidateOn { blur, type, submit }
-
-/// Text input for the Genai design system (§6.1.1).
+/// Visual variant of a [GenaiTextField] — v3 Forma LMS (§9 field rules).
 ///
-/// Named constructors:
-/// - [GenaiTextField.password]
-/// - [GenaiTextField.search]
-/// - [GenaiTextField.numeric]
-/// - [GenaiTextField.multiline]
+/// * [outline] — default. `surfaceCard` background with 1 px `borderStrong`
+///   (`line-2`) border; border flips to `textPrimary` on hover / focus and to
+///   `colorDanger` on error.
+/// * [filled]  — subtle `surfaceHover` fill, no border until focus / error.
+/// * [ghost]   — transparent, border only on focus / error. Dense toolbars.
+enum GenaiTextFieldVariant { outline, filled, ghost }
+
+/// Internal constructor mode — exposed only via named constructors to keep
+/// the public API shaped around intent rather than flags.
+enum _GenaiTextFieldMode { text, password, search, numeric }
+
+/// v3 single-line text input — Forma LMS (§9 field rules).
+///
+/// Standard chrome is provided by the private `FieldFrame`: label + optional
+/// required asterisk, helper/error with reserved space, optional character
+/// counter. The input body sits in an `AnimatedContainer` so hover / focus /
+/// error border transitions honour the motion tokens (and collapse to zero
+/// duration when reduced-motion is on).
+///
+/// Density-driven height:
+/// * compact   — 32 px
+/// * normal    — 36 px
+/// * spacious  — 40 px
+///
+/// Slots:
+/// * [prefix] / [suffix] — icon or custom widget. Default icon size and
+///   colour are inherited from `context.sizing` / `context.colors`.
+/// * [prefixText] / [suffixText] — static inline copy (currency symbols,
+///   units). Disappears when disabled.
+/// * A clear button is automatically attached when the field has text, is
+///   enabled, is not read-only, and is not in password mode.
+/// * Password mode injects a show/hide affordance as the suffix.
 class GenaiTextField extends StatefulWidget {
+  /// Field label shown above the input.
   final String? label;
-  final String? hint;
+
+  /// Placeholder rendered inside the input when empty.
+  final String? hintText;
+
+  /// Helper copy below the input.
   final String? helperText;
+
+  /// Error copy below the input. Takes precedence over [helperText] and
+  /// switches the field into the error state (danger border + live-region
+  /// announcement).
   final String? errorText;
 
+  /// Appends a red asterisk after [label].
+  final bool isRequired;
+
+  /// Muted colours, no interaction.
+  final bool isDisabled;
+
+  /// Read-only — user can focus & select but not edit. Clear button hidden.
+  final bool isReadOnly;
+
+  /// Leading content inside the field (typically an icon).
   final Widget? prefix;
+
+  /// Trailing content inside the field (typically an icon).
   final Widget? suffix;
+
+  /// Static leading text (e.g. a currency symbol).
   final String? prefixText;
+
+  /// Static trailing text (e.g. a unit suffix).
   final String? suffixText;
 
   final TextEditingController? controller;
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
-  final FormFieldValidator<String>? validator;
-  final GenaiValidateOn validateOn;
+  final VoidCallback? onClear;
 
   final TextInputType keyboardType;
   final TextInputAction? textInputAction;
   final bool obscureText;
-  final bool isDisabled;
-  final bool isReadOnly;
-  final bool isLoading;
 
   final int? maxLength;
-  final bool showCounter;
-  final bool clearable;
-  final int? maxLines;
-  final int? minLines;
-
   final List<TextInputFormatter>? inputFormatters;
+
   final FocusNode? focusNode;
   final bool autofocus;
 
-  final GenaiSize size;
+  /// Visual variant — see [GenaiTextFieldVariant].
+  final GenaiTextFieldVariant variant;
+
+  /// Screen-reader label override. Falls back to [label].
   final String? semanticLabel;
+
+  final _GenaiTextFieldMode _mode;
 
   const GenaiTextField({
     super.key,
     this.label,
-    this.hint,
+    this.hintText,
     this.helperText,
     this.errorText,
+    this.isRequired = false,
+    this.isDisabled = false,
+    this.isReadOnly = false,
     this.prefix,
     this.suffix,
     this.prefixText,
@@ -69,98 +116,89 @@ class GenaiTextField extends StatefulWidget {
     this.initialValue,
     this.onChanged,
     this.onSubmitted,
-    this.validator,
-    this.validateOn = GenaiValidateOn.blur,
+    this.onClear,
     this.keyboardType = TextInputType.text,
     this.textInputAction,
     this.obscureText = false,
-    this.isDisabled = false,
-    this.isReadOnly = false,
-    this.isLoading = false,
     this.maxLength,
-    this.showCounter = false,
-    this.clearable = false,
-    this.maxLines = 1,
-    this.minLines,
     this.inputFormatters,
     this.focusNode,
     this.autofocus = false,
-    this.size = GenaiSize.md,
+    this.variant = GenaiTextFieldVariant.outline,
     this.semanticLabel,
-  });
+  }) : _mode = _GenaiTextFieldMode.text;
 
+  /// Password entry — obscured value, show/hide toggle on the suffix.
   const GenaiTextField.password({
     super.key,
     this.label,
-    this.hint,
+    this.hintText,
     this.helperText,
     this.errorText,
+    this.isRequired = false,
+    this.isDisabled = false,
+    this.isReadOnly = false,
     this.controller,
     this.initialValue,
     this.onChanged,
     this.onSubmitted,
-    this.validator,
-    this.validateOn = GenaiValidateOn.blur,
-    this.isDisabled = false,
-    this.isReadOnly = false,
-    this.isLoading = false,
     this.maxLength,
-    this.showCounter = false,
     this.focusNode,
     this.autofocus = false,
-    this.size = GenaiSize.md,
+    this.variant = GenaiTextFieldVariant.outline,
     this.semanticLabel,
   })  : prefix = null,
         suffix = null,
         prefixText = null,
         suffixText = null,
+        onClear = null,
         keyboardType = TextInputType.visiblePassword,
         textInputAction = TextInputAction.done,
         obscureText = true,
-        clearable = false,
-        maxLines = 1,
-        minLines = null,
-        inputFormatters = null;
+        inputFormatters = null,
+        _mode = _GenaiTextFieldMode.password;
 
+  /// Search input — magnifier prefix, clear button suffix, submit-on-enter.
   const GenaiTextField.search({
     super.key,
-    this.hint = 'Cerca...',
+    this.hintText = 'Cerca',
     this.controller,
     this.initialValue,
     this.onChanged,
     this.onSubmitted,
+    this.onClear,
     this.isDisabled = false,
-    this.isLoading = false,
     this.focusNode,
     this.autofocus = false,
-    this.size = GenaiSize.sm,
+    this.variant = GenaiTextFieldVariant.outline,
     this.semanticLabel,
   })  : label = null,
         helperText = null,
         errorText = null,
+        isRequired = false,
+        isReadOnly = false,
         prefix = null,
         suffix = null,
         prefixText = null,
         suffixText = null,
-        validator = null,
-        validateOn = GenaiValidateOn.blur,
         keyboardType = TextInputType.text,
         textInputAction = TextInputAction.search,
         obscureText = false,
-        isReadOnly = false,
         maxLength = null,
-        showCounter = false,
-        clearable = true,
-        maxLines = 1,
-        minLines = null,
-        inputFormatters = null;
+        inputFormatters = null,
+        _mode = _GenaiTextFieldMode.search;
 
+  /// Numeric-only input — sets a numeric keyboard hint. Pair with
+  /// [inputFormatters] to enforce locale-specific digit grouping.
   const GenaiTextField.numeric({
     super.key,
     this.label,
-    this.hint,
+    this.hintText,
     this.helperText,
     this.errorText,
+    this.isRequired = false,
+    this.isDisabled = false,
+    this.isReadOnly = false,
     this.prefix,
     this.suffix,
     this.prefixText,
@@ -169,57 +207,17 @@ class GenaiTextField extends StatefulWidget {
     this.initialValue,
     this.onChanged,
     this.onSubmitted,
-    this.validator,
-    this.validateOn = GenaiValidateOn.blur,
-    this.isDisabled = false,
-    this.isReadOnly = false,
-    this.isLoading = false,
+    this.onClear,
     this.maxLength,
-    this.showCounter = false,
-    this.clearable = false,
     this.inputFormatters,
     this.focusNode,
     this.autofocus = false,
-    this.size = GenaiSize.md,
+    this.variant = GenaiTextFieldVariant.outline,
     this.semanticLabel,
   })  : keyboardType = const TextInputType.numberWithOptions(decimal: true),
         textInputAction = TextInputAction.done,
         obscureText = false,
-        maxLines = 1,
-        minLines = null;
-
-  const GenaiTextField.multiline({
-    super.key,
-    this.label,
-    this.hint,
-    this.helperText,
-    this.errorText,
-    this.controller,
-    this.initialValue,
-    this.onChanged,
-    this.onSubmitted,
-    this.validator,
-    this.validateOn = GenaiValidateOn.blur,
-    this.isDisabled = false,
-    this.isReadOnly = false,
-    this.isLoading = false,
-    this.maxLength,
-    this.showCounter = true,
-    this.minLines = 3,
-    this.maxLines = 8,
-    this.focusNode,
-    this.autofocus = false,
-    this.size = GenaiSize.md,
-    this.semanticLabel,
-  })  : prefix = null,
-        suffix = null,
-        prefixText = null,
-        suffixText = null,
-        keyboardType = TextInputType.multiline,
-        textInputAction = TextInputAction.newline,
-        obscureText = false,
-        clearable = false,
-        inputFormatters = null;
+        _mode = _GenaiTextFieldMode.numeric;
 
   @override
   State<GenaiTextField> createState() => _GenaiTextFieldState();
@@ -232,8 +230,8 @@ class _GenaiTextFieldState extends State<GenaiTextField> {
   bool _ownFocus = false;
 
   bool _focused = false;
+  bool _hovered = false;
   bool _obscured = true;
-  String? _internalError;
 
   @override
   void initState() {
@@ -257,6 +255,13 @@ class _GenaiTextFieldState extends State<GenaiTextField> {
       _ownController = widget.controller == null;
       _controller.addListener(_handleChanged);
     }
+    if (oldWidget.focusNode != widget.focusNode) {
+      _focusNode.removeListener(_handleFocus);
+      if (_ownFocus) _focusNode.dispose();
+      _focusNode = widget.focusNode ?? FocusNode();
+      _ownFocus = widget.focusNode == null;
+      _focusNode.addListener(_handleFocus);
+    }
   }
 
   @override
@@ -271,32 +276,26 @@ class _GenaiTextFieldState extends State<GenaiTextField> {
   void _handleFocus() {
     final v = _focusNode.hasFocus;
     if (_focused != v) setState(() => _focused = v);
-    if (!_focused && widget.validateOn == GenaiValidateOn.blur) {
-      _runValidation();
-    }
   }
 
-  void _handleChanged() {
-    if (widget.validateOn == GenaiValidateOn.type) {
-      _runValidation();
-    } else if (_internalError != null) {
-      // Clear stale error while typing.
-      setState(() => _internalError = null);
-    }
-    setState(() {}); // refresh for clear-button visibility / counter
-  }
+  void _handleChanged() => setState(() {});
 
-  void _runValidation() {
-    final v = widget.validator;
-    if (v == null) return;
-    final error = v(_controller.text);
-    if (error != _internalError) {
-      setState(() => _internalError = error);
+  bool get _hasError =>
+      widget.errorText != null && widget.errorText!.isNotEmpty;
+  bool get _isPassword => widget._mode == _GenaiTextFieldMode.password;
+  bool get _isSearch => widget._mode == _GenaiTextFieldMode.search;
+
+  /// v3 heights — 32/36/40 (compact/normal/spacious) per task spec §2.
+  double _fieldHeight(GenaiDensity d) {
+    switch (d) {
+      case GenaiDensity.compact:
+        return 32;
+      case GenaiDensity.normal:
+        return 36;
+      case GenaiDensity.spacious:
+        return 40;
     }
   }
-
-  String? get _resolvedError => widget.errorText ?? _internalError;
-  bool get _hasError => _resolvedError != null && _resolvedError!.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -304,99 +303,117 @@ class _GenaiTextFieldState extends State<GenaiTextField> {
     final ty = context.typography;
     final spacing = context.spacing;
     final sizing = context.sizing;
-    final isCompact = context.isCompact;
-    final h = widget.maxLines != null && widget.maxLines! > 1
-        ? null
-        : widget.size.resolveHeight(isCompact: isCompact);
+    final radius = context.radius;
 
-    // Resting border: 1 px so layout never reflows on focus / hover.
-    // Focus / error ring rendered as a non-layout overlay below.
-    final borderColor =
-        _hasError ? colors.borderError : colors.borderDefault;
-    final borderWidth = widget.size.borderWidth;
+    final hasText = _controller.text.isNotEmpty;
+    final height = _fieldHeight(sizing.density);
 
-    final bg = widget.isDisabled
-        ? colors.surfaceHover
-        : (widget.isReadOnly ? colors.surfacePage : colors.surfaceInput);
+    // Resting border kept 1 px so layout never reflows on focus / hover.
+    // Focus ring is rendered as a non-layout overlay (Stack) further below.
+    final borderColor = widget.isDisabled
+        ? colors.borderSubtle
+        : _hasError
+            ? colors.colorDanger
+            : _hovered
+                ? colors.textPrimary
+                : colors.borderStrong;
 
-    final inputStyle = ty.bodyMd.copyWith(
+    const borderWidth = 1.0;
+
+    final bg = switch (widget.variant) {
+      GenaiTextFieldVariant.outline => widget.isDisabled
+          ? colors.surfaceHover
+          : (widget.isReadOnly ? colors.surfacePage : colors.surfaceCard),
+      GenaiTextFieldVariant.filled =>
+        widget.isDisabled ? colors.surfaceHover : colors.surfaceHover,
+      GenaiTextFieldVariant.ghost => Colors.transparent,
+    };
+
+    final showBorder =
+        widget.variant != GenaiTextFieldVariant.ghost || _focused || _hasError;
+
+    final inputStyle = ty.bodySm.copyWith(
       color: widget.isDisabled ? colors.textDisabled : colors.textPrimary,
-      fontSize: widget.size.fontSize,
     );
+    final hintStyle = inputStyle.copyWith(color: colors.textTertiary);
 
-    final isPassword = widget.obscureText;
-    final isSearch = widget.keyboardType == TextInputType.text &&
-        widget.hint == 'Cerca...' &&
-        widget.clearable;
-    final hasValue = _controller.text.isNotEmpty;
-
-    final prefixWidget = widget.prefix ??
-        (isSearch
-            ? Padding(
-                padding: EdgeInsets.only(left: spacing.s3, right: spacing.s1),
-                child: Icon(LucideIcons.search,
-                    size: widget.size.iconSize, color: colors.textSecondary),
-              )
-            : (widget.prefixText != null
-                ? Padding(
-                    padding:
-                        EdgeInsets.only(left: spacing.s3, right: spacing.s1),
-                    child: Text(widget.prefixText!,
-                        style:
-                            inputStyle.copyWith(color: colors.textSecondary)),
-                  )
-                : null));
-
-    final suffixActions = <Widget>[];
-    if (widget.isLoading) {
-      suffixActions
-          .add(GenaiSpinner(size: widget.size, color: colors.textSecondary));
-    } else {
-      if (widget.clearable &&
-          hasValue &&
-          !widget.isDisabled &&
-          !widget.isReadOnly) {
-        suffixActions.add(GenaiIconButton(
-          icon: LucideIcons.x,
-          size: GenaiSize.xs,
-          semanticLabel: 'Cancella',
-          onPressed: () {
-            _controller.clear();
-            widget.onChanged?.call('');
-          },
-        ));
-      }
-      if (isPassword) {
-        suffixActions.add(GenaiIconButton(
-          icon: _obscured ? LucideIcons.eye : LucideIcons.eyeOff,
-          size: GenaiSize.xs,
-          semanticLabel: _obscured ? 'Mostra password' : 'Nascondi password',
-          onPressed: () => setState(() => _obscured = !_obscured),
-        ));
-      }
+    // ── Prefix ────────────────────────────────────────────────────────────
+    final prefixChildren = <Widget>[];
+    if (_isSearch && widget.prefix == null && widget.prefixText == null) {
+      prefixChildren.add(Icon(
+        LucideIcons.search,
+        size: sizing.iconSize,
+        color: colors.textTertiary,
+      ));
+    }
+    if (widget.prefix != null) {
+      prefixChildren.add(IconTheme(
+        data: IconThemeData(
+          size: sizing.iconSize,
+          color: colors.textTertiary,
+        ),
+        child: widget.prefix!,
+      ));
+    }
+    if (widget.prefixText != null) {
+      prefixChildren.add(Text(widget.prefixText!,
+          style: inputStyle.copyWith(color: colors.textTertiary)));
     }
 
+    // ── Suffix ────────────────────────────────────────────────────────────
+    final suffixChildren = <Widget>[];
     if (widget.suffixText != null) {
-      suffixActions.insert(
-        0,
-        Text(widget.suffixText!,
-            style: inputStyle.copyWith(color: colors.textSecondary)),
-      );
+      suffixChildren.add(Text(widget.suffixText!,
+          style: inputStyle.copyWith(color: colors.textTertiary)));
     }
-    if (widget.suffix != null) suffixActions.insert(0, widget.suffix!);
+    if (widget.suffix != null) {
+      suffixChildren.add(IconTheme(
+        data: IconThemeData(
+          size: sizing.iconSize,
+          color: colors.textTertiary,
+        ),
+        child: widget.suffix!,
+      ));
+    }
+
+    final showClear = !widget.isReadOnly &&
+        !widget.isDisabled &&
+        hasText &&
+        (widget.onClear != null ||
+            _isSearch ||
+            widget._mode == _GenaiTextFieldMode.text ||
+            widget._mode == _GenaiTextFieldMode.numeric);
+    if (showClear && !_isPassword) {
+      suffixChildren.add(_IconAffordance(
+        icon: LucideIcons.x,
+        semanticLabel: 'Pulisci',
+        onTap: () {
+          _controller.clear();
+          widget.onChanged?.call('');
+          widget.onClear?.call();
+        },
+        iconSize: sizing.iconSize,
+      ));
+    }
+    if (_isPassword && !widget.isDisabled) {
+      suffixChildren.add(_IconAffordance(
+        icon: _obscured ? LucideIcons.eye : LucideIcons.eyeOff,
+        semanticLabel: _obscured ? 'Mostra password' : 'Nascondi password',
+        onTap: () => setState(() => _obscured = !_obscured),
+        iconSize: sizing.iconSize,
+      ));
+    }
 
     final field = TextField(
       controller: _controller,
       focusNode: _focusNode,
       autofocus: widget.autofocus,
-      obscureText: isPassword && _obscured,
+      obscureText: _isPassword && _obscured,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       enabled: !widget.isDisabled,
       readOnly: widget.isReadOnly,
       maxLength: widget.maxLength,
-      maxLines: widget.maxLines,
-      minLines: widget.minLines,
       inputFormatters: widget.inputFormatters,
       style: inputStyle,
       cursorColor: colors.colorPrimary,
@@ -406,58 +423,55 @@ class _GenaiTextFieldState extends State<GenaiTextField> {
           (_, {required currentLength, required isFocused, maxLength}) => null,
       decoration: InputDecoration(
         isDense: true,
-        hintText: widget.isDisabled ? null : widget.hint,
-        hintStyle: inputStyle.copyWith(color: colors.textSecondary),
+        hintText: widget.isDisabled ? null : widget.hintText,
+        hintStyle: hintStyle,
         border: InputBorder.none,
         focusedBorder: InputBorder.none,
         enabledBorder: InputBorder.none,
         disabledBorder: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: prefixWidget == null ? widget.size.paddingH : 0,
-          vertical: widget.size.paddingV,
-        ),
+        contentPadding: EdgeInsets.zero,
       ),
     );
 
-    Widget container = Container(
-      height: h,
+    Widget body = Container(
+      height: height,
+      padding: EdgeInsets.symmetric(horizontal: spacing.s12),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(widget.size.borderRadius),
-        border: Border.all(color: borderColor, width: borderWidth),
+        borderRadius: BorderRadius.circular(radius.md),
+        border: showBorder
+            ? Border.all(color: borderColor, width: borderWidth)
+            : null,
       ),
       child: Row(
-        crossAxisAlignment: widget.maxLines != null && widget.maxLines! > 1
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (prefixWidget != null) prefixWidget,
+          for (final w in prefixChildren) ...[
+            w,
+            SizedBox(width: spacing.iconLabelGap),
+          ],
           Expanded(child: field),
-          if (suffixActions.isNotEmpty) ...[
-            ...suffixActions.map((w) => Padding(
-                  padding: EdgeInsets.symmetric(horizontal: spacing.s1),
-                  child: w,
-                )),
-            SizedBox(width: spacing.s1),
+          for (final w in suffixChildren) ...[
+            SizedBox(width: spacing.iconLabelGap),
+            w,
           ],
         ],
       ),
     );
 
     if ((_focused || _hasError) && !widget.isDisabled) {
-      container = Stack(
+      body = Stack(
         clipBehavior: Clip.none,
         children: [
-          container,
+          body,
           Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(widget.size.borderRadius),
+                  borderRadius: BorderRadius.circular(radius.md),
                   border: Border.all(
-                    color: _hasError ? colors.borderError : colors.borderFocus,
-                    width: sizing.focusOutlineWidth,
+                    color: _hasError ? colors.colorDanger : colors.borderFocus,
+                    width: sizing.focusRingWidth,
                   ),
                 ),
               ),
@@ -467,78 +481,91 @@ class _GenaiTextFieldState extends State<GenaiTextField> {
       );
     }
 
-    final children = <Widget>[];
-    if (widget.label != null) {
-      children.add(Padding(
-        padding: EdgeInsets.only(bottom: spacing.s1 + 2),
-        child: Text(widget.label!,
-            style: ty.label.copyWith(color: colors.textPrimary)),
-      ));
-    }
-    children.add(container);
-
-    final showHelper = widget.helperText != null || _hasError;
-    final showCounter = widget.showCounter && widget.maxLength != null;
-    if (showHelper || showCounter) {
-      children.add(Padding(
-        padding: EdgeInsets.only(top: spacing.s1 + 2),
-        child: Row(
-          children: [
-            if (showHelper)
-              Expanded(
-                child: Semantics(
-                  liveRegion: _hasError,
-                  child: Row(
-                    children: [
-                      if (_hasError) ...[
-                        ExcludeSemantics(
-                          child: Icon(LucideIcons.circleAlert,
-                              size: GenaiSize.xs.iconSize * 0.875,
-                              color: colors.textError),
-                        ),
-                        SizedBox(width: spacing.s1),
-                      ],
-                      Flexible(
-                        child: Text(
-                          _resolvedError ?? widget.helperText ?? '',
-                          style: ty.caption.copyWith(
-                            color: _hasError
-                                ? colors.textError
-                                : colors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              const Spacer(),
-            if (showCounter)
-              ExcludeSemantics(
-                child: Text(
-                  '${_controller.text.characters.length} / ${widget.maxLength}',
-                  style: ty.caption.copyWith(color: colors.textSecondary),
-                ),
-              ),
-          ],
-        ),
-      ));
-    }
+    final counter = widget.maxLength == null
+        ? null
+        : ExcludeSemantics(
+            child: Text(
+              '${_controller.text.characters.length} / ${widget.maxLength}',
+              style: ty.labelSm.copyWith(color: colors.textTertiary),
+            ),
+          );
 
     return Semantics(
       textField: true,
       label: widget.semanticLabel ?? widget.label,
-      hint: widget.hint,
+      hint: widget.hintText,
       value: _controller.text,
       enabled: !widget.isDisabled,
       readOnly: widget.isReadOnly,
-      obscured: isPassword && _obscured,
+      obscured: _isPassword && _obscured,
       focused: _focused,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
+      child: MouseRegion(
+        opaque: false,
+        hitTestBehavior: HitTestBehavior.opaque,
+        onEnter: (_) {
+          if (!_hovered) setState(() => _hovered = true);
+        },
+        onExit: (_) {
+          if (_hovered) setState(() => _hovered = false);
+        },
+        child: FieldFrame(
+          label: widget.label,
+          isRequired: widget.isRequired,
+          isDisabled: widget.isDisabled,
+          helperText: widget.helperText,
+          errorText: widget.errorText,
+          trailingHelper: counter,
+          control: body,
+        ),
+      ),
+    );
+  }
+}
+
+class _IconAffordance extends StatefulWidget {
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback onTap;
+  final double iconSize;
+
+  const _IconAffordance({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+    required this.iconSize,
+  });
+
+  @override
+  State<_IconAffordance> createState() => _IconAffordanceState();
+}
+
+class _IconAffordanceState extends State<_IconAffordance> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      focused: _focused,
+      child: Focus(
+        onFocusChange: (f) => setState(() => _focused = f),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: Icon(
+              widget.icon,
+              size: widget.iconSize,
+              color: _hovered ? colors.textPrimary : colors.textTertiary,
+            ),
+          ),
+        ),
       ),
     );
   }

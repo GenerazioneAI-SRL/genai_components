@@ -7,11 +7,11 @@ import '../../theme/context_extensions.dart';
 /// Small bordered row rendered inside the right column of [GenaiFocusCard]
 /// ("Suggeriti per te"). Layout:
 /// - 8 px colored dot (intent / accent),
-/// - title (bodySm / 600) + optional subtitle (labelSm / textSecondary),
-/// - optional right-aligned mono meta (caption / textSecondary).
+/// - title (13 / 600) + optional subtitle (11.5 / ink-2),
+/// - optional right-aligned mono meta (11 / ink-3).
 ///
-/// Card: `surfaceCard` bg, `borderDefault`, `radius.lg`, padding 10/12.
-/// Hover upgrades the border to `textPrimary`. Tappable when [onTap] is set.
+/// Card: `surfaceCard` bg, `borderDefault`, `radius.lg` (10), padding 10/12.
+/// Hover upgrades the border to `borderStrong`. Tappable when [onTap] is set.
 class GenaiSuggestionItem extends StatefulWidget {
   /// Dot color — use intent-bearing tokens (info/ok/warn/danger/neutral).
   final Color dotColor;
@@ -65,32 +65,32 @@ class _GenaiSuggestionItemState extends State<GenaiSuggestionItem> {
           if (widget.metaRight != null) widget.metaRight!,
         ].join(' — ');
 
-    final border = isInteractive && _hovered
-        ? colors.textPrimary
-        : colors.borderDefault;
+    // Resting border kept at 1 px so layout never reflows on hover/focus.
+    final border =
+        isInteractive && _hovered ? colors.textPrimary : colors.borderDefault;
 
     Widget card = Container(
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s3,
-        vertical: spacing.s2,
+        horizontal: spacing.s12,
+        vertical: spacing.s10,
       ),
       decoration: BoxDecoration(
         color: colors.surfaceCard,
         borderRadius: BorderRadius.circular(radius.lg),
-        border: Border.all(color: border, width: sizing.dividerThickness),
+        border: Border.all(color: border, width: 1.0),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: spacing.s2,
-            height: spacing.s2,
+            width: spacing.s8,
+            height: spacing.s8,
             decoration: BoxDecoration(
               color: widget.dotColor,
               shape: BoxShape.circle,
             ),
           ),
-          SizedBox(width: spacing.s2),
+          SizedBox(width: spacing.s10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,29 +106,30 @@ class _GenaiSuggestionItemState extends State<GenaiSuggestionItem> {
                   maxLines: 1,
                 ),
                 if (widget.subtitle != null)
-                  Text(
-                    widget.subtitle!,
-                    style: ty.labelSm.copyWith(color: colors.textSecondary),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                  Padding(
+                    padding: EdgeInsets.only(top: spacing.s2),
+                    child: Text(
+                      widget.subtitle!,
+                      style: ty.labelSm.copyWith(color: colors.textSecondary),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
               ],
             ),
           ),
           if (widget.metaRight != null) ...[
-            SizedBox(width: spacing.s2),
+            SizedBox(width: spacing.s8),
             Text(
               widget.metaRight!,
-              style: ty.caption.copyWith(
-                color: colors.textSecondary,
-                fontFamily: 'monospace',
-              ),
+              style: ty.monoSm.copyWith(color: colors.textTertiary),
             ),
           ],
         ],
       ),
     );
 
+    // Focus ring overlay so toggling focus doesn't change layout bounds.
     if (_focused && isInteractive) {
       card = Stack(
         clipBehavior: Clip.none,
@@ -141,7 +142,7 @@ class _GenaiSuggestionItemState extends State<GenaiSuggestionItem> {
                   borderRadius: BorderRadius.circular(radius.lg),
                   border: Border.all(
                     color: colors.borderFocus,
-                    width: sizing.focusOutlineWidth,
+                    width: sizing.focusRingWidth,
                   ),
                 ),
               ),

@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
+import 'genai_button.dart';
 
-/// Visually connects multiple action widgets into a single segmented control
-/// (§6.2 — actions). Each child keeps its own callback and identity; the
-/// group only adds shared border, rounded outer corners, and 1-px dividers
-/// between siblings — there is no selection state.
+/// Visually connects multiple action widgets into a segmented control —
+/// v3 design system (Forma LMS, §6 — actions).
 ///
-/// For a selectable segmented group, use `GenaiToggleButtonGroup` instead.
+/// Each child keeps its own callback and identity; the group only adds a
+/// shared hairline border, rounded outer corners, and 1-px dividers between
+/// siblings. There is no selection state.
+///
+/// For a selectable segmented group, use `GenaiToggleButtonGroup`.
 ///
 /// Typical usage:
 ///
@@ -21,11 +23,6 @@ import '../../tokens/sizing.dart';
 ///   ],
 /// )
 /// ```
-///
-/// The group is purely visual — every child is still a normal interactive
-/// widget, hover/focus/press states remain per-child, and tooltips work as
-/// usual. Children are typically `GenaiButton.outline` or `GenaiIconButton`
-/// instances of matching [size].
 class GenaiButtonGroup extends StatelessWidget {
   /// Buttons (or other action widgets) rendered side-by-side.
   ///
@@ -37,7 +34,7 @@ class GenaiButtonGroup extends StatelessWidget {
 
   /// Visual size used to derive shared corner radius. Should match the size
   /// of every child for visual coherence.
-  final GenaiSize size;
+  final GenaiButtonSize size;
 
   /// Screen-reader label describing the group as a whole. Individual children
   /// keep their own semantic labels.
@@ -47,15 +44,27 @@ class GenaiButtonGroup extends StatelessWidget {
     super.key,
     required this.children,
     this.axis = Axis.horizontal,
-    this.size = GenaiSize.md,
+    this.size = GenaiButtonSize.md,
     this.semanticLabel,
   });
+
+  double _radiusFor(BuildContext context) {
+    final radius = context.radius;
+    switch (size) {
+      case GenaiButtonSize.sm:
+        return radius.sm;
+      case GenaiButtonSize.md:
+        return radius.md;
+      case GenaiButtonSize.lg:
+        return radius.md;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final divider = context.sizing.dividerThickness;
-    final radius = size.borderRadius;
+    final sizing = context.sizing;
+    final radius = _radiusFor(context);
 
     if (children.isEmpty) return const SizedBox.shrink();
 
@@ -66,11 +75,11 @@ class GenaiButtonGroup extends StatelessWidget {
         separated.add(
           axis == Axis.horizontal
               ? SizedBox(
-                  width: divider,
+                  width: sizing.dividerThickness,
                   child: ColoredBox(color: colors.borderDefault),
                 )
               : SizedBox(
-                  height: divider,
+                  height: sizing.dividerThickness,
                   child: ColoredBox(color: colors.borderDefault),
                 ),
         );
@@ -99,7 +108,7 @@ class GenaiButtonGroup extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: colors.borderDefault,
-          width: size.borderWidth,
+          width: sizing.dividerThickness,
         ),
       ),
       child: clipped,

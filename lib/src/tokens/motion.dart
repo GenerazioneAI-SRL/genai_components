@@ -3,13 +3,21 @@ import 'package:flutter/foundation.dart';
 
 import '../foundations/animations.dart';
 
-/// A (Duration, Curve) pair — the unit of motion in the system (§3.2).
+/// A (Duration, Curve) pair — the unit of motion in v3 (§2.6).
+///
+/// v3 reuses the v2 motion table verbatim — spec §2.6 says "Use v2 motion
+/// tokens (hover 120, press 80, modal 240, etc.)". `reduced()` returns a
+/// zero-duration variant for users who enable the OS "reduce motion" setting.
 @immutable
 class GenaiMotion {
   final Duration duration;
   final Curve curve;
 
   const GenaiMotion(this.duration, this.curve);
+
+  /// Returns a motion pair with [Duration.zero]. Use when
+  /// `GenaiResponsive.reducedMotion(context)` is true.
+  GenaiMotion reduced() => GenaiMotion(Duration.zero, curve);
 
   @override
   bool operator ==(Object other) =>
@@ -23,201 +31,92 @@ class GenaiMotion {
   int get hashCode => Object.hash(duration, curve);
 }
 
-/// Semantic motion tokens (§3.2.4, §13.4).
+/// Semantic motion tokens — v3 design system (§2.6).
 ///
-/// Every animated interaction in the system reads from here. Raw durations
-/// and curves continue to live in `foundations/animations.dart`; this class
-/// is the semantic layer that components consume via `context.motion`.
+/// Mirror of v2's seven motions. v3 HTML contains no explicit keyframes;
+/// this table exists so components that do animate (drawer, toast, modal)
+/// read from consistent timings.
 @immutable
 class GenaiMotionTokens {
-  // Interaction micro-motion
   final GenaiMotion hover;
-  final GenaiMotion pressIn;
-  final GenaiMotion pressOut;
-
-  // Overlays
-  final GenaiMotion modalOpen;
-  final GenaiMotion modalClose;
-  final GenaiMotion drawerDesktop;
-  final GenaiMotion drawerMobile;
-  final GenaiMotion dropdownOpen;
-  final GenaiMotion dropdownClose;
-  final GenaiMotion tooltipOpen;
-  final GenaiMotion toastIn;
-  final GenaiMotion toastOut;
-
-  // Disclosure
-  final GenaiMotion accordionOpen;
-  final GenaiMotion accordionClose;
-
-  // Page / tabs
-  final GenaiMotion tabSwitch;
-  final GenaiMotion pageDesktop;
-  final GenaiMotion pageMobile;
-
-  // Misc
-  final GenaiMotion sortArrow;
-  final GenaiMotion checkboxCheck;
-  final GenaiMotion toggleSlide;
-  final GenaiMotion sidebarCollapse;
-  final Duration skeletonShimmer;
-
-  // Async UX timers
-  final Duration tooltipDelay;
-  final Duration loadingDelay;
-  final Duration autosaveDebounce;
-  final Duration searchDebounce;
-
-  // Toast lifetimes
-  final Duration toastSuccess;
-  final Duration toastInfo;
-  final Duration toastWarning;
-  final Duration toastWithAction;
+  final GenaiMotion press;
+  final GenaiMotion expand;
+  final GenaiMotion modal;
+  final GenaiMotion toast;
+  final GenaiMotion page;
+  final GenaiMotion spring;
 
   const GenaiMotionTokens({
     required this.hover,
-    required this.pressIn,
-    required this.pressOut,
-    required this.modalOpen,
-    required this.modalClose,
-    required this.drawerDesktop,
-    required this.drawerMobile,
-    required this.dropdownOpen,
-    required this.dropdownClose,
-    required this.tooltipOpen,
-    required this.toastIn,
-    required this.toastOut,
-    required this.accordionOpen,
-    required this.accordionClose,
-    required this.tabSwitch,
-    required this.pageDesktop,
-    required this.pageMobile,
-    required this.sortArrow,
-    required this.checkboxCheck,
-    required this.toggleSlide,
-    required this.sidebarCollapse,
-    required this.skeletonShimmer,
-    required this.tooltipDelay,
-    required this.loadingDelay,
-    required this.autosaveDebounce,
-    required this.searchDebounce,
-    required this.toastSuccess,
-    required this.toastInfo,
-    required this.toastWarning,
-    required this.toastWithAction,
+    required this.press,
+    required this.expand,
+    required this.modal,
+    required this.toast,
+    required this.page,
+    required this.spring,
   });
 
+  /// Default motion tokens per §2.6 (v2 table reused).
   factory GenaiMotionTokens.defaultTokens() => const GenaiMotionTokens(
-        hover: GenaiMotion(GenaiDurations.hover, GenaiCurves.open),
-        pressIn: GenaiMotion(GenaiDurations.pressIn, GenaiCurves.close),
-        pressOut: GenaiMotion(GenaiDurations.pressOut, GenaiCurves.open),
-        modalOpen: GenaiMotion(GenaiDurations.modalOpen, GenaiCurves.open),
-        modalClose: GenaiMotion(GenaiDurations.modalClose, GenaiCurves.close),
-        drawerDesktop:
-            GenaiMotion(GenaiDurations.drawerDesktop, GenaiCurves.open),
-        drawerMobile:
-            GenaiMotion(GenaiDurations.drawerMobile, GenaiCurves.open),
-        dropdownOpen:
-            GenaiMotion(GenaiDurations.dropdownOpen, GenaiCurves.open),
-        dropdownClose:
-            GenaiMotion(GenaiDurations.dropdownClose, GenaiCurves.close),
-        tooltipOpen: GenaiMotion(GenaiDurations.tooltipOpen, GenaiCurves.open),
-        toastIn: GenaiMotion(GenaiDurations.toastIn, GenaiCurves.open),
-        toastOut: GenaiMotion(GenaiDurations.toastOut, GenaiCurves.close),
-        accordionOpen:
-            GenaiMotion(GenaiDurations.accordionOpen, GenaiCurves.open),
-        accordionClose:
-            GenaiMotion(GenaiDurations.accordionClose, GenaiCurves.close),
-        tabSwitch: GenaiMotion(GenaiDurations.tabSwitch, GenaiCurves.open),
-        pageDesktop: GenaiMotion(GenaiDurations.pageDesktop, GenaiCurves.page),
-        pageMobile: GenaiMotion(GenaiDurations.pageMobile, GenaiCurves.page),
-        sortArrow: GenaiMotion(GenaiDurations.sortArrow, GenaiCurves.toggle),
-        checkboxCheck:
-            GenaiMotion(GenaiDurations.checkboxCheck, GenaiCurves.open),
-        toggleSlide:
-            GenaiMotion(GenaiDurations.toggleSlide, GenaiCurves.toggle),
-        sidebarCollapse:
-            GenaiMotion(GenaiDurations.sidebarCollapse, GenaiCurves.page),
-        skeletonShimmer: GenaiDurations.skeletonShimmer,
-        tooltipDelay: GenaiDurations.tooltipDelay,
-        loadingDelay: GenaiDurations.loadingDelay,
-        autosaveDebounce: GenaiDurations.autosaveDebounce,
-        searchDebounce: GenaiDurations.searchDebounce,
-        toastSuccess: GenaiDurations.toastSuccess,
-        toastInfo: GenaiDurations.toastInfo,
-        toastWarning: GenaiDurations.toastWarning,
-        toastWithAction: GenaiDurations.toastWithAction,
+        hover: GenaiMotion(GenaiDurations.hover, GenaiCurves.easeOut),
+        press: GenaiMotion(GenaiDurations.press, GenaiCurves.easeOut),
+        expand: GenaiMotion(GenaiDurations.expand, GenaiCurves.emphasized),
+        modal: GenaiMotion(GenaiDurations.modal, GenaiCurves.emphasized),
+        toast: GenaiMotion(GenaiDurations.toast, GenaiCurves.easeOut),
+        page: GenaiMotion(GenaiDurations.page, GenaiCurves.easeInOut),
+        spring: GenaiMotion(GenaiDurations.spring, GenaiCurves.spring),
+      );
+
+  /// All-zero-duration variant for `prefers-reduced-motion` users (§5).
+  factory GenaiMotionTokens.reduced() => GenaiMotionTokens(
+        hover: GenaiMotionTokens.defaultTokens().hover.reduced(),
+        press: GenaiMotionTokens.defaultTokens().press.reduced(),
+        expand: GenaiMotionTokens.defaultTokens().expand.reduced(),
+        modal: GenaiMotionTokens.defaultTokens().modal.reduced(),
+        toast: GenaiMotionTokens.defaultTokens().toast.reduced(),
+        page: GenaiMotionTokens.defaultTokens().page.reduced(),
+        spring: GenaiMotionTokens.defaultTokens().spring.reduced(),
       );
 
   GenaiMotionTokens copyWith({
     GenaiMotion? hover,
-    GenaiMotion? pressIn,
-    GenaiMotion? pressOut,
-    GenaiMotion? modalOpen,
-    GenaiMotion? modalClose,
-    GenaiMotion? drawerDesktop,
-    GenaiMotion? drawerMobile,
-    GenaiMotion? dropdownOpen,
-    GenaiMotion? dropdownClose,
-    GenaiMotion? tooltipOpen,
-    GenaiMotion? toastIn,
-    GenaiMotion? toastOut,
-    GenaiMotion? accordionOpen,
-    GenaiMotion? accordionClose,
-    GenaiMotion? tabSwitch,
-    GenaiMotion? pageDesktop,
-    GenaiMotion? pageMobile,
-    GenaiMotion? sortArrow,
-    GenaiMotion? checkboxCheck,
-    GenaiMotion? toggleSlide,
-    GenaiMotion? sidebarCollapse,
-    Duration? skeletonShimmer,
-    Duration? tooltipDelay,
-    Duration? loadingDelay,
-    Duration? autosaveDebounce,
-    Duration? searchDebounce,
-    Duration? toastSuccess,
-    Duration? toastInfo,
-    Duration? toastWarning,
-    Duration? toastWithAction,
+    GenaiMotion? press,
+    GenaiMotion? expand,
+    GenaiMotion? modal,
+    GenaiMotion? toast,
+    GenaiMotion? page,
+    GenaiMotion? spring,
   }) {
     return GenaiMotionTokens(
       hover: hover ?? this.hover,
-      pressIn: pressIn ?? this.pressIn,
-      pressOut: pressOut ?? this.pressOut,
-      modalOpen: modalOpen ?? this.modalOpen,
-      modalClose: modalClose ?? this.modalClose,
-      drawerDesktop: drawerDesktop ?? this.drawerDesktop,
-      drawerMobile: drawerMobile ?? this.drawerMobile,
-      dropdownOpen: dropdownOpen ?? this.dropdownOpen,
-      dropdownClose: dropdownClose ?? this.dropdownClose,
-      tooltipOpen: tooltipOpen ?? this.tooltipOpen,
-      toastIn: toastIn ?? this.toastIn,
-      toastOut: toastOut ?? this.toastOut,
-      accordionOpen: accordionOpen ?? this.accordionOpen,
-      accordionClose: accordionClose ?? this.accordionClose,
-      tabSwitch: tabSwitch ?? this.tabSwitch,
-      pageDesktop: pageDesktop ?? this.pageDesktop,
-      pageMobile: pageMobile ?? this.pageMobile,
-      sortArrow: sortArrow ?? this.sortArrow,
-      checkboxCheck: checkboxCheck ?? this.checkboxCheck,
-      toggleSlide: toggleSlide ?? this.toggleSlide,
-      sidebarCollapse: sidebarCollapse ?? this.sidebarCollapse,
-      skeletonShimmer: skeletonShimmer ?? this.skeletonShimmer,
-      tooltipDelay: tooltipDelay ?? this.tooltipDelay,
-      loadingDelay: loadingDelay ?? this.loadingDelay,
-      autosaveDebounce: autosaveDebounce ?? this.autosaveDebounce,
-      searchDebounce: searchDebounce ?? this.searchDebounce,
-      toastSuccess: toastSuccess ?? this.toastSuccess,
-      toastInfo: toastInfo ?? this.toastInfo,
-      toastWarning: toastWarning ?? this.toastWarning,
-      toastWithAction: toastWithAction ?? this.toastWithAction,
+      press: press ?? this.press,
+      expand: expand ?? this.expand,
+      modal: modal ?? this.modal,
+      toast: toast ?? this.toast,
+      page: page ?? this.page,
+      spring: spring ?? this.spring,
     );
   }
 
-  /// Motion tokens are categorical: `lerp` snaps at the midpoint to avoid
-  /// intermediate curves / sub-frame durations.
+  /// Motion is categorical — `lerp` snaps at midpoint.
   static GenaiMotionTokens lerp(
           GenaiMotionTokens a, GenaiMotionTokens b, double t) =>
       t < 0.5 ? a : b;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GenaiMotionTokens &&
+          runtimeType == other.runtimeType &&
+          hover == other.hover &&
+          press == other.press &&
+          expand == other.expand &&
+          modal == other.modal &&
+          toast == other.toast &&
+          page == other.page &&
+          spring == other.spring;
+
+  @override
+  int get hashCode =>
+      Object.hash(hover, press, expand, modal, toast, page, spring);
 }

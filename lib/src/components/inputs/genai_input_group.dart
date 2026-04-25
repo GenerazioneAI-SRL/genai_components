@@ -1,51 +1,32 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
 /// Composes an input ([child]) with optional [leading] / [trailing] addon
-/// slots inside a single bordered surface (shadcn parity: `<InputGroup>`).
+/// slots inside a single bordered surface (shadcn parity: `<InputGroup>`)
+/// — v3 design system.
 ///
 /// Different from `GenaiTextField.prefix`/`suffix`: this widget composes
 /// **around** any input — `GenaiTextField`, `GenaiSelect`, `GenaiCombobox`,
 /// even custom widgets — so the addons share the same border, height, and
-/// hover/focus state as the input.
+/// hover state as the input.
 ///
 /// Visuals:
-/// - Single border around the whole row (default border, danger-aware).
+/// - Hairline border around the whole row.
 /// - 1-px separators between leading / child / trailing sections.
-/// - Shared height resolved from [size] (matches sibling inputs at the same
-///   `GenaiSize`).
-/// - Disabled state propagates to leading/trailing slots via reduced opacity.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiInputGroup(
-///   leading: const Icon(LucideIcons.search),
-///   trailing: GenaiButton(label: 'Go', onPressed: () {}),
-///   child: GenaiTextField(hint: 'Search docs'),
-/// );
-/// ```
-/// {@end-tool}
+/// - Shared height resolved from the global density (32/36/40 in v3).
 class GenaiInputGroup extends StatefulWidget {
-  /// Leading addon (icon, text label, or button). Rendered to the left of
-  /// [child] and visually merged into the same bordered container.
+  /// Leading addon (icon, text label, or button).
   final Widget? leading;
 
-  /// Trailing addon (icon, text label, or button). Rendered to the right of
-  /// [child] and visually merged into the same bordered container.
+  /// Trailing addon (icon, text label, or button).
   final Widget? trailing;
 
-  /// The input widget being wrapped — typically a `GenaiTextField`,
-  /// `GenaiSelect`, or `GenaiCombobox`.
+  /// The input widget being wrapped.
   final Widget child;
 
-  /// When true, dims the wrapper and disables hover/press visuals.
+  /// When true, dims the wrapper and disables hover visuals.
   final bool isDisabled;
-
-  /// Component size — controls overall height + corner radius. Defaults to
-  /// [GenaiSize.md].
-  final GenaiSize size;
 
   /// Accessibility label announced for the whole group.
   final String? semanticLabel;
@@ -56,7 +37,6 @@ class GenaiInputGroup extends StatefulWidget {
     this.leading,
     this.trailing,
     this.isDisabled = false,
-    this.size = GenaiSize.md,
     this.semanticLabel,
   });
 
@@ -67,53 +47,51 @@ class GenaiInputGroup extends StatefulWidget {
 class _GenaiInputGroupState extends State<GenaiInputGroup> {
   bool _hovered = false;
 
+  /// v3 input heights — 32/36/40 per density.
+  double _heightFor(GenaiDensity d) {
+    switch (d) {
+      case GenaiDensity.compact:
+        return 32;
+      case GenaiDensity.normal:
+        return 36;
+      case GenaiDensity.spacious:
+        return 40;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final spacing = context.spacing;
     final sizing = context.sizing;
+    final radius = context.radius;
     final motion = context.motion.hover;
 
-    final isCompact = context.isCompact;
-    final h = widget.size.resolveHeight(isCompact: isCompact);
+    final h = _heightFor(sizing.density);
 
-    final borderColor = _hovered && !widget.isDisabled
-        ? colors.borderStrong
-        : colors.borderDefault;
+    final borderColor = widget.isDisabled
+        ? colors.borderSubtle
+        : _hovered
+            ? colors.borderStrong
+            : colors.borderDefault;
     final bg = widget.isDisabled ? colors.surfaceHover : colors.surfaceInput;
-
-    Widget? leadingSlot;
-    if (widget.leading != null) {
-      leadingSlot = _Slot(
-        size: widget.size,
-        child: widget.leading!,
-      );
-    }
-
-    Widget? trailingSlot;
-    if (widget.trailing != null) {
-      trailingSlot = _Slot(
-        size: widget.size,
-        child: widget.trailing!,
-      );
-    }
 
     final separator = Container(
       width: sizing.dividerThickness,
-      color: colors.borderDefault,
+      color: colors.borderSubtle,
     );
 
     Widget content = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (leadingSlot != null) ...[
-          leadingSlot,
+        if (widget.leading != null) ...[
+          _Slot(child: widget.leading!),
           separator,
         ],
         Expanded(child: widget.child),
-        if (trailingSlot != null) ...[
+        if (widget.trailing != null) ...[
           separator,
-          trailingSlot,
+          _Slot(child: widget.trailing!),
         ],
       ],
     );
@@ -135,16 +113,10 @@ class _GenaiInputGroupState extends State<GenaiInputGroup> {
             height: h,
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(widget.size.borderRadius),
-              border: Border.all(
-                color: borderColor,
-                width: widget.size.borderWidth,
-              ),
+              borderRadius: BorderRadius.circular(radius.md),
+              border: Border.all(color: borderColor),
             ),
             clipBehavior: Clip.antiAlias,
-            // Pad slot interior so addon content isn't flush against the
-            // border. Token-driven: `componentPaddingH`.
-            padding: EdgeInsetsDirectional.zero,
             child: DefaultTextStyle.merge(
               style: TextStyle(
                 color: widget.isDisabled
@@ -156,7 +128,7 @@ class _GenaiInputGroupState extends State<GenaiInputGroup> {
                   color: widget.isDisabled
                       ? colors.textDisabled
                       : colors.textSecondary,
-                  size: widget.size.iconSize,
+                  size: sizing.iconSize,
                 ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: spacing.s0),
@@ -173,15 +145,14 @@ class _GenaiInputGroupState extends State<GenaiInputGroup> {
 
 class _Slot extends StatelessWidget {
   final Widget child;
-  final GenaiSize size;
 
-  const _Slot({required this.child, required this.size});
+  const _Slot({required this.child});
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.spacing;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: spacing.s3),
+      padding: EdgeInsets.symmetric(horizontal: spacing.s10),
       child: Center(
         widthFactor: 1,
         child: child,

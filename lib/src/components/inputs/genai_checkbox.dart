@@ -1,22 +1,38 @@
 import 'package:flutter/material.dart';
 
-import '../../foundations/animations.dart';
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Tri-state checkbox (`null` = indeterminate). §6.1.4
+/// Tri-state checkbox — v3 Forma LMS (§4 field rules).
+///
+/// Value semantics:
+/// * `true`  — checked (filled `colorPrimary`, check glyph).
+/// * `false` — unchecked (ink border, transparent fill).
+/// * `null`  — indeterminate (filled `colorPrimary`, minus glyph).
+///
+/// The default tap cycle flips `null` → `true` → `false` → `true` → …
+/// Callers driving the indeterminate state externally should supply their
+/// own [onChanged] handler that cycles values as required.
 class GenaiCheckbox extends StatefulWidget {
-  /// Pass `null` for the indeterminate state.
+  /// `null` = indeterminate.
   final bool? value;
-  final ValueChanged<bool?>? onChanged;
-  final String? label;
-  final String? description;
-  final bool isDisabled;
-  final bool hasError;
-  final GenaiSize size;
 
-  /// Screen-reader label when [label] is absent.
+  /// Fired with the next value. `null` disables the control.
+  final ValueChanged<bool?>? onChanged;
+
+  /// Inline label on the right.
+  final String? label;
+
+  /// Secondary description below [label].
+  final String? description;
+
+  /// Muted colour, no interaction.
+  final bool isDisabled;
+
+  /// Error state — danger border, danger focus override.
+  final bool hasError;
+
+  /// Screen-reader label override.
   final String? semanticLabel;
 
   const GenaiCheckbox({
@@ -27,7 +43,6 @@ class GenaiCheckbox extends StatefulWidget {
     this.description,
     this.isDisabled = false,
     this.hasError = false,
-    this.size = GenaiSize.sm,
     this.semanticLabel,
   });
 
@@ -37,6 +52,11 @@ class GenaiCheckbox extends StatefulWidget {
 
 class _GenaiCheckboxState extends State<GenaiCheckbox> {
   bool _focused = false;
+  bool _hovered = false;
+
+  /// Task spec §4: 18 px box, radius 4, ink border default, fill `colorPrimary`
+  /// when checked.
+  static const double _box = 18;
 
   void _toggle() {
     if (widget.isDisabled || widget.onChanged == null) return;
@@ -53,64 +73,64 @@ class _GenaiCheckboxState extends State<GenaiCheckbox> {
     final radius = context.radius;
     final motion = context.motion;
 
-    // Checkbox visual is 16 / 20 / 24 per size step (xs/sm → 16, md → 20, lg/xl → 24).
-    final double box = switch (widget.size) {
-      GenaiSize.xs || GenaiSize.sm => 16,
-      GenaiSize.md => 20,
-      GenaiSize.lg || GenaiSize.xl => 24,
-    };
-    final iconSize = box * 0.75;
-
-    final fillColor = widget.hasError ? colors.colorError : colors.colorPrimary;
     final isChecked = widget.value == true;
     final isIndeterminate = widget.value == null;
     final filled = isChecked || isIndeterminate;
 
-    Widget checkbox = AnimatedContainer(
-      duration: motion.checkboxCheck.duration,
-      curve: motion.checkboxCheck.curve,
-      width: box,
-      height: box,
+    final fillColor =
+        widget.hasError ? colors.colorDanger : colors.colorPrimary;
+    final restingBorder =
+        widget.hasError ? colors.colorDanger : colors.textPrimary;
+    final hoverBorder =
+        widget.hasError ? colors.colorDanger : colors.colorPrimaryHover;
+
+    Widget box = AnimatedContainer(
+      duration: motion.press.duration,
+      curve: motion.press.curve,
+      width: _box,
+      height: _box,
       decoration: BoxDecoration(
         color: filled ? fillColor : Colors.transparent,
         borderRadius: BorderRadius.circular(radius.xs),
         border: Border.all(
           color: filled
               ? fillColor
-              : (widget.hasError ? colors.borderError : colors.borderStrong),
-          width: widget.size.borderWidth,
+              : (_hovered && !widget.isDisabled ? hoverBorder : restingBorder),
+          width: 1.5,
         ),
       ),
       child: filled
           ? Icon(
               isIndeterminate ? LucideIcons.minus : LucideIcons.check,
-              size: iconSize,
+              size: _box - 4,
               color: colors.textOnPrimary,
             )
           : null,
     );
 
     if (_focused && !widget.isDisabled) {
-      checkbox = Container(
-        padding: EdgeInsets.all(sizing.focusOutlineOffset),
+      box = Container(
+        padding: EdgeInsets.all(sizing.focusRingOffset),
         decoration: BoxDecoration(
           borderRadius:
-              BorderRadius.circular(radius.xs + sizing.focusOutlineOffset),
+              BorderRadius.circular(radius.xs + sizing.focusRingOffset),
           border: Border.all(
-              color: colors.borderFocus, width: sizing.focusOutlineWidth),
+            color: widget.hasError ? colors.colorDanger : colors.borderFocus,
+            width: sizing.focusRingWidth,
+          ),
         ),
-        child: checkbox,
+        child: box,
       );
     }
 
     final hasText = widget.label != null || widget.description != null;
-    Widget content = checkbox;
+    Widget content = box;
     if (hasText) {
       content = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          checkbox,
+          box,
           SizedBox(width: spacing.iconLabelGap),
           Flexible(
             child: Column(
@@ -119,12 +139,16 @@ class _GenaiCheckboxState extends State<GenaiCheckbox> {
               children: [
                 if (widget.label != null)
                   Text(widget.label!,
-                      style: ty.label.copyWith(color: colors.textPrimary)),
+                      style: ty.label.copyWith(
+                        color: widget.isDisabled
+                            ? colors.textDisabled
+                            : colors.textPrimary,
+                      )),
                 if (widget.description != null)
                   Padding(
-                    padding: EdgeInsets.only(top: spacing.s1 / 2),
+                    padding: EdgeInsets.only(top: spacing.s2),
                     child: Text(widget.description!,
-                        style: ty.bodySm.copyWith(color: colors.textSecondary)),
+                        style: ty.bodySm.copyWith(color: colors.textTertiary)),
                   ),
               ],
             ),
@@ -133,17 +157,16 @@ class _GenaiCheckboxState extends State<GenaiCheckbox> {
       );
     }
 
-    // Ensure adequate touch target without altering the visible checkbox size.
-    final touch = sizing.minTouchTarget;
-
     return Opacity(
-      opacity: widget.isDisabled ? GenaiInteraction.disabledOpacity : 1.0,
+      opacity: widget.isDisabled ? 0.5 : 1.0,
       child: Focus(
         onFocusChange: (f) => setState(() => _focused = f),
         child: MouseRegion(
           cursor: widget.isDisabled
               ? SystemMouseCursors.forbidden
               : SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _toggle,
@@ -156,10 +179,13 @@ class _GenaiCheckboxState extends State<GenaiCheckbox> {
               hint: widget.description,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: hasText ? 0 : touch,
-                  minWidth: hasText ? 0 : touch,
+                  minHeight: hasText ? 0 : sizing.minTouchTarget,
+                  minWidth: hasText ? 0 : sizing.minTouchTarget,
                 ),
-                child: Center(child: content),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: content,
+                ),
               ),
             ),
           ),

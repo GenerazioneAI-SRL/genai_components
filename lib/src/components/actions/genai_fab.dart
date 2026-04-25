@@ -1,40 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../foundations/animations.dart';
-import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Floating Action Button (§6.2.5).
+/// Size scale for [GenaiFab] — v3 design system (Forma LMS).
 ///
-/// Optional [label] turns the FAB into an extended FAB. Hide-on-scroll behavior
-/// must be handled by the caller (e.g., wrapping in `AnimatedSlide`).
-class GenaiFAB extends StatefulWidget {
+/// Forma LMS dashboards rarely surface a FAB (decision-first hero handles
+/// the role via [GenaiFocusCard]); this component is kept for parity with
+/// v1 / v2 and for secondary apps that need a mobile-style overlay action.
+enum GenaiFabSize {
+  /// 48 px diameter — compact secondary FAB.
+  md,
+
+  /// 56 px diameter — default primary FAB.
+  lg,
+
+  /// 64 px diameter — prominent CTA.
+  xl,
+}
+
+/// Floating Action Button — v3 design system (Forma LMS).
+///
+/// Optional [label] turns the FAB into an extended (pill-shaped) FAB. Primary
+/// color is the ink CTA (`colorPrimary`), not info blue — matching the
+/// decision-first palette of v3.
+class GenaiFab extends StatefulWidget {
+  /// Required icon glyph.
   final IconData icon;
+
+  /// Optional label. When non-null, FAB renders as an extended pill.
   final String? label;
+
+  /// Tap callback. `null` disables.
   final VoidCallback? onPressed;
-  final GenaiSize size;
+
+  /// Size scale.
+  final GenaiFabSize size;
+
+  /// Tooltip shown on hover.
   final String? tooltip;
+
+  /// Required screen-reader label.
   final String semanticLabel;
 
-  const GenaiFAB({
+  const GenaiFab({
     super.key,
     required this.icon,
     required this.semanticLabel,
     this.label,
     this.onPressed,
-    this.size = GenaiSize.lg,
+    this.size = GenaiFabSize.lg,
     this.tooltip,
   });
 
   bool get _isDisabled => onPressed == null;
 
+  double get _dimension {
+    switch (size) {
+      case GenaiFabSize.md:
+        return 48;
+      case GenaiFabSize.lg:
+        return 56;
+      case GenaiFabSize.xl:
+        return 64;
+    }
+  }
+
+  double get _iconSize {
+    switch (size) {
+      case GenaiFabSize.md:
+        return 20;
+      case GenaiFabSize.lg:
+        return 24;
+      case GenaiFabSize.xl:
+        return 28;
+    }
+  }
+
   @override
-  State<GenaiFAB> createState() => _GenaiFABState();
+  State<GenaiFab> createState() => _GenaiFabState();
 }
 
-class _GenaiFABState extends State<GenaiFAB> {
+class _GenaiFabState extends State<GenaiFab> {
   bool _hovered = false;
   bool _pressed = false;
   bool _focused = false;
@@ -43,10 +90,10 @@ class _GenaiFABState extends State<GenaiFAB> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final elevation = context.elevation;
-    final motion = context.motion;
     final ty = context.typography;
+    final spacing = context.spacing;
     final sizing = context.sizing;
-    final h = widget.size.resolveHeight(isCompact: context.isCompact);
+    final h = widget._dimension;
     final disabled = widget._isDisabled;
 
     final bg = _pressed
@@ -54,64 +101,54 @@ class _GenaiFABState extends State<GenaiFAB> {
         : (_hovered ? colors.colorPrimaryHover : colors.colorPrimary);
     final fg = colors.textOnPrimary;
 
+    // Horizontal padding for extended FAB maps roughly to 1/3 the diameter
+    // in v2/v3; clamp via raw spacing stops so pills look balanced across
+    // sizes without hardcoding.
+    final paddingH = switch (widget.size) {
+      GenaiFabSize.md => spacing.s16,
+      GenaiFabSize.lg => spacing.s20,
+      GenaiFabSize.xl => spacing.s24,
+    };
+
     final children = <Widget>[
-      Icon(widget.icon, size: widget.size.iconSize, color: fg),
+      Icon(widget.icon, size: widget._iconSize, color: fg),
     ];
     if (widget.label != null) {
-      children.add(SizedBox(width: widget.size.gap));
+      children.add(SizedBox(width: spacing.s8));
       children.add(Text(widget.label!, style: ty.label.copyWith(color: fg)));
     }
 
-    // AnimatedScale wraps only the Row content — never the layout container —
-    // so the press shrink doesn't move the MouseRegion hit-test bounds and
-    // can't trigger an exit/enter blink loop.
-    final reduced = GenaiResponsive.reducedMotion(context);
     Widget btn = Container(
       height: h,
       constraints: BoxConstraints(minWidth: h),
       padding: widget.label == null
           ? EdgeInsets.zero
-          : EdgeInsets.symmetric(horizontal: widget.size.paddingH),
+          : EdgeInsets.symmetric(horizontal: paddingH),
       decoration: BoxDecoration(
         color: bg,
         shape: widget.label == null ? BoxShape.circle : BoxShape.rectangle,
         borderRadius:
             widget.label == null ? null : BorderRadius.circular(h / 2),
-        boxShadow: elevation.shadow(_hovered ? 4 : 3),
+        boxShadow: elevation.shadowForLayer(_hovered ? 3 : 2),
       ),
       child: Center(
-        child: AnimatedScale(
-          scale: _pressed ? GenaiInteraction.pressScale : 1.0,
-          alignment: Alignment.center,
-          duration: reduced
-              ? Duration.zero
-              : (_pressed ? motion.pressIn.duration : motion.pressOut.duration),
-          curve: _pressed ? motion.pressIn.curve : motion.pressOut.curve,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: children,
-          ),
-        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
 
-    btn = Opacity(
-      opacity: disabled ? GenaiInteraction.disabledOpacity : 1.0,
-      child: btn,
-    );
+    btn = Opacity(opacity: disabled ? 0.5 : 1.0, child: btn);
 
-    // Focus ring as a non-layout overlay so toggling focus never resizes the
-    // painted bounds (would otherwise feed a hover/focus blink loop).
+    // Focus ring as non-layout overlay → bounds remain stable on focus.
     if (_focused && !disabled) {
       btn = Stack(
         clipBehavior: Clip.none,
         children: [
           btn,
           Positioned(
-            left: -sizing.focusOutlineOffset,
-            top: -sizing.focusOutlineOffset,
-            right: -sizing.focusOutlineOffset,
-            bottom: -sizing.focusOutlineOffset,
+            left: -sizing.focusRingOffset,
+            top: -sizing.focusRingOffset,
+            right: -sizing.focusRingOffset,
+            bottom: -sizing.focusRingOffset,
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -120,11 +157,10 @@ class _GenaiFABState extends State<GenaiFAB> {
                       : BoxShape.rectangle,
                   borderRadius: widget.label == null
                       ? null
-                      : BorderRadius.circular(
-                          h / 2 + sizing.focusOutlineOffset),
+                      : BorderRadius.circular(h / 2 + sizing.focusRingOffset),
                   border: Border.all(
                     color: colors.borderFocus,
-                    width: sizing.focusOutlineWidth,
+                    width: sizing.focusRingWidth,
                   ),
                 ),
               ),
@@ -178,11 +214,7 @@ class _GenaiFABState extends State<GenaiFAB> {
     );
 
     if (widget.tooltip != null) {
-      btn = Tooltip(
-        message: widget.tooltip!,
-        waitDuration: context.motion.tooltipDelay,
-        child: btn,
-      );
+      btn = Tooltip(message: widget.tooltip!, child: btn);
     }
 
     return btn;

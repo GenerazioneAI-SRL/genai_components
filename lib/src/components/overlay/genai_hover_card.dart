@@ -4,46 +4,31 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/z_index.dart';
 
-/// Floating rich-content card that opens on pointer enter (shadcn/ui
-/// HoverCard equivalent).
+/// Floating rich-content card that opens on pointer enter — v3 design system.
 ///
-/// Differences from [GenaiTooltip](genai_tooltip.dart):
-/// - Larger surface capable of holding multiple widgets (avatar, title,
-///   description, action buttons).
-/// - Card stays open while the cursor moves between the trigger and the
-///   content, thanks to [closeDelay].
-/// - Desktop-only affordance — on touch devices (reported via
-///   `reducedMotion` / compact window sizes) the trigger is passed through
-///   unchanged so tap handlers on [child] remain authoritative.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiHoverCard(
-///   content: (ctx) => const _UserSummary(),
-///   child: const GenaiAvatar(name: 'Ada Lovelace'),
-/// );
-/// ```
-/// {@end-tool}
-///
-/// See also: [GenaiTooltip], [GenaiPopover].
+/// Distinct from [GenaiTooltip](genai_tooltip.dart):
+/// - Larger surface for multi-widget content (avatar, title, actions).
+/// - Stays open while the cursor moves between the trigger and card via
+///   [closeDelay].
+/// - Desktop-only — on compact (touch-first) windows the trigger is passed
+///   through unchanged.
 class GenaiHoverCard extends StatefulWidget {
-  /// Trigger widget that the card anchors to.
+  /// Trigger widget that anchors the card.
   final Widget child;
 
-  /// Builder for the card contents. Receives the overlay `BuildContext` so
-  /// it can consume design-system tokens.
+  /// Builds the card content. Receives the overlay `BuildContext` so it can
+  /// consume v3 tokens.
   final WidgetBuilder content;
 
-  /// Fixed width of the floating card.
+  /// Fixed card width.
   final double width;
 
-  /// Delay between cursor entering [child] and the card appearing.
+  /// Delay between pointer entering [child] and showing the card.
   final Duration openDelay;
 
-  /// Delay between cursor leaving the last hover region and the card
-  /// closing. Allows the user to move from [child] onto the card itself.
+  /// Delay between pointer leaving and hiding the card — allows the user
+  /// to travel from the trigger onto the overlay.
   final Duration closeDelay;
 
   /// Accessible label announced when the card opens.
@@ -92,7 +77,7 @@ class _GenaiHoverCardState extends State<GenaiHoverCard> {
     final overlay = Overlay.of(context);
     final spacing = context.spacing;
     final radius = context.radius;
-    final motion = context.motion;
+    final motion = context.motion.expand;
     final reduced = GenaiResponsive.reducedMotion(context);
 
     _entry = OverlayEntry(builder: (ctx) {
@@ -101,7 +86,7 @@ class _GenaiHoverCardState extends State<GenaiHoverCard> {
         children: [
           CompositedTransformFollower(
             link: _link,
-            offset: Offset(0, spacing.s2),
+            offset: Offset(0, spacing.s8),
             targetAnchor: Alignment.bottomCenter,
             followerAnchor: Alignment.topCenter,
             showWhenUnlinked: false,
@@ -124,19 +109,18 @@ class _GenaiHoverCardState extends State<GenaiHoverCard> {
                     container: true,
                     label: widget.semanticLabel,
                     child: TweenAnimationBuilder<double>(
-                      duration:
-                          reduced ? Duration.zero : motion.tooltipOpen.duration,
-                      curve: motion.tooltipOpen.curve,
+                      duration: reduced ? Duration.zero : motion.duration,
+                      curve: motion.curve,
                       tween: Tween(begin: 0, end: 1),
                       builder: (_, t, c) => Opacity(opacity: t, child: c),
                       child: Container(
                         width: widget.width,
-                        padding: EdgeInsets.all(spacing.s3),
+                        padding: EdgeInsets.all(spacing.s14),
                         decoration: BoxDecoration(
                           color: colors.surfaceOverlay,
-                          borderRadius: BorderRadius.circular(radius.md),
+                          borderRadius: BorderRadius.circular(radius.xl),
                           border: Border.all(color: colors.borderDefault),
-                          boxShadow: ctx.elevation.shadow(3),
+                          boxShadow: ctx.elevation.shadowForLayer(2),
                         ),
                         child: widget.content(ctx),
                       ),
@@ -169,17 +153,10 @@ class _GenaiHoverCardState extends State<GenaiHoverCard> {
 
   @override
   Widget build(BuildContext context) {
-    // Desktop-only affordance: on compact windows (touch-first) we skip the
-    // hover overlay entirely so that tap handlers on [child] stay
-    // authoritative.
-    final isTouchFirst = context.isCompact;
-    if (isTouchFirst) {
+    if (context.isCompact) {
+      // Touch-first contexts pass the trigger through unchanged.
       return widget.child;
     }
-    // Progressive enhancement: the hover card is never the *only* channel
-    // for information — we announce `semanticLabel` via `Semantics.hint`
-    // so keyboard and screen-reader users know additional context exists
-    // even if they can't trigger the hover overlay.
     return CompositedTransformTarget(
       link: _link,
       child: MouseRegion(

@@ -3,12 +3,24 @@ import 'package:flutter/material.dart';
 import '../../theme/context_extensions.dart';
 import 'genai_avatar.dart';
 
-/// Stack of overlapping avatars with `+N` overflow indicator (§6.7.5).
+/// Stack of overlapping avatars with `+N` overflow — v3 design system
+/// (Forma LMS). The outer ring uses `surfaceCard` so the group reads cleanly
+/// on panel or page surfaces.
 class GenaiAvatarGroup extends StatelessWidget {
+  /// Avatars in render order (left → right, left-most on top).
   final List<GenaiAvatar> avatars;
+
+  /// Maximum number of visible avatars before collapsing into `+N`.
   final int maxVisible;
+
+  /// Size scale shared by every tile. Must match the avatars' own size.
   final GenaiAvatarSize size;
+
+  /// Called when the group is tapped (e.g. to open a roster dialog).
   final VoidCallback? onTap;
+
+  /// Screen-reader label when [onTap] is non-null.
+  final String semanticLabel;
 
   const GenaiAvatarGroup({
     super.key,
@@ -16,6 +28,7 @@ class GenaiAvatarGroup extends StatelessWidget {
     this.maxVisible = 3,
     this.size = GenaiAvatarSize.md,
     this.onTap,
+    this.semanticLabel = 'Avatar group',
   });
 
   @override
@@ -23,7 +36,7 @@ class GenaiAvatarGroup extends StatelessWidget {
     final visible = avatars.take(maxVisible).toList();
     final overflow = avatars.length - visible.length;
     final dim = size.size;
-    final overlap = context.spacing.s2;
+    final overlap = context.spacing.s8;
     final stride = dim - overlap;
 
     final children = <Widget>[];
@@ -55,7 +68,7 @@ class GenaiAvatarGroup extends StatelessWidget {
     if (onTap == null) return stack;
     return Semantics(
       button: true,
-      label: 'Gruppo avatar',
+      label: semanticLabel,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(onTap: onTap, child: stack),
@@ -70,8 +83,9 @@ class GenaiAvatarGroup extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-            color: context.colors.surfaceCard,
-            width: context.sizing.focusOutlineWidth),
+          color: context.colors.surfaceCard,
+          width: context.sizing.focusRingWidth,
+        ),
       ),
       child: ClipOval(child: avatar),
     );

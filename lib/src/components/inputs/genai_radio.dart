@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../foundations/animations.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Single option inside a [GenaiRadioGroup].
+/// A single option inside a [GenaiRadio] group.
 class GenaiRadioOption<T> {
+  /// The value this option represents.
   final T value;
+
+  /// Primary label.
   final String label;
+
+  /// Optional secondary line under [label].
   final String? description;
+
+  /// When true, this option is disabled regardless of the group's state.
   final bool isDisabled;
 
   const GenaiRadioOption({
@@ -19,57 +24,78 @@ class GenaiRadioOption<T> {
   });
 }
 
-/// Single-choice radio group (§6.1.5).
-class GenaiRadioGroup<T> extends StatelessWidget {
+/// Single-choice radio group — v3 Forma LMS (§5 field rules).
+///
+/// Renders a vertical (default) or horizontal cluster of [GenaiRadioOption]s
+/// with a shared [value] + [onChanged] pair. Options announce themselves as
+/// being in a mutually-exclusive group for assistive tech.
+class GenaiRadio<T> extends StatelessWidget {
+  /// Currently selected value. `null` means nothing is selected.
   final T? value;
-  final List<GenaiRadioOption<T>> options;
-  final ValueChanged<T?>? onChanged;
-  final Axis direction;
-  final bool isDisabled;
-  final GenaiSize size;
 
-  const GenaiRadioGroup({
+  /// Options to render.
+  final List<GenaiRadioOption<T>> options;
+
+  /// Fired with the picked value.
+  final ValueChanged<T>? onChanged;
+
+  /// Disables the whole group.
+  final bool isDisabled;
+
+  /// Error state — danger ring on every option.
+  final bool hasError;
+
+  /// Layout axis; defaults to vertical.
+  final Axis direction;
+
+  const GenaiRadio({
     super.key,
     required this.value,
     required this.options,
     this.onChanged,
-    this.direction = Axis.vertical,
     this.isDisabled = false,
-    this.size = GenaiSize.sm,
+    this.hasError = false,
+    this.direction = Axis.vertical,
   });
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.spacing;
-    final children = options
+
+    final tiles = options
         .map((o) => _GenaiRadioTile<T>(
               option: o,
               selected: o.value == value,
-              isGroupDisabled: isDisabled,
+              disabled: isDisabled || o.isDisabled,
+              hasError: hasError,
               onTap: () => onChanged?.call(o.value),
             ))
         .toList();
 
-    Widget layout;
-    if (direction == Axis.horizontal) {
-      layout =
-          Wrap(spacing: spacing.s4, runSpacing: spacing.s2, children: children);
-    } else {
-      layout = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) SizedBox(height: spacing.s2),
-            children[i],
-          ],
-        ],
-      );
-    }
+    final Widget layout = direction == Axis.horizontal
+        ? Wrap(
+            spacing: spacing.s16,
+            runSpacing: spacing.s8,
+            children: tiles,
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < tiles.length; i++) ...[
+                if (i > 0) SizedBox(height: spacing.s8),
+                tiles[i],
+              ],
+            ],
+          );
+
     return FocusTraversalGroup(
       policy: OrderedTraversalPolicy(),
-      child:
-          Semantics(container: true, explicitChildNodes: true, child: layout),
+      child: Semantics(
+        container: true,
+        explicitChildNodes: true,
+        child: layout,
+      ),
     );
   }
 }
@@ -77,14 +103,16 @@ class GenaiRadioGroup<T> extends StatelessWidget {
 class _GenaiRadioTile<T> extends StatefulWidget {
   final GenaiRadioOption<T> option;
   final bool selected;
-  final bool isGroupDisabled;
-  final VoidCallback? onTap;
+  final bool disabled;
+  final bool hasError;
+  final VoidCallback onTap;
 
   const _GenaiRadioTile({
     required this.option,
     required this.selected,
-    required this.isGroupDisabled,
-    this.onTap,
+    required this.disabled,
+    required this.hasError,
+    required this.onTap,
   });
 
   @override
@@ -93,6 +121,11 @@ class _GenaiRadioTile<T> extends StatefulWidget {
 
 class _GenaiRadioTileState<T> extends State<_GenaiRadioTile<T>> {
   bool _focused = false;
+  bool _hovered = false;
+
+  // Task spec §5: 18 px circle, ink border, dot `colorPrimary`.
+  static const double _outer = 18;
+  static const double _inner = 8;
 
   @override
   Widget build(BuildContext context) {
@@ -101,66 +134,72 @@ class _GenaiRadioTileState<T> extends State<_GenaiRadioTile<T>> {
     final spacing = context.spacing;
     final sizing = context.sizing;
     final motion = context.motion;
-    final disabled = widget.isGroupDisabled || widget.option.isDisabled;
-    final ringColor =
-        widget.selected ? colors.colorPrimary : colors.borderStrong;
 
-    // Outer ring 16px for sm, scaled slightly for md+.
-    const outer = 16.0;
-    const inner = 8.0;
+    final ringColor = widget.selected
+        ? (widget.hasError ? colors.colorDanger : colors.colorPrimary)
+        : (widget.hasError
+            ? colors.colorDanger
+            : _hovered && !widget.disabled
+                ? colors.colorPrimaryHover
+                : colors.textPrimary);
+
+    final dotColor = widget.hasError ? colors.colorDanger : colors.colorPrimary;
 
     Widget radio = AnimatedContainer(
-      duration: motion.checkboxCheck.duration,
-      curve: motion.checkboxCheck.curve,
-      width: outer,
-      height: outer,
+      duration: motion.press.duration,
+      curve: motion.press.curve,
+      width: _outer,
+      height: _outer,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-            color: ringColor, width: sizing.focusOutlineOffset - 0.5),
+        border: Border.all(color: ringColor, width: 1.5),
       ),
       alignment: Alignment.center,
       child: AnimatedContainer(
-        duration: motion.checkboxCheck.duration,
-        curve: motion.checkboxCheck.curve,
-        width: widget.selected ? inner : 0,
-        height: widget.selected ? inner : 0,
+        duration: motion.press.duration,
+        curve: motion.press.curve,
+        width: widget.selected ? _inner : 0,
+        height: widget.selected ? _inner : 0,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: colors.colorPrimary,
+          color: dotColor,
         ),
       ),
     );
 
-    if (_focused && !disabled) {
+    if (_focused && !widget.disabled) {
       radio = Container(
-        padding: EdgeInsets.all(sizing.focusOutlineOffset),
+        padding: EdgeInsets.all(sizing.focusRingOffset),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-              color: colors.borderFocus, width: sizing.focusOutlineWidth),
+            color: widget.hasError ? colors.colorDanger : colors.borderFocus,
+            width: sizing.focusRingWidth,
+          ),
         ),
         child: radio,
       );
     }
 
     return Opacity(
-      opacity: disabled ? GenaiInteraction.disabledOpacity : 1.0,
+      opacity: widget.disabled ? 0.5 : 1.0,
       child: Focus(
         onFocusChange: (f) => setState(() => _focused = f),
         child: MouseRegion(
-          cursor: disabled
+          cursor: widget.disabled
               ? SystemMouseCursors.forbidden
               : SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: disabled ? null : widget.onTap,
+            onTap: widget.disabled ? null : widget.onTap,
             child: Semantics(
               checked: widget.selected,
               inMutuallyExclusiveGroup: true,
               label: widget.option.label,
               hint: widget.option.description,
-              enabled: !disabled,
+              enabled: !widget.disabled,
               focused: _focused,
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
@@ -176,14 +215,17 @@ class _GenaiRadioTileState<T> extends State<_GenaiRadioTile<T>> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(widget.option.label,
-                              style:
-                                  ty.label.copyWith(color: colors.textPrimary)),
+                              style: ty.label.copyWith(
+                                color: widget.disabled
+                                    ? colors.textDisabled
+                                    : colors.textPrimary,
+                              )),
                           if (widget.option.description != null)
                             Padding(
-                              padding: EdgeInsets.only(top: spacing.s1 / 2),
+                              padding: EdgeInsets.only(top: spacing.s2),
                               child: Text(widget.option.description!,
                                   style: ty.bodySm
-                                      .copyWith(color: colors.textSecondary)),
+                                      .copyWith(color: colors.textTertiary)),
                             ),
                         ],
                       ),

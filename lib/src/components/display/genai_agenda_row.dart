@@ -7,14 +7,14 @@ import '../../theme/context_extensions.dart';
 /// Lists upcoming events with a fixed-width date tile on the left and a
 /// flexible content column on the right. Mirrors `.agenda-row` in the Forma
 /// LMS reference HTML:
-/// - 58 px date tile (`surfaceHover` bg, `radius.lg`, padding 6/8). Day is
-///   bold tabular; month is uppercase secondary.
-/// - 1fr content: title (bodySm / 600), subtitle (labelSm / textSecondary),
-///   optional meta row of icon+text widgets.
+/// - 58 px date tile (`neutral-soft` bg, `radius.lg` = 10, padding 6/8). Day
+///   is 18 / 600 tabular; month is 10 px uppercase neutral.
+/// - 1fr content: title (bodySm / 600), subtitle (labelSm / ink-2), optional
+///   meta row of icon+text widgets.
 /// - Row padding 14/20, divided from the next row by a `borderDefault` line.
 ///
 /// The [meta] slot accepts arbitrary widgets — the row wraps them with a
-/// DefaultTextStyle of `labelSm` + `textSecondary` and inline icons.
+/// DefaultTextStyle of `labelSm` + `textSecondary` and inline `iconSize`.
 class GenaiAgendaRow extends StatelessWidget {
   /// Day of month (1..31).
   final int day;
@@ -64,14 +64,13 @@ class GenaiAgendaRow extends StatelessWidget {
         ].join(' — ');
 
     final dateTile = Container(
-      // Date tile width is a spec-pinned local measure.
       width: 58,
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s1,
-        vertical: spacing.s2,
+        horizontal: spacing.s6,
+        vertical: spacing.s8,
       ),
       decoration: BoxDecoration(
-        color: colors.surfaceHover,
+        color: colors.colorNeutralSubtle,
         borderRadius: BorderRadius.circular(radius.lg),
       ),
       child: Column(
@@ -79,15 +78,16 @@ class GenaiAgendaRow extends StatelessWidget {
         children: [
           Text(
             '$day',
-            style: ty.headingSm.copyWith(
+            style: ty.sectionTitle.copyWith(
               color: colors.textPrimary,
               fontWeight: FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
+          SizedBox(height: spacing.s2),
           Text(
             month.toUpperCase(),
-            style: ty.caption.copyWith(color: colors.textSecondary),
+            style: ty.tiny.copyWith(color: colors.textSecondary),
           ),
         ],
       ),
@@ -107,24 +107,27 @@ class GenaiAgendaRow extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         if (subtitle != null)
-          Text(
-            subtitle!,
-            style: ty.labelSm.copyWith(color: colors.textSecondary),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          Padding(
+            padding: EdgeInsets.only(top: spacing.s2),
+            child: Text(
+              subtitle!,
+              style: ty.labelSm.copyWith(color: colors.textSecondary),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         if (meta != null && meta!.isNotEmpty) ...[
-          SizedBox(height: spacing.s2),
+          SizedBox(height: spacing.s8),
           DefaultTextStyle.merge(
             style: ty.labelSm.copyWith(color: colors.textSecondary),
             child: IconTheme.merge(
               data: IconThemeData(
                 color: colors.textSecondary,
-                size: sizing.iconInline,
+                size: sizing.iconSize - 2,
               ),
               child: Wrap(
-                spacing: spacing.s3,
-                runSpacing: spacing.s1,
+                spacing: spacing.s12,
+                runSpacing: spacing.s4,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: meta!,
               ),
@@ -136,8 +139,8 @@ class GenaiAgendaRow extends StatelessWidget {
 
     final row = Container(
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s5,
-        vertical: spacing.s3,
+        horizontal: spacing.s20,
+        vertical: spacing.s14,
       ),
       decoration: BoxDecoration(
         border: Border(
@@ -151,7 +154,7 @@ class GenaiAgendaRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           dateTile,
-          SizedBox(width: spacing.s3),
+          SizedBox(width: spacing.s14),
           Expanded(child: content),
         ],
       ),

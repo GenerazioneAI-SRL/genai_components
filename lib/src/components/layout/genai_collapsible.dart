@@ -1,62 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../../foundations/responsive.dart';
+import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
 
-/// Single collapsible panel — shadcn parity: `<Collapsible>`.
+/// Single-panel expand/collapse — v3 design system.
 ///
-/// Distinct from `GenaiAccordion` which is multi-section. A [GenaiCollapsible]
-/// has exactly one trigger and one content pane: the trigger stays always
-/// visible while the content expands / collapses below it.
-///
-/// The widget is uncontrolled (manages its own open state internally) but
-/// supports an [initiallyOpen] seed and an [onOpenChanged] callback.
-///
-/// Animation duration defaults to `GenaiMotionTokens.accordionOpen`; when the
-/// user has reduced-motion enabled the duration collapses to zero.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiCollapsible(
-///   trigger: const Padding(
-///     padding: EdgeInsets.all(12),
-///     child: Text('Advanced options'),
-///   ),
-///   content: const AdvancedOptionsPanel(),
-///   initiallyOpen: false,
-///   onOpenChanged: (open) => debugPrint('open=$open'),
-/// );
-/// ```
-/// {@end-tool}
+/// Unlike [GenaiAccordion], there is no grouping — this is a one-shot toggle.
+/// Animates body via [AnimatedSize] using `context.motion.expand`. Chevron
+/// rotates 180° on open. When [bordered] is true, wraps in a `xl` radius
+/// card-like border.
 class GenaiCollapsible extends StatefulWidget {
-  /// Always-visible header. Responsible for rendering its own affordance
-  /// (chevron, underline, etc.) — see the showcase for examples.
-  final Widget trigger;
+  /// Trigger text (used when [headerWidget] is null).
+  final String title;
 
-  /// Content revealed when expanded.
-  final Widget content;
+  /// Custom header widget — takes precedence over [title] if provided.
+  final Widget? headerWidget;
 
-  /// Seeds the initial open state. Changing this value later does not toggle
-  /// the panel; use [onOpenChanged] + a parent `setState` for controlled use.
+  /// Body revealed on expand.
+  final Widget body;
+
+  /// Initial open state.
   final bool initiallyOpen;
 
-  /// Called whenever the open state changes.
+  /// Callback when open state changes.
   final ValueChanged<bool>? onOpenChanged;
 
-  /// Overrides the default expand / collapse duration.
-  final Duration? duration;
-
-  /// Semantic label announced alongside the expand / collapse state.
+  /// Accessible label for the trigger. Defaults to [title].
   final String? semanticLabel;
+
+  /// When true, renders a thin border + `xl` radius around the entire
+  /// collapsible. Useful standalone; disable when embedding in a card.
+  final bool bordered;
 
   const GenaiCollapsible({
     super.key,
-    required this.trigger,
-    required this.content,
+    required this.title,
+    required this.body,
+    this.headerWidget,
     this.initiallyOpen = false,
     this.onOpenChanged,
-    this.duration,
     this.semanticLabel,
+    this.bordered = true,
   });
 
   @override
@@ -65,6 +50,9 @@ class GenaiCollapsible extends StatefulWidget {
 
 class _GenaiCollapsibleState extends State<GenaiCollapsible> {
   late bool _open;
+  bool _hovered = false;
+  bool _focused = false;
+  final FocusNode _focusNode = FocusNode(debugLabel: 'GenaiCollapsible');
 
   @override
   void initState() {
@@ -72,73 +60,133 @@ class _GenaiCollapsibleState extends State<GenaiCollapsible> {
     _open = widget.initiallyOpen;
   }
 
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   void _toggle() {
     setState(() => _open = !_open);
     widget.onOpenChanged?.call(_open);
   }
 
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.space) {
+      _toggle();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final motion = context.motion;
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
     final sizing = context.sizing;
-    final reduced = GenaiResponsive.reducedMotion(context);
-    final duration = reduced
-        ? Duration.zero
-        : (widget.duration ??
-            (_open
-                ? motion.accordionOpen.duration
-                : motion.accordionClose.duration));
-    final curve =
-        _open ? motion.accordionOpen.curve : motion.accordionClose.curve;
+    final radius = context.radius;
+    final motion = context.motion;
 
-    return Column(
+    final headerBg = _hovered ? colors.surfaceHover : colors.surfaceCard;
+
+    final header = Container(
+      constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.bordered ? spacing.s20 : spacing.s0,
+        vertical: spacing.s12,
+      ),
+      decoration: BoxDecoration(
+        color: widget.bordered ? headerBg : null,
+        border: _focused
+            ? Border.all(
+                color: colors.borderFocus,
+                width: sizing.focusRingWidth,
+              )
+            : null,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: widget.headerWidget ??
+                Text(
+                  widget.title,
+                  style: ty.cardTitle.copyWith(color: colors.textPrimary),
+                ),
+          ),
+          SizedBox(width: spacing.s8),
+          AnimatedRotation(
+            turns: _open ? 0.5 : 0,
+            duration: motion.expand.duration,
+            curve: motion.expand.curve,
+            child: Icon(
+              LucideIcons.chevronDown,
+              size: sizing.iconSize,
+              color: colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Widget content = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Semantics(
           button: true,
           expanded: _open,
-          label: widget.semanticLabel,
-          child: _CollapsibleTrigger(
-            minHeight: sizing.minTouchTarget,
-            onTap: _toggle,
-            child: widget.trigger,
+          label: widget.semanticLabel ?? widget.title,
+          child: Focus(
+            focusNode: _focusNode,
+            onKeyEvent: _onKey,
+            onFocusChange: (v) => setState(() => _focused = v),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => setState(() => _hovered = true),
+              onExit: (_) => setState(() => _hovered = false),
+              child: GestureDetector(
+                onTap: _toggle,
+                behavior: HitTestBehavior.opaque,
+                child: header,
+              ),
+            ),
           ),
         ),
-        ClipRect(
-          child: AnimatedSize(
-            duration: duration,
-            curve: curve,
-            alignment: Alignment.topCenter,
-            child: _open
-                ? widget.content
-                : const SizedBox(width: double.infinity, height: 0),
-          ),
+        AnimatedSize(
+          duration: motion.expand.duration,
+          curve: motion.expand.curve,
+          alignment: Alignment.topCenter,
+          child: _open
+              ? Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.fromLTRB(
+                    widget.bordered ? spacing.s20 : spacing.s0,
+                    spacing.s8,
+                    widget.bordered ? spacing.s20 : spacing.s0,
+                    widget.bordered ? spacing.s16 : spacing.s0,
+                  ),
+                  child: widget.body,
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );
-  }
-}
 
-class _CollapsibleTrigger extends StatelessWidget {
-  final double minHeight;
-  final VoidCallback onTap;
-  final Widget child;
+    if (widget.bordered) {
+      content = Container(
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          border: Border.all(color: colors.borderDefault),
+          borderRadius: BorderRadius.circular(radius.xl),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: content,
+      );
+    }
 
-  const _CollapsibleTrigger({
-    required this.minHeight,
-    required this.onTap,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: child,
-      ),
-    );
+    return content;
   }
 }

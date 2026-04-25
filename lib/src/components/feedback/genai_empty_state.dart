@@ -3,52 +3,36 @@ import 'package:flutter/material.dart';
 import '../../foundations/icons.dart';
 import '../../theme/context_extensions.dart';
 
-/// Empty state with optional illustration/icon, title, description and CTAs
-/// (§6.4.3).
+/// Empty state placeholder — v3 design system.
 ///
-/// Variants:
-/// - default ([GenaiEmptyState.new]) — plain icon
-/// - [GenaiEmptyState.firstUse] — onboarding tone
-/// - [GenaiEmptyState.noResults] — search filter empty
+/// Used on screens that load successfully but yield zero records. Always
+/// includes an action affordance where possible (primary or secondary).
+///
+/// v3 layout: centered column, 48 px icon (`iconEmptyState`), 14 / 600 title,
+/// `bodySm` / `ink-2` description, optional action row.
 class GenaiEmptyState extends StatelessWidget {
-  final IconData icon;
+  /// Heading. Typically a short sentence ("Nessun risultato").
   final String title;
-  final String? description;
-  final Widget? primaryAction;
-  final Widget? secondaryAction;
 
-  /// Optional padding override. If null, defaults to token-driven
-  /// `pagePaddingV` / `pagePaddingH` on both axes.
-  final EdgeInsetsGeometry? padding;
+  /// Optional longer description.
+  final String? description;
+
+  /// Illustrative icon. Defaults to [LucideIcons.inbox].
+  final IconData icon;
+
+  /// Optional primary action button (typically a `GenaiButton`).
+  final Widget? primaryAction;
+
+  /// Optional secondary action button.
+  final Widget? secondaryAction;
 
   const GenaiEmptyState({
     super.key,
+    required this.title,
+    this.description,
     this.icon = LucideIcons.inbox,
-    required this.title,
-    this.description,
     this.primaryAction,
     this.secondaryAction,
-    this.padding,
-  });
-
-  const GenaiEmptyState.firstUse({
-    super.key,
-    this.icon = LucideIcons.sparkles,
-    required this.title,
-    this.description,
-    this.primaryAction,
-    this.secondaryAction,
-    this.padding,
-  });
-
-  const GenaiEmptyState.noResults({
-    super.key,
-    this.icon = LucideIcons.searchX,
-    required this.title,
-    this.description,
-    this.primaryAction,
-    this.secondaryAction,
-    this.padding,
   });
 
   @override
@@ -58,67 +42,52 @@ class GenaiEmptyState extends StatelessWidget {
     final spacing = context.spacing;
     final sizing = context.sizing;
 
-    // Circular icon surface sized generously around the icon token (48 -> 96).
-    final iconSize = sizing.iconEmptyState;
-    final bubbleSize = iconSize * 2;
-
     return Semantics(
       container: true,
       label: title,
       value: description,
-      child: Padding(
-        padding: padding ??
-            EdgeInsets.symmetric(
-              horizontal: spacing.pagePaddingH,
-              vertical: spacing.pagePaddingV,
-            ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: bubbleSize,
-                height: bubbleSize,
-                decoration: BoxDecoration(
-                  color: colors.surfaceHover,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: EdgeInsets.all(spacing.s24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
                   icon,
-                  size: iconSize,
-                  color: colors.textSecondary,
+                  size: sizing.iconEmptyState,
+                  color: colors.textTertiary,
                 ),
-              ),
-              SizedBox(height: spacing.s4),
-              Text(
-                title,
-                style: ty.headingSm.copyWith(color: colors.textPrimary),
-                textAlign: TextAlign.center,
-              ),
-              if (description != null) ...[
-                SizedBox(height: spacing.s2),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  child: Text(
+                SizedBox(height: spacing.s16),
+                Text(
+                  title,
+                  style: ty.cardTitle.copyWith(color: colors.textPrimary),
+                  textAlign: TextAlign.center,
+                ),
+                if (description != null) ...[
+                  SizedBox(height: spacing.s6),
+                  Text(
                     description!,
-                    style: ty.bodyMd.copyWith(color: colors.textSecondary),
+                    style: ty.bodySm.copyWith(color: colors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
-                ),
+                ],
+                if (primaryAction != null || secondaryAction != null) ...[
+                  SizedBox(height: spacing.s20),
+                  Wrap(
+                    spacing: spacing.s8,
+                    runSpacing: spacing.s8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      if (primaryAction != null) primaryAction!,
+                      if (secondaryAction != null) secondaryAction!,
+                    ],
+                  ),
+                ],
               ],
-              if (primaryAction != null || secondaryAction != null) ...[
-                SizedBox(height: spacing.s4),
-                Wrap(
-                  spacing: spacing.s2,
-                  runSpacing: spacing.s2,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    if (secondaryAction != null) secondaryAction!,
-                    if (primaryAction != null) primaryAction!,
-                  ],
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

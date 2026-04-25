@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../foundations/icons.dart';
-import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 import '../indicators/genai_kbd.dart';
 
 /// Alignment of a dropdown menu relative to its trigger.
@@ -19,11 +17,7 @@ enum GenaiDropdownAlignment {
   end,
 }
 
-/// Single entry inside a [GenaiDropdownMenu] (shadcn parity: `<DropdownMenuItem>`).
-///
-/// Use the default constructor for a regular item, [GenaiDropdownMenuItem.separator]
-/// for a divider line, [isCheckable] for checkbox-style items, and pass
-/// [subItems] for nested submenus.
+/// Single entry inside a [GenaiDropdownMenu] — v3 design system.
 class GenaiDropdownMenuItem {
   /// Visible label.
   final String label;
@@ -34,28 +28,25 @@ class GenaiDropdownMenuItem {
   /// Optional keyboard shortcut hint, rendered on the right as a [GenaiKbd].
   final String? shortcut;
 
-  /// Tap handler. Null when [isDisabled] or for separators / submenus.
+  /// Tap handler.
   final VoidCallback? onTap;
 
-  /// When true, renders the row in the danger color and announces as
-  /// destructive to assistive tech.
+  /// When true, renders the row in the danger color.
   final bool isDestructive;
 
   /// When true, the row is shown but non-interactive.
   final bool isDisabled;
 
-  /// When true, the row reserves a leading check column (24 px wide). Used
-  /// for checkbox / radio menu items.
+  /// When true, the row reserves a leading check column.
   final bool isCheckable;
 
-  /// When [isCheckable] is true, controls whether the check is rendered.
+  /// When [isCheckable], controls whether the check is rendered.
   final bool isChecked;
 
-  /// When non-null, the row opens a submenu containing these items on hover
-  /// or right-arrow press. The row's [onTap] is ignored in that case.
+  /// When non-null, the row opens a submenu containing these items.
   final List<GenaiDropdownMenuItem>? subItems;
 
-  /// True for a divider line (no interaction, no label).
+  /// True for a divider line.
   final bool isSeparator;
 
   const GenaiDropdownMenuItem({
@@ -87,32 +78,17 @@ class GenaiDropdownMenuItem {
       const GenaiDropdownMenuItem._separator();
 }
 
-/// Click-to-open dropdown menu (shadcn parity: `<DropdownMenu>`).
+/// Click-to-open dropdown menu (shadcn parity: `<DropdownMenu>`) — v3.
 ///
-/// Distinct from [showGenaiContextMenu]: that opens on right-click at a point;
-/// `GenaiDropdownMenu` opens on **left-click of a trigger** and renders an
-/// anchored popover.
+/// Distinct from [showGenaiContextMenu] (right-click): `GenaiDropdownMenu`
+/// opens on **left-click of a trigger** and renders an anchored popover with
+/// the v3 hairline-flat overlay style.
 ///
 /// Features:
 /// - Left-click on [trigger] toggles the menu.
 /// - `Esc` closes; outside-tap closes.
 /// - Up/down arrow keys move the keyboard highlight; `Enter` activates.
-/// - Right-arrow opens a submenu when one is present; `Left` returns to parent.
 /// - `isCheckable` items reserve a leading check column for alignment.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiDropdownMenu(
-///   trigger: const GenaiButton(label: 'Actions'),
-///   alignment: GenaiDropdownAlignment.end,
-///   items: [
-///     GenaiDropdownMenuItem(label: 'Edit', icon: LucideIcons.pencil, shortcut: '⌘E', onTap: () {}),
-///     GenaiDropdownMenuItem.separator(),
-///     GenaiDropdownMenuItem(label: 'Delete', icon: LucideIcons.trash2, isDestructive: true, onTap: () {}),
-///   ],
-/// );
-/// ```
-/// {@end-tool}
 class GenaiDropdownMenu extends StatefulWidget {
   /// Anchor widget — the user clicks this to open the menu.
   final Widget trigger;
@@ -199,7 +175,7 @@ class _GenaiDropdownMenuState extends State<GenaiDropdownMenu> {
     if (index < 0 || index >= widget.items.length) return;
     final it = widget.items[index];
     if (it.isSeparator || it.isDisabled) return;
-    if (it.subItems != null) return; // submenus open on hover/right-arrow
+    if (it.subItems != null) return;
     _hide();
     it.onTap?.call();
   }
@@ -213,17 +189,17 @@ class _GenaiDropdownMenuState extends State<GenaiDropdownMenu> {
       case GenaiDropdownAlignment.start:
         target = Alignment.bottomLeft;
         follower = Alignment.topLeft;
-        offset = Offset(0, spacing.s2);
+        offset = Offset(0, spacing.s8);
         break;
       case GenaiDropdownAlignment.center:
         target = Alignment.bottomCenter;
         follower = Alignment.topCenter;
-        offset = Offset(0, spacing.s2);
+        offset = Offset(0, spacing.s8);
         break;
       case GenaiDropdownAlignment.end:
         target = Alignment.bottomRight;
         follower = Alignment.topRight;
-        offset = Offset(0, spacing.s2);
+        offset = Offset(0, spacing.s8);
         break;
     }
 
@@ -323,8 +299,7 @@ class _MenuPanel extends StatelessWidget {
     final colors = context.colors;
     final radius = context.radius;
     final spacing = context.spacing;
-    final motion = context.motion.dropdownOpen;
-    final reduced = GenaiResponsive.reducedMotion(context);
+    final motion = context.motion.expand;
 
     return Focus(
       focusNode: focusNode,
@@ -356,18 +331,18 @@ class _MenuPanel extends StatelessWidget {
         scopesRoute: true,
         explicitChildNodes: true,
         child: TweenAnimationBuilder<double>(
-          duration: reduced ? Duration.zero : motion.duration,
+          duration: motion.duration,
           curve: motion.curve,
           tween: Tween(begin: 0, end: 1),
           builder: (_, t, c) => Opacity(opacity: t, child: c),
           child: Container(
             width: width,
-            padding: EdgeInsets.symmetric(vertical: spacing.s1),
+            padding: EdgeInsets.symmetric(vertical: spacing.s4),
             decoration: BoxDecoration(
               color: colors.surfaceOverlay,
-              borderRadius: BorderRadius.circular(radius.sm),
+              borderRadius: BorderRadius.circular(radius.md),
               border: Border.all(color: colors.borderDefault),
-              boxShadow: context.elevation.shadow(3),
+              boxShadow: context.elevation.shadowForLayer(2),
             ),
             child: child,
           ),
@@ -399,10 +374,10 @@ class _ItemRow extends StatelessWidget {
 
     if (item.isSeparator) {
       return Padding(
-        padding: EdgeInsets.symmetric(vertical: spacing.s1),
+        padding: EdgeInsets.symmetric(vertical: spacing.s4),
         child: Container(
           height: sizing.dividerThickness,
-          color: colors.borderDefault,
+          color: colors.borderSubtle,
         ),
       );
     }
@@ -410,7 +385,7 @@ class _ItemRow extends StatelessWidget {
     final fg = item.isDisabled
         ? colors.textDisabled
         : item.isDestructive
-            ? colors.colorError
+            ? colors.colorDangerText
             : colors.textPrimary;
 
     final bg = highlighted && !item.isDisabled
@@ -432,44 +407,47 @@ class _ItemRow extends StatelessWidget {
           child: Container(
             constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
             padding: EdgeInsets.symmetric(
-              horizontal: spacing.s3,
-              vertical: spacing.s2,
+              horizontal: spacing.s12,
+              vertical: spacing.s8,
             ),
             color: bg,
             child: Row(
               children: [
                 if (item.isCheckable)
                   SizedBox(
-                    width: GenaiSize.xs.iconSize,
+                    width: sizing.iconSize,
                     child: item.isChecked
                         ? Icon(
                             LucideIcons.check,
-                            size: GenaiSize.xs.iconSize,
+                            size: sizing.iconSize,
                             color: fg,
                           )
                         : const SizedBox.shrink(),
                   ),
-                if (item.isCheckable) SizedBox(width: spacing.s2),
+                if (item.isCheckable) SizedBox(width: spacing.s8),
                 if (item.icon != null) ...[
-                  Icon(item.icon, size: GenaiSize.xs.iconSize, color: fg),
-                  SizedBox(width: spacing.s2),
+                  Icon(item.icon, size: sizing.iconSize, color: fg),
+                  SizedBox(width: spacing.s8),
                 ],
                 Expanded(
                   child: Text(
                     item.label,
-                    style: ty.bodyMd.copyWith(color: fg),
+                    style: ty.bodySm.copyWith(color: fg),
                   ),
                 ),
                 if (item.shortcut != null && item.subItems == null)
                   Padding(
-                    padding: EdgeInsets.only(left: spacing.s2),
-                    child: GenaiKbd(keys: item.shortcut!, size: GenaiSize.xs),
+                    padding: EdgeInsets.only(left: spacing.s8),
+                    child: GenaiKbd(
+                      keys: item.shortcut!,
+                      size: GenaiKbdSize.sm,
+                    ),
                   ),
                 if (item.subItems != null)
                   Icon(
                     LucideIcons.chevronRight,
-                    size: GenaiSize.xs.iconSize,
-                    color: colors.textSecondary,
+                    size: sizing.iconSize,
+                    color: colors.textTertiary,
                   ),
               ],
             ),

@@ -1,72 +1,51 @@
 import 'package:flutter/animation.dart';
 
-/// Animation durations §3.2.4 / §13.4.
+/// Animation durations — v3 design system (§2.6).
+///
+/// Verbatim reuse of the v2 table. Spec §2.6 states: "No explicit keyframes
+/// in v3 HTML. Use v2 motion tokens (hover 120, press 80, modal 240, etc.)."
 class GenaiDurations {
   GenaiDurations._();
 
-  // Generic interaction
-  static const Duration hover = Duration(milliseconds: 150);
-  static const Duration pressIn = Duration(milliseconds: 100);
-  static const Duration pressOut = Duration(milliseconds: 150);
+  /// Color/background hover transitions.
+  static const Duration hover = Duration(milliseconds: 120);
 
-  // Overlays
-  static const Duration modalOpen = Duration(milliseconds: 200);
-  static const Duration modalClose = Duration(milliseconds: 150);
-  static const Duration drawerDesktop = Duration(milliseconds: 250);
-  static const Duration drawerMobile = Duration(milliseconds: 300);
-  static const Duration dropdownOpen = Duration(milliseconds: 150);
-  static const Duration dropdownClose = Duration(milliseconds: 100);
-  static const Duration tooltipDelay = Duration(milliseconds: 400);
-  static const Duration tooltipOpen = Duration(milliseconds: 100);
+  /// Press scale-down.
+  static const Duration press = Duration(milliseconds: 80);
 
-  // Toast
-  static const Duration toastIn = Duration(milliseconds: 200);
-  static const Duration toastOut = Duration(milliseconds: 150);
+  /// Accordion/collapsible expand/collapse.
+  static const Duration expand = Duration(milliseconds: 220);
 
-  // Accordion
-  static const Duration accordionOpen = Duration(milliseconds: 200);
-  static const Duration accordionClose = Duration(milliseconds: 150);
+  /// Modal / drawer open/close.
+  static const Duration modal = Duration(milliseconds: 240);
 
-  // Tabs / pages
-  static const Duration tabSwitch = Duration(milliseconds: 150);
-  static const Duration pageDesktop = Duration(milliseconds: 200);
-  static const Duration pageMobile = Duration(milliseconds: 300);
+  /// Toast enter/exit.
+  static const Duration toast = Duration(milliseconds: 200);
 
-  // Misc
-  static const Duration sortArrow = Duration(milliseconds: 180);
-  static const Duration checkboxCheck = Duration(milliseconds: 150);
-  static const Duration toggleSlide = Duration(milliseconds: 200);
-  static const Duration sidebarCollapse = Duration(milliseconds: 250);
-  static const Duration skeletonShimmer = Duration(milliseconds: 1500);
+  /// Route transition.
+  static const Duration page = Duration(milliseconds: 180);
 
-  // Async UX
-  static const Duration loadingDelay = Duration(milliseconds: 300);
-  static const Duration autosaveDebounce = Duration(milliseconds: 1000);
-  static const Duration searchDebounce = Duration(milliseconds: 300);
-
-  // Toast lifetimes
-  static const Duration toastSuccess = Duration(milliseconds: 4000);
-  static const Duration toastInfo = Duration(milliseconds: 5000);
-  static const Duration toastWarning = Duration(milliseconds: 6000);
-  static const Duration toastWithAction = Duration(milliseconds: 8000);
+  /// Personality motion (spring). Used sparingly.
+  static const Duration spring = Duration(milliseconds: 400);
 }
 
-/// Animation curves §3.2.5.
+/// Animation curves — v3 design system (§2.6).
+///
+/// `emphasized` is the premium cubic-bezier(0.2, 0, 0, 1) from Material 3.
+/// `spring` approximates a spring feel inside a [Curve] contract.
 class GenaiCurves {
   GenaiCurves._();
 
-  static const Curve open = Curves.easeOut;
-  static const Curve close = Curves.easeIn;
-  static const Curve page = Curves.easeInOutCubic;
-  static const Curve toggle = Curves.easeInOut;
-}
+  /// Premium emphasized easing — `cubic-bezier(0.2, 0, 0, 1)`.
+  static const Curve emphasized = Cubic(0.2, 0, 0, 1);
 
-/// Press scale factors §3.2.2.
-class GenaiInteraction {
-  GenaiInteraction._();
+  /// Ease-out — hover, press, toast.
+  static const Curve easeOut = Curves.easeOut;
 
-  static const double pressScale = 0.97;
-  static const double pressScaleStrong = 0.95;
-  static const double disabledOpacity = 0.38;
-  static const double loadingOpacity = 0.7;
+  /// Ease-in-out — page transitions.
+  static const Curve easeInOut = Curves.easeInOut;
+
+  /// Spring-ish curve used with [GenaiDurations.spring] for personality
+  /// micro-motion (AI responses, delight moments).
+  static const Curve spring = Curves.elasticOut;
 }

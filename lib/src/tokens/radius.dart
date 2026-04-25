@@ -1,43 +1,51 @@
 import 'package:flutter/foundation.dart';
 
-/// Border-radius tokens (§2.4 / §8.4).
+/// Border-radius tokens — v3 design system (§2.4).
 ///
-/// Values scale from a single [baseRadius] so consumers can make the system
-/// more squared (`baseRadius: 4`) or more rounded (`baseRadius: 12`) without
-/// touching components.
+/// Eight-step scale pulled from the Forma LMS HTML:
+/// `none` (0), `xs` (4), `sm` (6), `md` (8), `lg` (10), `xl` (12),
+/// `hero` (14), `pill` (999). Cards use `xl` (12), focus hero uses `hero`
+/// (14), buttons/rail-items use `md` (8), form icons use `lg` (10), kbd uses
+/// `sm` (6), avatars / sparkline thumbs use `pill`.
 @immutable
 class GenaiRadiusTokens {
-  /// Absence of radius (sharp corners). Primarily for full-bleed surfaces.
+  /// 0 — sharp corners.
   final double none;
+
+  /// 4 — focus-ring corners (per §5 `:focus-visible` outline).
   final double xs;
+
+  /// 6 — kbd pills.
   final double sm;
+
+  /// 8 — buttons, rail items.
   final double md;
+
+  /// 10 — form input icons, small badges.
   final double lg;
+
+  /// 12 — default card radius.
   final double xl;
 
-  /// Fully rounded (pill / circle).
+  /// 14 — focus hero card (decision card).
+  final double hero;
+
+  /// 999 — pills, circular avatars, sparkline thumb.
   final double pill;
 
   const GenaiRadiusTokens({
     this.none = 0,
-    required this.xs,
-    required this.sm,
-    required this.md,
-    required this.lg,
-    required this.xl,
-    this.pill = 9999,
+    this.xs = 4,
+    this.sm = 6,
+    this.md = 8,
+    this.lg = 10,
+    this.xl = 12,
+    this.hero = 14,
+    this.pill = 999,
   });
 
-  factory GenaiRadiusTokens.defaultTokens({double baseRadius = 8}) {
-    final base = baseRadius;
-    return GenaiRadiusTokens(
-      xs: base * 0.5,
-      sm: base * 0.75,
-      md: base,
-      lg: base * 1.25,
-      xl: base * 1.5,
-    );
-  }
+  /// Default tokens per §2.4.
+  factory GenaiRadiusTokens.defaultTokens() => const GenaiRadiusTokens();
 
   GenaiRadiusTokens copyWith({
     double? none,
@@ -46,6 +54,7 @@ class GenaiRadiusTokens {
     double? md,
     double? lg,
     double? xl,
+    double? hero,
     double? pill,
   }) {
     return GenaiRadiusTokens(
@@ -55,6 +64,7 @@ class GenaiRadiusTokens {
       md: md ?? this.md,
       lg: lg ?? this.lg,
       xl: xl ?? this.xl,
+      hero: hero ?? this.hero,
       pill: pill ?? this.pill,
     );
   }
@@ -69,6 +79,7 @@ class GenaiRadiusTokens {
       md: l(a.md, b.md),
       lg: l(a.lg, b.lg),
       xl: l(a.xl, b.xl),
+      hero: l(a.hero, b.hero),
       pill: l(a.pill, b.pill),
     );
   }
@@ -84,8 +95,9 @@ class GenaiRadiusTokens {
           md == other.md &&
           lg == other.lg &&
           xl == other.xl &&
+          hero == other.hero &&
           pill == other.pill;
 
   @override
-  int get hashCode => Object.hash(none, xs, sm, md, lg, xl, pill);
+  int get hashCode => Object.hash(none, xs, sm, md, lg, xl, hero, pill);
 }

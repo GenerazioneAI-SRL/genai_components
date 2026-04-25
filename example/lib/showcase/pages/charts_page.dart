@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:genai_components/genai_components_v3.dart';
+import 'package:genai_components/genai_components.dart';
 
-import '../widgets/showcase_v3_section.dart';
+import '../widgets/showcase_section.dart';
 
 class _WeekPoint {
   final String w;
@@ -9,8 +9,8 @@ class _WeekPoint {
   const _WeekPoint(this.w, this.h);
 }
 
-class ChartsV3Page extends StatelessWidget {
-  const ChartsV3Page({super.key});
+class ChartsPage extends StatelessWidget {
+  const ChartsPage({super.key});
 
   static const _weekly = <_WeekPoint>[
     _WeekPoint('S-7', 3.2),
@@ -25,12 +25,11 @@ class ChartsV3Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShowcaseV3Scaffold(
+    return ShowcaseScaffold(
       title: 'Charts',
-      description:
-          'GenaiBarChart — ore settimanali in varie configurazioni.',
+      description: 'GenaiBarChart — ore settimanali in varie configurazioni.',
       children: [
-        ShowcaseV3Section(
+        ShowcaseSection(
           title: 'Bar chart — default (ink)',
           child: SizedBox(
             height: 260,
@@ -42,7 +41,7 @@ class ChartsV3Page extends StatelessWidget {
             ),
           ),
         ),
-        ShowcaseV3Section(
+        ShowcaseSection(
           title: 'Bar chart — colorato info',
           child: SizedBox(
             height: 260,
@@ -55,7 +54,7 @@ class ChartsV3Page extends StatelessWidget {
             ),
           ),
         ),
-        ShowcaseV3Section(
+        ShowcaseSection(
           title: 'Bar chart — compatto',
           child: SizedBox(
             height: 160,

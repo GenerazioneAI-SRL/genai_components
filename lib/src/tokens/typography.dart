@@ -1,220 +1,213 @@
 import 'package:flutter/material.dart';
 
-/// Typography scale §2.3.
+/// Typography tokens — v3 design system (§2.3).
+///
+/// Translated from the Forma LMS reference HTML. Sans is **Geist**
+/// (400/500/600/700), mono is **Geist Mono** (400/500). Base is 14 px with
+/// line-height 1.45, antialiased.
+///
+/// Shape differs from v2: v3 adds `pageTitle` / `sectionTitle` / `cardTitle` /
+/// `kpiNumber` / `focusTitle` / `tiny` slots pulled directly from the HTML,
+/// plus `bodySm` / `labelSm` that match the 13 / 11.5 sizes used for rows and
+/// chips. All numeric styles carry tabular figures for dashboard alignment.
 @immutable
 class GenaiTypographyTokens {
-  final TextStyle displayLg;
-  final TextStyle displaySm;
-  final TextStyle headingLg;
-  final TextStyle headingSm;
-  final TextStyle bodyLg;
-  final TextStyle bodyMd;
+  // Page / section / card titles
+  /// `h1.page` — 22 / 600.
+  final TextStyle pageTitle;
+
+  /// `.section-h h2` — 15 / 600.
+  final TextStyle sectionTitle;
+
+  /// `.card-h h2` — 14 / 600.
+  final TextStyle cardTitle;
+
+  /// `.focus-title` — 20 / 600 (decision hero).
+  final TextStyle focusTitle;
+
+  /// `.kpi-n` — 28 / 600.
+  final TextStyle kpiNumber;
+
+  // Body
+  /// Default — 14 / 400.
+  final TextStyle body;
+
+  /// Row / list body — 13 / 400.
   final TextStyle bodySm;
+
+  // Labels / UI copy
+  /// Captions, chips, form labels — 12 / 500.
   final TextStyle label;
+
+  /// Small chips, kbd — 11.5 / 500.
   final TextStyle labelSm;
-  final TextStyle caption;
-  final TextStyle code;
+
+  /// Uppercase section labels — 11 / 500 with wide letter-spacing.
+  final TextStyle tiny;
+
+  // Mono
+  /// IDs, tabular counters — 13 / 500.
+  final TextStyle monoMd;
+
+  /// Mono small (kbd pill, deltas) — 11 / 500.
+  final TextStyle monoSm;
 
   const GenaiTypographyTokens({
-    required this.displayLg,
-    required this.displaySm,
-    required this.headingLg,
-    required this.headingSm,
-    required this.bodyLg,
-    required this.bodyMd,
+    required this.pageTitle,
+    required this.sectionTitle,
+    required this.cardTitle,
+    required this.focusTitle,
+    required this.kpiNumber,
+    required this.body,
     required this.bodySm,
     required this.label,
     required this.labelSm,
-    required this.caption,
-    required this.code,
+    required this.tiny,
+    required this.monoMd,
+    required this.monoSm,
   });
 
-  /// Desktop scale (default) §2.3.1.
-  factory GenaiTypographyTokens.defaultTokens({String? fontFamily}) {
+  /// Default v3 type scale.
+  ///
+  /// - [fontFamily] overrides the `Geist` sans default.
+  /// - [monoFontFamily] overrides the `Geist Mono` default.
+  factory GenaiTypographyTokens.defaultTokens({
+    String? fontFamily,
+    String monoFontFamily = 'Geist Mono',
+  }) {
+    final sans = fontFamily ?? 'Geist';
+    const tabularNums = <FontFeature>[FontFeature.tabularFigures()];
     return GenaiTypographyTokens(
-      displayLg: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 32,
-        fontWeight: FontWeight.w700,
-        height: 1.25,
-      ),
-      displaySm: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        height: 1.33,
-      ),
-      headingLg: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        height: 1.4,
-      ),
-      headingSm: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        height: 1.5,
-      ),
-      bodyLg: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        height: 1.5,
-      ),
-      bodyMd: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        height: 1.43,
-      ),
-      bodySm: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        height: 1.33,
-      ),
-      label: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        height: 1.43,
-      ),
-      labelSm: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        height: 1.33,
-      ),
-      caption: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 11,
-        fontWeight: FontWeight.w400,
-        height: 1.45,
-      ),
-      code: const TextStyle(
-        fontFamily: 'JetBrainsMono',
-        fontSize: 13,
-        fontWeight: FontWeight.w400,
-        height: 1.54,
-      ),
-    );
-  }
-
-  /// Mobile-adapted scale (§2.3.2). Slightly larger for legibility.
-  factory GenaiTypographyTokens.mobile({String? fontFamily}) {
-    return GenaiTypographyTokens(
-      displayLg: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-        height: 1.25,
-      ),
-      displaySm: TextStyle(
-        fontFamily: fontFamily,
+      pageTitle: TextStyle(
+        fontFamily: sans,
         fontSize: 22,
-        fontWeight: FontWeight.w700,
-        height: 1.33,
-      ),
-      headingLg: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 18,
+        height: 30 / 22,
         fontWeight: FontWeight.w600,
-        height: 1.4,
+        letterSpacing: -0.2,
       ),
-      headingSm: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        height: 1.5,
-      ),
-      bodyLg: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        height: 1.5,
-      ),
-      bodyMd: TextStyle(
-        fontFamily: fontFamily,
+      sectionTitle: TextStyle(
+        fontFamily: sans,
         fontSize: 15,
+        height: 22 / 15,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.1,
+      ),
+      cardTitle: TextStyle(
+        fontFamily: sans,
+        fontSize: 14,
+        height: 20 / 14,
+        fontWeight: FontWeight.w600,
+      ),
+      focusTitle: TextStyle(
+        fontFamily: sans,
+        fontSize: 20,
+        height: 28 / 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+      ),
+      kpiNumber: TextStyle(
+        fontFamily: sans,
+        fontSize: 28,
+        height: 34 / 28,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.3,
+        fontFeatures: tabularNums,
+      ),
+      body: TextStyle(
+        fontFamily: sans,
+        fontSize: 14,
+        height: 1.45,
         fontWeight: FontWeight.w400,
-        height: 1.43,
       ),
       bodySm: TextStyle(
-        fontFamily: fontFamily,
+        fontFamily: sans,
         fontSize: 13,
+        height: 19 / 13,
         fontWeight: FontWeight.w400,
-        height: 1.33,
       ),
       label: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 15,
+        fontFamily: sans,
+        fontSize: 12,
+        height: 16 / 12,
         fontWeight: FontWeight.w500,
-        height: 1.43,
       ),
       labelSm: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 13,
+        fontFamily: sans,
+        fontSize: 11.5,
+        height: 16 / 11.5,
         fontWeight: FontWeight.w500,
-        height: 1.33,
+        letterSpacing: 0.1,
       ),
-      caption: TextStyle(
-        fontFamily: fontFamily,
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        height: 1.45,
+      tiny: TextStyle(
+        fontFamily: sans,
+        fontSize: 11,
+        height: 14 / 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.88, // 0.08em @ 11 ≈ 0.88
       ),
-      code: const TextStyle(
-        fontFamily: 'JetBrainsMono',
+      monoMd: TextStyle(
+        fontFamily: monoFontFamily,
         fontSize: 13,
+        height: 19 / 13,
+        fontWeight: FontWeight.w500,
+        fontFeatures: tabularNums,
+      ),
+      monoSm: TextStyle(
+        fontFamily: monoFontFamily,
+        fontSize: 11,
+        height: 16 / 11,
         fontWeight: FontWeight.w400,
-        height: 1.54,
+        fontFeatures: tabularNums,
       ),
     );
   }
 
   GenaiTypographyTokens copyWith({
-    TextStyle? displayLg,
-    TextStyle? displaySm,
-    TextStyle? headingLg,
-    TextStyle? headingSm,
-    TextStyle? bodyLg,
-    TextStyle? bodyMd,
+    TextStyle? pageTitle,
+    TextStyle? sectionTitle,
+    TextStyle? cardTitle,
+    TextStyle? focusTitle,
+    TextStyle? kpiNumber,
+    TextStyle? body,
     TextStyle? bodySm,
     TextStyle? label,
     TextStyle? labelSm,
-    TextStyle? caption,
-    TextStyle? code,
+    TextStyle? tiny,
+    TextStyle? monoMd,
+    TextStyle? monoSm,
   }) {
     return GenaiTypographyTokens(
-      displayLg: displayLg ?? this.displayLg,
-      displaySm: displaySm ?? this.displaySm,
-      headingLg: headingLg ?? this.headingLg,
-      headingSm: headingSm ?? this.headingSm,
-      bodyLg: bodyLg ?? this.bodyLg,
-      bodyMd: bodyMd ?? this.bodyMd,
+      pageTitle: pageTitle ?? this.pageTitle,
+      sectionTitle: sectionTitle ?? this.sectionTitle,
+      cardTitle: cardTitle ?? this.cardTitle,
+      focusTitle: focusTitle ?? this.focusTitle,
+      kpiNumber: kpiNumber ?? this.kpiNumber,
+      body: body ?? this.body,
       bodySm: bodySm ?? this.bodySm,
       label: label ?? this.label,
       labelSm: labelSm ?? this.labelSm,
-      caption: caption ?? this.caption,
-      code: code ?? this.code,
+      tiny: tiny ?? this.tiny,
+      monoMd: monoMd ?? this.monoMd,
+      monoSm: monoSm ?? this.monoSm,
     );
   }
 
   static GenaiTypographyTokens lerp(
       GenaiTypographyTokens a, GenaiTypographyTokens b, double t) {
+    TextStyle l(TextStyle x, TextStyle y) => TextStyle.lerp(x, y, t)!;
     return GenaiTypographyTokens(
-      displayLg: TextStyle.lerp(a.displayLg, b.displayLg, t)!,
-      displaySm: TextStyle.lerp(a.displaySm, b.displaySm, t)!,
-      headingLg: TextStyle.lerp(a.headingLg, b.headingLg, t)!,
-      headingSm: TextStyle.lerp(a.headingSm, b.headingSm, t)!,
-      bodyLg: TextStyle.lerp(a.bodyLg, b.bodyLg, t)!,
-      bodyMd: TextStyle.lerp(a.bodyMd, b.bodyMd, t)!,
-      bodySm: TextStyle.lerp(a.bodySm, b.bodySm, t)!,
-      label: TextStyle.lerp(a.label, b.label, t)!,
-      labelSm: TextStyle.lerp(a.labelSm, b.labelSm, t)!,
-      caption: TextStyle.lerp(a.caption, b.caption, t)!,
-      code: TextStyle.lerp(a.code, b.code, t)!,
+      pageTitle: l(a.pageTitle, b.pageTitle),
+      sectionTitle: l(a.sectionTitle, b.sectionTitle),
+      cardTitle: l(a.cardTitle, b.cardTitle),
+      focusTitle: l(a.focusTitle, b.focusTitle),
+      kpiNumber: l(a.kpiNumber, b.kpiNumber),
+      body: l(a.body, b.body),
+      bodySm: l(a.bodySm, b.bodySm),
+      label: l(a.label, b.label),
+      labelSm: l(a.labelSm, b.labelSm),
+      tiny: l(a.tiny, b.tiny),
+      monoMd: l(a.monoMd, b.monoMd),
+      monoSm: l(a.monoSm, b.monoSm),
     );
   }
 
@@ -223,30 +216,32 @@ class GenaiTypographyTokens {
       identical(this, other) ||
       other is GenaiTypographyTokens &&
           runtimeType == other.runtimeType &&
-          displayLg == other.displayLg &&
-          displaySm == other.displaySm &&
-          headingLg == other.headingLg &&
-          headingSm == other.headingSm &&
-          bodyLg == other.bodyLg &&
-          bodyMd == other.bodyMd &&
+          pageTitle == other.pageTitle &&
+          sectionTitle == other.sectionTitle &&
+          cardTitle == other.cardTitle &&
+          focusTitle == other.focusTitle &&
+          kpiNumber == other.kpiNumber &&
+          body == other.body &&
           bodySm == other.bodySm &&
           label == other.label &&
           labelSm == other.labelSm &&
-          caption == other.caption &&
-          code == other.code;
+          tiny == other.tiny &&
+          monoMd == other.monoMd &&
+          monoSm == other.monoSm;
 
   @override
-  int get hashCode => Object.hash(
-        displayLg,
-        displaySm,
-        headingLg,
-        headingSm,
-        bodyLg,
-        bodyMd,
+  int get hashCode => Object.hashAll([
+        pageTitle,
+        sectionTitle,
+        cardTitle,
+        focusTitle,
+        kpiNumber,
+        body,
         bodySm,
         label,
         labelSm,
-        caption,
-        code,
-      );
+        tiny,
+        monoMd,
+        monoSm,
+      ]);
 }

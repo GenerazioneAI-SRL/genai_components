@@ -1,45 +1,40 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
 
-/// Keyboard shortcut pill (shadcn/ui Kbd equivalent).
+/// Size scale for [GenaiKbd] — v3 Forma LMS.
+enum GenaiKbdSize {
+  /// Matches `.ask-kbd` in the reference — `monoSm` (~11 px Geist Mono)
+  /// inside a 2/6 padded 4-radius pill.
+  sm,
+
+  /// Slightly larger — `monoMd` for inline next to `body` text.
+  md,
+}
+
+/// Keyboard shortcut pill — v3 design system (Forma LMS).
 ///
-/// Renders a single key or key combo (e.g. `⌘K`, `Ctrl+Shift+P`, `Esc`)
-/// using a monospace glyph inside a 1-px bordered surface pill with a
-/// very small radius. Intended for use alongside menu items and search
-/// inputs to document keyboard shortcuts.
+/// Matches `.ask-kbd { background: neutral-soft; border: 1px line;
+/// border-radius: 4px; padding: 2px 6px; font: Geist Mono 10.5/400 }` in
+/// Dashboard v3.html.
 ///
-/// {@tool snippet}
-/// ```dart
-/// Row(children: const [
-///   Text('Open palette'),
-///   SizedBox(width: 8),
-///   GenaiKbd(keys: '⌘K'),
-/// ]);
-/// ```
-/// {@end-tool}
-///
-/// See also: [GenaiBadge], [showGenaiCommandPalette].
+/// Unicode glyphs (`⌘ ⇧ ⌃ ⌥ ↵ ⌫ ↹ …`) are expanded into readable words for
+/// the screen-reader label so users hear "Command K" instead of "clover K".
 class GenaiKbd extends StatelessWidget {
-  /// Literal text rendered inside the pill. Displayed as-is; combine
-  /// modifiers yourself (e.g. `Ctrl+Shift+P` or `⌘K`).
+  /// Literal text rendered inside the pill.
   final String keys;
 
-  /// Size scale. Controls height and inner padding. Only [GenaiSize.xs],
-  /// [GenaiSize.sm], and [GenaiSize.md] are fully supported; other values
-  /// fall back to [GenaiSize.sm].
-  final GenaiSize size;
+  /// Visual size scale.
+  final GenaiKbdSize size;
 
-  /// Explicit accessibility label. When null, [keys] is expanded via
-  /// [_expandKeysForA11y] so symbols (`⌘`, `⇧`, `⌃`, `⌥`, `↵`, `⌫`, `↹`)
-  /// are announced as readable words ("Command K" vs "clover K").
+  /// Explicit accessibility label. When `null`, [keys] is expanded via a
+  /// glyph → word table for screen readers.
   final String? semanticLabel;
 
   const GenaiKbd({
     super.key,
     required this.keys,
-    this.size = GenaiSize.sm,
+    this.size = GenaiKbdSize.sm,
     this.semanticLabel,
   });
 
@@ -62,9 +57,6 @@ class GenaiKbd extends StatelessWidget {
   };
 
   static String _expandKeysForA11y(String raw) {
-    // Only substitute unicode symbols — leave the original ASCII string
-    // (including `+` separators and key names like `Ctrl`) untouched so
-    // screen readers read "Ctrl Shift P" naturally.
     final hasGlyph = _a11yGlyphs.keys.any(raw.contains);
     if (!hasGlyph) return raw;
     var out = raw;
@@ -74,20 +66,6 @@ class GenaiKbd extends StatelessWidget {
     return out.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
-  double _heightFor(GenaiSize s) {
-    switch (s) {
-      case GenaiSize.xs:
-        return 18;
-      case GenaiSize.sm:
-        return 22;
-      case GenaiSize.md:
-        return 26;
-      case GenaiSize.lg:
-      case GenaiSize.xl:
-        return 26;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -95,19 +73,19 @@ class GenaiKbd extends StatelessWidget {
     final spacing = context.spacing;
     final radius = context.radius;
     final sizing = context.sizing;
-    final h = _heightFor(size);
+
+    final base = size == GenaiKbdSize.sm ? ty.monoSm : ty.monoMd;
 
     return Semantics(
       label: semanticLabel ?? _expandKeysForA11y(keys),
       excludeSemantics: true,
       child: Container(
-        constraints: BoxConstraints(minHeight: h, minWidth: h),
         padding: EdgeInsets.symmetric(
-          horizontal: spacing.s1 + 2,
-          vertical: 0,
+          horizontal: spacing.s6,
+          vertical: spacing.s2,
         ),
         decoration: BoxDecoration(
-          color: colors.surfaceCard,
+          color: colors.colorNeutralSubtle,
           borderRadius: BorderRadius.circular(radius.xs),
           border: Border.all(
             color: colors.borderDefault,
@@ -117,14 +95,7 @@ class GenaiKbd extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           keys,
-          style: ty.label.copyWith(
-            color: colors.textSecondary,
-            fontFamily: 'monospace',
-            fontFamilyFallback: const ['Menlo', 'Consolas', 'Courier New'],
-            height: 1,
-            fontSize:
-                size == GenaiSize.xs ? ty.labelSm.fontSize : ty.label.fontSize,
-          ),
+          style: base.copyWith(color: colors.textTertiary, height: 1),
           textAlign: TextAlign.center,
         ),
       ),

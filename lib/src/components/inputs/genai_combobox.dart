@@ -1,109 +1,101 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../foundations/icons.dart';
-import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
-import '../../tokens/sizing.dart';
-import '../indicators/genai_chip.dart';
+import '_field_frame.dart';
 import 'genai_select.dart';
 
-/// Searchable dropdown select (shadcn/ui Combobox equivalent).
+/// Searchable select with optional multi-selection — v3 Forma LMS (§8).
 ///
-/// Two modes, selected by [isMultiple]:
-/// - Single select: pass [value] + [onChanged]. Trigger shows the selected
-///   option label or [hintText].
-/// - Multi select: pass [values] + [onChangedMulti]. Trigger renders each
-///   selected option as a removable chip.
-///
-/// The popup contains an inline [GenaiTextField]-styled search box that
-/// filters [options] by label (case-insensitive). If the filter yields no
-/// matches, [emptyText] is displayed.
-///
-/// Reuses [GenaiSelectOption] from [GenaiSelect] so options are portable
-/// between the two.
-///
-/// {@tool snippet}
-/// ```dart
-/// GenaiCombobox<String>(
-///   label: 'Framework',
-///   hintText: 'Search…',
-///   value: selected,
-///   options: const [
-///     GenaiSelectOption(value: 'flutter', label: 'Flutter'),
-///     GenaiSelectOption(value: 'react',   label: 'React'),
-///   ],
-///   onChanged: (v) => setState(() => selected = v),
-/// );
-/// ```
-/// {@end-tool}
-///
-/// See also: [GenaiSelect], [GenaiTagInput].
+/// Trigger matches [GenaiTextField] shape (same 32/36/40 heights, same
+/// `borderStrong` at rest flipping to `textPrimary`/`borderFocus`). Unlike
+/// [GenaiSelect], the trigger can render its selected values inline as
+/// dismissable chips when [multiSelect] is true. The overlay always has a
+/// debounced search box.
 class GenaiCombobox<T> extends StatefulWidget {
-  /// Options rendered inside the popup. Required.
-  final List<GenaiSelectOption<T>> options;
-
-  /// Currently selected value — single-select mode only. Must be null when
-  /// [isMultiple] is true.
+  /// Selected value (single-select constructor).
   final T? value;
 
-  /// Currently selected values — multi-select mode only. Must be null when
-  /// [isMultiple] is false.
+  /// Selected values (multi-select constructor).
   final List<T>? values;
 
-  /// Called when the single-select value changes. Called with `null` when
-  /// the current value is cleared.
-  final ValueChanged<T?>? onChanged;
+  /// Options rendered in the overlay. Shares [GenaiSelectOption].
+  final List<GenaiSelectOption<T>> options;
 
-  /// Called when the multi-select values change with the new list.
-  final ValueChanged<List<T>>? onChangedMulti;
+  /// Single-select callback.
+  final ValueChanged<T>? onChanged;
 
-  /// Optional label rendered above the trigger.
-  final String? label;
+  /// Multi-select callback.
+  final ValueChanged<List<T>>? onValuesChanged;
 
-  /// Placeholder shown in the trigger when nothing is selected.
+  /// Placeholder when no value is selected.
   final String? hintText;
 
-  /// Message shown inside the popup when the search yields no results.
-  final String? emptyText;
+  /// Field label above the trigger.
+  final String? label;
 
-  /// If true, the combobox allows multi-selection (checkmarks, chips in
-  /// trigger). If false, selecting an option closes the popup.
-  final bool isMultiple;
+  /// Helper copy below the trigger.
+  final String? helperText;
 
-  /// Accessible label for the trigger. Falls back to [label] if omitted.
-  final String? semanticLabel;
+  /// Error copy; takes precedence over helper.
+  final String? errorText;
 
-  /// If true, the trigger is non-interactive and styled as disabled.
+  /// Appends a red asterisk after [label].
+  final bool isRequired;
+
+  /// Muted colours, no interaction.
   final bool isDisabled;
 
-  /// Size scale used for the trigger.
-  final GenaiSize size;
+  /// When true, the trigger renders dismissable chips and
+  /// [onValuesChanged] drives state.
+  final bool multiSelect;
+
+  /// Placeholder for the search box.
+  final String searchHint;
+
+  /// Debounce before re-filtering on search input.
+  final Duration searchDebounce;
+
+  /// Screen-reader label override.
+  final String? semanticLabel;
 
   const GenaiCombobox({
     super.key,
+    required this.value,
     required this.options,
-    this.value,
-    this.values,
     this.onChanged,
-    this.onChangedMulti,
-    this.label,
     this.hintText,
-    this.emptyText,
-    this.isMultiple = false,
-    this.semanticLabel,
+    this.label,
+    this.helperText,
+    this.errorText,
+    this.isRequired = false,
     this.isDisabled = false,
-    this.size = GenaiSize.md,
-  })  : assert(
-          !isMultiple || value == null,
-          'Use `values` (not `value`) when isMultiple is true.',
-        ),
-        assert(
-          isMultiple || values == null,
-          'Use `value` (not `values`) when isMultiple is false.',
-        );
+    this.searchHint = 'Cerca',
+    this.searchDebounce = const Duration(milliseconds: 200),
+    this.semanticLabel,
+  })  : values = null,
+        onValuesChanged = null,
+        multiSelect = false;
+
+  const GenaiCombobox.multi({
+    super.key,
+    required List<T> this.values,
+    required this.options,
+    this.onValuesChanged,
+    this.hintText,
+    this.label,
+    this.helperText,
+    this.errorText,
+    this.isRequired = false,
+    this.isDisabled = false,
+    this.searchHint = 'Cerca',
+    this.searchDebounce = const Duration(milliseconds: 200),
+    this.semanticLabel,
+  })  : value = null,
+        onChanged = null,
+        multiSelect = true;
 
   @override
   State<GenaiCombobox<T>> createState() => _GenaiComboboxState<T>();
@@ -111,351 +103,222 @@ class GenaiCombobox<T> extends StatefulWidget {
 
 class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
   final LayerLink _link = LayerLink();
-  final GlobalKey _fieldKey = GlobalKey();
-  final FocusNode _triggerFocus =
-      FocusNode(debugLabel: 'GenaiCombobox.trigger');
-  final FocusNode _overlayFocus = FocusNode(debugLabel: 'GenaiCombobox');
-  final TextEditingController _searchCtrl = TextEditingController();
-
   OverlayEntry? _overlay;
-  bool _open = false;
+  final FocusNode _focusNode = FocusNode();
   bool _focused = false;
+  bool _hovered = false;
   String _query = '';
-  int _activeIndex = 0;
   Timer? _debounce;
 
-  List<T> get _values => widget.values ?? const [];
-
-  void _toggle() {
-    if (widget.isDisabled) return;
-    _open ? _close() : _openMenu();
-  }
-
-  void _openMenu() {
-    final overlay = Overlay.of(context);
-    final box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    final width = box.size.width;
-    _query = '';
-    _activeIndex = 0;
-    _searchCtrl.clear();
-    _overlay = OverlayEntry(
-      builder: (ctx) => _ComboboxMenu<T>(
-        link: _link,
-        width: width,
-        onClose: _close,
-        builder: (menuCtx) => _buildMenuBody(menuCtx),
-      ),
-    );
-    overlay.insert(_overlay!);
-    setState(() => _open = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_overlay != null) _overlayFocus.requestFocus();
-    });
-  }
-
-  void _moveActive(int delta) {
-    final filtered = _filteredOptions;
-    if (filtered.isEmpty) return;
-    var next = _activeIndex + delta;
-    if (next < 0) next = filtered.length - 1;
-    if (next >= filtered.length) next = 0;
-    setState(() => _activeIndex = next);
-    _overlay?.markNeedsBuild();
-  }
-
-  void _activateHighlighted() {
-    final filtered = _filteredOptions;
-    if (_activeIndex < 0 || _activeIndex >= filtered.length) return;
-    final o = filtered[_activeIndex];
-    if (o.isDisabled) return;
-    if (widget.isMultiple) {
-      _toggleMulti(o.value);
-    } else {
-      _selectSingle(o.value);
+  double _triggerHeight(GenaiDensity d) {
+    switch (d) {
+      case GenaiDensity.compact:
+        return 32;
+      case GenaiDensity.normal:
+        return 36;
+      case GenaiDensity.spacious:
+        return 40;
     }
   }
 
-  void _close() {
-    _overlay?.remove();
-    _overlay = null;
-    _query = '';
-    if (mounted) setState(() => _open = false);
-  }
-
-  void _onSearchChanged(String v) {
-    _debounce?.cancel();
-    _debounce = Timer(context.motion.searchDebounce, () {
-      if (!mounted) return;
-      setState(() {
-        _query = v;
-        _activeIndex = 0;
-      });
-      _overlay?.markNeedsBuild();
-    });
-  }
-
-  List<GenaiSelectOption<T>> get _filteredOptions {
-    if (_query.isEmpty) return widget.options;
-    final q = _query.toLowerCase();
-    return widget.options
-        .where((o) => o.label.toLowerCase().contains(q))
-        .toList();
-  }
-
-  void _selectSingle(T v) {
-    widget.onChanged?.call(v);
-    _close();
-  }
-
-  void _toggleMulti(T v) {
-    final current = List<T>.from(_values);
-    if (current.contains(v)) {
-      current.remove(v);
-    } else {
-      current.add(v);
-    }
-    widget.onChangedMulti?.call(current);
-    _overlay?.markNeedsBuild();
-    setState(() {});
-  }
-
-  Widget _buildMenuBody(BuildContext menuCtx) {
-    final colors = menuCtx.colors;
-    final ty = menuCtx.typography;
-    final spacing = menuCtx.spacing;
-    final radius = menuCtx.radius;
-    final sizing = menuCtx.sizing;
-    final filtered = _filteredOptions;
-
-    return Material(
-      color: colors.surfaceCard,
-      elevation: 0,
-      borderRadius: BorderRadius.circular(radius.md),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radius.md),
-          border: Border.all(color: colors.borderDefault),
-          boxShadow: menuCtx.elevation.shadow(3),
-        ),
-        constraints: const BoxConstraints(maxHeight: 320),
-        child: Focus(
-          focusNode: _overlayFocus,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-              return KeyEventResult.ignored;
-            }
-            final key = event.logicalKey;
-            if (key == LogicalKeyboardKey.escape) {
-              _close();
-              return KeyEventResult.handled;
-            }
-            if (key == LogicalKeyboardKey.arrowDown) {
-              _moveActive(1);
-              return KeyEventResult.handled;
-            }
-            if (key == LogicalKeyboardKey.arrowUp) {
-              _moveActive(-1);
-              return KeyEventResult.handled;
-            }
-            if (key == LogicalKeyboardKey.enter ||
-                key == LogicalKeyboardKey.numpadEnter ||
-                (key == LogicalKeyboardKey.space && _query.isEmpty)) {
-              _activateHighlighted();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Live region announcing result count as the user types.
-              Semantics(
-                liveRegion: true,
-                label: filtered.isEmpty
-                    ? (widget.emptyText ?? 'Nessun risultato')
-                    : '${filtered.length} risultati',
-                child: const SizedBox.shrink(),
-              ),
-              Padding(
-                padding: EdgeInsets.all(spacing.s2),
-                child: SizedBox(
-                  height: GenaiSize.sm.height - spacing.s2,
-                  child: TextField(
-                    autofocus: true,
-                    controller: _searchCtrl,
-                    style: ty.bodyMd.copyWith(color: colors.textPrimary),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: widget.hintText ?? 'Cerca...',
-                      hintStyle:
-                          ty.bodyMd.copyWith(color: colors.textSecondary),
-                      prefixIcon: Icon(
-                        LucideIcons.search,
-                        size: GenaiSize.xs.iconSize,
-                        color: colors.textSecondary,
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: spacing.s1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radius.sm),
-                        borderSide: BorderSide(color: colors.borderDefault),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radius.sm),
-                        borderSide: BorderSide(color: colors.borderDefault),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(radius.sm),
-                        borderSide: BorderSide(
-                          color: colors.borderFocus,
-                          width: sizing.focusOutlineWidth,
-                        ),
-                      ),
-                    ),
-                    onChanged: _onSearchChanged,
-                  ),
-                ),
-              ),
-              Flexible(
-                child: filtered.isEmpty
-                    ? _buildEmpty(menuCtx)
-                    : Semantics(
-                        explicitChildNodes: true,
-                        container: true,
-                        label: 'Risultati',
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          padding: EdgeInsets.symmetric(vertical: spacing.s1),
-                          itemCount: filtered.length,
-                          itemBuilder: (_, i) =>
-                              _buildOption(menuCtx, filtered[i], i),
-                        ),
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmpty(BuildContext menuCtx) {
-    final colors = menuCtx.colors;
-    final ty = menuCtx.typography;
-    final spacing = menuCtx.spacing;
-    return Padding(
-      padding: EdgeInsets.all(spacing.s4),
-      child: Center(
-        child: Text(
-          widget.emptyText ?? 'Nessun risultato',
-          style: ty.bodySm.copyWith(color: colors.textSecondary),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOption(BuildContext menuCtx, GenaiSelectOption<T> o, int index) {
-    final colors = menuCtx.colors;
-    final ty = menuCtx.typography;
-    final spacing = menuCtx.spacing;
-    final sizing = menuCtx.sizing;
-    final selected =
-        widget.isMultiple ? _values.contains(o.value) : widget.value == o.value;
-    final highlighted = index == _activeIndex;
-
-    final bg = selected
-        ? colors.colorPrimarySubtle
-        : (highlighted ? colors.surfaceHover : null);
-
-    return Semantics(
-      button: true,
-      enabled: !o.isDisabled,
-      selected: selected,
-      inMutuallyExclusiveGroup: !widget.isMultiple,
-      label: o.label,
-      hint: o.description,
-      child: InkWell(
-        onTap: o.isDisabled
-            ? null
-            : () => widget.isMultiple
-                ? _toggleMulti(o.value)
-                : _selectSingle(o.value),
-        onHover: (h) {
-          if (h && !o.isDisabled) {
-            setState(() => _activeIndex = index);
-            _overlay?.markNeedsBuild();
-          }
-        },
-        child: Container(
-          constraints: BoxConstraints(minHeight: sizing.minTouchTarget),
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.s3,
-            vertical: spacing.s2,
-          ),
-          decoration: BoxDecoration(
-            color: bg,
-            border: highlighted && !selected
-                ? Border.all(
-                    color: colors.borderFocus,
-                    width: sizing.focusOutlineWidth,
-                  )
-                : null,
-          ),
-          child: Row(
-            children: [
-              if (o.icon != null) ...[
-                Icon(
-                  o.icon,
-                  size: GenaiSize.xs.iconSize,
-                  color: colors.textSecondary,
-                ),
-                SizedBox(width: spacing.s2),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      o.label,
-                      style: ty.bodyMd.copyWith(
-                        color: o.isDisabled
-                            ? colors.textDisabled
-                            : colors.textPrimary,
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    ),
-                    if (o.description != null)
-                      Text(
-                        o.description!,
-                        style: ty.caption.copyWith(color: colors.textSecondary),
-                      ),
-                  ],
-                ),
-              ),
-              if (selected)
-                Icon(
-                  LucideIcons.check,
-                  size: GenaiSize.xs.iconSize,
-                  color: colors.colorPrimary,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _focusNode
+        .addListener(() => setState(() => _focused = _focusNode.hasFocus));
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _overlay?.remove();
-    _triggerFocus.dispose();
-    _overlayFocus.dispose();
-    _searchCtrl.dispose();
+    _focusNode.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  bool get _hasError =>
+      widget.errorText != null && widget.errorText!.isNotEmpty;
+  bool get _isOpen => _overlay != null;
+
+  GenaiSelectOption<T>? _optionFor(T v) {
+    for (final o in widget.options) {
+      if (o.value == v) return o;
+    }
+    return null;
+  }
+
+  List<GenaiSelectOption<T>> get _selectedOptions {
+    if (!widget.multiSelect) {
+      final s = widget.value == null ? null : _optionFor(widget.value as T);
+      return s == null ? const [] : [s];
+    }
+    return [
+      for (final v in widget.values ?? const [])
+        if (_optionFor(v) != null) _optionFor(v)!
+    ];
+  }
+
+  List<GenaiSelectOption<T>> get _filtered {
+    if (_query.isEmpty) return widget.options;
+    final q = _query.toLowerCase();
+    return widget.options
+        .where((o) =>
+            o.label.toLowerCase().contains(q) ||
+            (o.description?.toLowerCase().contains(q) ?? false))
+        .toList();
+  }
+
+  void _toggle() {
+    if (widget.isDisabled) return;
+    _isOpen ? _hide() : _show();
+  }
+
+  void _show() {
+    _query = '';
+    final e = OverlayEntry(builder: _buildOverlay);
+    Overlay.of(context).insert(e);
+    setState(() => _overlay = e);
+  }
+
+  void _hide() {
+    _overlay?.remove();
+    setState(() => _overlay = null);
+  }
+
+  void _onSearch(String q) {
+    _debounce?.cancel();
+    _debounce = Timer(widget.searchDebounce, () {
+      _query = q;
+      _overlay?.markNeedsBuild();
+    });
+  }
+
+  void _pick(GenaiSelectOption<T> option) {
+    if (widget.multiSelect) {
+      final current = List<T>.from(widget.values ?? const []);
+      if (current.contains(option.value)) {
+        current.remove(option.value);
+      } else {
+        current.add(option.value);
+      }
+      widget.onValuesChanged?.call(current);
+    } else {
+      widget.onChanged?.call(option.value);
+      _hide();
+    }
+  }
+
+  void _removeChip(T v) {
+    if (!widget.multiSelect) return;
+    final current = List<T>.from(widget.values ?? const [])..remove(v);
+    widget.onValuesChanged?.call(current);
+  }
+
+  Widget _buildOverlay(BuildContext overlayContext) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final radius = context.radius;
+    final elevation = context.elevation;
+    final sizing = context.sizing;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _hide,
+      child: Stack(
+        children: [
+          Positioned.fill(child: Container(color: Colors.transparent)),
+          CompositedTransformFollower(
+            link: _link,
+            offset: Offset(0, _triggerHeight(sizing.density) + spacing.s4),
+            showWhenUnlinked: false,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                color: Colors.transparent,
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(maxHeight: 320, minWidth: 240),
+                  child: IntrinsicWidth(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceOverlay,
+                        borderRadius: BorderRadius.circular(radius.xl),
+                        border: Border.all(color: colors.borderDefault),
+                        boxShadow: elevation.shadowForLayer(2),
+                      ),
+                      child: StatefulBuilder(
+                        builder: (ctx, setOverlayState) {
+                          final filtered = _filtered;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.all(spacing.s8),
+                                child: InternalSearchRow(
+                                  hint: widget.searchHint,
+                                  onChanged: (v) {
+                                    _onSearch(v);
+                                    // Keep overlay redraw in sync with the
+                                    // debounced query.
+                                    Timer(widget.searchDebounce, () {
+                                      if (mounted) setOverlayState(() {});
+                                    });
+                                  },
+                                ),
+                              ),
+                              Flexible(
+                                child: filtered.isEmpty
+                                    ? Padding(
+                                        padding: EdgeInsets.all(spacing.s16),
+                                        child: Text(
+                                          'Nessun risultato',
+                                          style: ty.bodySm.copyWith(
+                                              color: colors.textTertiary),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        shrinkWrap: true,
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: spacing.s4),
+                                        itemCount: filtered.length,
+                                        itemBuilder: (_, i) {
+                                          final o = filtered[i];
+                                          final isSelected = widget.multiSelect
+                                              ? (widget.values
+                                                      ?.contains(o.value) ??
+                                                  false)
+                                              : o.value == widget.value;
+                                          return _ComboRow(
+                                            label: o.label,
+                                            description: o.description,
+                                            icon: o.icon,
+                                            selected: isSelected,
+                                            disabled: o.isDisabled,
+                                            multi: widget.multiSelect,
+                                            onTap: o.isDisabled
+                                                ? null
+                                                : () {
+                                                    _pick(o);
+                                                    setOverlayState(() {});
+                                                  },
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -464,237 +327,298 @@ class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
     final ty = context.typography;
     final spacing = context.spacing;
     final sizing = context.sizing;
-    final motion = context.motion;
-    final isCompact = context.isCompact;
-    final h = widget.size.resolveHeight(isCompact: isCompact);
+    final radius = context.radius;
 
-    // Resting border kept thin so layout never reflows on focus / open.
+    final height = _triggerHeight(sizing.density);
+    final selected = _selectedOptions;
+
+    // Resting border kept 1 px so layout never reflows on focus / open.
     // Focus ring rendered as a non-layout overlay below.
-    final borderColor = colors.borderDefault;
-    final borderWidth = widget.size.borderWidth;
-
-    final hasValue =
-        widget.isMultiple ? _values.isNotEmpty : widget.value != null;
-
-    String? singleLabel;
-    if (!widget.isMultiple && widget.value != null) {
-      singleLabel = widget.options
-          .where((o) => o.value == widget.value)
-          .map((o) => o.label)
-          .firstOrNull;
-    }
+    final borderColor = widget.isDisabled
+        ? colors.borderSubtle
+        : _hasError
+            ? colors.colorDanger
+            : (_hovered ? colors.textPrimary : colors.borderStrong);
+    const borderWidth = 1.0;
 
     Widget content;
-    if (widget.isMultiple && hasValue) {
-      content = Padding(
-        padding: EdgeInsets.symmetric(vertical: spacing.s1),
-        child: Wrap(
-          spacing: spacing.s1,
-          runSpacing: spacing.s1,
+    if (widget.multiSelect) {
+      if (selected.isEmpty) {
+        content = Text(
+          widget.hintText ?? '',
+          style: ty.bodySm.copyWith(color: colors.textTertiary),
+        );
+      } else {
+        content = Wrap(
+          spacing: spacing.s4,
+          runSpacing: spacing.s4,
           children: [
-            for (final v in _values)
-              GenaiChip.removable(
-                label: widget.options
-                        .where((o) => o.value == v)
-                        .map((o) => o.label)
-                        .firstOrNull ??
-                    '$v',
-                onRemove: () => _toggleMulti(v),
+            for (final o in selected)
+              _Chip(
+                label: o.label,
+                onRemove: widget.isDisabled ? null : () => _removeChip(o.value),
               ),
           ],
-        ),
-      );
+        );
+      }
     } else {
+      final s = selected.isEmpty ? null : selected.first;
       content = Text(
-        hasValue
-            ? (singleLabel ?? '${widget.value}')
-            : (widget.hintText ?? 'Seleziona...'),
-        style: ty.bodyMd.copyWith(
-          color: hasValue ? colors.textPrimary : colors.textSecondary,
-          fontSize: widget.size.fontSize,
+        s?.label ?? widget.hintText ?? '',
+        style: ty.bodySm.copyWith(
+          color: s == null
+              ? colors.textTertiary
+              : (widget.isDisabled ? colors.textDisabled : colors.textPrimary),
         ),
         overflow: TextOverflow.ellipsis,
       );
     }
 
-    final children = <Widget>[];
-    if (widget.label != null) {
-      children.add(
-        Padding(
-          padding: EdgeInsets.only(bottom: spacing.s1 + 2),
-          child: Text(
-            widget.label!,
-            style: ty.label.copyWith(color: colors.textPrimary),
-          ),
-        ),
-      );
-    }
-
-    final minTouch = sizing.minTouchTarget;
-    final triggerMinHeight = h < minTouch ? minTouch : h;
-
-    children.add(
-      CompositedTransformTarget(
-        link: _link,
-        child: Focus(
-          focusNode: _triggerFocus,
-          canRequestFocus: !widget.isDisabled,
-          onFocusChange: (f) {
-            if (_focused != f) setState(() => _focused = f);
+    final trigger = CompositedTransformTarget(
+      link: _link,
+      child: Focus(
+        focusNode: _focusNode,
+        child: MouseRegion(
+          cursor: widget.isDisabled
+              ? SystemMouseCursors.forbidden
+              : SystemMouseCursors.click,
+          opaque: false,
+          hitTestBehavior: HitTestBehavior.opaque,
+          onEnter: (_) {
+            if (!_hovered) setState(() => _hovered = true);
           },
-          onKeyEvent: (node, event) {
-            if (widget.isDisabled) return KeyEventResult.ignored;
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            final key = event.logicalKey;
-            if (key == LogicalKeyboardKey.enter ||
-                key == LogicalKeyboardKey.numpadEnter ||
-                key == LogicalKeyboardKey.space ||
-                key == LogicalKeyboardKey.arrowDown) {
-              _toggle();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
+          onExit: (_) {
+            if (_hovered) setState(() => _hovered = false);
           },
-          child: MouseRegion(
-            cursor: widget.isDisabled
-                ? SystemMouseCursors.forbidden
-                : SystemMouseCursors.click,
-            opaque: false,
-            hitTestBehavior: HitTestBehavior.opaque,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _toggle,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    key: _fieldKey,
-                    constraints: BoxConstraints(minHeight: triggerMinHeight),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: widget.size.paddingH,
-                      vertical: widget.isMultiple && hasValue
-                          ? spacing.s1
-                          : widget.size.paddingV,
-                    ),
-                    decoration: BoxDecoration(
-                      color: widget.isDisabled
-                          ? colors.surfaceHover
-                          : colors.surfaceInput,
-                      borderRadius:
-                          BorderRadius.circular(widget.size.borderRadius),
-                      border:
-                          Border.all(color: borderColor, width: borderWidth),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(child: content),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: spacing.s1),
-                          child: Icon(
-                            LucideIcons.search,
-                            size: GenaiSize.xs.iconSize,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                        AnimatedRotation(
-                          turns: _open ? 0.5 : 0,
-                          duration: motion.dropdownOpen.duration,
-                          curve: motion.dropdownOpen.curve,
-                          child: Icon(
-                            LucideIcons.chevronDown,
-                            size: GenaiSize.xs.iconSize,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggle,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  constraints: BoxConstraints(minHeight: height),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: spacing.s12,
+                    vertical: widget.multiSelect && selected.isNotEmpty
+                        ? spacing.s4
+                        : 0,
                   ),
-                  if ((_focused || _open) && !widget.isDisabled)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                                widget.size.borderRadius),
-                            border: Border.all(
-                              color: colors.borderFocus,
-                              width: sizing.focusOutlineWidth,
-                            ),
+                  decoration: BoxDecoration(
+                    color: widget.isDisabled
+                        ? colors.surfaceHover
+                        : colors.surfaceCard,
+                    borderRadius: BorderRadius.circular(radius.md),
+                    border: Border.all(color: borderColor, width: borderWidth),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: content),
+                      SizedBox(width: spacing.iconLabelGap),
+                      Icon(
+                        _isOpen
+                            ? LucideIcons.chevronUp
+                            : LucideIcons.chevronDown,
+                        size: sizing.iconSize,
+                        color: colors.textTertiary,
+                      ),
+                    ],
+                  ),
+                ),
+                if ((_focused || _isOpen || _hasError) && !widget.isDisabled)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(radius.md),
+                          border: Border.all(
+                            color: _hasError
+                                ? colors.colorDanger
+                                : colors.borderFocus,
+                            width: sizing.focusRingWidth,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),
       ),
     );
 
-    // Flutter has no dedicated `combobox` ARIA role; we combine
-    // `button + expanded + explicitChildNodes` and a hint that names the
-    // popup so screen readers announce state transitions correctly.
     return Semantics(
       button: true,
-      expanded: _open,
-      enabled: !widget.isDisabled,
       label: widget.semanticLabel ?? widget.label,
-      hint: widget.hintText == null
-          ? 'Combobox. Premi Invio per aprire.'
-          : '${widget.hintText}. Combobox, premi Invio per aprire.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
+      hint: widget.hintText,
+      enabled: !widget.isDisabled,
+      focused: _focused,
+      child: FieldFrame(
+        label: widget.label,
+        isRequired: widget.isRequired,
+        isDisabled: widget.isDisabled,
+        helperText: widget.helperText,
+        errorText: widget.errorText,
+        control: trigger,
       ),
     );
   }
 }
 
-class _ComboboxMenu<T> extends StatelessWidget {
-  final LayerLink link;
-  final double width;
-  final VoidCallback onClose;
-  final WidgetBuilder builder;
+class _Chip extends StatelessWidget {
+  final String label;
+  final VoidCallback? onRemove;
 
-  const _ComboboxMenu({
-    required this.link,
-    required this.width,
-    required this.onClose,
-    required this.builder,
-  });
+  const _Chip({required this.label, this.onRemove});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
     final spacing = context.spacing;
-    final motion = context.motion;
-    final reduced = GenaiResponsive.reducedMotion(context);
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: onClose,
-          ),
-        ),
-        CompositedTransformFollower(
-          link: link,
-          showWhenUnlinked: false,
-          offset: Offset(0, spacing.s1),
-          targetAnchor: Alignment.bottomLeft,
-          child: SizedBox(
-            width: width,
-            child: TweenAnimationBuilder<double>(
-              duration: reduced ? Duration.zero : motion.dropdownOpen.duration,
-              curve: motion.dropdownOpen.curve,
-              tween: Tween(begin: 0, end: 1),
-              builder: (_, t, c) => Opacity(opacity: t, child: c),
-              child: builder(context),
+    final radius = context.radius;
+
+    return Container(
+      padding:
+          EdgeInsets.symmetric(horizontal: spacing.s8, vertical: spacing.s2),
+      decoration: BoxDecoration(
+        color: colors.colorPrimarySubtle,
+        borderRadius: BorderRadius.circular(radius.sm),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: ty.label.copyWith(color: colors.colorPrimaryText)),
+          if (onRemove != null) ...[
+            SizedBox(width: spacing.s4),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Semantics(
+                  button: true,
+                  label: 'Rimuovi $label',
+                  child: Icon(LucideIcons.x,
+                      size: (ty.label.fontSize ?? 12) + 1,
+                      color: colors.colorPrimaryText),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ComboRow extends StatefulWidget {
+  final String label;
+  final String? description;
+  final IconData? icon;
+  final bool selected;
+  final bool disabled;
+  final bool multi;
+  final VoidCallback? onTap;
+
+  const _ComboRow({
+    required this.label,
+    required this.selected,
+    required this.multi,
+    this.description,
+    this.icon,
+    this.disabled = false,
+    this.onTap,
+  });
+
+  @override
+  State<_ComboRow> createState() => _ComboRowState();
+}
+
+class _ComboRowState extends State<_ComboRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ty = context.typography;
+    final spacing = context.spacing;
+    final sizing = context.sizing;
+    final radius = context.radius;
+
+    return Opacity(
+      opacity: widget.disabled ? 0.5 : 1,
+      child: MouseRegion(
+        cursor: widget.disabled
+            ? SystemMouseCursors.forbidden
+            : SystemMouseCursors.click,
+        opaque: false,
+        hitTestBehavior: HitTestBehavior.opaque,
+        onEnter: (_) {
+          if (!_hovered) setState(() => _hovered = true);
+        },
+        onExit: (_) {
+          if (_hovered) setState(() => _hovered = false);
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: spacing.s12, vertical: spacing.s8),
+            color: _hovered ? colors.surfaceHover : Colors.transparent,
+            child: Row(
+              children: [
+                if (widget.multi) ...[
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: widget.selected
+                          ? colors.colorPrimary
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(radius.xs),
+                      border: Border.all(
+                        color: widget.selected
+                            ? colors.colorPrimary
+                            : colors.textPrimary,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: widget.selected
+                        ? Icon(LucideIcons.check,
+                            size: 12, color: colors.textOnPrimary)
+                        : null,
+                  ),
+                  SizedBox(width: spacing.iconLabelGap),
+                ],
+                if (widget.icon != null) ...[
+                  Icon(widget.icon,
+                      size: sizing.iconSize, color: colors.textSecondary),
+                  SizedBox(width: spacing.iconLabelGap),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(widget.label,
+                          style: ty.bodySm.copyWith(color: colors.textPrimary)),
+                      if (widget.description != null)
+                        Text(widget.description!,
+                            style: ty.labelSm
+                                .copyWith(color: colors.textTertiary)),
+                    ],
+                  ),
+                ),
+                if (!widget.multi && widget.selected)
+                  Icon(LucideIcons.check,
+                      size: sizing.iconSize, color: colors.colorPrimary),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

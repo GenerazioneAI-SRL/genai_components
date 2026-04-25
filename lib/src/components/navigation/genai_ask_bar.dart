@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../foundations/responsive.dart';
 import '../../theme/context_extensions.dart';
 
 /// AI assistant search pill — v3 design system (§4.1 / `.ask`).
 ///
 /// A rounded `border-radius: pill` input bar with a 20×20 gradient "spark"
-/// badge (`info → primary mix`) on the leading edge and a trailing kbd
-/// shortcut hint (default `⌘K`). Border hairline `borderDefault` by default,
-/// elevates to [GenaiColorTokens.textPrimary] on hover and focus-within per
-/// `.ask:focus-within` / `.ask:hover` in the reference HTML.
+/// badge (`info → violet`, 135°) on the leading edge and a trailing kbd
+/// shortcut hint (default `⌘K`). Border hairline `borderStrong` by default,
+/// elevates to [GenaiColorTokens.borderFocus]-equivalent (ink) on hover and
+/// focus-within per `.ask:focus-within` / `.ask:hover` in the reference HTML.
 ///
 /// Unlike legacy text inputs this widget does not render a label or error
-/// message — it is purely a command pill meant to live inside the topbar.
+/// message — it is purely a command pill meant to live inside the topbar. The
+/// 40% viewport-width clamp from the CSS is honoured via a [LayoutBuilder].
 ///
 /// Typical wiring:
 /// ```dart
@@ -44,8 +44,8 @@ class GenaiAskBar extends StatefulWidget {
   /// Keyboard hint rendered inside the trailing kbd pill. Default `⌘K`.
   final String kbdHint;
 
-  /// Preferred pill width. Shrinks to the available layout width when the
-  /// parent is narrower (matches the CSS `max-width: 40vw` fallback).
+  /// Preferred pill width. Shrinks to 40% of the available layout width when
+  /// the parent is narrower (matches the CSS `max-width: 40vw` fallback).
   final double width;
 
   /// Fires when `⌘K` / `Ctrl+K` is pressed anywhere within this widget's
@@ -104,7 +104,6 @@ class _GenaiAskBarState extends State<GenaiAskBar> {
     final radius = context.radius;
     final sizing = context.sizing;
     final ty = context.typography;
-    final reduced = GenaiResponsive.reducedMotion(context);
     final motion = context.motion.hover;
 
     final activeBorder = _focused || _hover;
@@ -113,22 +112,21 @@ class _GenaiAskBarState extends State<GenaiAskBar> {
       width: sizing.dividerThickness,
     );
 
-    // ask-bar pill height — derived from minTouchTarget (48 * 0.75 = 36).
-    final pillHeight = sizing.minTouchTarget * 0.75;
-
     Widget pill = LayoutBuilder(
       builder: (ctx, constraints) {
         final maxW =
             constraints.hasBoundedWidth ? constraints.maxWidth : widget.width;
         final resolvedWidth = widget.width.clamp(0, maxW).toDouble();
         return AnimatedContainer(
-          duration: reduced ? Duration.zero : motion.duration,
+          duration: motion.duration,
           curve: motion.curve,
           width: resolvedWidth,
-          height: pillHeight,
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.s3,
-            vertical: spacing.s1,
+          height: sizing.askBarHeight,
+          padding: EdgeInsets.fromLTRB(
+            spacing.s14,
+            spacing.s2 + spacing.s4, // 7
+            spacing.s12,
+            spacing.s2 + spacing.s4,
           ),
           decoration: BoxDecoration(
             color: colors.surfaceCard,
@@ -138,7 +136,7 @@ class _GenaiAskBarState extends State<GenaiAskBar> {
           child: Row(
             children: [
               const _SparkBadge(),
-              SizedBox(width: spacing.s2),
+              SizedBox(width: spacing.s8),
               Expanded(
                 child: TextField(
                   controller: _controller,
@@ -151,11 +149,11 @@ class _GenaiAskBarState extends State<GenaiAskBar> {
                     isCollapsed: true,
                     border: InputBorder.none,
                     hintText: widget.placeholder,
-                    hintStyle: ty.bodySm.copyWith(color: colors.textSecondary),
+                    hintStyle: ty.bodySm.copyWith(color: colors.textTertiary),
                   ),
                 ),
               ),
-              SizedBox(width: spacing.s2),
+              SizedBox(width: spacing.s8),
               _KbdPill(label: widget.kbdHint),
             ],
           ),
@@ -194,9 +192,8 @@ class _AskBarShortcutIntent extends Intent {
   const _AskBarShortcutIntent();
 }
 
-/// 20×20 linear-gradient badge — the "spark" dot at the leading edge of the
-/// pill. Width is intentionally a fixed component-local measure (not a token)
-/// to match the spec.
+/// 20×20 linear-gradient badge (135°, info → violet) — the "spark" dot at
+/// the leading edge of the pill.
 class _SparkBadge extends StatelessWidget {
   const _SparkBadge();
 
@@ -214,8 +211,8 @@ class _SparkBadge extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             colors.colorInfo,
-            // violet — derive from info: shift toward ink for a cool tint
-            // without hardcoding.
+            // violet — derive from info: shift red channel up, green down.
+            // Avoid hardcoding by mixing textLink with ink for a cool tint.
             Color.lerp(colors.colorInfo, colors.textPrimary, 0.35)!,
           ],
         ),
@@ -231,8 +228,7 @@ class _SparkBadge extends StatelessWidget {
   }
 }
 
-/// Trailing keyboard-shortcut pill (e.g. `⌘K`). Mono-style label on a tinted
-/// surface.
+/// Trailing keyboard-shortcut pill (e.g. `⌘K`). Mono 11/600 bg `neutral-soft`.
 class _KbdPill extends StatelessWidget {
   final String label;
   const _KbdPill({required this.label});
@@ -246,23 +242,22 @@ class _KbdPill extends StatelessWidget {
     final sizing = context.sizing;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: spacing.s1,
-        vertical: spacing.s1 / 2,
+        horizontal: spacing.s6,
+        vertical: spacing.s2,
       ),
       decoration: BoxDecoration(
-        color: colors.surfaceHover,
+        color: colors.colorNeutralSubtle,
         borderRadius: BorderRadius.circular(radius.sm),
         border: Border.all(
-          color: colors.borderDefault,
+          color: colors.borderSubtle,
           width: sizing.dividerThickness,
         ),
       ),
       child: Text(
         label,
-        style: ty.caption.copyWith(
+        style: ty.monoSm.copyWith(
           color: colors.textSecondary,
           fontWeight: FontWeight.w600,
-          fontFamily: 'monospace',
         ),
       ),
     );
