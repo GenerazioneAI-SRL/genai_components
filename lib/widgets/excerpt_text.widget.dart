@@ -17,10 +17,10 @@ class ExcerptText<T extends Object> extends StatefulWidget {
   });
 
   @override
-  _ExcerptTextState createState() => _ExcerptTextState();
+  ExcerptTextState createState() => ExcerptTextState();
 }
 
-class _ExcerptTextState<T extends Object> extends State<ExcerptText> {
+class ExcerptTextState<T extends Object> extends State<ExcerptText> {
   bool isExpanded = false;
 
   @override

@@ -94,6 +94,15 @@ class TextTableFilter extends TableFilter<String> {
                 },
     );
   }
+
+  void dispose() {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _controller?.dispose();
+    _controller = null;
+    _focusNode?.dispose();
+    _focusNode = null;
+  }
 }
 
 class DropdownTableFilter<TValue> extends TableFilter<TValue> {
@@ -283,6 +292,11 @@ class CLDateTableFilter extends TableFilter<DateTime> {
       },
     );
   }
+
+  void dispose() {
+    _controller?.dispose();
+    _controller = null;
+  }
 }
 
 /// Filtro data e ora — CLTextField.dateTime (gg/mm/aaaa hh:mm)
@@ -309,6 +323,11 @@ class CLDateTimeTableFilter extends TableFilter<DateTime> {
         state.value = date;
       },
     );
+  }
+
+  void dispose() {
+    _controller?.dispose();
+    _controller = null;
   }
 }
 
@@ -344,6 +363,11 @@ class CLTimeTableFilter extends TableFilter<DateTime> {
       },
     );
   }
+
+  void dispose() {
+    _controller?.dispose();
+    _controller = null;
+  }
 }
 
 /// Filtro mese — CLTextField.month (mm/aaaa)
@@ -371,6 +395,11 @@ class CLMonthTableFilter extends TableFilter<DateTime> {
       },
     );
   }
+
+  void dispose() {
+    _controller?.dispose();
+    _controller = null;
+  }
 }
 
 /// Filtro anno — CLTextField.year (aaaa)
@@ -397,6 +426,11 @@ class CLYearTableFilter extends TableFilter<DateTime> {
         state.value = date;
       },
     );
+  }
+
+  void dispose() {
+    _controller?.dispose();
+    _controller = null;
   }
 }
 
@@ -458,6 +492,13 @@ class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
         ),
       ],
     );
+  }
+
+  void dispose() {
+    _startController?.dispose();
+    _startController = null;
+    _endController?.dispose();
+    _endController = null;
   }
 }
 /// Esempio di utilizzo:

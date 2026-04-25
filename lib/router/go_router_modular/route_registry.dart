@@ -1,6 +1,15 @@
+import 'package:flutter/foundation.dart';
+
 /// Registry per mappare i nomi delle route ai loro path completi
 class RouteRegistry {
   static final RouteRegistry _instance = RouteRegistry._internal();
+
+  /// Singleton accessor (alias del costruttore factory).
+  ///
+  /// Esiste per allinearsi all'API tipica `RouteRegistry.instance` usata
+  /// dalle estensioni e dai consumer esterni del framework, senza modificare
+  /// la factory storica.
+  static RouteRegistry get instance => _instance;
 
   factory RouteRegistry() => _instance;
 
@@ -9,19 +18,46 @@ class RouteRegistry {
   // Cambiato: ora mappiamo name -> List<path> per gestire duplicati
   final Map<String, List<String>> _nameToPath = {};
 
-  /// Registra una route con il suo nome e path completo
-  /// Se il nome esiste già, mantiene tutte le varianti
+  /// Registra una route con il suo nome e path completo.
+  ///
+  /// Se il nome esiste già con un path **diverso**, emette un warning via
+  /// [debugPrint] (in modalità debug) per segnalare un potenziale conflitto
+  /// di nomi nel grafo delle route. Tutte le varianti restano comunque
+  /// memorizzate per retro-compatibilità: la risoluzione resta deterministica
+  /// tramite [getPathByName] (path più specifico o miglior prefisso comune).
   void registerRoute(String name, String fullPath) {
     if (_nameToPath.containsKey(name)) {
+      final existing = _nameToPath[name]!;
       // Aggiungi solo se non esiste già questo path
-      if (!_nameToPath[name]!.contains(fullPath)) {
-        _nameToPath[name]!.add(fullPath);
+      if (!existing.contains(fullPath)) {
+        assert(() {
+          debugPrint(
+            '[RouteRegistry] WARNING: route name "$name" already registered '
+            'with different path. Existing: ${existing.join(", ")}, new: $fullPath',
+          );
+          return true;
+        }());
+        existing.add(fullPath);
         // Ordina per lunghezza decrescente (path più specifici prima)
-        _nameToPath[name]!.sort((a, b) => b.length.compareTo(a.length));
+        existing.sort((a, b) => b.length.compareTo(a.length));
       }
     } else {
       _nameToPath[name] = [fullPath];
     }
+  }
+
+  /// Restituisce `true` se [nameOrPath] è registrato come nome di route
+  /// oppure compare tra i path completi memorizzati.
+  ///
+  /// Usato dalle estensioni `BuildContext.isRouteDefined` /
+  /// `BuildContext.goIfDefined` per verificare l'esistenza di una route
+  /// senza esporre la mappa interna.
+  bool has(String nameOrPath) {
+    if (_nameToPath.containsKey(nameOrPath)) return true;
+    for (final paths in _nameToPath.values) {
+      if (paths.contains(nameOrPath)) return true;
+    }
+    return false;
   }
 
   /// Ottiene il path completo da un nome di route

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +19,8 @@ import '../providers/notifications_panel_provider.dart';
 import '../providers/theme_provider.dart';
 import '../router/go_router_modular/go_router_modular_configure.dart';
 import '../router/go_router_modular/module.dart';
+import '../router/go_router_modular/module_color_registry.dart';
+import '../router/go_router_modular/routes/module_route.dart';
 import '../router/go_router_modular/page_transition_enum.dart';
 import '../router/go_router_modular/routes/child_route.dart';
 import '../router/go_router_modular/routes/cl_route.dart';
@@ -30,6 +34,12 @@ import '../widgets/alertmanager/alert_manager.dart';
 import '../widgets/cl_ai_assistant/flutter_ai_assistant.dart';
 
 import 'cl_app_config.dart';
+
+/// Cache for the last redirect computation. Invalidated whenever any of the
+/// observed app-state listenables (auth/navigation/app/error) emit a notify,
+/// so routing decisions never go stale across logins/logouts/tenant switches.
+String? _lastRedirectLocation;
+String? _lastRedirectResult;
 
 class _MyHttpOverrides extends HttpOverrides {
   @override
@@ -50,7 +60,9 @@ class CLApp {
   /// Inizializza e lancia l'app con la configurazione fornita.
   static Future<void> run(CLAppConfig config) async {
     WidgetsFlutterBinding.ensureInitialized();
-    HttpOverrides.global = _MyHttpOverrides();
+    if (kDebugMode && !kIsWeb) {
+      HttpOverrides.global = _MyHttpOverrides();
+    }
     await SharedManager.initPrefs();
     ApiManager.configure(baseUrl: config.baseUrl, apiVersion: config.apiVersion);
 
@@ -70,8 +82,24 @@ class CLApp {
     // Callback app-specific di init
     await config.onInit();
 
+    // Popola registry colori moduli (consumato da CLPageHeader e altri widget).
+    for (final route in config.shellRoutes) {
+      if (route is ModuleRoute && route.color != null) {
+        ModuleColorRegistry.register(route.path, route.color!);
+      }
+    }
+
     // Router
     final appModule = _CLAppModule(config);
+
+    // Single Listenable instance shared between Modular.configure and the
+    // cache-invalidation listener — using the same instance ensures that
+    // every state notify flushes the redirect dedup cache exactly once.
+    final refreshListenable = Listenable.merge([authState, navigationState, appState, errorState]);
+    refreshListenable.addListener(() {
+      _lastRedirectLocation = null;
+      _lastRedirectResult = null;
+    });
 
     await Modular.configure(
       appModule: appModule,
@@ -79,25 +107,40 @@ class CLApp {
       debugLogDiagnostics: config.debugLogDiagnostics,
       debugLogDiagnosticsGoRouter: false,
       pageTransition: PageTransition.fade,
-      refreshListenable: Listenable.merge([authState, navigationState, appState, errorState]),
+      refreshListenable: refreshListenable,
       redirect: (context, state) {
+        final currentLocation = state.matchedLocation;
+        // Dedup: identical location + unchanged state ⇒ reuse last result.
+        // Cache is invalidated on every notify of refreshListenable above.
+        if (currentLocation == _lastRedirectLocation) {
+          return _lastRedirectResult;
+        }
+        String? result;
         try {
           if (config.customRedirect != null) {
-            final result = config.customRedirect!(context, state);
-            if (result != null) return result;
+            result = config.customRedirect!(context, state);
           }
         } catch (_) {
           // Durante hot-restart, il context può essere deactivato
           // e i Provider non sono ancora disponibili
         }
-        return null;
+        _lastRedirectLocation = currentLocation;
+        _lastRedirectResult = result;
+        return result;
       },
       observers: [GoRouterBreadcrumbObserver()],
       navigatorKey: AlertManager.navigatorKey,
     );
 
-    // AI assistant config (after router is configured)
-    final aiConfig = config.buildAiConfig();
+    /// Lazy AI assistant config: starts as `null` and is populated on the next
+    /// microtask via [Future.delayed(Duration.zero)]. The notifier is passed
+    /// to [_CLMainApp], which rebuilds via [ValueListenableBuilder] when the
+    /// value lands. This keeps app-startup off the critical path without
+    /// forcing the AI panel into the initial frame.
+    final aiConfigNotifier = ValueNotifier<AiAssistantConfig?>(null);
+    unawaited(Future.delayed(Duration.zero, () {
+      aiConfigNotifier.value = config.buildAiConfig();
+    }));
 
     // Run
     runApp(
@@ -114,7 +157,7 @@ class CLApp {
           ...config.extraProviders,
         ],
         child: _CLMainApp(
-          aiConfig: aiConfig,
+          aiConfigNotifier: aiConfigNotifier,
           locale: config.locale,
           supportedLocales: config.supportedLocales,
           mobileBreakpoint: config.mobileBreakpoint,
@@ -177,15 +220,21 @@ class _CLAppModule extends Module {
       ];
 }
 
-/// Widget root dell'app
+/// Widget root dell'app.
+///
+/// Receives a [ValueListenable] for the AI assistant config so the AI overlay
+/// can be wired in lazily after the first frame. The wrapping
+/// [ValueListenableBuilder] is scoped to just the AI overlay, so the
+/// [MaterialApp.router] subtree is built only once and is not rebuilt when the
+/// AI config lands.
 class _CLMainApp extends StatelessWidget {
-  final AiAssistantConfig? aiConfig;
+  final ValueListenable<AiAssistantConfig?> aiConfigNotifier;
   final Locale locale;
   final List<Locale> supportedLocales;
   final double mobileBreakpoint;
 
   const _CLMainApp({
-    required this.aiConfig,
+    required this.aiConfigNotifier,
     required this.locale,
     required this.supportedLocales,
     required this.mobileBreakpoint,
@@ -196,7 +245,7 @@ class _CLMainApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final moduleTheme = Provider.of<ModuleThemeProvider>(context);
 
-    Widget app = MaterialApp.router(
+    final Widget materialApp = MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: GoRouterModular.routerConfig,
       theme: ThemeData(
@@ -240,10 +289,17 @@ class _CLMainApp extends StatelessWidget {
       },
     );
 
-    // Wrappa con AI assistant se configurato
-    if (aiConfig != null) {
-      app = AiAssistant(config: aiConfig!, child: app);
-    }
+    // Lazy AI assistant overlay: ValueListenableBuilder uses `child:` so
+    // `materialApp` is *not* rebuilt when the notifier emits — only the
+    // AiAssistant wrapper toggles in place.
+    final Widget app = ValueListenableBuilder<AiAssistantConfig?>(
+      valueListenable: aiConfigNotifier,
+      child: materialApp,
+      builder: (context, aiConfig, child) {
+        if (aiConfig == null) return child!;
+        return AiAssistant(config: aiConfig, child: child!);
+      },
+    );
 
     return _RootScaffold(locale: locale, child: app);
   }

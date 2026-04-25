@@ -7,6 +7,7 @@ import '../models/breadcrumb_item.model.dart';
 /// Non è necessario manipolarli manualmente dai moduli.
 class NavigationState extends ChangeNotifier {
   final List<BreadcrumbItem> _breadcrumbs = [];
+  bool _disposed = false;
 
   List<BreadcrumbItem> get breadcrumbs => List.unmodifiable(_breadcrumbs);
 
@@ -17,7 +18,16 @@ class NavigationState extends ChangeNotifier {
 
   /// Diventa true quando il CLPageHeader è scrollato fuori dallo schermo.
   /// L'HeaderLayout lo usa per mostrare il titolo con fade-in.
+  @Deprecated('Use HeaderVisibilityState — will be removed in 5.0')
   final ValueNotifier<bool> headerTitleVisible = ValueNotifier<bool>(false);
+
+  /// Imposta la visibilità del titolo nell'header.
+  /// API additiva — `headerTitleVisible` resta accessibile per backward compat.
+  @Deprecated('Use HeaderVisibilityState — will be removed in 5.0')
+  void setHeaderTitleVisibility(bool visible) {
+    if (headerTitleVisible.value == visible) return;
+    headerTitleVisible.value = visible;
+  }
 
   /// Aggiunge un breadcrumb allo stack.
   ///
@@ -146,7 +156,14 @@ class NavigationState extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _disposed = true;
     headerTitleVisible.dispose();
     super.dispose();
   }

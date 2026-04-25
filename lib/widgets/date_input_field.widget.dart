@@ -12,6 +12,12 @@ class _DateInputFieldState extends State<DateInputField> {
   final TextEditingController _txtDateController = TextEditingController();
 
   @override
+  void dispose() {
+    _txtDateController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: _txtDateController,

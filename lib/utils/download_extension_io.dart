@@ -32,6 +32,7 @@ extension DownloadExtension on BuildContext {
             selectedDirectory = downloadsDir.path;
           }
         } catch (e) {
+          // Intentionally swallowed — directory resolution best-effort, fallback warning shown below
         }
       }
 
@@ -116,6 +117,7 @@ extension DownloadExtension on BuildContext {
       try {
         selectedDirectory = await FilePicker.platform.getDirectoryPath();
       } catch (e) {
+        // Intentionally swallowed — picker may fail in sandbox, fallback to Downloads dir
       }
 
       if (selectedDirectory == null) {
@@ -125,6 +127,7 @@ extension DownloadExtension on BuildContext {
             selectedDirectory = downloadsDir.path;
           }
         } catch (e) {
+          // Intentionally swallowed — directory resolution best-effort, fallback warning shown below
         }
       }
 

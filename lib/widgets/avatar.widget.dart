@@ -5,8 +5,24 @@ import '../cl_theme.dart';
 
 import 'cl_media_viewer.widget.dart';
 
+/// CLAvatarWidget — avatar circolare con stack di media o iniziali su gradient.
+///
+/// Linguaggio Skillera Refined Editorial:
+/// - cerchio pieno (`shape: BoxShape.circle`)
+/// - sfondo a gradient generato dall'hash del nome
+///   (`CLTheme.generateColorFromText`) per identità visiva stabile
+/// - iniziali Inter Bold bianche, centrate
+/// - misure consigliate: `CLSizes.avatarSize{Small,Medium,Large}`
+///   (24 / 36 / 48). I default storici sono mantenuti per non rompere l'API.
 class CLAvatarWidget extends StatelessWidget {
-  const CLAvatarWidget({super.key, required this.medias, required this.name, this.elementToPreview = 1, this.iconSize = 35, this.fontSize = 14});
+  const CLAvatarWidget({
+    super.key,
+    required this.medias,
+    required this.name,
+    this.elementToPreview = 1,
+    this.iconSize = 35,
+    this.fontSize = 14,
+  });
 
   final List<CLMedia> medias;
   final int elementToPreview;
@@ -16,105 +32,168 @@ class CLAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return medias.isEmpty
-        ? Container(
-          constraints: BoxConstraints.tight(Size.square(iconSize)),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: CLTheme.of(context).generateColorFromText(_buildInitials(name))),
-          child: _buildInitialsWidget(context, name),
-        )
-        : Stack(
-          children:
-              medias.asMap().entries.map((entry) {
-                int index = entry.key;
-                CLMedia media = entry.value;
-                if (index >= elementToPreview) {
-                  return Positioned(
-                    left: (elementToPreview * 20).toDouble(),
-                    child: Container(
-                      constraints: BoxConstraints.tight(Size.square(iconSize)),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: CLTheme.of(context).generateColorFromText(_buildInitials(name)),
-                        border: Border.all(color: Colors.white, width: 1.5, strokeAlign: BorderSide.strokeAlignOutside),
-                      ),
-                      child: _buildInitialsWidget(context, "+ ${medias.length - elementToPreview}"),
-                    ),
-                  );
-                } else {
-                  return Positioned(
-                    left: (index * 20).toDouble(),
-                    child: Container(
-                      constraints: BoxConstraints.tight(Size.square(iconSize)),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: CLTheme.of(context).generateColorFromText(_buildInitials(name)),
-                        border: Border.all(color: Colors.white, width: 1, strokeAlign: BorderSide.strokeAlignOutside),
-                      ),
-                      child: _buildImage(context, media.fileUrl!),
-                    ),
-                  );
-                }
-              }).toList(),
-        );
+    if (medias.isEmpty) {
+      return _initialsAvatar(context, name, withWhiteBorder: false);
+    }
+
+    return SizedBox(
+      width: iconSize + (elementToPreview * 20),
+      height: iconSize,
+      child: Stack(
+        children: medias.asMap().entries.map((entry) {
+          int index = entry.key;
+          CLMedia media = entry.value;
+          if (index >= elementToPreview) {
+            return Positioned(
+              left: (elementToPreview * 20).toDouble(),
+              child: _initialsAvatar(
+                context,
+                "+ ${medias.length - elementToPreview}",
+                withWhiteBorder: true,
+                borderWidth: 1.5,
+              ),
+            );
+          }
+          return Positioned(
+            left: (index * 20).toDouble(),
+            child: Container(
+              constraints: BoxConstraints.tight(Size.square(iconSize)),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: _gradientFor(context, name),
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
+                  strokeAlign: BorderSide.strokeAlignOutside,
+                ),
+              ),
+              child: _buildImage(context, media.fileUrl!),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Gradient morbido derivato da due tonalità del color hash del nome.
+  /// Stessa tinta di base in light/dark, l'effetto è identitario.
+  LinearGradient _gradientFor(BuildContext context, String text) {
+    final base = CLTheme.of(context).generateColorFromText(text);
+    final HSLColor hsl = HSLColor.fromColor(base);
+    final Color top = hsl
+        .withLightness((hsl.lightness + 0.10).clamp(0.0, 1.0))
+        .withSaturation((hsl.saturation + 0.05).clamp(0.0, 1.0))
+        .toColor();
+    final Color bottom = hsl
+        .withLightness((hsl.lightness - 0.08).clamp(0.0, 1.0))
+        .toColor();
+    return LinearGradient(
+      colors: [top, bottom],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+  }
+
+  Widget _initialsAvatar(
+    BuildContext context,
+    String text, {
+    required bool withWhiteBorder,
+    double borderWidth = 1,
+  }) {
+    return Container(
+      constraints: BoxConstraints.tight(Size.square(iconSize)),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: _gradientFor(context, text),
+        border: withWhiteBorder
+            ? Border.all(
+                color: Colors.white,
+                width: borderWidth,
+                strokeAlign: BorderSide.strokeAlignOutside,
+              )
+            : null,
+      ),
+      child: _buildInitialsWidget(context, text),
+    );
   }
 
   Widget _buildImage(BuildContext context, String mediaPath) {
     String mimeType = detectMimeType(mediaPath) ?? "";
     return mimeType.startsWith("image/")
         ? Image.network(
-          mediaPath,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Center(
-              child: CircularProgressIndicator(
-                value:
-                    loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
-                        : null,
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey));
-          },
-        )
+            mediaPath,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          (loadingProgress.expectedTotalBytes ?? 1)
+                      : null,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey));
+            },
+          )
         : mimeType.startsWith("video/")
-        ? Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: SvgPicture.asset(
-            "assets/svgs/video.svg", // Ora verrà rispettato
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          ),
-        )
-        : mimeType.startsWith("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-        ? Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SvgPicture.asset(
-            "assets/svgs/word.svg", // Ora verrà rispettato
-            fit: BoxFit.cover,
-          ),
-        )
-        : mimeType.startsWith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") || mimeType.startsWith("application/vnd.ms-excel")
-        ? Padding(padding: const EdgeInsets.all(8.0), child: SvgPicture.asset("assets/svgs/excel.svg", fit: BoxFit.cover))
-        : mimeType.startsWith("application/pdf")
-        ? Padding(padding: const EdgeInsets.all(8.0), child: SvgPicture.asset("assets/svgs/pdf.svg", fit: BoxFit.fitHeight))
-        : mimeType.startsWith("application/zip")
-        ? Padding(padding: const EdgeInsets.all(8.0), child: SvgPicture.asset("assets/svgs/zip.svg", fit: BoxFit.fitHeight))
-        : mimeType.startsWith("application/x-rar-compressed")
-        ? Padding(padding: const EdgeInsets.all(8.0), child: SvgPicture.asset("assets/svgs/rar.svg", fit: BoxFit.cover))
-        : Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SvgPicture.asset(
-            "assets/svgs/file.svg",
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(CLTheme.hexToColor("#647F94"), BlendMode.srcIn), // Giallo per immagini
-          ),
-        );
+            ? Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: SvgPicture.asset(
+                  "assets/svgs/video.svg",
+                  fit: BoxFit.cover,
+                  colorFilter:
+                      ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                ),
+              )
+            : mimeType.startsWith(
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                ? Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SvgPicture.asset(
+                      "assets/svgs/word.svg",
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : mimeType.startsWith(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") ||
+                        mimeType.startsWith("application/vnd.ms-excel")
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: SvgPicture.asset("assets/svgs/excel.svg",
+                            fit: BoxFit.cover))
+                    : mimeType.startsWith("application/pdf")
+                        ? Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: SvgPicture.asset("assets/svgs/pdf.svg",
+                                fit: BoxFit.fitHeight))
+                        : mimeType.startsWith("application/zip")
+                            ? Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: SvgPicture.asset("assets/svgs/zip.svg",
+                                    fit: BoxFit.fitHeight))
+                            : mimeType
+                                    .startsWith("application/x-rar-compressed")
+                                ? Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: SvgPicture.asset(
+                                        "assets/svgs/rar.svg",
+                                        fit: BoxFit.cover))
+                                : Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: SvgPicture.asset(
+                                      "assets/svgs/file.svg",
+                                      fit: BoxFit.cover,
+                                      colorFilter: ColorFilter.mode(
+                                          CLTheme.hexToColor("#647F94"),
+                                          BlendMode.srcIn),
+                                    ),
+                                  );
   }
 
   String _buildInitials(String fullName) {
@@ -122,7 +201,11 @@ class CLAvatarWidget extends StatelessWidget {
     final nameParts = fullName.split(' ');
     String initials = '';
     if (nameParts.isNotEmpty) {
-      initials = nameParts.where((part) => part.isNotEmpty).map((part) => part[0]).take(2).join();
+      initials = nameParts
+          .where((part) => part.isNotEmpty)
+          .map((part) => part[0])
+          .take(2)
+          .join();
     }
     if (initials.isEmpty) {
       initials = fallbackInitial;
@@ -132,7 +215,17 @@ class CLAvatarWidget extends StatelessWidget {
 
   Widget _buildInitialsWidget(BuildContext context, String fullName) {
     String initials = _buildInitials(fullName);
-    return Center(child: Text(initials.toUpperCase(), style: CLTheme.of(context).smallText.copyWith(color: Colors.white, fontSize: fontSize)));
+    return Center(
+      child: Text(
+        initials.toUpperCase(),
+        style: CLTheme.of(context).smallText.override(
+              color: Colors.white,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+      ),
+    );
   }
 
   String? detectMimeType(String url) {

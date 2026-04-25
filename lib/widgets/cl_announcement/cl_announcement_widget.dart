@@ -17,7 +17,7 @@ import '../excerpt_text.widget.dart';
 import '../../utils/models/pagination.model.dart';
 part 'cl_announcement_state.provider.dart';
 
-class ClAnnouncementWidget<T extends Object> extends StatelessWidget {
+class ClAnnouncementWidget<T extends Object> extends StatefulWidget {
   final Future Function(String)? onAnnouncementTap;
   final Future Function(String)? onAnnouncementRead;
   final int visibileExcerptAmount;
@@ -37,9 +37,28 @@ class ClAnnouncementWidget<T extends Object> extends StatelessWidget {
       this.searchColumn});
 
   @override
+  State<ClAnnouncementWidget<T>> createState() => _ClAnnouncementWidgetState<T>();
+}
+
+class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementWidget<T>> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-        create: (context) => _CLAnnouncementState(fetchAnnouncement: fetchAnnouncement, onAnnouncementBuild: onAnnouncementBuild),
+        create: (context) => _CLAnnouncementState(fetchAnnouncement: widget.fetchAnnouncement, onAnnouncementBuild: widget.onAnnouncementBuild),
         builder: (context, child) {
           var state = context.watch<_CLAnnouncementState<T>>();
           List<int> pageNumbers = _calculateVisiblePages(context, state.currentPage, state.lastPage);
@@ -51,10 +70,10 @@ class ClAnnouncementWidget<T extends Object> extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(Sizes.padding),
                   child: CLTextField(
-                    controller: TextEditingController(),
+                    controller: _searchController,
                     labelText: "Cerca per titolo",
                     onChanged: (text) async {
-                      state.onSearch({searchColumn!: text});
+                      state.onSearch({widget.searchColumn!: text});
                     },
                   ),
                 ),
@@ -154,8 +173,8 @@ class ClAnnouncementWidget<T extends Object> extends StatelessWidget {
                                   children: [
                                     GestureDetector(
                                         onTap: () async {
-                                          if (onAnnouncementTap != null) {
-                                            await onAnnouncementTap!(state.announcementList[index].id);
+                                          if (widget.onAnnouncementTap != null) {
+                                            await widget.onAnnouncementTap!(state.announcementList[index].id);
                                           }
                                         },
                                         child: Padding(
@@ -179,12 +198,12 @@ class ClAnnouncementWidget<T extends Object> extends StatelessWidget {
                                                   ResponsiveGridItem(
                                                     lg: 50,
                                                     xs: 50,
-                                                    child: onAnnouncementRead != null
+                                                    child: widget.onAnnouncementRead != null
                                                         ? state.announcementList[index].readedAt == null
                                                             ? CLGhostButton.primary(
                                                                 text: "Segna come letto",
                                                                 onTap: () async {
-                                                                  await state.markAsRead(index, onAnnouncementRead);
+                                                                  await state.markAsRead(index, widget.onAnnouncementRead);
                                                                 },
                                                                 context: context)
                                                             : Text(
@@ -216,8 +235,8 @@ class ClAnnouncementWidget<T extends Object> extends StatelessWidget {
                                               ExcerptText<CLAnnouncement>(
                                                   text: state.announcementList[index].subtitle,
                                                   textStyle: CLTheme.of(context).bodyText,
-                                                  maxLength: visibileExcerptAmount,
-                                                  onMoreTap: onMoreTap),
+                                                  maxLength: widget.visibileExcerptAmount,
+                                                  onMoreTap: widget.onMoreTap),
                                             ],
                                           ),
                                         )),

@@ -48,6 +48,12 @@ part 'paged_datatable_row_state.dart';
 
 part 'paged_datatable_rows.dart';
 
+part 'paged_datatable_row.dart';
+
+part 'paged_datatable_row_actions.dart';
+
+part 'paged_datatable_row_states.dart';
+
 part 'paged_datatable_boxed.dart';
 
 part 'paged_datatable_state.dart';
@@ -145,7 +151,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   final bool isFilterBarRounded;
   final bool showShimmerLoading;
 
-  PagedDataTable({
+  const PagedDataTable({
     this.downloadPage,
     this.downloadButtonText,
     this.downloadButtonIcon,
@@ -380,12 +386,11 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
                       /* HEADER ROW */
                       _PagedDataTableHeaderRow<TKey, TResultId, TResult>(rowsSelectable, width, idGetter, hasActions, hasExpandIcon),
-                      Divider(height: 0, color: CLTheme.of(context).borderColor, thickness: 1),
                       /* ITEMS */
                       _PagedDataTableRows<TKey, TResultId, TResult>(
                         rowsSelectable,
-                        this.onItemTap,
-                        this.isInSnippet,
+                        onItemTap,
+                        isInSnippet,
                         customRowBuilder ??
                             CustomRowBuilder<TResult>(
                               builder: (context, item) => throw UnimplementedError("This does not build nothing"),
@@ -394,13 +399,13 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         noItemsFoundBuilder,
                         errorBuilder,
                         width,
-                        this.actionsTitle,
-                        this.tableActions,
-                        this.actionsBuilder,
+                        actionsTitle,
+                        tableActions,
+                        actionsBuilder,
                         localTheme.configuration.initialPageSize,
                         showShimmerLoading,
-                        this.expandedRowBuilder,
-                        this.onRowExpanded,
+                        expandedRowBuilder,
+                        onRowExpanded,
                       ),
                     ],
                   ),
@@ -412,7 +417,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: CLTheme.of(context).secondaryBackground,
+                          color: CLTheme.of(context).primaryBackground,
                           borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
                         ),
                         child: Padding(
@@ -434,8 +439,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                     ],
                     _PagedDataTableBoxed<TKey, TResultId, TResult>(
                       rowsSelectable,
-                      this.onItemTap,
-                      this.isInSnippet,
+                      onItemTap,
+                      isInSnippet,
                       customRowBuilder ??
                           CustomRowBuilder<TResult>(
                             builder: (context, item) => throw UnimplementedError("This does not build nothing"),
@@ -444,9 +449,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                       noItemsFoundBuilder,
                       errorBuilder,
                       width,
-                      this.actionsTitle,
-                      this.tableActions,
-                      this.actionsBuilder,
+                      actionsTitle,
+                      tableActions,
+                      actionsBuilder,
                     ),
                   ],
                 );
@@ -457,49 +462,33 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         assert(effectiveTheme.rowColors != null ? effectiveTheme.rowColors!.length == 2 : true, "rowColors must contain exactly two colors");
 
         return Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Sizes.borderRadius),
+            color: CLTheme.of(context).secondaryBackground,
+            borderRadius: BorderRadius.circular(Sizes.radiusCard),
             border:
                 showBorder
-                    ? Border(
-                      bottom: BorderSide(color: CLTheme.of(context).borderColor, width: 1),
-                      left: BorderSide(color: CLTheme.of(context).borderColor, width: 1),
-                      right: BorderSide(color: CLTheme.of(context).borderColor, width: 1),
-                      top: BorderSide.none,
-                    )
+                    ? Border.all(color: CLTheme.of(context).cardBorder, width: 1)
                     : null,
+            boxShadow: showBorder ? CLTheme.of(context).cardShadow : null,
           ),
           child:
               ResponsiveBreakpoints.of(context).isDesktop
                   ? SingleChildScrollView(
                     child: Column(
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(Sizes.borderRadius),
-                            topLeft: Radius.circular(Sizes.borderRadius),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: CLTheme.of(context).secondaryBackground,
                           ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: CLTheme.of(context).secondaryBackground,
-                              borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(Sizes.borderRadius),
-                                topLeft: Radius.circular(Sizes.borderRadius),
-                              ),
-                            ),
-                            child: child,
-                          ),
+                          child: child,
                         ),
                         localTheme.configuration.footer.footerVisible
                             ? showFooter
                                 ? Container(
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    color: CLTheme.of(context).secondaryBackground,
-                                    borderRadius: BorderRadius.only(
-                                      bottomLeft: Radius.circular(Sizes.borderRadius),
-                                      bottomRight: Radius.circular(Sizes.borderRadius),
-                                    ),
+                                    color: CLTheme.of(context).primaryBackground,
                                   ),
                                   child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
                                 )
@@ -518,14 +507,13 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                 ? Container(
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    color: CLTheme.of(context).secondaryBackground,
-                                    borderRadius: const BorderRadius.all(Radius.circular(Sizes.borderRadius)),
+                                    color: CLTheme.of(context).primaryBackground,
                                   ),
                                   child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
                                 )
                                 : SizedBox.shrink()
                             : const SizedBox.shrink(),
-                        !this.isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
+                        !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
                       ],
                     ),
                   ),

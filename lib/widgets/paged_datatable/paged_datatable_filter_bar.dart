@@ -180,10 +180,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       if (header != null) ...[Flexible(child: header!), const SizedBox(width: Sizes.padding)],
 
                       // Download button
-                      if (this.downloadPage != null) ...[
+                      if (downloadPage != null) ...[
                         CLButton.secondary(
-                          text: this.downloadButtonText ?? "Download",
-                          icon: this.downloadButtonIcon,
+                          text: downloadButtonText ?? "Download",
+                          icon: downloadButtonIcon,
                           onTap: () async {
                             await state._dispatchDownloadCallback();
                           },

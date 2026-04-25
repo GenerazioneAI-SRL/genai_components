@@ -7,6 +7,7 @@ import 'routes/modular_route.dart';
 import 'routes/module_route.dart';
 import 'routes/shell_modular_route.dart';
 import 'transition.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'go_router_modular_configure.dart';
@@ -16,6 +17,15 @@ abstract class Module {
 
   CLRoute get moduleRoute;
 
+  /// Synchronous route configuration entry point.
+  ///
+  /// Walks the module tree and produces the flattened list of [RouteBase]
+  /// consumed by GoRouter.
+  ///
+  /// **Migration:** prefer [configureRoutesAsync] for new modules — it allows
+  /// awaiting async setup (feature flags, remote config, lazy module loading)
+  /// before route construction. This method will be removed in 5.0.
+  @Deprecated('Use configureRoutesAsync — will be removed in 5.0')
   List<RouteBase> configureRoutes({
     String modulePath = '',
     bool topLevel = false,
@@ -40,6 +50,32 @@ abstract class Module {
       ),
       ..._createShellRoutes(topLevel),
     ];
+  }
+
+  /// Asynchronous variant of [configureRoutes].
+  ///
+  /// Default implementation simply wraps [configureRoutes] in a completed
+  /// [Future]. Override in subclasses that need to await initialization
+  /// (e.g. feature flags, dynamic module loading) before producing routes.
+  ///
+  /// Will become the canonical entry point in 5.0 once [configureRoutes] is
+  /// removed.
+  // ignore: deprecated_member_use_from_same_package
+  Future<List<RouteBase>> configureRoutesAsync({
+    String modulePath = '',
+    bool topLevel = false,
+    String? parentModuleName,
+    String? parentModulePath,
+    String parentRoutePath = '',
+  }) {
+    // ignore: deprecated_member_use_from_same_package
+    return Future.value(configureRoutes(
+      modulePath: modulePath,
+      topLevel: topLevel,
+      parentModuleName: parentModuleName,
+      parentModulePath: parentModulePath,
+      parentRoutePath: parentRoutePath,
+    ));
   }
 
   // ── Child Routes ──────────────────────────────────────────────────────
@@ -212,6 +248,7 @@ abstract class Module {
                 }
           : null,
       routes: [
+        // ignore: deprecated_member_use_from_same_package
         ...module.module.configureRoutes(
           modulePath: modulePath,
           topLevel: false,
@@ -337,7 +374,7 @@ abstract class Module {
     final pageTransition =
         route.pageTransition ?? Modular.getDefaultPageTransition;
 
-    if (pageTransition == PageTransition.noTransition) {
+    if (kIsWeb || pageTransition == PageTransition.noTransition) {
       return NoTransitionPage(
         key: state.pageKey,
         child: route.child(context, state),

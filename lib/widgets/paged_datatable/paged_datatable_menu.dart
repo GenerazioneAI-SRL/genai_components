@@ -180,14 +180,23 @@ class _AutoAnimatedSize extends StatefulWidget {
 
 class _AutoAnimatedSizeState extends State<_AutoAnimatedSize> with SingleTickerProviderStateMixin {
   bool showChild = false;
+  Timer? _menuTimer;
 
   @override
   void initState() {
     super.initState();
-    Timer(widget.startAfterDuration, () {
+    _menuTimer = Timer(widget.startAfterDuration, () {
+      if (!mounted) return;
       showChild = true;
-      if (mounted) setState(() {});
+      setState(() {});
     });
+  }
+
+  @override
+  void dispose() {
+    _menuTimer?.cancel();
+    _menuTimer = null;
+    super.dispose();
   }
 
   @override

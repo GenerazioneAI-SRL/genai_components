@@ -12,6 +12,10 @@ class ModuleRoute extends ModularRoute {
   final HugeIcon? hugeIcon;
   final dynamic _isVisible;
 
+  /// Tinta del modulo. Viene usata da `CLPageHeader` (pill leading) e da
+  /// componenti di navigazione per dare un'identità visiva al modulo.
+  final Color? color;
+
   /// Restituisce true se la route è visibile.
   /// Accetta sia un [bool] che un [bool Function()] per visibilità dinamica.
   bool get isVisible => _isVisible is bool Function() ? _isVisible() : (_isVisible as bool);
@@ -44,6 +48,7 @@ class ModuleRoute extends ModularRoute {
     this.showInSideMenu = true,
     this.navigateOnTabTap = false,
     this.onlyShowLabel = false,
+    this.color,
   }) : _isVisible = isVisible {
     name = label ?? module.moduleRoute.name;
     path = module.moduleRoute.path;

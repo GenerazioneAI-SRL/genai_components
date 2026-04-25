@@ -16,11 +16,11 @@ class NotificationsPanelProvider extends ChangeNotifier {
 
   void toggle(PanelSection section) {
     if (_isOpen && _currentSection == section) {
-      _isOpen = false;
-    } else {
-      _isOpen = true;
-      _currentSection = section;
+      // No-op: toggling target identical to current state.
+      return;
     }
+    _isOpen = true;
+    _currentSection = section;
     notifyListeners();
   }
 

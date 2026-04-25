@@ -1,5 +1,5 @@
 class FiscalCodeCalculator {
-  static  String _months = 'ABCDEHLMPRST'.toUpperCase(); // Mesi per codice (A = gennaio, B = febbraio, ...)
+  static final String _months = 'ABCDEHLMPRST'.toUpperCase(); // Mesi per codice (A = gennaio, B = febbraio, ...)
 
   static String _getConsonants(String str) {
     return str.toUpperCase().replaceAll(RegExp('[^BCDFGHJKLMNPQRSTVWXYZ]'), '');

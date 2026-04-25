@@ -86,6 +86,7 @@ export 'widgets/charts/cl_bar_chart.widget.dart';
 
 // Data table
 export 'widgets/paged_datatable/paged_datatable.dart';
+export 'widgets/paged_datatable/column_builders.dart';
 
 // Org chart
 export 'widgets/cl_org_chart/org_chart.dart';
@@ -112,6 +113,7 @@ export 'utils/models/custom_model.model.dart';
 export 'auth/cl_auth_state.dart';
 export 'auth/cl_user_info.dart';
 export 'auth/cl_tenant.dart';
+export 'auth/auth_singleton.dart';
 
 // App
 export 'app/cl_app.dart';
@@ -140,18 +142,27 @@ export 'layout/breadcrumbs.layout.dart';
 
 // API
 export 'api/api_manager.dart';
+export 'api/api_config.dart';
 
 // Providers
 export 'providers/app_state.dart';
 export 'providers/error_state.dart';
 export 'providers/theme_provider.dart';
+export 'providers/ui_toggle_state.dart';
+export 'providers/maintenance_state.dart';
+export 'providers/refresh_state.dart';
+export 'providers/app_theme_state.dart';
 export 'utils/providers/navigation.util.provider.dart';
+export 'utils/providers/header_visibility_state.dart';
 
 // Core Utils
 export 'core_utils/base_viewmodel.dart';
 export 'core_utils/extension.util.dart';
 export 'core_utils/navigation_observer.dart';
 export 'core_utils/cl_window_size.dart';
+export 'core_utils/disposable_mixin.dart';
+export 'core_utils/form_validation_mixin.dart';
+export 'core_utils/safe_call_extension.dart';
 
 // Core Models
 export 'core_models/upload_file.model.dart';
@@ -169,6 +180,8 @@ export 'models/user_graph_data.model.dart';
 
 // Enums
 export 'enums/resource_type.enum.dart';
+export 'enums/message_role.enum.dart';
+export 'enums/tool_name.enum.dart';
 
 // AI Assistant
 export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
@@ -178,3 +191,9 @@ export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
 // Command Palette
 export 'widgets/cl_command/cl_command_item.model.dart';
 export 'widgets/cl_command/cl_command.widget.dart';
+
+// Dialogs
+export 'widgets/cl_dialog.widget.dart';
+export 'widgets/dialogs/qr_code_dialog.dart';
+export 'widgets/dialogs/confirmation_dialog.dart';
+export 'widgets/dialogs/assign_entities_modal.dart';

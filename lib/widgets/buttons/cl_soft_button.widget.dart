@@ -212,22 +212,17 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
   @override
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
-    final hPad = widget.isCompact
-        ? Sizes.padding * 0.6
-        : isMobile
-            ? Sizes.padding * 0.75
-            : Sizes.padding;
-    final vPad = widget.isCompact
-        ? Sizes.padding * 0.5
-        : isMobile
-            ? Sizes.padding * 0.65
-            : Sizes.padding * 0.8;
-    final fontSize = isMobile ? 13.0 : 14.0;
-    final iconSz = isMobile ? Sizes.small * 0.9 : Sizes.small;
-    final baseBg = CLTheme.of(context).muted;
-    final hoverBg = Color.lerp(baseBg, widget.color, 0.08)!;
-    final pressedBg = Color.lerp(baseBg, widget.color, 0.16)!;
-    final focusBorder = CLTheme.of(context).primary;
+    final hPad = widget.isCompact ? CLSizes.gapMd : CLSizes.gapLg;
+    const vPad = 0.0;
+    final theme = CLTheme.of(context);
+    final fgColor = theme.primaryText;
+    final iconSz = widget.isCompact ? CLSizes.iconSizeCompact - 2 : CLSizes.iconSizeCompact;
+    final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
+    final baseBg = theme.muted;
+    final hoverBg = Color.lerp(baseBg, Colors.black, 0.08)!;
+    final pressedBg = Color.lerp(baseBg, Colors.black, 0.16)!;
+    final focusBorder = theme.primary;
+    final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -244,11 +239,11 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                   ? AnimatedCrossFade(
                       alignment: Alignment.center,
                       firstChild: widget.hugeIcon != null
-                          ? HugeIcon(icon: widget.hugeIcon!, color: widget.color, size: iconSz)
+                          ? HugeIcon(icon: widget.hugeIcon!, color: fgColor, size: iconSz)
                           : widget.iconData != null
-                            ? Icon(widget.iconData, color: widget.color, size: iconSz)
+                            ? Icon(widget.iconData, color: fgColor, size: iconSz)
                             : SizedBox(width: iconSz, height: iconSz),
-                      secondChild: CLLoadingSpinner(size: iconSz, color: widget.color),
+                      secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
                       crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                       duration: const Duration(milliseconds: 200),
                     )
@@ -256,7 +251,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
               onPressed: _handleTap,
               style: ButtonStyle(
                 shadowColor: WidgetStateProperty.all(Colors.transparent),
-                foregroundColor: WidgetStateProperty.all(widget.color),
+                foregroundColor: WidgetStateProperty.all(fgColor),
                 backgroundColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.pressed)) return pressedBg;
                   if (states.contains(WidgetState.hovered)) return hoverBg;
@@ -265,24 +260,24 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 splashFactory: NoSplash.splashFactory,
                 animationDuration: const Duration(milliseconds: 150),
-                textStyle: WidgetStateProperty.all(CLTheme.of(context).bodyText.copyWith(fontSize: fontSize)),
+                textStyle: WidgetStateProperty.all(labelStyle),
                 padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                 shape: WidgetStateProperty.resolveWith((states) {
                   return RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Sizes.radiusSm),
+                    borderRadius: BorderRadius.circular(CLSizes.radiusControl),
                     side: states.contains(WidgetState.focused)
                         ? BorderSide(color: focusBorder, width: 2)
                         : BorderSide.none,
                   );
                 }),
                 elevation: WidgetStateProperty.all(0),
-                minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, isMobile ? 40 : 44)),
+                minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 iconSize: WidgetStateProperty.all(iconSz),
               ),
               label: Text(
                 widget.text,
-                style: CLTheme.of(context).bodyText.merge(TextStyle(color: widget.color, fontSize: fontSize)),
+                style: labelStyle,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
@@ -296,21 +291,21 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                   if (states.contains(WidgetState.hovered)) return hoverBg;
                   return baseBg;
                 }),
-                foregroundColor: WidgetStateProperty.all(widget.color),
+                foregroundColor: WidgetStateProperty.all(fgColor),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusSm))),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(CLSizes.radiusControl))),
                 elevation: WidgetStateProperty.all(0),
                 shadowColor: WidgetStateProperty.all(Colors.transparent),
-                minimumSize: WidgetStateProperty.all(Size(isMobile ? 36 : 36, isMobile ? 36 : 36)),
+                minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: AnimatedCrossFade(
                 firstChild: widget.hugeIcon != null
-                    ? HugeIcon(icon: widget.hugeIcon!, color: widget.color, size: iconSz)
+                    ? HugeIcon(icon: widget.hugeIcon!, color: fgColor, size: iconSz)
                     : widget.iconData != null
-                      ? Icon(widget.iconData, color: widget.color, size: iconSz)
+                      ? Icon(widget.iconData, color: fgColor, size: iconSz)
                       : const SizedBox.shrink(),
-                secondChild: CLLoadingSpinner(size: iconSz, color: widget.color),
+                secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
                 crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 200),
               ),

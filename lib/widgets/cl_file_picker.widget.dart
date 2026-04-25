@@ -436,7 +436,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
         final bytes = await file.readAsBytes(); // 📥 Legge i dati binari
 
         PlatformFile platformFile = PlatformFile(
-          name: file.path.split(Platform.pathSeparator).last, // 📄 Nome del file
+          name: file.path.split(kIsWeb ? '/' : Platform.pathSeparator).last, // 📄 Nome del file
           size: bytes.length, // 📏 Dimensione
           bytes: bytes, // 📂 Contenuto
         );
@@ -455,6 +455,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
 
         widget.isMultiple ? widget.onFilesPicked?.call(_uploadedFiles.toList()) : widget.onFilePicked?.call(_uploadedFiles.firstOrNull);
       } catch (e) {
+        // Intentionally swallowed — per-file pick failures shouldn't abort the whole batch
       }
     }
   }

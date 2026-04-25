@@ -18,11 +18,7 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
 
     Widget child = Container(
       decoration: BoxDecoration(
-        color: clTheme.primaryBackground.withValues(alpha: 0.5),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(Sizes.borderRadius),
-          topRight: Radius.circular(Sizes.borderRadius),
-        ),
+        color: clTheme.primaryBackground,
         border: Border(
           bottom: BorderSide(color: clTheme.borderColor, width: 1),
         ),

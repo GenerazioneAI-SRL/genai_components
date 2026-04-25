@@ -1,8 +1,38 @@
+import '../../../../enums/message_role.enum.dart';
 import 'agent_action.dart';
 import 'chat_content.dart';
 
 /// Role of a message in the AI chat conversation.
+///
+/// Deprecated: use [MessageRole] instead. This enum will be removed in 5.0.
+/// Migration helpers: [AiMessageRoleX.toMessageRole] and
+/// [AiMessageRoleX.fromMessageRole].
+@Deprecated('Use MessageRole — will be removed in 5.0')
 enum AiMessageRole { user, assistant, system }
+
+/// Migration helpers between [AiMessageRole] and the unified [MessageRole].
+@Deprecated('Use MessageRole — will be removed in 5.0')
+extension AiMessageRoleX on AiMessageRole {
+  /// Convert this legacy role to the unified [MessageRole].
+  MessageRole toMessageRole() => switch (this) {
+        AiMessageRole.user => MessageRole.user,
+        AiMessageRole.assistant => MessageRole.assistant,
+        AiMessageRole.system => MessageRole.system,
+      };
+
+  /// Convert a unified [MessageRole] back to a legacy [AiMessageRole].
+  ///
+  /// Throws [ArgumentError] for [MessageRole.tool], which has no equivalent in
+  /// the legacy chat-layer enum.
+  static AiMessageRole fromMessageRole(MessageRole role) => switch (role) {
+        MessageRole.user => AiMessageRole.user,
+        MessageRole.assistant => AiMessageRole.assistant,
+        MessageRole.system => AiMessageRole.system,
+        MessageRole.tool => throw ArgumentError(
+            'AiMessageRole has no equivalent for MessageRole.tool',
+          ),
+      };
+}
 
 /// Classification of an AI response for post-task UI behavior.
 ///

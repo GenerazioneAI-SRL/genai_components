@@ -727,7 +727,9 @@ class _CLMediaViewerItemState extends State<CLMediaViewerItem> {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Intentionally swallowed — file size lookup best-effort, fallback to "0 KB"
+    }
 
     return "0 KB";
   }
@@ -735,7 +737,9 @@ class _CLMediaViewerItemState extends State<CLMediaViewerItem> {
   Future<String> getFileSizeFromFile(PlatformFile file) async {
     try {
       return formatFileSize(file.size);
-    } catch (e) {}
+    } catch (e) {
+      // Intentionally swallowed — file size formatting best-effort, fallback to "0 KB"
+    }
 
     return "0 KB";
   }
@@ -770,10 +774,10 @@ class VideoPlayerWidget extends StatefulWidget {
   const VideoPlayerWidget({super.key, required this.file});
 
   @override
-  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+  VideoPlayerWidgetState createState() => VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? _controller;
 
   @override
@@ -844,10 +848,10 @@ class ChewieVideoPlayerWidget extends StatefulWidget {
   const ChewieVideoPlayerWidget({super.key, this.file});
 
   @override
-  _ChewieVideoPlayerWidgetState createState() => _ChewieVideoPlayerWidgetState();
+  ChewieVideoPlayerWidgetState createState() => ChewieVideoPlayerWidgetState();
 }
 
-class _ChewieVideoPlayerWidgetState extends State<ChewieVideoPlayerWidget> {
+class ChewieVideoPlayerWidgetState extends State<ChewieVideoPlayerWidget> {
   VideoPlayerController? _controller;
   ChewieController? _chewieController;
 

@@ -1,11 +1,36 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import '../../../../enums/message_role.enum.dart';
 import '../core/ai_logger.dart';
 import '../tools/tool_definition.dart';
 
 /// Role of a message in the LLM conversation.
+///
+/// Deprecated: use [MessageRole] instead. This enum will be removed in 5.0.
+/// Migration helpers: [LlmRoleX.toMessageRole] and [LlmRoleX.fromMessageRole].
+@Deprecated('Use MessageRole — will be removed in 5.0')
 enum LlmRole { system, user, assistant, tool }
+
+/// Migration helpers between [LlmRole] and the unified [MessageRole].
+@Deprecated('Use MessageRole — will be removed in 5.0')
+extension LlmRoleX on LlmRole {
+  /// Convert this legacy role to the unified [MessageRole].
+  MessageRole toMessageRole() => switch (this) {
+        LlmRole.system => MessageRole.system,
+        LlmRole.user => MessageRole.user,
+        LlmRole.assistant => MessageRole.assistant,
+        LlmRole.tool => MessageRole.tool,
+      };
+
+  /// Convert a unified [MessageRole] back to a legacy [LlmRole].
+  static LlmRole fromMessageRole(MessageRole role) => switch (role) {
+        MessageRole.system => LlmRole.system,
+        MessageRole.user => LlmRole.user,
+        MessageRole.assistant => LlmRole.assistant,
+        MessageRole.tool => LlmRole.tool,
+      };
+}
 
 /// Binary image data for multimodal LLM messages.
 class LlmImageContent {

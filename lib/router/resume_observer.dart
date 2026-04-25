@@ -6,12 +6,16 @@ class CLResumeObserver extends NavigatorObserver {
   CLResumeObserver._();
 
   final Map<String, VoidCallback> _callbacks = {};
+  final Set<String> _registeredPaths = <String>{};
 
   void register(String path, VoidCallback onResume) {
+    if (_registeredPaths.contains(path)) return;
+    _registeredPaths.add(path);
     _callbacks[path] = onResume;
   }
 
   void unregister(String path) {
+    _registeredPaths.remove(path);
     _callbacks.remove(path);
   }
 

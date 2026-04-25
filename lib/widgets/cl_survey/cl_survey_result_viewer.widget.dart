@@ -12,7 +12,7 @@ class CLSurveyResultViewer extends StatefulWidget {
   final bool showHeader;
 
   @override
-  _CLSurveyResultViewerState createState() => _CLSurveyResultViewerState();
+  CLSurveyResultViewerState createState() => CLSurveyResultViewerState();
 
   factory CLSurveyResultViewer.fromArray({required List<QuestionResult> questions, bool showHeader = true}) {
     return CLSurveyResultViewer(result: questions, showHeader: showHeader);
@@ -23,7 +23,7 @@ class CLSurveyResultViewer extends StatefulWidget {
   }
 }
 
-class _CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
+class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
   List<QuestionResult> result = [];
 
   List<QuestionResult> rebuildQuestions(List<Map<String, dynamic>> jsonList) {
@@ -73,7 +73,7 @@ class _CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
         children: [
           Container(
             padding: const EdgeInsets.all(Sizes.padding),
-            decoration: BoxDecoration(color: CLTheme.of(context).secondaryText.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: CLTheme.of(context).secondaryText.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: HugeIcon(icon: HugeIcons.strokeRoundedHelpCircle, size: 32, color: CLTheme.of(context).secondaryText),
           ),
           const SizedBox(height: Sizes.padding),
@@ -97,7 +97,7 @@ class _CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
         color: CLTheme.of(context).secondaryBackground,
         borderRadius: BorderRadius.circular(Sizes.borderRadius),
         border: Border.all(color: CLTheme.of(context).borderColor, width: 1),
-        boxShadow: [BoxShadow(color: CLTheme.of(context).borderColor.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: CLTheme.of(context).borderColor.withValues(alpha: 0.15), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +121,7 @@ class _CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
       decoration: BoxDecoration(
         color: CLTheme.of(context).primaryBackground,
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius)),
-        border: Border(bottom: BorderSide(color: CLTheme.of(context).borderColor.withOpacity(0.5), width: 1)),
+        border: Border(bottom: BorderSide(color: CLTheme.of(context).borderColor.withValues(alpha: 0.5), width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +131,7 @@ class _CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: CLTheme.of(context).borderColor.withOpacity(0.2),
+                color: CLTheme.of(context).borderColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: HugeIcon(
@@ -207,7 +207,7 @@ class _CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Divider
-          Container(margin: const EdgeInsets.only(bottom: Sizes.padding), height: 1, color: CLTheme.of(context).borderColor.withOpacity(0.5)),
+          Container(margin: const EdgeInsets.only(bottom: Sizes.padding), height: 1, color: CLTheme.of(context).borderColor.withValues(alpha: 0.5)),
           // Label domande correlate
           Row(
             children: [

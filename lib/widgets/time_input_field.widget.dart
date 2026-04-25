@@ -12,6 +12,12 @@ class _TimeInputFieldState extends State<TimeInputField> {
   final TextEditingController _txtTimeController = TextEditingController();
 
   @override
+  void dispose() {
+    _txtTimeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: _txtTimeController,

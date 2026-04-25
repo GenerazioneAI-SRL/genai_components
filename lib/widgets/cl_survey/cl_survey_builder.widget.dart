@@ -20,7 +20,7 @@ class CLSurveyBuilder extends StatefulWidget {
   final Function(List<Question>) onSurveyChange;
 
   @override
-  _CLSurveyBuilderState createState() => _CLSurveyBuilderState();
+  CLSurveyBuilderState createState() => CLSurveyBuilderState();
 
   factory CLSurveyBuilder.fromJson({required String surveyJson, required Function(List<Question>) onSurveyChange}) {
     return CLSurveyBuilder(surveyJson: surveyJson, onSurveyChange: onSurveyChange);
@@ -31,7 +31,7 @@ class CLSurveyBuilder extends StatefulWidget {
   }
 }
 
-class _CLSurveyBuilderState extends State<CLSurveyBuilder> {
+class CLSurveyBuilderState extends State<CLSurveyBuilder> {
   List<Question> questions = [];
 
   List<Question> rebuildQuestions(List<Map<String, dynamic>> jsonList) {
@@ -107,10 +107,10 @@ class QuestionEditor extends StatefulWidget {
   const QuestionEditor({super.key, required this.questionIndex, required this.question, required this.onUpdate, required this.onDelete, required this.title});
 
   @override
-  _QuestionEditorState createState() => _QuestionEditorState();
+  QuestionEditorState createState() => QuestionEditorState();
 }
 
-class _QuestionEditorState extends State<QuestionEditor> {
+class QuestionEditorState extends State<QuestionEditor> {
   late TextEditingController questionController;
   late bool isMandatory;
   List<Option> options = [];
@@ -489,10 +489,10 @@ class OptionEditor extends StatefulWidget {
   });
 
   @override
-  _OptionEditorState createState() => _OptionEditorState();
+  OptionEditorState createState() => OptionEditorState();
 }
 
-class _OptionEditorState extends State<OptionEditor> {
+class OptionEditorState extends State<OptionEditor> {
   late TextEditingController _controller;
 
   @override

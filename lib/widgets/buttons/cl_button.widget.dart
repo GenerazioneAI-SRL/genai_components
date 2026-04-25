@@ -403,10 +403,11 @@ class CLButton extends StatefulWidget {
   State<CLButton> createState() => _CLButtonState();
 }
 
-// Tabella padding in una funzione pura — grid-aligned, no moltiplicatori frazionari.
+// Padding orizzontale: gapMd (12) compact, gapLg (16) default. Vertical 0 — l'altezza
+// è governata da minHeight (CLSizes.buttonHeight*) per garantire 32/40/48 esatti.
 ({double h, double v}) _paddingFor({required bool isMobile, required bool isCompact}) {
-  if (isCompact) return (h: isMobile ? 10.0 : 12.0, v: 6.0);
-  return (h: isMobile ? 14.0 : Sizes.padding, v: 10.0);
+  if (isCompact) return (h: CLSizes.gapMd, v: 0.0);
+  return (h: CLSizes.gapLg, v: 0.0);
 }
 
 class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
@@ -462,18 +463,18 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final isLightBg = bgColor.computeLuminance() > 0.5;
     final fgColor = isLightBg ? Colors.black : Colors.white;
 
-    final hoverBg = isLightBg ? Color.lerp(bgColor, Colors.black, 0.06)! : Color.lerp(bgColor, Colors.white, 0.08)!;
-    final pressedBg = isLightBg ? Color.lerp(bgColor, Colors.black, 0.12)! : Color.lerp(bgColor, Colors.white, 0.16)!;
+    // Hover/press: alpha-blend uniforme nero 0.08/0.16 (no glow, no colored shadow).
+    final hoverBg = Color.lerp(bgColor, Colors.black, 0.08)!;
+    final pressedBg = Color.lerp(bgColor, Colors.black, 0.16)!;
 
     // ── Padding (tabella pura, helper esterno) ───────────────────────
     final pad = _paddingFor(isMobile: isMobile, isCompact: widget.isCompact);
-    final fontSize = isMobile ? 13.0 : 14.0;
-    final iconSz = widget.iconSize ?? (isMobile ? 16.0 : Sizes.small);
+    final iconSz = widget.iconSize ?? (widget.isCompact ? CLSizes.iconSizeCompact - 2 : CLSizes.iconSizeCompact);
 
-    // Touch target WCAG: 48 mobile, 44 desktop.
-    final minHeight = widget.isCompact ? (isMobile ? 36.0 : 32.0) : (isMobile ? 48.0 : 44.0);
-    final iconOnlySide = widget.isCompact ? (isMobile ? 36.0 : 32.0) : (isMobile ? 48.0 : 40.0);
-    final radius = widget.borderRadius ?? Sizes.radiusControl;
+    // Altezze fisse da design tokens: 32 compact, 40 default. Niente +/- mobile.
+    final minHeight = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
+    final iconOnlySide = minHeight;
+    final radius = widget.borderRadius ?? CLSizes.radiusControl;
 
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
     Widget buildIconSlot(double size) {
@@ -497,16 +498,15 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     }
 
     // ── Label ────────────────────────────────────────────────────────
+    // bodyText (Inter 14 w400) + w500 (Medium, +100). NO SemiBold.
     final labelStyle = widget.textStyle ??
         theme.bodyText.copyWith(
           color: fgColor,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.1,
+          fontWeight: FontWeight.w500,
         );
 
     final hasInlineIcon = widget.iconData != null || widget.hugeIcon != null || isLoading;
-    final iconTextGap = isMobile ? 6.0 : 8.0;
+    final iconTextGap = CLSizes.gapSm;
 
     Widget content;
     if (widget.text.isNotEmpty) {

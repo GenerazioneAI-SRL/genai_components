@@ -9,6 +9,7 @@ import '../utils/providers/navigation.util.provider.dart';
 import '../providers/app_state.dart';
 import '../app/cl_app_config.dart';
 import '../auth/cl_auth_state.dart';
+import '../auth/cl_user_info.dart';
 import '../widgets/avatar.widget.dart';
 import '../widgets/cl_popup_menu.widget.dart';
 import 'constants/sizes.constant.dart';
@@ -31,9 +32,22 @@ class _CLHeaderLayoutState extends State<CLHeaderLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.watch<CLAuthState>();
-    final navigationState = context.watch<NavigationState>();
-    final appState = context.watch<AppState>();
+    // Sottoscrizioni granulari: solo i campi che pilotano la struttura del build.
+    // currentUserInfo guida il rendering del profilo (nome/email).
+    context.select<CLAuthState, CLUserInfo?>((s) => s.currentUserInfo);
+    final authState = context.read<CLAuthState>();
+    // breadcrumbs + pageName guidano titolo/breadcrumbs; headerTitleVisible è ValueListenable separato.
+    context.select<NavigationState, int>((s) => s.breadcrumbs.length);
+    context.select<NavigationState, String>((s) => s.pageName);
+    final navigationState = context.read<NavigationState>();
+    // AppState: solo i campi usati nel build (no rebuild su altri cambi).
+    // Posizioni e flag pilotano i rami della struttura widget.
+    context.select<AppState, bool>((s) => s.showAiButton);
+    context.select<AppState, AiButtonPosition>((s) => s.aiButtonPosition);
+    context.select<AppState, ProfilePosition>((s) => s.profilePosition);
+    // aiButtonBuilder: confronto identità (cambia raramente).
+    context.select<AppState, Widget Function(BuildContext, VoidCallback)?>((s) => s.aiButtonBuilder);
+    final appState = context.read<AppState>();
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
 

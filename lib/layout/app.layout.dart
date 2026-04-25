@@ -5,7 +5,6 @@ import 'package:responsive_framework/responsive_framework.dart';
 import '../providers/app_state.dart';
 import '../utils/providers/module_theme.util.provider.dart';
 import '../router/go_router_modular/go_router_modular_configure.dart';
-import '../auth/cl_auth_state.dart';
 import '../cl_theme.dart';
 import '../widgets/gradient_background.widget.dart';
 import 'constants/sizes.constant.dart';
@@ -37,7 +36,7 @@ class CLAppLayout extends StatefulWidget {
   State<CLAppLayout> createState() => _CLAppLayoutState();
 }
 
-class _CLAppLayoutState extends State<CLAppLayout> {
+class _CLAppLayoutState extends State<CLAppLayout> with AutomaticKeepAliveClientMixin {
   static const double _menuWidth = 268;
   static const double _aiPanelWidth = 360;
   static const double _desktopHeaderHeight = 60;
@@ -68,18 +67,30 @@ class _CLAppLayoutState extends State<CLAppLayout> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
 
-    return Consumer2<AppState, CLAuthState>(
-      builder: (context, appState, authState, child) {
+    // Selector: solo i campi effettivamente usati nel builder.
+    // showAiButton + aiChatOpen pilotano endDrawer e pannello AI desktop.
+    // CLAuthState non era letto nel body — rimosso.
+    return Selector<AppState, (bool, bool)>(
+      selector: (_, s) => (s.showAiButton, s.aiChatOpen),
+      builder: (context, data, child) {
+        final showAiButton = data.$1;
+        // Le altre proprietà di AppState (aiButtonPosition, profilePosition, ecc.)
+        // sono lette dai sotto-widget (header/menu) tramite context.select dedicati.
+        final appState = context.read<AppState>();
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: Colors.transparent,
           drawer: isMobile ? _buildMobileDrawer(context) : null,
           drawerEnableOpenDragGesture: isMobile,
           drawerEdgeDragWidth: isMobile ? 40 : 0,
-          endDrawer: isMobile && appState.showAiButton ? const AiChatDrawer() : null,
+          endDrawer: isMobile && showAiButton ? const AiChatDrawer() : null,
           endDrawerEnableOpenDragGesture: false,
           body: GradientBackgroundWidget(
             showDecorativeCircles: false,
@@ -147,7 +158,6 @@ class _CLAppLayoutState extends State<CLAppLayout> {
                   headerHeight: _desktopHeaderHeight,
                 ),
               ),
-              const SizedBox(height: Sizes.padding),
               Expanded(child: widget.shellChild),
             ],
           ),

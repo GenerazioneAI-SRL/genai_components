@@ -140,8 +140,8 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
     searchParams.removeWhere((key, value) => value == null);
     Map<String, dynamic> sortMap = sortModel != null ? {"columnId": sortModel.columnId, "mode": sortModel.descending ? "DESC" : "ASC"} : {};
-    if (this.downloadCallback != null) {
-      await this.downloadCallback!(searchBy: searchParams, orderBy: sortMap);
+    if (downloadCallback != null) {
+      await downloadCallback!(searchBy: searchParams, orderBy: sortMap);
     }
   }
 
@@ -335,12 +335,19 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     for (final filterState in filters.values) {
       final filter = filterState._filter;
       if (filter is TextTableFilter) {
-        filter._debounceTimer?.cancel();
-        filter._debounceTimer = null;
-        filter._controller?.dispose();
-        filter._controller = null;
-        filter._focusNode?.dispose();
-        filter._focusNode = null;
+        filter.dispose();
+      } else if (filter is CLDateTableFilter) {
+        filter.dispose();
+      } else if (filter is CLDateTimeTableFilter) {
+        filter.dispose();
+      } else if (filter is CLTimeTableFilter) {
+        filter.dispose();
+      } else if (filter is CLMonthTableFilter) {
+        filter.dispose();
+      } else if (filter is CLYearTableFilter) {
+        filter.dispose();
+      } else if (filter is CLDateRangeTableFilter) {
+        filter.dispose();
       }
     }
     super.dispose();

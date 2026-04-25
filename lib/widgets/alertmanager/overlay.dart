@@ -12,7 +12,7 @@ class _OverlayBody extends StatefulWidget {
   final BehaviorSubject<double>? downloadPercentageStream;
   final bool closeOnTap;
 
-  _OverlayBody(
+  const _OverlayBody(
       {required this.title,
         required this.message,
         required this.backgroundColor,
@@ -98,7 +98,6 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
     }
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     return Material(

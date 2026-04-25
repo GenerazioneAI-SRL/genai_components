@@ -4,7 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
-/// CLPagination — paginazione stilizzata come il footer della PagedDataTable.
+/// CLPagination — paginazione refined editorial Skillera.
 ///
 /// [currentPage]  pagina corrente (0-based)
 /// [totalPages]   numero totale di pagine
@@ -27,6 +27,31 @@ class CLPagination extends StatelessWidget {
     this.itemLabel = 'elementi',
   });
 
+  // Build sequence of page tokens: int = page index, null = ellipsis.
+  List<int?> _buildPageTokens() {
+    if (totalPages <= 1) return [0];
+    const window = 1; // pages around current
+    final tokens = <int?>[];
+    final last = totalPages - 1;
+
+    // always show first
+    tokens.add(0);
+
+    final start = (currentPage - window).clamp(1, last);
+    final end = (currentPage + window).clamp(1, last - 1);
+
+    if (start > 1) tokens.add(null); // leading ellipsis
+
+    for (int i = start; i <= end; i++) {
+      if (i > 0 && i < last) tokens.add(i);
+    }
+
+    if (end < last - 1) tokens.add(null); // trailing ellipsis
+
+    if (last > 0) tokens.add(last);
+    return tokens;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
@@ -35,107 +60,89 @@ class CLPagination extends StatelessWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // ── Info a sinistra ──
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: theme.primaryText.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(6),
-          ),
+        // ── Info totale (smallLabel mutedForeground) ──
+        Flexible(
           child: Text(
-            '$totalItems $itemLabel · Pagina ${currentPage + 1} di $totalPages',
-            style: theme.smallText.copyWith(
-              fontSize: 12,
+            '$totalItems $itemLabel · pag. ${currentPage + 1}/$totalPages',
+            style: theme.smallLabel.copyWith(
+              color: theme.mutedForeground,
               fontWeight: FontWeight.w500,
-              color: theme.secondaryText,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
 
-        // ── Controlli paginazione a destra ──
-        Container(
-          height: 36,
-          decoration: BoxDecoration(
-            color: theme.secondaryBackground,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius - 2),
-            border: Border.all(color: theme.borderColor, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Prev
-              _PaginationButton(
-                onTap: canPrev
-                    ? () {
-                        HapticFeedback.lightImpact();
-                        onPageChanged(currentPage - 1);
-                      }
-                    : null,
-                enabled: canPrev,
-                isFirst: true,
-                theme: theme,
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedArrowLeft01,
-                  color: canPrev ? theme.primaryText : theme.secondaryText.withValues(alpha: 0.3),
-                  size: 15,
-                ),
-              ),
+        const SizedBox(width: CLSizes.gapMd),
 
-              // Numero pagina corrente
-              Container(
-                constraints: const BoxConstraints(minWidth: 40),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  border: Border.symmetric(
-                    vertical: BorderSide(color: theme.borderColor, width: 1),
-                  ),
-                ),
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.3),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    ),
-                    child: Text(
-                      '${currentPage + 1}',
-                      key: ValueKey<int>(currentPage),
-                      style: theme.smallText.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        color: theme.primaryText,
-                      ),
-                    ),
-                  ),
-                ),
+        // ── Controlli paginazione ──
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Prev
+            _PageTile(
+              theme: theme,
+              enabled: canPrev,
+              onTap: canPrev
+                  ? () {
+                      HapticFeedback.lightImpact();
+                      onPageChanged(currentPage - 1);
+                    }
+                  : null,
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowLeft01,
+                color: canPrev ? theme.primaryText : theme.mutedForeground,
+                size: CLSizes.iconSizeCompact,
               ),
+            ),
+            const SizedBox(width: CLSizes.gapXs),
 
-              // Next
-              _PaginationButton(
-                onTap: canNext
-                    ? () {
-                        HapticFeedback.lightImpact();
-                        onPageChanged(currentPage + 1);
-                      }
-                    : null,
-                enabled: canNext,
-                isFirst: false,
-                theme: theme,
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedArrowRight01,
-                  color: canNext ? theme.primaryText : theme.secondaryText.withValues(alpha: 0.3),
-                  size: 15,
-                ),
+            // Page tokens
+            ..._buildPageTokens().expand((tok) sync* {
+              yield tok == null
+                  ? _Ellipsis(theme: theme)
+                  : _PageTile(
+                      theme: theme,
+                      enabled: true,
+                      selected: tok == currentPage,
+                      onTap: tok == currentPage
+                          ? null
+                          : () {
+                              HapticFeedback.lightImpact();
+                              onPageChanged(tok);
+                            },
+                      child: Text(
+                        '${tok + 1}',
+                        style: theme.smallText.copyWith(
+                          fontSize: 12,
+                          fontWeight: tok == currentPage ? FontWeight.w700 : FontWeight.w500,
+                          color: tok == currentPage ? Colors.white : theme.primaryText,
+                        ),
+                      ),
+                    );
+              yield const SizedBox(width: CLSizes.gapXs);
+            }).toList()
+              ..removeLast(),
+
+            const SizedBox(width: CLSizes.gapXs),
+            // Next
+            _PageTile(
+              theme: theme,
+              enabled: canNext,
+              onTap: canNext
+                  ? () {
+                      HapticFeedback.lightImpact();
+                      onPageChanged(currentPage + 1);
+                    }
+                  : null,
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: canNext ? theme.primaryText : theme.mutedForeground,
+                size: CLSizes.iconSizeCompact,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
@@ -143,58 +150,129 @@ class CLPagination extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAGINATION BUTTON with hover
+// PAGE TILE — square 32px, hover/selected/disabled states, keyboard
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _PaginationButton extends StatefulWidget {
-  final VoidCallback? onTap;
-  final bool enabled;
-  final bool isFirst;
+class _PageTile extends StatefulWidget {
   final CLTheme theme;
+  final bool enabled;
+  final bool selected;
+  final VoidCallback? onTap;
   final Widget child;
 
-  const _PaginationButton({
-    required this.onTap,
-    required this.enabled,
-    required this.isFirst,
+  const _PageTile({
     required this.theme,
+    required this.enabled,
     required this.child,
+    this.selected = false,
+    this.onTap,
   });
 
   @override
-  State<_PaginationButton> createState() => _PaginationButtonState();
+  State<_PageTile> createState() => _PageTileState();
 }
 
-class _PaginationButtonState extends State<_PaginationButton> {
-  bool _isHovered = false;
+class _PageTileState extends State<_PageTile> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  void _handleKey(KeyEvent ev) {
+    if (ev is KeyDownEvent &&
+        (ev.logicalKey == LogicalKeyboardKey.enter ||
+            ev.logicalKey == LogicalKeyboardKey.space)) {
+      if (widget.enabled) widget.onTap?.call();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
+    final disabled = !widget.enabled;
 
-    return MouseRegion(
-      cursor: widget.enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onEnter: widget.enabled ? (_) => setState(() => _isHovered = true) : null,
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: _isHovered && widget.enabled
-                ? t.primary.withValues(alpha: 0.06)
-                : Colors.transparent,
-            borderRadius: BorderRadius.horizontal(
-              left: widget.isFirst ? const Radius.circular(9.5) : Radius.zero,
-              right: !widget.isFirst ? const Radius.circular(9.5) : Radius.zero,
-            ),
-          ),
-          child: Center(child: widget.child),
+    final Color bg;
+    final Color border;
+    if (widget.selected) {
+      bg = t.primary;
+      border = t.primary;
+    } else if (_hovered && !disabled) {
+      bg = t.muted;
+      border = t.borderColor;
+    } else {
+      bg = Colors.transparent;
+      border = t.borderColor;
+    }
+
+    Widget tile = AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+      constraints: const BoxConstraints(
+        minWidth: CLSizes.buttonHeightCompact,
+        minHeight: CLSizes.buttonHeightCompact,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapSm),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        border: Border.all(
+          color: _focused ? t.ring : border,
+          width: _focused ? 1.5 : 1,
+        ),
+      ),
+      child: Center(child: widget.child),
+    );
+
+    if (disabled) {
+      tile = Opacity(opacity: 0.4, child: tile);
+    }
+
+    return Focus(
+      onKeyEvent: (_, ev) {
+        _handleKey(ev);
+        return KeyEventResult.ignored;
+      },
+      onFocusChange: (f) => setState(() => _focused = f),
+      child: MouseRegion(
+        cursor: disabled
+            ? SystemMouseCursors.forbidden
+            : (widget.onTap == null
+                ? SystemMouseCursors.basic
+                : SystemMouseCursors.click),
+        onEnter: widget.enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.enabled ? widget.onTap : null,
+          child: tile,
         ),
       ),
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ELLIPSIS — three muted dots
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _Ellipsis extends StatelessWidget {
+  final CLTheme theme;
+
+  const _Ellipsis({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: CLSizes.buttonHeightCompact,
+      height: CLSizes.buttonHeightCompact,
+      child: Center(
+        child: Text(
+          '···',
+          style: theme.smallText.copyWith(
+            color: theme.mutedForeground,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+          ),
+        ),
+      ),
+    );
+  }
+}

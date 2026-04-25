@@ -66,15 +66,18 @@ abstract class CLTheme {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 1. Cerca il provider generico (nuovo, consigliato)
+    // listen:false — la sostituzione del provider richiede ricostruzione del MaterialApp,
+    // quindi non serve sottoscrivere qui (evita rebuild a cascata su notifyListeners).
     try {
-      final tp = Provider.of<CLThemeProvider>(context);
+      final tp = Provider.of<CLThemeProvider>(context, listen: false);
       return isDark ? tp.darkTheme : tp.lightTheme;
     } catch (_) {}
 
     // 2. Fallback: cerca il vecchio ModuleThemeProvider (retrocompatibilità)
+    // listen:false — stesso motivo: lookup dati tema, non flusso reattivo.
     try {
       // ignore: deprecated_member_use_from_same_package
-      final mp = Provider.of<ModuleThemeProvider>(context);
+      final mp = Provider.of<ModuleThemeProvider>(context, listen: false);
       return isDark ? mp.darkTheme : mp.lightTheme;
     } catch (_) {}
 
@@ -300,39 +303,39 @@ class ThemeTypography extends Typography {
 
   // ── Headings — tutti Satoshi per scala visiva coerente ──────────────────
 
-  /// H1: hero titles, page intro — Satoshi Black 32px
+  /// H1: hero titles, page intro — Satoshi Bold 32px
   @override
-  TextStyle get heading1 => _display(32, weight: FontWeight.w900, letterSpacing: -1.2, lineHeight: 1.15);
+  TextStyle get heading1 => _display(32, weight: FontWeight.w700, letterSpacing: -1.0, lineHeight: 1.15);
 
-  /// H2: sezioni principali — Satoshi Bold 24px
+  /// H2: sezioni principali — Satoshi SemiBold 24px
   @override
-  TextStyle get heading2 => _display(24, weight: FontWeight.w700, letterSpacing: -0.6, lineHeight: 1.2);
+  TextStyle get heading2 => _display(24, weight: FontWeight.w600, letterSpacing: -0.5, lineHeight: 1.2);
 
-  /// H3: sottosezioni — Satoshi Bold 20px
+  /// H3: sottosezioni — Satoshi SemiBold 20px
   @override
-  TextStyle get heading3 => _display(20, weight: FontWeight.w700, letterSpacing: -0.3, lineHeight: 1.25);
+  TextStyle get heading3 => _display(20, weight: FontWeight.w600, letterSpacing: -0.25, lineHeight: 1.25);
 
   /// H4: card headers, dialog titles — Satoshi Medium 17px
   @override
-  TextStyle get heading4 => _display(17, weight: FontWeight.w500, letterSpacing: -0.2, lineHeight: 1.3);
+  TextStyle get heading4 => _display(17, weight: FontWeight.w500, letterSpacing: -0.15, lineHeight: 1.3);
 
-  /// H5: etichette di sezione — Inter SemiBold 14px
+  /// H5: etichette di sezione — Inter Medium 14px
   @override
-  TextStyle get heading5 => _text(14, weight: FontWeight.w600, letterSpacing: -0.1, lineHeight: 1.35);
+  TextStyle get heading5 => _text(14, weight: FontWeight.w500, letterSpacing: -0.05, lineHeight: 1.35);
 
-  /// H6: micro-heading, caption in neretto — Inter SemiBold 13px
+  /// H6: micro-heading — Inter Medium 13px
   @override
-  TextStyle get heading6 => _text(13, weight: FontWeight.w600, lineHeight: 1.4);
+  TextStyle get heading6 => _text(13, weight: FontWeight.w500, lineHeight: 1.4);
 
   // ── Body / UI ────────────────────────────────────────────────────────────
 
-  /// Titolo UI (pulsanti, tab, menu item) — Inter SemiBold 15px
+  /// Titolo UI (pulsanti, tab, menu item) — Inter Medium 15px
   @override
-  TextStyle get title => _text(15, weight: FontWeight.w600, letterSpacing: -0.1, lineHeight: 1.4);
+  TextStyle get title => _text(15, weight: FontWeight.w500, letterSpacing: -0.05, lineHeight: 1.4);
 
-  /// Sottotitolo descrittivo — Inter Medium 14px
+  /// Sottotitolo descrittivo — Inter Regular 14px
   @override
-  TextStyle get subTitle => _text(14, weight: FontWeight.w500, lineHeight: 1.5);
+  TextStyle get subTitle => _text(14, weight: FontWeight.w400, lineHeight: 1.5);
 
   /// Corpo testo principale — Inter Regular 14px, interlinea aperta
   @override
@@ -342,14 +345,14 @@ class ThemeTypography extends Typography {
   @override
   TextStyle get smallText => _text(12, weight: FontWeight.w400, lineHeight: 1.5);
 
-  /// Label UI secondaria — Inter Medium 13px, colore secondario
+  /// Label UI secondaria — Inter Regular 13px, colore secondario
   @override
-  TextStyle get bodyLabel => _text(13, weight: FontWeight.w500, color: theme.secondaryText, lineHeight: 1.5);
+  TextStyle get bodyLabel => _text(13, weight: FontWeight.w400, color: theme.secondaryText, lineHeight: 1.5);
 
-  /// Intestazione colonna tabella — Inter SemiBold 11px, spaziatura lettere positiva
+  /// Intestazione colonna tabella — Inter Medium 11px, spaziatura lettere positiva
   @override
   TextStyle get bodyLabelTableHead =>
-      _text(11, weight: FontWeight.w600, color: theme.secondaryText, letterSpacing: 0.4, lineHeight: 1.4);
+      _text(11, weight: FontWeight.w500, color: theme.secondaryText, letterSpacing: 0.3, lineHeight: 1.4);
 
   /// Label piccola — Inter Regular 12px, colore secondario
   @override

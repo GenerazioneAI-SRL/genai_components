@@ -4,6 +4,7 @@ import './page_transition_enum.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/cl_error_page.widget.dart';
 import 'module.dart';
 
 typedef Modular = GoRouterModular;
@@ -36,13 +37,33 @@ class GoRouterModular {
 
   static GoRouterState stateOf(BuildContext context) => GoRouterState.of(context);
 
+  /// Configures the modular GoRouter for the app.
+  ///
+  /// ### Error handling (additive, non-breaking)
+  /// - [errorPageBuilder] (existing) is forwarded to `GoRouter.errorPageBuilder`
+  ///   and returns a [Page]. Use it when you need full control over the
+  ///   transition/route lifecycle of the error screen.
+  /// - [errorBuilder] (existing) is forwarded to `GoRouter.errorBuilder` and
+  ///   returns a plain [Widget]. Use it for a simple custom error screen.
+  /// - If **neither** is provided, a default fallback based on [CLErrorPage] is
+  ///   wired to `errorBuilder` so that uncaught routing errors always render a
+  ///   consistent UI.
+  ///
+  /// All other parameters mirror `GoRouter`'s constructor.
   static Future<FutureOr<GoRouter>> configure({
     required Module appModule,
     required String initialRoute,
     bool debugLogDiagnostics = true,
     Codec<Object?, Object?>? extraCodec,
     void Function(BuildContext, GoRouterState, GoRouter)? onException,
+
+    /// Returns a [Page] for routing errors. Forwarded to
+    /// `GoRouter.errorPageBuilder`. Takes precedence over [errorBuilder].
     Page<dynamic> Function(BuildContext, GoRouterState)? errorPageBuilder,
+
+    /// Returns a [Widget] for routing errors. Forwarded to
+    /// `GoRouter.errorBuilder`. When both [errorPageBuilder] and [errorBuilder]
+    /// are null, a default [CLErrorPage] fallback is used.
     Widget Function(BuildContext, GoRouterState)? errorBuilder,
     FutureOr<String?> Function(BuildContext, GoRouterState)? redirect,
     Listenable? refreshListenable,
@@ -61,13 +82,24 @@ class GoRouterModular {
     _pageTansition = pageTransition;
     _debugLogDiagnostics = debugLogDiagnostics;
     GoRouter.optionURLReflectsImperativeAPIs = true;
+    // ignore: deprecated_member_use
     final routes = appModule.configureRoutes(topLevel: true);
+
+    // Default fallback: only kick in when host app provided no error UI at all.
+    final Widget Function(BuildContext, GoRouterState)? effectiveErrorBuilder =
+        (errorBuilder == null && errorPageBuilder == null)
+            ? (context, state) => CLErrorPage(
+                  errorCode: '404',
+                  message: state.error?.toString(),
+                  onGoHome: () => GoRouter.of(context).go(initialRoute),
+                )
+            : errorBuilder;
 
     _router = GoRouter(
       routes: routes,
       initialLocation: initialRoute,
       debugLogDiagnostics: debugLogDiagnosticsGoRouter,
-      errorBuilder: errorBuilder,
+      errorBuilder: effectiveErrorBuilder,
       errorPageBuilder: errorPageBuilder,
       extraCodec: extraCodec,
       initialExtra: initialExtra,

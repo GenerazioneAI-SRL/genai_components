@@ -4,6 +4,10 @@ class SharedManager {
   //
   static SharedPreferences? prefs;
 
+  /// In-memory cache to avoid repeated SharedPreferences reads for hot keys.
+  /// Populated on read, updated on write-through, invalidated on remove.
+  static final Map<String, dynamic> _cache = {};
+
   static initPrefs() async {
     prefs ??= await SharedPreferences.getInstance();
   }
@@ -18,42 +22,63 @@ class SharedManager {
   }*/
 
   static bool? getBool(String key) {
-    return prefs!.getBool(key) ?? false;
+    final cached = _cache[key];
+    if (cached is bool) return cached;
+    final value = prefs!.getBool(key) ?? false;
+    _cache[key] = value;
+    return value;
   }
 
   static Future<bool?> setBool(String key, bool value) async {
+    _cache[key] = value;
     prefs!.setBool(key, value);
     return getBool(key);
   }
 
-  static String getString(String key, {String defaultValue=""}) {
-    return prefs!.getString(key) ?? defaultValue;
+  static String getString(String key, {String defaultValue = ""}) {
+    final cached = _cache[key];
+    if (cached is String) return cached;
+    final value = prefs!.getString(key) ?? defaultValue;
+    _cache[key] = value;
+    return value;
   }
 
   static Future<String?> setString(String key, String value) async {
+    _cache[key] = value;
     prefs!.setString(key, value);
     return getString(key);
   }
 
   static Future<List<String>?> setStringList(String key, List<String> value) async {
+    _cache[key] = value;
     prefs!.setStringList(key, value);
     return getStringList(key);
   }
 
   static List<String>? getStringList(String key, {List<String>? defaultValue = const []}) {
-    return prefs!.getStringList(key) ?? defaultValue;
+    final cached = _cache[key];
+    if (cached is List<String>) return cached;
+    final value = prefs!.getStringList(key) ?? defaultValue;
+    if (value != null) _cache[key] = value;
+    return value;
   }
 
   static int getInt(String key) {
-    return prefs!.getInt(key) ?? 0;
+    final cached = _cache[key];
+    if (cached is int) return cached;
+    final value = prefs!.getInt(key) ?? 0;
+    _cache[key] = value;
+    return value;
   }
 
   static Future<int> setInt(String key, int value) async {
+    _cache[key] = value;
     prefs!.setInt(key, value);
     return getInt(key);
   }
 
   static Future<bool?> remove(String key) async {
+    _cache.remove(key);
     return await prefs!.remove(key);
   }
 }

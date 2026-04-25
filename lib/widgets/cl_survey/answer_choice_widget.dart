@@ -229,7 +229,7 @@ class _OptionTileState extends State<_OptionTile> {
           ),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? CLTheme.of(context).primary.withOpacity(0.08)
+                ? CLTheme.of(context).primary.withValues(alpha: 0.08)
                 : _isHovered
                     ? CLTheme.of(context).primaryBackground
                     : CLTheme.of(context).secondaryBackground,
@@ -238,7 +238,7 @@ class _OptionTileState extends State<_OptionTile> {
               color: widget.isSelected
                   ? CLTheme.of(context).primary
                   : _isHovered
-                      ? CLTheme.of(context).primary.withOpacity(0.5)
+                      ? CLTheme.of(context).primary.withValues(alpha: 0.5)
                       : CLTheme.of(context).borderColor,
               width: widget.isSelected ? 1.5 : 1,
             ),
@@ -431,7 +431,7 @@ class _RatingAnswerState extends State<RatingAnswer> {
                 vertical: Sizes.padding / 2,
               ),
               decoration: BoxDecoration(
-                color: CLTheme.of(context).primary.withOpacity(0.1),
+                color: CLTheme.of(context).primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(Sizes.borderRadius),
               ),
               child: Text(

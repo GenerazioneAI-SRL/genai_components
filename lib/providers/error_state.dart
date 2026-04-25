@@ -6,6 +6,7 @@ class ErrorState extends ChangeNotifier {
   String? _errorMessage;
   String? _errorDetail;
   String? _attemptedRoute;
+  bool _disposed = false;
 
   int? get errorCode => _errorCode;
   String? get errorMessage => _errorMessage;
@@ -13,9 +14,11 @@ class ErrorState extends ChangeNotifier {
   String? get attemptedRoute => _attemptedRoute;
   bool get hasError => _errorCode != null;
 
-  void setError(int code, String route) {
+  void setError(int code, String route, {String? message, String? detail}) {
     _errorCode = code;
     _attemptedRoute = route;
+    _errorMessage = message;
+    _errorDetail = detail;
     notifyListeners();
   }
 
@@ -25,5 +28,17 @@ class ErrorState extends ChangeNotifier {
     _errorDetail = null;
     _attemptedRoute = null;
     notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import '../core/ai_event.dart';
 import '../core/ai_logger.dart';
@@ -8,6 +7,9 @@ import '../models/app_context_snapshot.dart';
 import '../tools/tool_registry.dart';
 import '../tools/tool_result.dart';
 import 'conversation_memory.dart';
+import 'internal/agent_heuristics.dart';
+import 'internal/agent_messages.dart';
+import 'internal/system_prompt_builder.dart';
 import 'llm_provider.dart';
 
 /// Callback signature for when a tool starts executing.
@@ -84,6 +86,11 @@ class ReactAgent {
   /// intermediate step instead of completing the full flow).
   final int maxVerificationAttempts;
 
+  /// Internal collaborator that builds the system prompt each iteration.
+  /// Created once in the constructor and reused — pure function over its
+  /// inputs, so it's safe to share.
+  final SystemPromptBuilder _promptBuilder;
+
   ReactAgent({
     required this.provider,
     required this.toolRegistry,
@@ -96,7 +103,13 @@ class ReactAgent {
     this.fewShotExamples = const [],
     this.domainInstructions,
     this.maxVerificationAttempts = 2,
-  });
+  }) : _promptBuilder = SystemPromptBuilder(
+         assistantName: assistantName,
+         confirmDestructiveActions: confirmDestructiveActions,
+         appPurpose: appPurpose,
+         fewShotExamples: fewShotExamples,
+         domainInstructions: domainInstructions,
+       );
 
   /// Process a user message through the ReAct loop.
   ///
@@ -149,7 +162,7 @@ class ReactAgent {
         });
         final text =
             executedActions.isNotEmpty
-                ? 'Task stopped. ${_summarizeActions(executedActions)}'
+                ? 'Task stopped. ${AgentMessages.summarizeActions(executedActions)}'
                 : 'Task stopped.';
         memory.addAssistantMessage(text);
         return AgentResponse(text: text, actions: executedActions);
@@ -192,7 +205,7 @@ class ReactAgent {
       // Rebuild context each iteration so the LLM sees fresh screen state
       // after actions (navigation, taps, scrolls) change the UI.
       final context = await contextBuilder();
-      final systemPrompt = systemPromptOverride ?? _buildSystemPrompt(context);
+      final systemPrompt = systemPromptOverride ?? _promptBuilder.build(context);
       if (i == 0) {
         AiLogger.log(
           'System prompt length: ${systemPrompt.length} chars, '
@@ -208,7 +221,7 @@ class ReactAgent {
       final screenshot = context.screenshot;
       final messagesWithScreenshot =
           screenshot != null
-              ? _injectScreenshot(messages, screenshot)
+              ? AgentMessages.injectScreenshot(messages, screenshot)
               : messages;
 
       AiLogger.log(
@@ -250,7 +263,7 @@ class ReactAgent {
             );
             final text =
                 executedActions.isNotEmpty
-                    ? 'Task stopped. ${_summarizeActions(executedActions)}'
+                    ? 'Task stopped. ${AgentMessages.summarizeActions(executedActions)}'
                     : 'Task stopped.';
             memory.addAssistantMessage(text);
             return AgentResponse(text: text, actions: executedActions);
@@ -283,7 +296,7 @@ class ReactAgent {
         });
         final text =
             executedActions.isNotEmpty
-                ? '${_summarizeActions(executedActions)} (Conversation got too long for the model.)'
+                ? '${AgentMessages.summarizeActions(executedActions)} (Conversation got too long for the model.)'
                 : 'The conversation is too long. Please clear and try again.';
         memory.addAssistantMessage(text);
         return AgentResponse(text: text, actions: executedActions);
@@ -316,7 +329,7 @@ class ReactAgent {
         if (consecutiveEmptyResponses >= 3) {
           final text =
               executedActions.isNotEmpty
-                  ? _summarizeActions(executedActions)
+                  ? AgentMessages.summarizeActions(executedActions)
                   : 'I encountered an error communicating with the AI service. Please try again.';
           memory.addAssistantMessage(text);
           return AgentResponse(text: text, actions: executedActions);
@@ -369,7 +382,7 @@ class ReactAgent {
             memory.addAssistantMessage(fallback);
             return AgentResponse(text: fallback, actions: executedActions);
           }
-          final summary = _summarizeActions(executedActions);
+          final summary = AgentMessages.summarizeActions(executedActions);
           memory.addAssistantMessage(summary);
           return AgentResponse(text: summary, actions: executedActions);
         }
@@ -396,8 +409,8 @@ class ReactAgent {
         // ── Search failure intercept (max 1 retry) ──
         // If the agent returns text claiming it can't find a search bar,
         // but the user's request implies searching, force ONE retry.
-        if (_claimsNoSearchBar(text) &&
-            _userNeedsSearch(userMessage) &&
+        if (AgentHeuristics.claimsNoSearchBar(text) &&
+            AgentHeuristics.userNeedsSearch(userMessage) &&
             searchRetries < 1) {
           searchRetries++;
           memory.addAssistantMessage(text);
@@ -419,9 +432,9 @@ class ReactAgent {
         // SKIP verification when the agent only used custom (data-only) tools
         // and no UI-interaction tools. Data tools return complete results
         // directly — re-checking the screen adds a useless LLM round-trip.
-        final looksLikeQuestion = _looksLikeQuestion(text);
+        final looksLikeQuestion = AgentHeuristics.looksLikeQuestion(text);
 
-        const _builtInToolNames = {
+        const builtInToolNames = {
           'tap_element',
           'set_text',
           'scroll',
@@ -435,7 +448,7 @@ class ReactAgent {
           'hand_off_to_user',
         };
         final usedAnyBuiltInTool = executedActions.any(
-          (a) => _builtInToolNames.contains(a.toolName),
+          (a) => builtInToolNames.contains(a.toolName),
         );
 
         if (executedActions.isNotEmpty &&
@@ -456,7 +469,7 @@ class ReactAgent {
 
           // Detect if this was a detail-info query but the agent never
           // SUCCESSFULLY tapped into a detail screen (only navigated + read list view).
-          final isDetailQuery = _isDetailInfoQuery(userMessage);
+          final isDetailQuery = AgentHeuristics.isDetailInfoQuery(userMessage);
           final didTapItemSuccessfully = executedActions.any(
             (a) => a.toolName == 'tap_element' && a.result.success,
           );
@@ -467,60 +480,16 @@ class ReactAgent {
             (a) => a.toolName == 'hand_off_to_user',
           );
 
-          final verifyMsg = StringBuffer(
-            '[SYSTEM — FINAL CHECK]\n'
-            'The user asked: "$userMessage"\n\n'
-            'Look at the CURRENT SCREEN below and answer the user\'s question FRESH. '
-            'Ignore your previous draft — write a completely new response based on what you see NOW.\n\n'
-            'INSTRUCTIONS:\n'
-            '- If there is still a primary action button to press '
-            '(Confirm, Submit, Pay, etc.), press it — the task is not done.\n'
-            '- If there are multiple options the user needs to choose, use ask_user.\n'
-            '- If the task is complete, respond with a clean summary.\n'
-            '- Every fact must be visible on the current screen. '
-            'If a value has a label like Fare, Price, Amount, Total, ₹, coins — report it. '
-            'Only bare unlabeled large numbers are IDs.\n\n'
-            'RESPONSE RULES:\n'
-            '- Write as if this is your FIRST and ONLY response. The user has NOT seen any previous draft.\n'
-            '- NEVER say: "apologies", "I misread", "let me correct", "I see the problem", "actually".\n'
-            '- NEVER reference a previous attempt or correction. Just answer directly.',
+          memory.addUserMessage(
+            AgentMessages.buildVerificationMessage(
+              userMessage: userMessage,
+              screenNow: screenNow,
+              didHandoff: didHandoff,
+              isDetailQuery: isDetailQuery,
+              didTapItemSuccessfully: didTapItemSuccessfully,
+              looksLikeQuestion: looksLikeQuestion,
+            ),
           );
-
-          // Generic incomplete-task detection: if the user gave an ACTION
-          // command (not a question) and the agent didn't hand off, check
-          // whether the task might be incomplete. The domain instructions
-          // in the system prompt define what "complete" means for the app.
-          if (!didHandoff && !userMessage.trim().endsWith('?')) {
-            verifyMsg.write(
-              '\n\nIMPORTANT: Re-read the APP-SPECIFIC INSTRUCTIONS in the system prompt. '
-              'Is the user\'s request FULLY completed according to those instructions? '
-              'If the instructions say a task requires multiple steps (e.g. a multi-step flow), '
-              'and you only completed some of them, you MUST continue — do NOT respond yet.',
-            );
-          }
-
-          if (isDetailQuery && !didTapItemSuccessfully) {
-            verifyMsg.write(
-              '\n\nCRITICAL — INCOMPLETE: The user asked for DETAILS about a specific item, '
-              'but you did NOT successfully tap into the item\'s detail screen. '
-              'List views only show summaries — NOT full details. '
-              'FIRST: scroll UP to the TOP of the list (the most recent item is at the top). '
-              'THEN: TAP the actual item card/row (NOT the page header or section title). '
-              'Look for tappable content like dates, amounts, or status text in the item row. '
-              'THEN: ONLY use get_screen_content and scroll to READ the detail screen. '
-              'Report ALL visible fields comprehensively.',
-            );
-          }
-
-          if (looksLikeQuestion) {
-            verifyMsg.write(
-              '\nCRITICAL: Your response contains a question. '
-              'Use ask_user tool to ask it — returning text ends the task.',
-            );
-          }
-
-          verifyMsg.write('\n\nCURRENT SCREEN:\n$screenNow');
-          memory.addUserMessage(verifyMsg.toString());
 
           onThought?.call('Verifying...');
           continue;
@@ -558,7 +527,7 @@ class ReactAgent {
           AiLogger.log('Agent cancelled between tool calls', tag: 'Agent');
           // Add a cancelled result for this tool so memory stays consistent.
           memory.addToolResult(toolCall.id, 'Error: Task stopped by user.');
-          final text = 'Task stopped. ${_summarizeActions(executedActions)}';
+          final text = 'Task stopped. ${AgentMessages.summarizeActions(executedActions)}';
           memory.addAssistantMessage(text);
           return AgentResponse(text: text, actions: executedActions);
         }
@@ -571,7 +540,7 @@ class ReactAgent {
           final question = (toolCall.arguments['question'] as String?) ?? '';
 
           // Guard 1: Unnecessary confirmation ("Would you like to add X?")
-          if (_isUnnecessaryConfirmation(question, userMessage)) {
+          if (AgentHeuristics.isUnnecessaryConfirmation(question, userMessage)) {
             AiLogger.log(
               'ask_user BLOCKED: unnecessary confirmation',
               tag: 'Agent',
@@ -587,7 +556,10 @@ class ReactAgent {
           }
 
           // Guard 2: Redundant quantity question ("How many?")
-          if (_isRedundantQuantityQuestion(question, userMessage)) {
+          if (AgentHeuristics.isRedundantQuantityQuestion(
+            question,
+            userMessage,
+          )) {
             AiLogger.log(
               'ask_user BLOCKED: redundant quantity question',
               tag: 'Agent',
@@ -604,7 +576,7 @@ class ReactAgent {
           }
 
           // Guard 3: Duplicate question (same question asked before)
-          if (_isDuplicateAskUser(question, askUserHistory)) {
+          if (AgentHeuristics.isDuplicateAskUser(question, askUserHistory)) {
             AiLogger.log('ask_user BLOCKED: duplicate question', tag: 'Agent');
             memory.addToolResult(
               toolCall.id,
@@ -701,8 +673,8 @@ class ReactAgent {
           final isActionButton = actionLabels.contains(
             tapLabel.toLowerCase().trim(),
           );
-          final searchWords = _extractWords(lastSearchQuery);
-          final tapWords = _extractWords(tapLabel);
+          final searchWords = AgentHeuristics.extractWords(lastSearchQuery);
+          final tapWords = AgentHeuristics.extractWords(tapLabel);
           if (!isActionButton &&
               searchWords.isNotEmpty &&
               tapWords.isNotEmpty) {
@@ -756,7 +728,7 @@ class ReactAgent {
           // instead of allowing another cycle of failing actions.
           final text =
               executedActions.isNotEmpty
-                  ? '${_summarizeActions(executedActions)} '
+                  ? '${AgentMessages.summarizeActions(executedActions)} '
                       'I ran into repeated issues and could not complete the task.'
                   : 'I ran into repeated issues and could not complete the request. '
                       'Please try a different approach.';
@@ -797,256 +769,11 @@ class ReactAgent {
     });
     final maxIterText =
         executedActions.isNotEmpty
-            ? _summarizeActions(executedActions)
+            ? AgentMessages.summarizeActions(executedActions)
             : "I wasn't able to complete the request within the step limit. "
                 'Please try a simpler command.';
     memory.addAssistantMessage(maxIterText);
     return AgentResponse(text: maxIterText, actions: executedActions);
-  }
-
-  /// Heuristic: does the user's message ask for DETAILS about a specific item
-  /// — as opposed to a simple value query like "what's my balance?".
-  /// Used in verification to catch shallow list-view responses that should
-  /// have drilled into a detail screen.
-  static bool _isDetailInfoQuery(String message) {
-    final lower = message.toLowerCase();
-    const detailIntents = [
-      'tell me about',
-      'details',
-      'detail',
-      'what did i',
-      'show me my',
-      'info about',
-      'information about',
-      'about my',
-      'describe',
-    ];
-    for (final intent in detailIntents) {
-      if (lower.contains(intent)) return true;
-    }
-    // "last/recent/my" + noun pattern (e.g. "my last order").
-    if (lower.contains('last') ||
-        lower.contains('recent') ||
-        lower.contains('latest')) {
-      // If the message has a recency prefix and is asking about *something*,
-      // it's likely a detail query. The LLM will determine the specifics.
-      if (lower.contains('my') || lower.contains('the')) return true;
-    }
-    return false;
-  }
-
-  /// Heuristic: does the text look like a question directed at the user?
-  /// Used to detect when the LLM returns a question as text instead of
-  /// using the ask_user tool.
-  static bool _looksLikeQuestion(String text) {
-    final trimmed = text.trim();
-    if (trimmed.endsWith('?')) return true;
-    final lower = trimmed.toLowerCase();
-    // Common question patterns directed at the user.
-    return lower.contains('do you want') ||
-        lower.contains('would you like') ||
-        lower.contains('shall i') ||
-        lower.contains('should i') ||
-        lower.contains('can you tell me') ||
-        lower.contains('could you') ||
-        lower.contains('please provide') ||
-        lower.contains('please tell me') ||
-        lower.contains('what is your') ||
-        lower.contains('which one');
-  }
-
-  /// Detects if the agent is asking an unnecessary confirmation question
-  /// when the user already expressed clear action intent.
-  ///
-  /// E.g., user says "order X" and agent asks "Would you like to add X?"
-  /// — the user ALREADY said to do it.
-  static bool _isUnnecessaryConfirmation(String question, String userMessage) {
-    final lowerQ = question.toLowerCase();
-
-    // Patterns that indicate the agent is confirming an action.
-    const confirmPatterns = [
-      'would you like to',
-      'shall i',
-      'do you want me to',
-      'do you want to',
-      'should i',
-      'want me to',
-    ];
-
-    final hasConfirmPattern = confirmPatterns.any((p) => lowerQ.contains(p));
-    if (!hasConfirmPattern) return false;
-
-    // The user's message must be imperative (not a question or info request).
-    final lowerU = userMessage.toLowerCase().trim();
-    if (lowerU.endsWith('?')) return false;
-    // Short imperative messages (< 60 chars) that aren't questions are likely commands.
-    return lowerU.length < 60;
-  }
-
-  /// Detects if the agent is asking about quantity when the user already
-  /// specified it in their original message.
-  ///
-  /// E.g., user says "add 3 items" and agent asks "How many?"
-  static bool _isRedundantQuantityQuestion(
-    String question,
-    String userMessage,
-  ) {
-    final lowerQ = question.toLowerCase();
-
-    // Question must be asking about quantity.
-    const quantityPatterns = [
-      'how many',
-      'how much',
-      'quantity',
-      'kitna',
-      'kitne',
-      'kitni',
-    ];
-    final isQuantityQuestion = quantityPatterns.any((p) => lowerQ.contains(p));
-    if (!isQuantityQuestion) return false;
-
-    // User's message must contain a digit or a common number word.
-    final lowerU = userMessage.toLowerCase();
-    if (RegExp(r'\d+').hasMatch(lowerU)) return true;
-
-    // Common number words across languages — these are basic numerals,
-    // not domain-specific terms.
-    const numberWords = [
-      // English
-      'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-      'nine', 'ten', 'half', 'quarter', 'dozen',
-      // Hindi (transliterated)
-      'ek', 'do', 'teen', 'char', 'paanch', 'panch', 'chhah', 'saat',
-      'aath', 'nau', 'das', 'aadha', 'pav',
-      // Common units
-      'kilo', 'kg', 'gram', 'packet', 'piece', 'litre', 'liter',
-    ];
-    return numberWords.any((w) {
-      // Word boundary check to avoid false matches (e.g. "done" containing "do").
-      final idx = lowerU.indexOf(w);
-      if (idx == -1) return false;
-      final before = idx > 0 ? lowerU[idx - 1] : ' ';
-      final after =
-          idx + w.length < lowerU.length ? lowerU[idx + w.length] : ' ';
-      return !RegExp(r'[a-z]').hasMatch(before) &&
-          !RegExp(r'[a-z]').hasMatch(after);
-    });
-  }
-
-  /// Detects if the agent is asking a question it already asked earlier
-  /// in this conversation turn. Uses word overlap to detect rephrased duplicates.
-  static bool _isDuplicateAskUser(String question, List<String> history) {
-    if (history.isEmpty) return false;
-    final qWords = _extractWords(question);
-    if (qWords.isEmpty) return false;
-
-    for (final prev in history) {
-      final pWords = _extractWords(prev);
-      if (pWords.isEmpty) continue;
-      final overlap = qWords.intersection(pWords).length;
-      final similarity = overlap / qWords.length;
-      if (similarity > 0.6) return true;
-    }
-    return false;
-  }
-
-  /// Extract meaningful words from a string for overlap comparison.
-  static Set<String> _extractWords(String text) {
-    const stopWords = {
-      'the',
-      'a',
-      'an',
-      'is',
-      'are',
-      'was',
-      'were',
-      'to',
-      'for',
-      'of',
-      'in',
-      'on',
-      'at',
-      'by',
-      'do',
-      'you',
-      'i',
-      'me',
-      'my',
-      'your',
-      'it',
-      'this',
-      'that',
-      'and',
-      'or',
-      'but',
-      'would',
-      'like',
-      'want',
-      'please',
-      'could',
-      'should',
-      'can',
-      'will',
-      'shall',
-    };
-    return text
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^\w\s]'), '')
-        .split(RegExp(r'\s+'))
-        .where((w) => w.length > 1 && !stopWords.contains(w))
-        .toSet();
-  }
-
-  /// Heuristic: does the user's message imply they need to search for something?
-  /// Used to trigger a search-bar retry when the agent incorrectly claims
-  /// it cannot find a search field.
-  static bool _userNeedsSearch(String message) {
-    final lower = message.toLowerCase();
-    // Explicit search intent.
-    if (lower.contains('search') ||
-        lower.contains('find') ||
-        lower.contains('look for')) {
-      return true;
-    }
-    // Imperative commands that typically require searching:
-    // "order X", "buy X", "add X", "book X", "get X"
-    const actionVerbs = [
-      'order',
-      'buy',
-      'add',
-      'book',
-      'get',
-      'manga',
-      'mangao',
-    ];
-    for (final verb in actionVerbs) {
-      // verb followed by a space and something = likely needs search
-      if (lower.contains('$verb ')) return true;
-    }
-    return false;
-  }
-
-  /// Detects if the agent's text response claims it cannot find a search bar.
-  static bool _claimsNoSearchBar(String text) {
-    final lower = text.toLowerCase();
-    const patterns = [
-      'unable to find the search',
-      'cannot find the search',
-      'can\'t find the search',
-      'couldn\'t find the search',
-      'could not find the search',
-      'don\'t see a search',
-      'do not see a search',
-      'no search bar',
-      'no search field',
-      'search bar is not',
-      'search field is not',
-      'i am unable to find a search',
-      'i don\'t see a text field',
-      'unable to locate the search',
-      'unable to find a text field',
-    ];
-    return patterns.any((p) => lower.contains(p));
   }
 
   /// Polls [shouldCancel] every 500ms and returns null when cancelled.
@@ -1061,610 +788,4 @@ class ReactAgent {
     }
   }
 
-  /// Generate a user-friendly summary when the agent did work but the LLM
-  /// returned an empty response instead of a proper text conclusion.
-  String _summarizeActions(List<AgentAction> actions) {
-    // Filter out internal tools and ask_user from the visible summary.
-    final visible =
-        actions
-            .where(
-              (a) =>
-                  a.toolName != 'get_screen_content' &&
-                  a.toolName != 'ask_user',
-            )
-            .toList();
-    if (visible.isEmpty) return 'Done.';
-
-    // Count action types for a concise summary instead of listing every action.
-    final succeeded = visible.where((a) => a.result.success).length;
-    final failed = visible.where((a) => !a.result.success).length;
-    final total = visible.length;
-
-    if (failed == 0) {
-      return 'Done — completed $total action${total == 1 ? '' : 's'}.';
-    }
-    return 'Partially done — $succeeded of $total action${total == 1 ? '' : 's'} succeeded, '
-        '$failed failed.';
-  }
-
-  /// Inject a screenshot into the message list as a multimodal user message.
-  ///
-  /// The screenshot is appended as the LAST user message so the LLM sees it
-  /// alongside the latest context. It is NOT stored in conversation memory
-  /// (ephemeral — changes every iteration and is large).
-  List<LlmMessage> _injectScreenshot(
-    List<LlmMessage> messages,
-    Uint8List screenshot,
-  ) {
-    return [
-      ...messages,
-      LlmMessage.userMultimodal(
-        '[SCREENSHOT] Current screen visual. Use this for text in images, '
-        'charts, visual layouts, and content not captured by the semantics tree.',
-        [LlmImageContent(bytes: screenshot)],
-      ),
-    ];
-  }
-
-  /// Build the system prompt with full app context.
-  ///
-  /// Structure:
-  /// 1. Role + App Purpose
-  /// 2. Core Rules (9 focused, non-contradictory rules)
-  /// 3. Few-shot examples
-  /// 4. App context (manifest, routes, screen detail)
-  /// 5. Live UI
-  String _buildSystemPrompt(AppContextSnapshot context) {
-    final buffer = StringBuffer();
-    final manifest = context.appManifest;
-
-    // ── Section 1: Role + App Purpose ──
-    buffer.writeln(
-      'You are $assistantName, an AI that controls a mobile app\'s UI on behalf of the user.',
-    );
-    buffer.writeln(
-      'You execute tasks by tapping buttons, entering text, scrolling, and navigating between screens.',
-    );
-    if (appPurpose != null) {
-      buffer.writeln();
-      buffer.writeln('APP PURPOSE: $appPurpose');
-    }
-    buffer.writeln();
-
-    // ── Prime Directives ──
-    buffer.writeln('*** PRIME DIRECTIVES (NEVER VIOLATE) ***');
-    buffer.writeln(
-      '• User gives a command → DO IT. NEVER ask for confirmation when the intent is clear.',
-    );
-    buffer.writeln(
-      '• User specifies details (quantity, name, destination) → USE THEM. NEVER re-ask.',
-    );
-    buffer.writeln(
-      '• When searching, ALWAYS call set_text — even if you do NOT see a text field on screen. '
-      'The tool auto-detects hidden, unfocused, and async search bars. NEVER say "I cannot find the search bar" '
-      '— just call set_text("Search", "query") and it will find the field.',
-    );
-    buffer.writeln(
-      '• ask_user is ONLY for genuinely ambiguous situations (2+ equally valid options). Aim for ZERO questions.',
-    );
-    buffer.writeln();
-
-    // ── Section 2: Core Rules ──
-    buffer.writeln('RULES:');
-    buffer.writeln(
-      '1. EXECUTE DECISIVELY: Perform the user\'s request without unnecessary questions. '
-      'If the intent is clear, ACT — do not ask. Pick obvious matches from search suggestions. '
-      'Do not ask the user to confirm something that directly matches what they requested. '
-      'If the user asks for multiple things, process each independently. '
-      'If something is NOT FOUND (search returns no match), use ask_user to inform the user. '
-      'NEVER silently substitute a different item — always ask first. '
-      'SEARCH FIRST: When the user names a specific item to find, act on, or interact with, '
-      'ALWAYS search for it using set_text BEFORE tapping any results. '
-      'Items visible on screen by default may NOT be what the user wants — search to find the exact match. '
-      'SEARCH VERIFICATION: After searching, READ the results on screen. '
-      'Verify that result names actually match the search query. '
-      'If the screen shows unrelated results after a search, the search returned no matches — inform the user.',
-    );
-    buffer.writeln(
-      '2. WHEN TO ASK (ask_user tool): Default is DO NOT ASK — just act. '
-      'The ONLY time you may ask is when there are 2+ equally valid options with different consequences '
-      'that you genuinely cannot choose between (e.g. two options at different prices, ambiguous choices). '
-      'Maximum ONE question per task, and only if truly unavoidable. '
-      'When you must ask, list ALL options with full details (name, price). '
-      'IMPORTANT: If you need to ask, you MUST use the ask_user TOOL — not return text. '
-      'Returning text TERMINATES the task — the user cannot respond to plain text. '
-      'RESPONSE HANDLING: When you receive the user\'s response to ask_user: '
-      'If they say "yes", "ok", "sure", "haan", "ha", "go ahead", or any affirmative → '
-      'IMMEDIATELY proceed with the action you proposed. Do NOT re-describe what you will do or ask again. '
-      'If the response is a COMPLETELY DIFFERENT REQUEST '
-      '(e.g. you asked "which transaction?" but user says "tell me about my order"), '
-      'ABANDON your previous question and handle the NEW request instead. '
-      'NEVER repeat the same question if the user\'s response was unrelated — they want something else now. '
-      'NEVER ask the same ask_user question twice in a single conversation turn.',
-    );
-    if (confirmDestructiveActions) {
-      buffer.writeln(
-        '3. COMPLETE ENTIRE TASK: Do NOT stop at intermediate steps. '
-        'Complete ALL preparatory work (navigate, search, fill forms, select options). '
-        'Filling forms, selecting locations, and confirming destinations are INTERMEDIATE — keep going. '
-        'For the FINAL irreversible action, use hand_off_to_user (see Rule 8).',
-      );
-    } else {
-      buffer.writeln(
-        '3. COMPLETE ENTIRE TASK: Do NOT stop at intermediate steps. '
-        'You MUST press the FINAL action button yourself (Confirm, Pay, Submit, etc.). '
-        'Filling forms, selecting options, and entering details are INTERMEDIATE — keep going. '
-        'NEVER tell the user to press a button themselves.',
-      );
-    }
-    buffer.writeln(
-      '4. WAIT FOR CONTENT: After actions that trigger network calls (navigation, search, '
-      'form submission, confirming destination), content takes time to load. '
-      'Call get_screen_content once to refresh. If screen still appears empty, call once more. '
-      'Maximum 2 consecutive get_screen_content calls — the system already waits for content between iterations. '
-      'While waiting for content, do NOT tap Close, Back, or Cancel — stay on the screen and keep checking.',
-    );
-    buffer.writeln(
-      '5. NEVER GIVE UP (but be efficient): Before saying "unable to" or "not available": '
-      'FIRST check if you need to NAVIGATE to a different screen — you are NOT limited to the current screen. '
-      'You can use navigate_to_route to go to ANY screen in the APP SCREENS list at any time. '
-      'If the information or action the user needs is on a different screen, GO THERE. '
-      'NEVER say "I can only access the current screen" — you can navigate anywhere. '
-      'Also: retry get_screen_content once, scroll to check off-screen content. '
-      'But do NOT loop endlessly — '
-      'if after 2 attempts something isn\'t working, try a different approach or inform the user.',
-    );
-    buffer.writeln(
-      '6. PLAN FIRST: For multi-step tasks, mentally plan the full sequence before starting. '
-      'Example: "1. Navigate to the target screen, 2. Search for the item, 3. Tap the result, 4. Complete the action". '
-      'Then execute step by step, one action at a time, observing results after each.',
-    );
-    buffer.writeln(
-      '7. SCREEN INTERACTION: Use parentContext to disambiguate same-label elements — '
-      'ALWAYS use the ITEM NAME or MAIN TITLE as parentContext, never prices, discounts, or badges. '
-      'If the screen says "MORE CONTENT below/above", scroll to see it. '
-      'Your screen view auto-refreshes after each action. '
-      'Use navigate_to_route with the EXACT route name from the APP SCREENS / ALL ROUTES list.',
-    );
-    if (confirmDestructiveActions) {
-      buffer.writeln(
-        '8. FINAL ACTIONS (hand_off_to_user): When you reach the FINAL irreversible action button '
-        '(Confirm, Submit, Pay, etc.), do NOT tap it yourself. '
-        'Instead, call hand_off_to_user with the exact button label and a brief summary. '
-        'The overlay will clear so the user can see the full screen and tap the button themselves. '
-        'Complete ALL preparatory steps first (navigate, search, fill forms, select options) — '
-        'only hand off at the very last button. '
-        'For mid-flow choices (which ride type? which item?), use ask_user as before.',
-      );
-    } else {
-      buffer.writeln(
-        '8. ACTIONS: You have permission to perform ALL actions without asking for confirmation. '
-        'This includes bookings, purchases, and form submissions. Execute them directly.',
-      );
-    }
-    if (manifest != null) {
-      buffer.writeln(
-        '9. MANIFEST vs LIVE: SCREEN KNOWLEDGE describes the typical layout. '
-        'LIVE UI shows what is actually on screen now. Trust LIVE UI for interaction targets. '
-        'Use SCREEN KNOWLEDGE for planning navigation and understanding screen purpose.',
-      );
-    }
-    buffer.writeln(
-      '10. LANGUAGE: Understand the user regardless of language. '
-      'Users may mix languages (e.g. English with Hindi, Spanish, etc.), use slang, '
-      'abbreviations, or informal transliterations. Extract intent from context. '
-      'Do NOT ask for clarification just because the phrasing is informal or multilingual. '
-      'Respond in the same language the user used.',
-    );
-    buffer.writeln(
-      '11. ACCURACY AND GROUNDING: ONLY state facts you can verify from the LIVE UI. '
-      'NEVER fabricate element labels, values, prices, names, or counts not visible on screen. '
-      'If the screen shows "Balance: 150 coins", report EXACTLY that — no rounding or embellishing. '
-      'If you cannot find the requested information on screen, say so explicitly. '
-      'Distinguish: obvious inference (user says "book ride", app has "Book Ride" button → tap it) = ACCEPTABLE. '
-      'Reasonable default (only one matching result → pick it) = ACCEPTABLE. '
-      'Fabrication (user asks balance, you cannot see it → making up a number) = NEVER. '
-      'Over-guessing (user says "order food", multiple equal options visible → picking randomly) = ASK with ask_user. '
-      'CRITICAL: Before tapping on ANY item, verify it matches the user\'s request. '
-      'If no matching item is visible, DO NOT select a different one. '
-      'NUMBERS: Read labels carefully to distinguish IDs from prices. '
-      'If a number has a label like "Fare", "Amount", "Price", "Cost", "Total", "₹", or "coins" — it IS a price, report it. '
-      'If a number is just displayed next to a ride/order without any price-related label (like a bare "1152134") — it is likely an ID. '
-      'When in doubt, report the number WITH its label so the user can judge (e.g. "Ride #1152134, Fare: ₹150").',
-    );
-    buffer.writeln(
-      '12. CONSISTENCY AND EFFICIENCY: For common task patterns, follow a deterministic sequence. '
-      'Navigation tasks: navigate_to_route → get_screen_content → report. '
-      'Search tasks: navigate → get_screen_content (WAIT for screen to fully load) → set_text in search → get_screen_content → verify results match query → tap result. '
-      'Detail/info queries about a specific item: '
-      'navigate to list → get_screen_content → TAP the item to open detail screen → '
-      'get_screen_content → scroll_down → get_screen_content → report ALL fields from detail screen. '
-      'Simple info queries: navigate → get_screen_content → report. '
-      'Same request type = same steps every time. Do not skip steps or vary your approach between similar tasks. '
-      'EFFICIENCY: Do NOT call get_screen_content more than 2 times in a row without performing an action between them. '
-      'If an approach fails twice, try a DIFFERENT approach (different search term, different screen, scroll). '
-      'Never repeat the same failed action — it will fail again.',
-    );
-    buffer.writeln();
-
-    if (context.screenshot != null) {
-      buffer.writeln(
-        '13. VISUAL CONTEXT: A screenshot of the current screen is attached. '
-        'Use it for text inside images, charts, visual layouts, and content the semantics tree cannot capture. '
-        'LIVE UI (semantics) remains primary for element labels, actions, and interaction targets. '
-        'The screenshot is supplementary — do NOT rely on it for tap targets.',
-      );
-    }
-    buffer.writeln();
-
-    // ── Response style ──
-    buffer.writeln('RESPONSE STYLE — How to talk to the user:');
-    buffer.writeln(
-      'Your responses are shown in a chat UI. Write like a smart, helpful friend — not a robot.',
-    );
-    buffer.writeln();
-    buffer.writeln('FINAL RESPONSES (text returned to user):');
-    buffer.writeln(
-      '- LEAD WITH THE ANSWER. Never start with "The current screen shows..." or "I navigated to...". '
-      'The user asked a question — answer it directly.',
-    );
-    buffer.writeln(
-      '- NEVER mention screens, routes, navigation, tapping, or technical mechanics. '
-      'BAD: "The current screen shows your coin balance. Your wallet balance is 995592317 coins." '
-      'GOOD: "Your wallet balance is 99,55,92,317 coins."',
-    );
-    buffer.writeln(
-      '- FORMAT numbers for readability: use commas (1,00,000 or 100,000), '
-      'currency symbols (₹, \$), and proper date formats (27 Feb 2026, not 2026-02-27).',
-    );
-    buffer.writeln(
-      '- For INFO queries: give a clean, structured answer. '
-      'BAD: "I found the details. The item was X from Y." '
-      'GOOD: "Your last item:\\n• From A → B\\n• Date/Time\\n• Amount: ₹X\\n• Status: Completed"',
-    );
-    buffer.writeln(
-      '- For ACTION completion: confirm briefly and warmly. '
-      'BAD: "I have completed the action. The action is now done." '
-      'GOOD: "Done! Added to your cart."',
-    );
-    buffer.writeln(
-      '- For ERRORS: be honest and helpful, not apologetic or verbose. '
-      'BAD: "I apologize for the error. I was unable to locate the requested information on the current screen." '
-      'GOOD: "Couldn\'t find that item. Want me to try a different search?"',
-    );
-    buffer.writeln(
-      '- Keep responses SHORT. 1-3 sentences for actions. A few bullet points for info. '
-      'No filler like "Sure!", "Absolutely!", "I\'d be happy to help!"',
-    );
-    buffer.writeln();
-    buffer.writeln('PROGRESS STATUS (brief text alongside tool calls):');
-    buffer.writeln(
-      '- Write from the user\'s perspective, like a loading indicator.',
-    );
-    buffer.writeln(
-      '- BAD: "Navigating to /history screen..." → GOOD: "Checking your history..."',
-    );
-    buffer.writeln(
-      '- BAD: "Tapping on the search field..." → GOOD: "Searching..."',
-    );
-    buffer.writeln(
-      '- BAD: "Calling get_screen_content to read the UI..." → GOOD: "Reading the details..."',
-    );
-    buffer.writeln(
-      '- BAD: "Executing scroll_down action..." → GOOD: "Looking for more details..."',
-    );
-    buffer.writeln(
-      '- Keep these to 2-5 words. Think: what would a loading spinner say?',
-    );
-    buffer.writeln();
-
-    // ── Failure recovery guidance ──
-    buffer.writeln('WHEN THINGS GO WRONG:');
-    buffer.writeln(
-      '- tap_element fails → call get_screen_content to see what is ACTUALLY on screen. '
-      'The element name may differ from what you expect. Use the exact label from the screen.',
-    );
-    buffer.writeln(
-      '- Screen looks empty or unexpected → wait by calling get_screen_content once more. '
-      'Content may still be loading. Do NOT navigate away immediately.',
-    );
-    buffer.writeln(
-      '- Search returns no results → try a shorter/simpler search term.',
-    );
-    buffer.writeln(
-      '- Same action fails twice → try a DIFFERENT approach entirely. '
-      'Do NOT repeat the same failing action a third time.',
-    );
-    buffer.writeln(
-      '- After 2+ failures, if you cannot complete the task, inform the user honestly '
-      'with what you DID accomplish and what went wrong. Do not silently give up.',
-    );
-    buffer.writeln();
-
-    // ── Domain-specific instructions (provided by the app developer) ──
-    if (domainInstructions != null && domainInstructions!.trim().isNotEmpty) {
-      buffer.writeln('APP-SPECIFIC INSTRUCTIONS:');
-      buffer.writeln(domainInstructions);
-      buffer.writeln();
-    }
-
-    // ── Task types guidance ──
-    buffer.writeln('TASK TYPES:');
-    buffer.writeln(
-      '- ACTION tasks (commands to do something): '
-      'Navigate → interact → complete the FULL action including pressing the final button. '
-      'Do NOT stop at intermediate steps — complete the entire requested flow.',
-    );
-    buffer.writeln(
-      '- INFORMATION tasks (queries about data, status, details): '
-      'Two sub-types:',
-    );
-    buffer.writeln(
-      '  A) SIMPLE INFO (a single value like balance, count, status): '
-      'Navigate → get_screen_content → report the value. Done.',
-    );
-    buffer.writeln(
-      '  B) DETAIL INFO (about a specific item): '
-      'Navigate to list → get_screen_content → TAP the specific item to open its DETAIL screen → '
-      'get_screen_content (now on detail screen) → scroll_down → get_screen_content → '
-      'extract and report ALL fields comprehensively. '
-      'STOP TAPPING after opening the detail screen. Once you are on the detail screen, '
-      'your ONLY allowed tools are get_screen_content and scroll (up/down). '
-      'Do NOT tap any more elements — you are just READING, not performing actions.',
-    );
-    buffer.writeln(
-      '  WARNING: A list screen ONLY shows summaries (title, date, status). '
-      'This is NOT enough for detail queries. '
-      'You MUST tap into the item to see its detail screen with full information. '
-      'Reporting ONLY from a list view is a FAILURE.',
-    );
-    buffer.writeln(
-      '  TAP TARGETS: Tap the item\'s CONTENT (date, amount, status text) — '
-      'NOT the page header, section title, or tab label.',
-    );
-    buffer.writeln(
-      '  "LAST" / "MOST RECENT": The FIRST item at the TOP of the list is the most recent. '
-      'Do NOT scroll down before tapping — you will move past it. '
-      'Only scroll DOWN AFTER you are on the detail screen to see more details below the fold.',
-    );
-    buffer.writeln(
-      '- HELP/SUPPORT tasks (refund, complaint, issue, help, support, problem): '
-      'Navigate to the app\'s Help, Support, or Customer Service section. '
-      'If no help section exists, inform the user honestly.',
-    );
-    buffer.writeln();
-
-    // ── Section 3: Few-shot examples ──
-    buffer.writeln('EXAMPLES OF CORRECT BEHAVIOR:');
-    buffer.writeln();
-    if (fewShotExamples.isNotEmpty) {
-      // Use developer-provided app-specific examples.
-      for (final example in fewShotExamples) {
-        buffer.writeln(example);
-        buffer.writeln();
-      }
-    } else {
-      // Generic fallback examples that work for any app.
-      buffer.writeln('User: "go to settings"');
-      buffer.writeln('Status: "Opening settings..."');
-      buffer.writeln('Actions: navigate_to_route("/settings")');
-      buffer.writeln('Response: "Here are your settings."');
-      buffer.writeln();
-      buffer.writeln('User: "search for X"');
-      buffer.writeln('Status: "Searching..."');
-      buffer.writeln(
-        'Actions: navigate to relevant screen → get_screen_content → '
-        'set_text("Search", "X") → get_screen_content → tap matching result',
-      );
-      buffer.writeln('Response: "Found X — here it is."');
-      buffer.writeln();
-      buffer.writeln('User: "tell me about my last item"');
-      buffer.writeln(
-        'Status: "Checking..." → "Opening details..." → "Reading..."',
-      );
-      buffer.writeln(
-        'Actions: navigate to list screen → get_screen_content → '
-        'tap first item (most recent) → get_screen_content → scroll_down → get_screen_content',
-      );
-      buffer.writeln(
-        'Response: "Your last item:\\n• Detail 1\\n• Detail 2\\n• Status: Done"',
-      );
-      buffer.writeln(
-        'NOTE: The agent tapped INTO the item to open its detail screen — '
-        'it did NOT just read the list view summary.',
-      );
-      buffer.writeln();
-    }
-
-    // ── Section 4: App Context ──
-
-    // Tier 1: App Map (from manifest).
-    if (manifest != null) {
-      _writeScopedManifestContext(buffer, context);
-
-      // Include dynamically discovered routes NOT in the manifest.
-      final manifestRoutes = manifest.screens.keys.toSet();
-      final extraRoutes = context.availableRoutes.where(
-        (r) => !manifestRoutes.contains(r.name),
-      );
-      if (extraRoutes.isNotEmpty) {
-        buffer.writeln('OTHER DISCOVERED SCREENS:');
-        for (final route in extraRoutes) {
-          final desc =
-              route.description != null ? ' — ${route.description}' : '';
-          buffer.writeln('  ${route.name}$desc');
-        }
-        buffer.writeln();
-      }
-    } else {
-      // Fallback: flat route list.
-      if (context.availableRoutes.isNotEmpty) {
-        buffer.writeln('APP SCREENS (navigate with exact route name):');
-        for (final route in context.availableRoutes) {
-          final desc =
-              route.description != null ? ' — ${route.description}' : '';
-          buffer.writeln('  • ${route.name}$desc');
-        }
-        buffer.writeln();
-      }
-    }
-
-    // Current screen info.
-    if (context.currentRoute != null) {
-      buffer.writeln('CURRENT SCREEN: ${context.currentRoute}');
-    }
-    if (context.navigationStack.isNotEmpty) {
-      buffer.writeln(
-        'NAVIGATION STACK: ${context.navigationStack.join(' → ')}',
-      );
-    }
-    buffer.writeln();
-
-    // Tier 2: Current screen manifest detail.
-    if (manifest != null && context.currentRoute != null) {
-      final screenDetail = manifest.toScreenDetailPrompt(context.currentRoute!);
-      if (screenDetail != null) {
-        buffer.writeln(screenDetail);
-        buffer.writeln();
-      }
-    }
-
-    // ── Section 5: Live UI ──
-    buffer.writeln(
-      manifest != null
-          ? 'LIVE UI (what\'s actually on screen right now):'
-          : 'WHAT\'S ON SCREEN:',
-    );
-    buffer.writeln(context.screenContext.toPromptString());
-    buffer.writeln();
-
-    // Screen knowledge cache (brief).
-    if (context.screenKnowledge.isNotEmpty) {
-      buffer.writeln('SCREENS SEEN BEFORE:');
-      final knownEntries =
-          context.screenKnowledge.entries.toList()
-            ..sort((a, b) => a.key.compareTo(b.key));
-      for (final entry in knownEntries.take(20)) {
-        buffer.writeln(
-          '  • ${entry.key}: ${entry.value.elements.length} elements',
-        );
-      }
-      if (knownEntries.length > 20) {
-        buffer.writeln('  +${knownEntries.length - 20} more screens omitted');
-      }
-      buffer.writeln();
-    }
-
-    // Global state.
-    if (context.globalState != null && context.globalState!.isNotEmpty) {
-      buffer.writeln('APP STATE:');
-      for (final entry in context.globalState!.entries) {
-        buffer.writeln('  • ${entry.key}: ${entry.value}');
-      }
-      buffer.writeln();
-    }
-
-    return buffer.toString();
-  }
-
-  void _writeScopedManifestContext(
-    StringBuffer buffer,
-    AppContextSnapshot context,
-  ) {
-    final manifest = context.appManifest;
-    if (manifest == null) return;
-
-    const maxDetailedScreens = 24;
-    const maxCurrentLinks = 8;
-
-    buffer.writeln('APP OVERVIEW:');
-    buffer.writeln(manifest.appDescription);
-    buffer.writeln();
-
-    if (manifest.globalNavigation.isNotEmpty) {
-      buffer.writeln('GLOBAL NAVIGATION:');
-      final navItems = manifest.globalNavigation
-          .map((n) => '${n.label} (${n.route})')
-          .join(', ');
-      buffer.writeln('  $navItems');
-      buffer.writeln();
-    }
-
-    final prioritizedRoutes = <String>{};
-    final currentRoute = context.currentRoute;
-    if (currentRoute != null && manifest.screens.containsKey(currentRoute)) {
-      prioritizedRoutes.add(currentRoute);
-      final currentScreen = manifest.screens[currentRoute];
-      if (currentScreen != null) {
-        for (final link in currentScreen.linksTo) {
-          if (!manifest.screens.containsKey(link.targetRoute)) continue;
-          prioritizedRoutes.add(link.targetRoute);
-          if (prioritizedRoutes.length >= maxCurrentLinks) break;
-        }
-      }
-    }
-
-    for (final nav in manifest.globalNavigation) {
-      if (!manifest.screens.containsKey(nav.route)) continue;
-      prioritizedRoutes.add(nav.route);
-      if (prioritizedRoutes.length >= maxDetailedScreens) break;
-    }
-
-    if (prioritizedRoutes.length < maxDetailedScreens) {
-      for (final flow in manifest.flows) {
-        for (final step in flow.steps) {
-          if (!manifest.screens.containsKey(step.route)) continue;
-          prioritizedRoutes.add(step.route);
-          if (prioritizedRoutes.length >= maxDetailedScreens) break;
-        }
-        if (prioritizedRoutes.length >= maxDetailedScreens) break;
-      }
-    }
-
-    if (prioritizedRoutes.length < maxDetailedScreens) {
-      final remaining =
-          manifest.screens.keys
-              .where((r) => !prioritizedRoutes.contains(r))
-              .toList()
-            ..sort();
-      for (final route in remaining) {
-        prioritizedRoutes.add(route);
-        if (prioritizedRoutes.length >= maxDetailedScreens) break;
-      }
-    }
-
-    buffer.writeln('APP SCREENS (core map):');
-    for (final route in prioritizedRoutes) {
-      final screen = manifest.screens[route];
-      if (screen == null) continue;
-      buffer.writeln(
-        '  $route - ${screen.title} - ${_truncate(screen.description, 120)}',
-      );
-      if (route == currentRoute && screen.linksTo.isNotEmpty) {
-        for (final link in screen.linksTo.take(maxCurrentLinks)) {
-          buffer.writeln(
-            '    -> ${link.targetRoute} (${_truncate(link.trigger, 70)})',
-          );
-        }
-      }
-    }
-    buffer.writeln();
-
-    final allRoutes =
-        <String>{
-            ...manifest.screens.keys,
-            ...context.availableRoutes.map((r) => r.name),
-          }.toList()
-          ..sort();
-    buffer.writeln('ALL ROUTES (exact names for navigate_to_route):');
-    for (final route in allRoutes) {
-      buffer.writeln('  - $route');
-    }
-    buffer.writeln();
-  }
-
-  String _truncate(String value, int maxChars) {
-    if (value.length <= maxChars) return value;
-    return '${value.substring(0, maxChars - 3)}...';
-  }
 }

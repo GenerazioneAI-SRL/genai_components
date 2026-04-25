@@ -58,13 +58,13 @@ class QuestionCard extends StatelessWidget {
               color: hasError
                   ? CLTheme.of(context).danger
                   : hasAnswer
-                      ? CLTheme.of(context).primary.withOpacity(0.4)
+                      ? CLTheme.of(context).primary.withValues(alpha: 0.4)
                       : CLTheme.of(context).borderColor,
               width: hasAnswer || hasError ? 1.5 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: CLTheme.of(context).borderColor.withOpacity(0.15),
+                color: CLTheme.of(context).borderColor.withValues(alpha: 0.15),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -103,7 +103,7 @@ class QuestionCard extends StatelessWidget {
       padding: const EdgeInsets.all(Sizes.padding),
       decoration: BoxDecoration(
         color: hasAnswer
-            ? CLTheme.of(context).primary.withOpacity(0.05)
+            ? CLTheme.of(context).primary.withValues(alpha: 0.05)
             : CLTheme.of(context).primaryBackground,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(Sizes.borderRadius),
@@ -111,7 +111,7 @@ class QuestionCard extends StatelessWidget {
         ),
         border: Border(
           bottom: BorderSide(
-            color: CLTheme.of(context).borderColor.withOpacity(0.5),
+            color: CLTheme.of(context).borderColor.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -124,8 +124,8 @@ class QuestionCard extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: hasAnswer
-                  ? CLTheme.of(context).primary.withOpacity(0.1)
-                  : CLTheme.of(context).borderColor.withOpacity(0.2),
+                  ? CLTheme.of(context).primary.withValues(alpha: 0.1)
+                  : CLTheme.of(context).borderColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: HugeIcon(
@@ -202,7 +202,7 @@ class QuestionCard extends StatelessWidget {
         vertical: Sizes.padding * 0.75,
       ),
       decoration: BoxDecoration(
-        color: CLTheme.of(context).danger.withOpacity(0.1),
+        color: CLTheme.of(context).danger.withValues(alpha: 0.1),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(Sizes.borderRadius),
           bottomRight: Radius.circular(Sizes.borderRadius),

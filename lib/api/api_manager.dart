@@ -16,6 +16,8 @@ export 'package:genai_components/utils/models/pagination.model.dart';
 
 import '../widgets/alertmanager/alert_manager.dart';
 import '../core_models/upload_file.model.dart';
+import '../auth/auth_singleton.dart';
+import 'api_config.dart';
 
 enum ApiCallType { GET, POST, DELETE, PUT, PATCH }
 
@@ -79,7 +81,17 @@ class ApiCallResponse {
     ApiError? error;
     try {
       final responseBody = decodeUtf8 && returnBody ? const Utf8Decoder().convert(response.bodyBytes) : response.body;
-      jsonBody = returnBody ? json.decode(responseBody) : null;
+      if (returnBody) {
+        // Large payload (>1MB) → decode in isolate to avoid jank.
+        // Smaller payloads → sync decode (isolate spawn overhead not worth it).
+        if (response.bodyBytes.length > 1024 * 1024) {
+          jsonBody = await compute(json.decode, responseBody);
+        } else {
+          jsonBody = json.decode(responseBody);
+        }
+      } else {
+        jsonBody = null;
+      }
 
       if (jsonBody is Map) {
         error =
@@ -163,6 +175,31 @@ class ApiManager {
   static String _apiVersion = '';
   static String get apiVersion => _apiVersion;
 
+  /// Optional rich configuration object. When provided via
+  /// [ApiManager.fromConfig] it supplies defaults (timeout, default headers,
+  /// tenant injection) used by [makeApiCallWithConfig].
+  static ApiConfig? _config;
+
+  /// The currently bound [ApiConfig], or `null` if the legacy
+  /// [configure] method was used instead.
+  static ApiConfig? get config => _config;
+
+  /// Configures the singleton from a structured [ApiConfig] object.
+  ///
+  /// Preferred over the legacy [configure] entry point — it carries timeout,
+  /// default headers and tenant defaults in addition to base URL / version.
+  ///
+  /// Returns the singleton instance for chaining at bootstrap.
+  ///
+  /// Will not be removed before 5.0.
+  static ApiManager fromConfig(ApiConfig config) {
+    _config = config;
+    _baseUrl = config.baseUrl;
+    _apiVersion = config.apiVersion;
+    return instance;
+  }
+
+  @Deprecated('Use ApiManager.fromConfig(ApiConfig) — will be removed in 5.0')
   static void configure({required String baseUrl, String apiVersion = ''}) {
     _baseUrl = baseUrl;
     _apiVersion = apiVersion;
@@ -172,6 +209,17 @@ class ApiManager {
 
   static String asQueryParams(Map<String, dynamic> map) =>
       map.entries.map((e) => "${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}").join('&');
+
+  /// Default request timeout used when no [ApiConfig] is bound. Matches the
+  /// `ApiConfig` default so behavior is consistent across both bootstrap
+  /// entry points.
+  static const Duration _defaultTimeout = Duration(seconds: 30);
+
+  /// Effective timeout for the next HTTP request: honors the bound
+  /// [ApiConfig.timeout] when available, otherwise falls back to
+  /// [_defaultTimeout]. A `TimeoutException` thrown by the underlying
+  /// `http` call propagates through to existing error handling unchanged.
+  static Duration get _effectiveTimeout => _config?.timeout ?? _defaultTimeout;
 
   static Future<ApiCallResponse> urlRequest(
     ApiCallType callType,
@@ -186,7 +234,10 @@ class ApiManager {
       apiUrl = '$apiUrl$specifier${asQueryParams(params)}';
     }
     final makeRequest = callType == ApiCallType.GET ? http.get : http.delete;
-    final response = await makeRequest(Uri.parse(apiUrl), headers: toStringMap(headers));
+    final response = await makeRequest(
+      Uri.parse(apiUrl),
+      headers: toStringMap(headers),
+    ).timeout(_effectiveTimeout);
     return ApiCallResponse.fromHttpResponse(response, returnBody, decodeUtf8);
   }
 
@@ -209,7 +260,11 @@ class ApiManager {
     }
 
     final requestFn = {ApiCallType.POST: http.post, ApiCallType.PUT: http.put, ApiCallType.PATCH: http.patch}[type]!;
-    final response = await requestFn(Uri.parse(apiUrl), headers: toStringMap(headers), body: postBody);
+    final response = await requestFn(
+      Uri.parse(apiUrl),
+      headers: toStringMap(headers),
+      body: postBody,
+    ).timeout(_effectiveTimeout);
     return ApiCallResponse.fromHttpResponse(response, returnBody, decodeUtf8);
   }
 
@@ -222,7 +277,7 @@ class ApiManager {
     bool decodeUtf8,
   ) async {
     assert({ApiCallType.POST, ApiCallType.PUT, ApiCallType.PATCH}.contains(type), 'Invalid ApiCallType $type for request with body');
-    isFile(e) => e is FFUploadedFile || e is File || e is List<FFUploadedFile> || (e is List && e.firstOrNull is FFUploadedFile);
+    isFile(e) => e is FFUploadedFile || (!kIsWeb && e is File) || e is List<FFUploadedFile> || (e is List && e.firstOrNull is FFUploadedFile);
     final nonFileParams = Map.fromEntries(params.entries.where((e) => !isFile(e.value)));
     List<http.MultipartFile> files = [];
     params.entries.where((e) => isFile(e.value)).forEach((e) {
@@ -245,7 +300,8 @@ class ApiManager {
           ..files.addAll(files);
     nonFileParams.forEach((key, value) => request.fields[key] = value.toString());
 
-    final response = await http.Response.fromStream(await request.send());
+    final streamed = await request.send().timeout(_effectiveTimeout);
+    final response = await http.Response.fromStream(streamed);
     return ApiCallResponse.fromHttpResponse(response, returnBody, decodeUtf8);
   }
 
@@ -516,6 +572,119 @@ class ApiManager {
       _handleResponse(result, context);
 
       // Non mostrare alert per 401 e 403, vengono gestiti dalla pagina di errore
+      if (result.statusCode != 401 && result.statusCode != 403 && showErrorMessage) {
+        AlertManager.showDanger(
+          result.error?.error?.toString() ?? "Errore ${result.statusCode}",
+          result.error?.message ?? "Si è verificato un errore durante l'operazione",
+          alertPosition: AlertPosition.bottom,
+        );
+      }
+    }
+    return result;
+  }
+
+  /// Builds request headers without requiring a [BuildContext], reading auth
+  /// data from [AuthSingleton] instead. Used by [makeApiCallWithConfig] when
+  /// no `context` is provided.
+  Future<Map<String, dynamic>> _initHeaderFromSingleton(
+    Map<String, dynamic> headers,
+    bool needAuth,
+    bool needTenant,
+  ) async {
+    final Map<String, dynamic> allHeaders = {}
+      ..addAll(headers)
+      ..addAll({HttpHeaders.acceptHeader: "application/json"});
+
+    if (!AuthSingleton.isBound) return allHeaders;
+
+    final authState = AuthSingleton.instance.authState;
+    if (needAuth && authState.accessToken != null) {
+      allHeaders[HttpHeaders.authorizationHeader] = 'Bearer ${authState.accessToken}';
+    }
+    if (needTenant && authState.currentTenant?.id != null) {
+      allHeaders["x-tenant-id"] = authState.currentTenant!.id;
+    }
+    return allHeaders;
+  }
+
+  /// Context-optional variant of [makeApiCall].
+  ///
+  /// Identical surface and semantics to [makeApiCall] but [context] is now
+  /// optional. When omitted, auth & tenant headers are resolved through
+  /// [AuthSingleton] (which must be bound at bootstrap) and 401/403 redirect
+  /// handling is skipped — alerts and the actual HTTP call still run.
+  ///
+  /// Picks defaults from the bound [ApiConfig] when available:
+  ///   - [needTenant] falls back to `config.needTenantByDefault`
+  ///   - any header in `config.defaultHeaders` is merged unless already set
+  ///
+  /// Existing call sites of [makeApiCall] remain untouched.
+  Future<ApiCallResponse> makeApiCallWithConfig({
+    required String apiUrl,
+    required ApiCallType callType,
+    BuildContext? context,
+    Map<String, dynamic> headers = const {},
+    Map<String, dynamic> params = const {},
+    String? body,
+    BodyType? bodyType = BodyType.JSON,
+    bool returnBody = true,
+    bool encodeBodyUtf8 = false,
+    bool decodeUtf8 = false,
+    bool needAuth = false,
+    bool? needTenant,
+    bool showSuccessMessage = false,
+    bool showErrorMessage = true,
+    String? successMessage,
+    bool replaceApiUrl = false,
+    String? completeApiUrl,
+  }) async {
+    final cfg = _config;
+    final effectiveNeedTenant = needTenant ?? cfg?.needTenantByDefault ?? false;
+
+    // Merge default headers from config, but never overwrite caller-provided keys.
+    Map<String, dynamic> mergedHeaders = {...headers};
+    if (cfg != null) {
+      cfg.defaultHeaders.forEach((k, v) {
+        mergedHeaders.putIfAbsent(k, () => v);
+      });
+    }
+
+    mergedHeaders = context != null
+        ? await initHeader(mergedHeaders, needAuth, effectiveNeedTenant, context)
+        : await _initHeaderFromSingleton(mergedHeaders, needAuth, effectiveNeedTenant);
+
+    if (replaceApiUrl && completeApiUrl != null && completeApiUrl.isNotEmpty) {
+      apiUrl = completeApiUrl;
+    } else {
+      apiUrl = _baseUrl + _apiVersion + apiUrl;
+      if (!apiUrl.startsWith('http')) {
+        apiUrl = 'https://$apiUrl';
+      }
+    }
+
+    ApiCallResponse result;
+    switch (callType) {
+      case ApiCallType.GET:
+      case ApiCallType.DELETE:
+        result = await urlRequest(callType, apiUrl, mergedHeaders, params, returnBody, decodeUtf8);
+        break;
+      case ApiCallType.POST:
+      case ApiCallType.PUT:
+      case ApiCallType.PATCH:
+        result = await requestWithBody(callType, apiUrl, mergedHeaders, params, body, bodyType, returnBody, encodeBodyUtf8, decodeUtf8);
+        break;
+    }
+
+    if (result.succeeded) {
+      if (showSuccessMessage) {
+        AlertManager.showSuccess(
+          "Successo",
+          successMessage ?? "Operazione completata con successo",
+          alertPosition: AlertPosition.bottom,
+        );
+      }
+    } else {
+      if (context != null) _handleResponse(result, context);
       if (result.statusCode != 401 && result.statusCode != 403 && showErrorMessage) {
         AlertManager.showDanger(
           result.error?.error?.toString() ?? "Errore ${result.statusCode}",

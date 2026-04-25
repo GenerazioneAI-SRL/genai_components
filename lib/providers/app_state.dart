@@ -9,16 +9,27 @@ class AppState extends ChangeNotifier {
   late BehaviorSubject<bool> refreshList = BehaviorSubject<bool>.seeded(false);
   bool _hasError = false;
   ThemeMode _themeMode = CLTheme.themeMode;
+  Locale? _locale;
   bool fromNotification = false;
   bool isInitialized = false;
+  @Deprecated('Use MaintenanceState — will be removed in 5.0')
   bool maintenanceMode = false;
   bool showAiButton = false;
   AiButtonPosition aiButtonPosition = AiButtonPosition.header;
   Widget Function(BuildContext context, VoidCallback onPressed)? aiButtonBuilder;
   ProfilePosition profilePosition = ProfilePosition.header;
   bool _aiChatOpen = false;
+  bool _disposed = false;
 
+  @Deprecated('Use UiToggleState — will be removed in 5.0')
   bool get aiChatOpen => _aiChatOpen;
+
+  @Deprecated('Use UiToggleState — will be removed in 5.0')
+  set aiChatOpen(bool value) {
+    if (_aiChatOpen == value) return;
+    _aiChatOpen = value;
+    notifyListeners();
+  }
 
   void toggleAiChat() {
     _aiChatOpen = !_aiChatOpen;
@@ -36,6 +47,9 @@ class AppState extends ChangeNotifier {
     maintenanceMode = value;
     notifyListeners();
   }
+
+  @Deprecated('Use AppThemeState — will be removed in 5.0')
+  ThemeMode get themeMode => _themeMode;
 
   ThemeMode get theme => _themeMode;
 
@@ -75,7 +89,22 @@ class AppState extends ChangeNotifier {
   }
 
   void updateLocale(BuildContext context, Locale locale) {
+    if (_locale == locale) return;
+    _locale = locale;
     //context.setLocale(locale);
     notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    refreshList.close();
+    super.dispose();
   }
 }

@@ -31,7 +31,7 @@ class CLSectionCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? theme.secondaryBackground : Colors.white,
+        color: theme.secondaryBackground,
         borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(color: theme.cardBorder),
         boxShadow: theme.cardShadow,

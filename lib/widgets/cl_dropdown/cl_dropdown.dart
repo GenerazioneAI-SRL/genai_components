@@ -8,7 +8,7 @@ import '../cl_text_field.widget.dart';
 import 'dropdown_state.dart';
 
 class CLDropdown<T extends Object> extends StatefulWidget {
-  CLDropdown({
+  const CLDropdown({
     super.key,
     required this.controller,
     required this.itemBuilder,
@@ -195,9 +195,17 @@ class CLDropdown<T extends Object> extends StatefulWidget {
 }
 
 class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
+  FocusNode? _focusNode;
+
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _focusNode?.dispose();
+    super.dispose();
   }
 
   bool _isExternalSelectionAligned(DropdownState<T> state) {
@@ -212,14 +220,14 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
-    FocusNode focusNode = FocusNode();
+    _focusNode ??= FocusNode();
     return ChangeNotifierProvider<DropdownState<T>>(
       create: (context) => DropdownState(
         items: widget.items,
         asyncSearchCallback: widget.asyncSearchCallback,
         syncSearchCallback: widget.syncSearchCallback,
         context: context,
-        focusNode: focusNode,
+        focusNode: _focusNode!,
         itemBuilder: widget.itemBuilder,
         isMultiple: widget.isMultiple,
         valueToShow: widget.valueToShow,

@@ -5,8 +5,7 @@ class SurveyState extends ChangeNotifier {
   List<Question> questions = [];
   Function(List<Question>)? onSurveyChange;
 
-  SurveyState({this.questions = const [], final Function(List<Question>)? onSurveyChange}) {
-    this.onSurveyChange = onSurveyChange;
+  SurveyState({this.questions = const [], this.onSurveyChange}) {
     questions = questions;
   }
 

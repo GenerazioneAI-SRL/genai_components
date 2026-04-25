@@ -23,7 +23,7 @@ class CLSurveyViewer extends StatefulWidget {
   final bool showHeader;
 
   @override
-  _CLSurveyViewerState createState() => _CLSurveyViewerState();
+  CLSurveyViewerState createState() => CLSurveyViewerState();
 
   factory CLSurveyViewer.fromArray({
     required List<Question> questions,
@@ -54,7 +54,7 @@ class CLSurveyViewer extends StatefulWidget {
   }
 }
 
-class _CLSurveyViewerState extends State<CLSurveyViewer> {
+class CLSurveyViewerState extends State<CLSurveyViewer> {
   List<Question> questions = [];
 
   List<Question> rebuildQuestions(List<Map<String, dynamic>> jsonList) {
@@ -109,7 +109,7 @@ class _CLSurveyViewerState extends State<CLSurveyViewer> {
           Container(
             padding: const EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
-              color: CLTheme.of(context).secondaryText.withOpacity(0.1),
+              color: CLTheme.of(context).secondaryText.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: HugeIcon(
@@ -149,7 +149,7 @@ class _CLSurveyViewerState extends State<CLSurveyViewer> {
               vertical: Sizes.padding / 2,
             ),
             decoration: BoxDecoration(
-              color: CLTheme.of(context).primary.withOpacity(0.1),
+              color: CLTheme.of(context).primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(Sizes.borderRadius),
             ),
             child: Row(
