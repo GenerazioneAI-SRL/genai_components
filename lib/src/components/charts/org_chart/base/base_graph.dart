@@ -9,7 +9,7 @@ import 'base_controller.dart';
 import '../common/node_builder_details.dart';
 
 /// Base abstract graph widget that provides common functionality for all graph types
-abstract class GenaiBaseGraph<E> extends StatefulWidget {
+abstract class BaseGraph<E> extends StatefulWidget {
   /// The controller that manages the data and layout
   final GenaiBaseGraphController<E> controller;
 
@@ -38,7 +38,7 @@ abstract class GenaiBaseGraph<E> extends StatefulWidget {
   final ZoomConfig? zoomConfig;
   final FocusNode? focusNode;
 
-  GenaiBaseGraph({
+  BaseGraph({
     super.key,
     required this.controller,
     required this.builder,
@@ -65,7 +65,7 @@ abstract class GenaiBaseGraph<E> extends StatefulWidget {
 }
 
 /// Base state class for graph widgets
-abstract class BaseGraphState<E, T extends GenaiBaseGraph<E>> extends State<T> {
+abstract class BaseGraphState<E, T extends BaseGraph<E>> extends State<T> {
   @protected
   List<Node<E>> overlapping = [];
   @protected

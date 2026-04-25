@@ -52,6 +52,40 @@ class GenaiTypographyTokens {
   /// Mono small (kbd pill, deltas) — 11 / 500.
   final TextStyle monoSm;
 
+  // ── v1 backward-compat aliases (deprecated; use canonical v3 names) ────
+  /// Deprecated alias for [body]. Removed in v6.
+  TextStyle get bodyMd => body;
+
+  /// Deprecated alias for [body]. Removed in v6.
+  TextStyle get bodyLg => body;
+
+  /// Deprecated alias for [labelSm]. Removed in v6.
+  TextStyle get caption => labelSm;
+
+  /// Deprecated alias for [pageTitle]. Removed in v6.
+  TextStyle get headingLg => pageTitle;
+
+  /// Deprecated alias for [sectionTitle]. Removed in v6.
+  TextStyle get headingMd => sectionTitle;
+
+  /// Deprecated alias for [cardTitle]. Removed in v6.
+  TextStyle get headingSm => cardTitle;
+
+  /// Deprecated alias for [pageTitle]. Removed in v6.
+  TextStyle get displayLg => pageTitle;
+
+  /// Deprecated alias for [kpiNumber]. Removed in v6.
+  TextStyle get displaySm => kpiNumber;
+
+  /// Deprecated alias for [monoSm]. Removed in v6.
+  TextStyle get code => monoSm;
+
+  /// Deprecated alias for [label]. Removed in v6.
+  TextStyle get labelMd => label;
+
+  /// Deprecated alias for [label]. Removed in v6.
+  TextStyle get labelLg => label;
+
   const GenaiTypographyTokens({
     required this.pageTitle,
     required this.sectionTitle,

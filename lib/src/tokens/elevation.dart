@@ -100,6 +100,9 @@ class GenaiElevationTokens {
         darkTintOpacities: [0.0, 0.02, 0.04, 0.06],
       );
 
+  /// Deprecated v1 alias for [shadowForLayer]. Removed in v6.
+  List<BoxShadow> shadow(int level) => shadowForLayer(level);
+
   /// Returns the shadow list for [level] (0..3). Clamps out-of-range.
   List<BoxShadow> shadowForLayer(int level) {
     switch (level.clamp(0, 3)) {

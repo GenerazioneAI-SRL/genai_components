@@ -239,6 +239,25 @@ class GenaiColorTokens {
   /// Drawer backdrop — ink @ 60%.
   final Color scrimDrawer;
 
+  // ── v1 backward-compat aliases (deprecated; use canonical v3 names) ────
+  /// Deprecated alias for [colorDanger]. Removed in v6.
+  Color get colorError => colorDanger;
+
+  /// Deprecated alias for [colorDangerSubtle]. Removed in v6.
+  Color get colorErrorSubtle => colorDangerSubtle;
+
+  /// Deprecated alias for [colorDanger]. Removed in v6.
+  Color get colorErrorHover => colorDanger;
+
+  /// Deprecated alias for [colorDanger]. Removed in v6.
+  Color get textError => colorDanger;
+
+  /// Deprecated alias for [borderStrong]. Removed in v6.
+  Color get borderError => colorDanger;
+
+  /// Deprecated alias for [borderStrong]. Removed in v6.
+  Color get borderSuccess => colorSuccess;
+
   const GenaiColorTokens({
     required this.surfaceDeepest,
     required this.surfacePage,

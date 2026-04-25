@@ -89,7 +89,10 @@ class _SurveyPageState extends State<SurveyPage> {
           child: GenaiSurveyBuilder.fromArray(
             questions: _builderQuestions,
             onSurveyChange: (q) {
-              setState(() => _builderQuestions = q);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() => _builderQuestions = q);
+              });
             },
           ),
         ),

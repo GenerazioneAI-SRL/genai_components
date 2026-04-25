@@ -95,6 +95,34 @@ class GenaiSpacingTokens {
   /// Content max width — 1400 per §3 layout patterns.
   final double contentMaxWidth;
 
+  // ── v1 backward-compat aliases (deprecated; use canonical v3 names) ────
+  /// Deprecated. v1 `s1` ≈ 4 — use [s4]. Removed in v6.
+  double get s1 => s4;
+
+  /// Deprecated. v1 `s3` ≈ 6 — use [s6]. Removed in v6.
+  double get s3 => s6;
+
+  /// Deprecated. v1 `s5` ≈ 10 — use [s10]. Removed in v6.
+  double get s5 => s10;
+
+  /// Deprecated. Use [fieldGap]. Removed in v6.
+  double get formFieldGap => fieldGap;
+
+  /// Deprecated. Use [sectionGap]. Removed in v6.
+  double get pageSectionGap => sectionGap;
+
+  /// Deprecated. Use [s12]. Removed in v6.
+  double get componentPaddingH => s12;
+
+  /// Deprecated. Use [cardPadding]. Removed in v6.
+  double get cardGridGap => cardPadding;
+
+  /// Deprecated. Use [pageMarginDesktop]. Removed in v6.
+  double get pagePaddingH => pageMarginDesktop;
+
+  /// Deprecated. Use [s16]. Removed in v6.
+  double get sectionGapInCard => s16;
+
   const GenaiSpacingTokens({
     this.s0 = GenaiSpacing.s0,
     this.s2 = GenaiSpacing.s2,

@@ -9,4 +9,3 @@ export 'radius.dart';
 export 'elevation.dart';
 export 'motion.dart';
 export 'z_index.dart';
-export '_v1_compat.dart';

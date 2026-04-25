@@ -9,7 +9,7 @@ import 'edge_painter.dart';
 import 'genogram_edge_config.dart';
 
 /// A widget that displays an organizational chart
-class GenaiGenogram<E> extends GenaiBaseGraph<E> {
+class GenaiGenogram<E> extends BaseGraph<E> {
   final void Function(E dragged, E target)? onDrop;
 
   /// Configuration for edge painter styling

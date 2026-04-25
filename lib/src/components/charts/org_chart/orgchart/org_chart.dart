@@ -7,7 +7,7 @@ import '../base/base_graph.dart';
 import 'edge_painter.dart';
 
 /// A widget that displays an organizational chart
-class GenaiOrgChart<E> extends GenaiBaseGraph<E> {
+class GenaiOrgChart<E> extends BaseGraph<E> {
   final void Function(E dragged, E target, bool isTargetSubnode)? onDrop;
 
   /// The size of each node box (width, height). If null and autoSize is false, uses controller default.

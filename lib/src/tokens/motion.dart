@@ -98,6 +98,22 @@ class GenaiMotionTokens {
     );
   }
 
+  // ── v1 backward-compat aliases ─────────────────────────────────────────
+  /// Deprecated. v1 had a 1500 ms autosave debounce. Removed in v6.
+  Duration get autosaveDebounce => const Duration(milliseconds: 1500);
+
+  /// Deprecated. v1 `tooltipDelay` ≈ 400 ms. Removed in v6.
+  Duration get tooltipDelay => const Duration(milliseconds: 400);
+
+  /// Deprecated. v1 `dropdownOpen` motion. Use [expand] instead. Removed in v6.
+  GenaiMotion get dropdownOpen => expand;
+
+  /// Deprecated. v1 `accordionOpen` motion. Use [expand] instead. Removed in v6.
+  GenaiMotion get accordionOpen => expand;
+
+  /// Deprecated. v1 `searchDebounce`. Removed in v6.
+  Duration get searchDebounce => const Duration(milliseconds: 200);
+
   /// Motion is categorical — `lerp` snaps at midpoint.
   static GenaiMotionTokens lerp(
           GenaiMotionTokens a, GenaiMotionTokens b, double t) =>
