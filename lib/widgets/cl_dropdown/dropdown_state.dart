@@ -8,8 +8,9 @@ import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../cl_container.widget.dart';
 import '../cl_text_field.widget.dart';
+import 'cl_dropdown_registry.dart';
 
-class DropdownState<T extends Object> extends ChangeNotifier {
+class DropdownState<T extends Object> extends ChangeNotifier implements ISelectableDropdown {
   List<T> items = [];
   final Future<(List<T>, Object?)> Function(
       {int? page,
@@ -39,6 +40,9 @@ class DropdownState<T extends Object> extends ChangeNotifier {
   bool isOverlayOpen = false;
   Timer? _searchDebounce;
 
+  /// The hint text for this dropdown — used as key in [CLDropdownRegistry].
+  final String? hint;
+
   // ═══════════════════════════════════════════════════════════════════════════
   // INFINITE SCROLL
   // ═══════════════════════════════════════════════════════════════════════════
@@ -62,6 +66,7 @@ class DropdownState<T extends Object> extends ChangeNotifier {
     required this.perPage,
     required this.searchColumn,
     this.onClearItem,
+    this.hint,
   }) {
     if (isMultiple) {
       assert(onSelectItems != null);
@@ -69,6 +74,84 @@ class DropdownState<T extends Object> extends ChangeNotifier {
       assert(onSelectItem != null);
     }
     _init(previousSelectedItems);
+    if (hint != null) {
+      CLDropdownRegistry.instance.register(hint!, this);
+    }
+  }
+
+  /// Programmatically selects an item matching [name].
+  /// For async dropdowns: does a targeted API search by name first (large page),
+  /// then falls back to the already-loaded items list.
+  /// For sync dropdowns: searches the provided items list.
+  /// Returns true if an item was found and selected.
+  @override
+  Future<bool> selectByName(String name) async {
+    T? _findMatch() {
+      // Exact match first, then partial
+      for (final item in items) {
+        if (valueToShow(item).toLowerCase() == name.toLowerCase()) return item;
+      }
+      for (final item in items) {
+        if (valueToShow(item).toLowerCase().contains(name.toLowerCase())) return item;
+      }
+      return null;
+    }
+
+    // For async dropdowns: targeted API search with large page size FIRST
+    if (asyncSearchCallback != null && searchColumn != null) {
+      try {
+        loading = true;
+        notifyListeners();
+        final (values, _) = await asyncSearchCallback!(
+          page: 1,
+          perPage: 100,
+          searchBy: {searchColumn!: name},
+        );
+        items = values;
+      } catch (_) {
+        // keep whatever was already loaded
+      } finally {
+        loading = false;
+        notifyListeners();
+      }
+
+      final match = _findMatch();
+      if (match != null) {
+        _selectItem(match);
+        return true;
+      }
+
+      // Secondary fallback: load first page unfiltered in case the name is partial
+      try {
+        loading = true;
+        notifyListeners();
+        final (values, _) = await asyncSearchCallback!(page: 1, perPage: 100);
+        items = values;
+      } catch (_) {
+        // ignore
+      } finally {
+        loading = false;
+        notifyListeners();
+      }
+
+      final fallbackMatch = _findMatch();
+      if (fallbackMatch != null) {
+        _selectItem(fallbackMatch);
+        return true;
+      }
+      return false;
+    }
+
+    // Sync dropdown: load items if empty, then match locally
+    if (items.isEmpty && syncSearchCallback != null) {
+      items = await syncSearchCallback!('');
+    }
+    final match = _findMatch();
+    if (match != null) {
+      _selectItem(match);
+      return true;
+    }
+    return false;
   }
 
   void _init(List<T> previousSelectedItems) {
@@ -156,6 +239,11 @@ class DropdownState<T extends Object> extends ChangeNotifier {
   void syncExternalSelectedItems(List<T> externalSelectedItems) {
     if (isMultiple) {
       if (listEquals(selectedItems, externalSelectedItems)) return;
+      // Don't clear programmatic (AI) selections when the parent rebuilds
+      // with an empty list — that happens because vm.notifyListeners() fires
+      // before the viewmodel's selectedXxx list is updated back through the
+      // callback chain.
+      if (externalSelectedItems.isEmpty && selectedItems.isNotEmpty) return;
       selectedItems = List<T>.from(externalSelectedItems);
       _updateMultipleText();
       notifyListeners();
@@ -497,7 +585,11 @@ class DropdownState<T extends Object> extends ChangeNotifier {
 
   @override
   void dispose() {
+    // §2.2.7 — cancel pending debounced search before disposing.
     _searchDebounce?.cancel();
+    if (hint != null) {
+      CLDropdownRegistry.instance.unregister(hint!);
+    }
     closeOverlay();
     textEditingController.dispose();
     searchController.dispose();

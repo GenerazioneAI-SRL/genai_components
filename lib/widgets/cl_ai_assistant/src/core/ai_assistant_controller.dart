@@ -77,7 +77,19 @@ class AiAssistantController extends ChangeNotifier {
 
   /// When true, [sendMessage] will NOT auto-open the overlay.
   /// Use this when the chat is embedded inline (e.g. in a dashboard panel).
-  bool embedMode = false;
+  /// Setting this to true also disables [hand_off_to_user] — the agent
+  /// performs the final action directly instead of waiting for the user.
+  bool _embedMode = false;
+  bool get embedMode => _embedMode;
+  set embedMode(bool value) {
+    if (_embedMode == value) return;
+    _embedMode = value;
+    if (value) {
+      _toolRegistry.disableTools(const {'hand_off_to_user'});
+    } else {
+      _toolRegistry.enableTools(const {'hand_off_to_user'});
+    }
+  }
   bool _isListening = false;
   bool _disposed = false;
 
@@ -341,9 +353,11 @@ class AiAssistantController extends ChangeNotifier {
       _toolRegistry.disableTools(_config.disabledBuiltInTools);
     }
 
-    // 4c. Navigation confirmation — navigation tools require user approval.
-    _toolRegistry.setConfirmationRequired(const {'navigate_to_route'});
-    _toolRegistry.onConfirmationRequired = _handleToolConfirmation;
+    // 4c. Navigation confirmation — optional, disabled by default.
+    if (_config.requireNavigationConfirmation) {
+      _toolRegistry.setConfirmationRequired(const {'navigate_to_route'});
+      _toolRegistry.onConfirmationRequired = _handleToolConfirmation;
+    }
 
     // 5. Voice services (lazy-initialized on first use).
     if (_config.voiceEnabled) {

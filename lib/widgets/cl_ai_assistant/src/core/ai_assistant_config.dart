@@ -69,6 +69,14 @@ class AiAssistantConfig {
   /// confirmation before execution. Default: true.
   final bool confirmDestructiveActions;
 
+  /// Whether the agent must ask for user confirmation before navigating
+  /// to a different screen. Default: false (navigation executes immediately).
+  ///
+  /// Set to true if you want the user to approve every navigation the AI
+  /// attempts. When false, navigation works like in the reference implementation
+  /// (branch-assistant) — the agent navigates directly without a prompt.
+  final bool requireNavigationConfirmation;
+
   /// Maximum number of reason-act-observe iterations per user message.
   /// Prevents infinite loops. Default: 30.
   final int maxAgentIterations;
@@ -303,6 +311,7 @@ class AiAssistantConfig {
     this.globalContextProvider,
     this.navigateToRoute,
     this.confirmDestructiveActions = true,
+    this.requireNavigationConfirmation = false,
     this.maxAgentIterations = 30,
     this.contextCacheTtl = const Duration(seconds: 10),
     this.systemPromptOverride,

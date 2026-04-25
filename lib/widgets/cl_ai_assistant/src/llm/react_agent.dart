@@ -451,8 +451,23 @@ class ReactAgent {
           (a) => builtInToolNames.contains(a.toolName),
         );
 
+        // Skip verification for pure form-fill flows: the fields are filled,
+        // there is nothing to re-verify. Verification is needed for navigation
+        // and action flows, not data entry.
+        const _formFillOnlyToolNames = {
+          'set_text',
+          'select_dropdown_item',
+          'get_screen_content',
+          'ask_user',
+        };
+        final isFormFillOnly = executedActions.isNotEmpty &&
+            executedActions.every(
+              (a) => _formFillOnlyToolNames.contains(a.toolName),
+            );
+
         if (executedActions.isNotEmpty &&
             usedAnyBuiltInTool &&
+            !isFormFillOnly &&
             verificationAttempts < maxVerificationAttempts) {
           verificationAttempts++;
           AiLogger.log(
@@ -602,11 +617,14 @@ class ReactAgent {
         // Safety timeout on tool execution — prevents the agent from hanging
         // forever if a tool handler blocks (e.g. awaiting a Future that never
         // completes). 30 seconds is generous; most tools complete in <2s.
+        // Exception: ask_user and hand_off_to_user wait for user input — no timeout.
+        const _noTimeoutTools = {'ask_user', 'hand_off_to_user'};
         ToolResult result;
         try {
-          result = await toolRegistry
-              .executeTool(toolCall)
-              .timeout(const Duration(seconds: 30));
+          final execFuture = toolRegistry.executeTool(toolCall);
+          result = _noTimeoutTools.contains(toolCall.name)
+              ? await execFuture
+              : await execFuture.timeout(const Duration(seconds: 30));
         } on TimeoutException {
           AiLogger.warn(
             'Tool ${toolCall.name} timed out after 30s',
@@ -783,9 +801,9 @@ class ReactAgent {
     bool Function() shouldCancel,
   ) async {
     while (true) {
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 100));
       if (shouldCancel()) return null;
     }
   }
-
 }
+

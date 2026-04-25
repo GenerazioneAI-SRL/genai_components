@@ -29,6 +29,7 @@ export 'widgets/cl_section_card.widget.dart';
 export 'widgets/cl_text_field.widget.dart';
 export 'widgets/cl_checkbox.widget.dart';
 export 'widgets/cl_dropdown/cl_dropdown.dart';
+export 'widgets/cl_dropdown/cl_dropdown_registry.dart';
 export 'widgets/cl_file_picker.widget.dart';
 export 'widgets/textfield_validator.dart';
 export 'widgets/time_input_field.widget.dart';

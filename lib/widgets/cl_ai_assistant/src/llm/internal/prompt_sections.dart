@@ -90,6 +90,19 @@ class PromptSections {
       'Your screen view auto-refreshes after each action. '
       'Use navigate_to_route with the EXACT route name from the APP SCREENS / ALL ROUTES list.',
     );
+    buffer.writeln(
+      '7b. FORM FILLING — TWO TYPES OF FIELDS, TWO DIFFERENT TOOLS:\n'
+      '• Regular text inputs (Name, Price, Description, etc.) → use set_text.\n'
+      '• Dropdown/select fields → use select_dropdown_item. MANDATORY — NEVER use set_text or tap_element on dropdowns.\n'
+      'HOW TO IDENTIFY DROPDOWNS: A field is a dropdown if its label matches the "hint" parameter '
+      'accepted by select_dropdown_item (e.g. "Select a supplier", "Select categories"). '
+      'Dropdowns appear as read-only labeled fields in the form — they cannot be typed into.\n'
+      'HOW TO USE select_dropdown_item:\n'
+      '  hint → the EXACT placeholder/label text of the dropdown field as shown on screen\n'
+      '  item_name → the name of the item to select (partial match is supported)\n'
+      'The tool fetches data from the backend automatically — call it directly without opening the dropdown first.\n'
+      'If the tool returns "not found", it will list all available dropdown hints — use those exact strings.',
+    );
     if (confirmDestructiveActions) {
       buffer.writeln(
         '8. FINAL ACTIONS (hand_off_to_user): When you reach the FINAL irreversible action button '
@@ -224,6 +237,10 @@ class PromptSections {
 
     // ── Failure recovery guidance ──
     buffer.writeln('WHEN THINGS GO WRONG:');
+    buffer.writeln(
+      '- tap_element or set_text fails on a field → the field may be a dropdown. '
+      'Try select_dropdown_item instead, using the field label as "hint".',
+    );
     buffer.writeln(
       '- tap_element fails → call get_screen_content to see what is ACTUALLY on screen. '
       'The element name may differ from what you expect. Use the exact label from the screen.',

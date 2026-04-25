@@ -22,6 +22,7 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
   final _focusNode = FocusNode();
 
   AiAssistantController? _controller;
+  bool _prevWaitingForUserResponse = false;
 
   @override
   void didChangeDependencies() {
@@ -39,6 +40,14 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
 
   void _onControllerChanged() {
     if (!mounted) return;
+    final nowWaiting = _controller?.isWaitingForUserResponse ?? false;
+    if (nowWaiting && !_prevWaitingForUserResponse) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusNode.requestFocus();
+      });
+    }
+    _prevWaitingForUserResponse = nowWaiting;
     setState(() {});
     _scrollToBottom();
   }
@@ -228,13 +237,14 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
       );
     }
 
+    final showTyping = _controller!.isProcessing && !_controller!.isWaitingForUserResponse;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(
         horizontal: Sizes.padding,
         vertical: Sizes.padding / 2,
       ),
-      itemCount: messages.length + (_controller!.isProcessing ? 1 : 0),
+      itemCount: messages.length + (showTyping ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == messages.length) {
           return _buildTypingIndicator(theme);
@@ -360,6 +370,9 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
 
   Widget _buildInput(CLTheme theme, bool isDark) {
     final isProcessing = _controller?.isProcessing ?? false;
+    final isWaiting = _controller?.isWaitingForUserResponse ?? false;
+    final canType = !isProcessing || isWaiting;
+    final showStop = isProcessing && !isWaiting;
 
     return Container(
       padding: const EdgeInsets.all(Sizes.padding * 0.75),
@@ -382,12 +395,12 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
               child: TextField(
                 controller: _textController,
                 focusNode: _focusNode,
-                enabled: !isProcessing,
+                enabled: canType,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _send(),
                 style: theme.bodyText.copyWith(fontSize: 13.5),
                 decoration: InputDecoration(
-                  hintText: isProcessing ? 'Attendi la risposta...' : 'Scrivi un messaggio...',
+                  hintText: isWaiting ? 'Rispondi...' : isProcessing ? 'Attendi la risposta...' : 'Scrivi un messaggio...',
                   hintStyle: theme.bodyLabel.copyWith(
                     color: theme.secondaryText,
                     fontSize: 13.5,
@@ -404,17 +417,17 @@ class _AiChatDrawerState extends State<AiChatDrawer> {
           ),
           const SizedBox(width: 8),
           Material(
-            color: isProcessing ? theme.secondaryText.withValues(alpha: 0.3) : theme.primary,
+            color: showStop ? theme.secondaryText.withValues(alpha: 0.3) : theme.primary,
             borderRadius: BorderRadius.circular(20),
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: isProcessing ? () => _controller?.requestStop() : _send,
+              onTap: showStop ? () => _controller?.requestStop() : _send,
               child: Container(
                 width: 40,
                 height: 40,
                 alignment: Alignment.center,
                 child: Icon(
-                  isProcessing ? Icons.stop_rounded : Icons.send_rounded,
+                  showStop ? Icons.stop_rounded : Icons.send_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -441,6 +454,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
   final _focusNode = FocusNode();
 
   AiAssistantController? _controller;
+  bool _prevWaitingForUserResponse = false;
 
   @override
   void didChangeDependencies() {
@@ -458,6 +472,14 @@ class _AiChatPanelState extends State<AiChatPanel> {
 
   void _onChanged() {
     if (!mounted) return;
+    final nowWaiting = _controller?.isWaitingForUserResponse ?? false;
+    if (nowWaiting && !_prevWaitingForUserResponse) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusNode.requestFocus();
+      });
+    }
+    _prevWaitingForUserResponse = nowWaiting;
     setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
@@ -568,10 +590,11 @@ class _AiChatPanelState extends State<AiChatPanel> {
         ),
       );
     }
+    final showTyping = _controller!.isProcessing && !_controller!.isWaitingForUserResponse;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding / 2),
-      itemCount: messages.length + (_controller!.isProcessing ? 1 : 0),
+      itemCount: messages.length + (showTyping ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == messages.length) {
           final progressText = _controller?.progressText;
@@ -645,6 +668,10 @@ class _AiChatPanelState extends State<AiChatPanel> {
 
   Widget _buildInput(CLTheme theme, bool isDark) {
     final isProcessing = _controller?.isProcessing ?? false;
+    final isWaiting = _controller?.isWaitingForUserResponse ?? false;
+    final canType = !isProcessing || isWaiting;
+    final showStop = isProcessing && !isWaiting;
+
     return Container(
       padding: const EdgeInsets.all(Sizes.padding * 0.75),
       decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.borderColor.withValues(alpha: 0.5)))),
@@ -660,12 +687,12 @@ class _AiChatPanelState extends State<AiChatPanel> {
               child: TextField(
                 controller: _textController,
                 focusNode: _focusNode,
-                enabled: !isProcessing,
+                enabled: canType,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _send(),
                 style: theme.bodyText.copyWith(fontSize: 13.5),
                 decoration: InputDecoration(
-                  hintText: isProcessing ? 'Attendi la risposta...' : 'Scrivi un messaggio...',
+                  hintText: isWaiting ? 'Rispondi...' : isProcessing ? 'Attendi la risposta...' : 'Scrivi un messaggio...',
                   hintStyle: theme.bodyLabel.copyWith(color: theme.secondaryText, fontSize: 13.5),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -676,14 +703,14 @@ class _AiChatPanelState extends State<AiChatPanel> {
           ),
           const SizedBox(width: 8),
           Material(
-            color: isProcessing ? theme.secondaryText.withValues(alpha: 0.3) : theme.primary,
+            color: showStop ? theme.secondaryText.withValues(alpha: 0.3) : theme.primary,
             borderRadius: BorderRadius.circular(20),
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: isProcessing ? () => _controller?.requestStop() : _send,
+              onTap: showStop ? () => _controller?.requestStop() : _send,
               child: Container(
                 width: 40, height: 40, alignment: Alignment.center,
-                child: Icon(isProcessing ? Icons.stop_rounded : Icons.send_rounded, color: Colors.white, size: 20),
+                child: Icon(showStop ? Icons.stop_rounded : Icons.send_rounded, color: Colors.white, size: 20),
               ),
             ),
           ),

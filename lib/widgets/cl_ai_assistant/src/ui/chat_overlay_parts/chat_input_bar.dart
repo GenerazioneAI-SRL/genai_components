@@ -194,8 +194,8 @@ class _InputField extends StatelessWidget {
             decoration: InputDecoration(
               hintText:
                   waiting
-                      ? 'Type your response...'
-                      : 'Ask me to do something...',
+                      ? 'Rispondi...'
+                      : 'Chiedi qualcosa...',
               hintStyle: TextStyle(
                 color:
                     waiting
@@ -257,6 +257,10 @@ class _StopButton extends StatelessWidget {
   final VoidCallback onTap;
   const _StopButton({required this.onTap});
 
+  // Teammate restyle (origin/main): stronger contrast — solid bg, thicker
+  // red border, drop shadow, full-opacity icon. Reads as a primary destructive
+  // affordance now that it is the only stop control after the header pair was
+  // removed.
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -266,13 +270,20 @@ class _StopButton extends StatelessWidget {
         height: 42,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _red.withValues(alpha: 0.15),
-          border: Border.all(color: _red.withValues(alpha: 0.3)),
+          color: _bgMid,
+          border: Border.all(color: _red.withValues(alpha: 0.5), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: _red.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Icon(
+        child: const Icon(
           Icons.stop_rounded,
           size: 20,
-          color: _red.withValues(alpha: 0.8),
+          color: _red,
         ),
       ),
     );

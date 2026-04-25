@@ -48,6 +48,8 @@ class _ChatOverlayState extends State<ChatOverlay>
   late final AnimationController _pulseCtrl;
   late final AnimationController _actionModeCtrl;
 
+  bool _prevWaitingForUserResponse = false;
+
   AiAssistantController get _ctrl => widget.controller;
 
   @override
@@ -95,6 +97,18 @@ class _ChatOverlayState extends State<ChatOverlay>
     } else {
       _actionModeCtrl.reverse();
     }
+
+    // Auto-focus the input when the agent transitions INTO waiting-for-user
+    // state. Only fires on the leading edge (false → true) so it doesn't
+    // steal focus back while the user is mid-typing on subsequent notifies.
+    final nowWaiting = _ctrl.isWaitingForUserResponse;
+    if (nowWaiting && !_prevWaitingForUserResponse) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focus.requestFocus();
+      });
+    }
+    _prevWaitingForUserResponse = nowWaiting;
   }
 
   @override

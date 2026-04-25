@@ -157,19 +157,14 @@ class _HeaderActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (controller.isProcessing && !controller.isWaitingForUserResponse) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _hdrBtn(Icons.stop_rounded, _red, controller.requestStop),
-          _hdrBtn(Icons.keyboard_arrow_down_rounded, _textB, onClose),
-        ],
-      );
-    }
+    // Teammate change (origin/main): the inline stop+close header pair was
+    // removed during processing — stop is now exposed via the input bar
+    // (_stopButtonInline). The header keeps only Clear + Close, and Clear
+    // is hidden while the agent is busy to avoid mid-flow conversation wipes.
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (controller.messages.isNotEmpty)
+        if (!controller.isProcessing && controller.messages.isNotEmpty)
           _hdrBtn(Icons.delete_outline, _textB, controller.clearConversation),
         _hdrBtn(Icons.keyboard_arrow_down_rounded, _textB, onClose),
       ],

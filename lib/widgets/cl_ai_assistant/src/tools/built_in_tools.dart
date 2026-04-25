@@ -1,3 +1,4 @@
+import '../../../cl_dropdown/cl_dropdown_registry.dart';
 import 'tool_definition.dart';
 
 /// Provides the callback signatures that built-in tools delegate to.
@@ -272,6 +273,70 @@ List<AiTool> createBuiltInTools(BuiltInToolHandlers handlers) {
               '(unrelated to your question) → ABANDON your current task '
               'and handle their new request instead. '
               'NEVER repeat the same question — if they didn\'t answer it, they don\'t want to.',
+        };
+      },
+    ),
+
+    // --- select_dropdown_item ---
+    AiTool(
+      name: 'select_dropdown_item',
+      description:
+          'Selects an item in a CLDropdown widget identified by its hint/placeholder text. '
+          'USE THIS TOOL for all CLDropdown fields — do NOT use tap_element or set_text on dropdowns. '
+          'The tool automatically loads data from the backend if needed, '
+          'without requiring the dropdown to be opened first.',
+      parameters: {
+        'hint': const ToolParameter(
+          type: 'string',
+          description:
+              'The exact hint/placeholder text of the dropdown '
+              '(e.g. "Select a supplier", "Select product categories"). '
+              'Must match exactly the placeholder text of the field.',
+        ),
+        'item_name': const ToolParameter(
+          type: 'string',
+          description:
+              'Exact or partial name of the item to select. '
+              'Search is case-insensitive and supports partial matching.',
+        ),
+      },
+      required: const ['hint', 'item_name'],
+      handler: (args) async {
+        final hint = args['hint'] as String? ?? '';
+        final itemName = args['item_name'] as String? ?? '';
+        if (hint.isEmpty || itemName.isEmpty) {
+          return {'success': false, 'message': 'Parameters hint and item_name are required'};
+        }
+
+        // Retry up to 8 times with increasing delays.
+        // The page may still be mounting after navigation — DropdownState
+        // registers with CLDropdownRegistry only after the widget is built.
+        const maxAttempts = 5;
+        const retryDelay = Duration(milliseconds: 250);
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+          if (attempt > 0) {
+            await Future.delayed(retryDelay);
+          }
+
+          if (!CLDropdownRegistry.instance.registeredHints.contains(hint)) {
+            continue; // Dropdown not yet mounted, retry
+          }
+
+          final success = await CLDropdownRegistry.instance.selectByName(hint, itemName);
+          if (success) {
+            return {'success': true, 'message': 'Item "$itemName" selected in "$hint"'};
+          }
+
+          // Dropdown found but item not in list — item truly doesn't exist
+          break;
+        }
+
+        final registered = CLDropdownRegistry.instance.registeredHints;
+        return {
+          'success': false,
+          'message': 'Dropdown "$hint" or item "$itemName" not found. '
+              'Available dropdowns: ${registered.join(", ")}',
         };
       },
     ),
