@@ -479,12 +479,11 @@ class _GenaiSelectState<T> extends State<GenaiSelect<T>> {
     final isCompact = context.isCompact;
     final h = widget.size.resolveHeight(isCompact: isCompact);
 
-    final borderColor = _hasError
-        ? colors.borderError
-        : (_open || _focused ? colors.borderFocus : colors.borderDefault);
-    final borderWidth = _open || _focused || _hasError
-        ? sizing.focusOutlineWidth
-        : widget.size.borderWidth;
+    // Resting border kept thin so layout never reflows on focus / open.
+    // Focus / error ring rendered as a non-layout overlay below.
+    final borderColor =
+        _hasError ? colors.borderError : colors.borderDefault;
+    final borderWidth = widget.size.borderWidth;
 
     final hasValue =
         widget.isMulti ? widget.values.isNotEmpty : widget.value != null;
@@ -541,60 +540,86 @@ class _GenaiSelectState<T> extends State<GenaiSelect<T>> {
     children.add(CompositedTransformTarget(
       link: _link,
       child: Focus(
-        onFocusChange: (f) => setState(() => _focused = f),
+        onFocusChange: (f) {
+          if (_focused != f) setState(() => _focused = f);
+        },
         child: MouseRegion(
           cursor: widget.isDisabled
               ? SystemMouseCursors.forbidden
               : SystemMouseCursors.click,
+          opaque: false,
+          hitTestBehavior: HitTestBehavior.opaque,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _toggle,
-            child: AnimatedContainer(
-              key: _fieldKey,
-              duration: motion.hover.duration,
-              curve: motion.hover.curve,
-              constraints: BoxConstraints(minHeight: h),
-              padding: EdgeInsets.symmetric(
-                horizontal: widget.size.paddingH,
-                vertical: widget.isMulti && hasValue
-                    ? spacing.s1
-                    : widget.size.paddingV,
-              ),
-              decoration: BoxDecoration(
-                color: widget.isDisabled
-                    ? colors.surfaceHover
-                    : colors.surfaceInput,
-                borderRadius: BorderRadius.circular(widget.size.borderRadius),
-                border: Border.all(color: borderColor, width: borderWidth),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: content),
-                  if (widget.isLoading)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: spacing.s1),
-                      child: const GenaiSpinner(size: GenaiSize.xs),
-                    ),
-                  if (widget.clearable && hasValue)
-                    GestureDetector(
-                      onTap: _clear,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: spacing.s1),
-                        child: Icon(LucideIcons.x,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  key: _fieldKey,
+                  constraints: BoxConstraints(minHeight: h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.size.paddingH,
+                    vertical: widget.isMulti && hasValue
+                        ? spacing.s1
+                        : widget.size.paddingV,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.isDisabled
+                        ? colors.surfaceHover
+                        : colors.surfaceInput,
+                    borderRadius:
+                        BorderRadius.circular(widget.size.borderRadius),
+                    border: Border.all(color: borderColor, width: borderWidth),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: content),
+                      if (widget.isLoading)
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: spacing.s1),
+                          child: const GenaiSpinner(size: GenaiSize.xs),
+                        ),
+                      if (widget.clearable && hasValue)
+                        GestureDetector(
+                          onTap: _clear,
+                          child: Padding(
+                            padding:
+                                EdgeInsets.symmetric(horizontal: spacing.s1),
+                            child: Icon(LucideIcons.x,
+                                size: GenaiSize.xs.iconSize,
+                                color: colors.textSecondary),
+                          ),
+                        ),
+                      AnimatedRotation(
+                        turns: _open ? 0.5 : 0,
+                        duration: motion.dropdownOpen.duration,
+                        curve: motion.dropdownOpen.curve,
+                        child: Icon(LucideIcons.chevronDown,
                             size: GenaiSize.xs.iconSize,
                             color: colors.textSecondary),
                       ),
-                    ),
-                  AnimatedRotation(
-                    turns: _open ? 0.5 : 0,
-                    duration: motion.dropdownOpen.duration,
-                    curve: motion.dropdownOpen.curve,
-                    child: Icon(LucideIcons.chevronDown,
-                        size: GenaiSize.xs.iconSize,
-                        color: colors.textSecondary),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                if ((_focused || _open || _hasError) && !widget.isDisabled)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(widget.size.borderRadius),
+                          border: Border.all(
+                            color: _hasError
+                                ? colors.borderError
+                                : colors.borderFocus,
+                            width: sizing.focusOutlineWidth,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

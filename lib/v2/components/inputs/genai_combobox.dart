@@ -330,20 +330,18 @@ class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
     final spacing = context.spacing;
     final sizing = context.sizing;
     final radius = context.radius;
-    final motion = context.motion;
 
     final height = _triggerHeight(sizing.density);
     final selected = _selectedOptions;
 
+    // Resting border kept 1 px so layout never reflows on focus / open.
+    // Focus ring rendered as a non-layout overlay below.
     final borderColor = widget.isDisabled
         ? colors.borderSubtle
         : _hasError
             ? colors.colorDanger
-            : (_focused || _isOpen)
-                ? colors.borderFocus
-                : colors.borderDefault;
-    final borderWidth =
-        (_focused || _isOpen || _hasError) ? sizing.focusRingWidth : 1.0;
+            : colors.borderDefault;
+    const borderWidth = 1.0;
 
     Widget content;
     if (widget.multiSelect) {
@@ -386,36 +384,61 @@ class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
           cursor: widget.isDisabled
               ? SystemMouseCursors.forbidden
               : SystemMouseCursors.click,
+          opaque: false,
+          hitTestBehavior: HitTestBehavior.opaque,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _toggle,
-            child: AnimatedContainer(
-              duration: motion.hover.duration,
-              curve: motion.hover.curve,
-              constraints: BoxConstraints(minHeight: height),
-              padding: EdgeInsets.symmetric(
-                horizontal: spacing.s12,
-                vertical:
-                    widget.multiSelect && selected.isNotEmpty ? spacing.s4 : 0,
-              ),
-              decoration: BoxDecoration(
-                color: widget.isDisabled
-                    ? colors.surfaceHover
-                    : colors.surfaceInput,
-                borderRadius: BorderRadius.circular(radius.sm),
-                border: Border.all(color: borderColor, width: borderWidth),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: content),
-                  SizedBox(width: spacing.iconLabelGap),
-                  Icon(
-                    _isOpen ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                    size: sizing.iconSize,
-                    color: colors.textTertiary,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  constraints: BoxConstraints(minHeight: height),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: spacing.s12,
+                    vertical: widget.multiSelect && selected.isNotEmpty
+                        ? spacing.s4
+                        : 0,
                   ),
-                ],
-              ),
+                  decoration: BoxDecoration(
+                    color: widget.isDisabled
+                        ? colors.surfaceHover
+                        : colors.surfaceInput,
+                    borderRadius: BorderRadius.circular(radius.sm),
+                    border:
+                        Border.all(color: borderColor, width: borderWidth),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: content),
+                      SizedBox(width: spacing.iconLabelGap),
+                      Icon(
+                        _isOpen
+                            ? LucideIcons.chevronUp
+                            : LucideIcons.chevronDown,
+                        size: sizing.iconSize,
+                        color: colors.textTertiary,
+                      ),
+                    ],
+                  ),
+                ),
+                if ((_focused || _isOpen || _hasError) && !widget.isDisabled)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(radius.sm),
+                          border: Border.all(
+                            color: _hasError
+                                ? colors.colorDanger
+                                : colors.borderFocus,
+                            width: sizing.focusRingWidth,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -527,8 +550,14 @@ class _ComboRowState extends State<_ComboRow> {
         cursor: widget.disabled
             ? SystemMouseCursors.forbidden
             : SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
+        opaque: false,
+        hitTestBehavior: HitTestBehavior.opaque,
+        onEnter: (_) {
+          if (!_hovered) setState(() => _hovered = true);
+        },
+        onExit: (_) {
+          if (_hovered) setState(() => _hovered = false);
+        },
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,

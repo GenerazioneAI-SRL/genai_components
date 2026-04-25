@@ -468,10 +468,10 @@ class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
     final isCompact = context.isCompact;
     final h = widget.size.resolveHeight(isCompact: isCompact);
 
-    final borderColor =
-        _open || _focused ? colors.borderFocus : colors.borderDefault;
-    final borderWidth =
-        _open || _focused ? sizing.focusOutlineWidth : widget.size.borderWidth;
+    // Resting border kept thin so layout never reflows on focus / open.
+    // Focus ring rendered as a non-layout overlay below.
+    final borderColor = colors.borderDefault;
+    final borderWidth = widget.size.borderWidth;
 
     final hasValue =
         widget.isMultiple ? _values.isNotEmpty : widget.value != null;
@@ -539,7 +539,9 @@ class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
         child: Focus(
           focusNode: _triggerFocus,
           canRequestFocus: !widget.isDisabled,
-          onFocusChange: (f) => setState(() => _focused = f),
+          onFocusChange: (f) {
+            if (_focused != f) setState(() => _focused = f);
+          },
           onKeyEvent: (node, event) {
             if (widget.isDisabled) return KeyEventResult.ignored;
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -557,50 +559,72 @@ class _GenaiComboboxState<T> extends State<GenaiCombobox<T>> {
             cursor: widget.isDisabled
                 ? SystemMouseCursors.forbidden
                 : SystemMouseCursors.click,
+            opaque: false,
+            hitTestBehavior: HitTestBehavior.opaque,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _toggle,
-              child: AnimatedContainer(
-                key: _fieldKey,
-                duration: motion.hover.duration,
-                curve: motion.hover.curve,
-                constraints: BoxConstraints(minHeight: triggerMinHeight),
-                padding: EdgeInsets.symmetric(
-                  horizontal: widget.size.paddingH,
-                  vertical: widget.isMultiple && hasValue
-                      ? spacing.s1
-                      : widget.size.paddingV,
-                ),
-                decoration: BoxDecoration(
-                  color: widget.isDisabled
-                      ? colors.surfaceHover
-                      : colors.surfaceInput,
-                  borderRadius: BorderRadius.circular(widget.size.borderRadius),
-                  border: Border.all(color: borderColor, width: borderWidth),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(child: content),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: spacing.s1),
-                      child: Icon(
-                        LucideIcons.search,
-                        size: GenaiSize.xs.iconSize,
-                        color: colors.textSecondary,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    key: _fieldKey,
+                    constraints: BoxConstraints(minHeight: triggerMinHeight),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: widget.size.paddingH,
+                      vertical: widget.isMultiple && hasValue
+                          ? spacing.s1
+                          : widget.size.paddingV,
+                    ),
+                    decoration: BoxDecoration(
+                      color: widget.isDisabled
+                          ? colors.surfaceHover
+                          : colors.surfaceInput,
+                      borderRadius:
+                          BorderRadius.circular(widget.size.borderRadius),
+                      border:
+                          Border.all(color: borderColor, width: borderWidth),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: content),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: spacing.s1),
+                          child: Icon(
+                            LucideIcons.search,
+                            size: GenaiSize.xs.iconSize,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _open ? 0.5 : 0,
+                          duration: motion.dropdownOpen.duration,
+                          curve: motion.dropdownOpen.curve,
+                          child: Icon(
+                            LucideIcons.chevronDown,
+                            size: GenaiSize.xs.iconSize,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if ((_focused || _open) && !widget.isDisabled)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                                widget.size.borderRadius),
+                            border: Border.all(
+                              color: colors.borderFocus,
+                              width: sizing.focusOutlineWidth,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    AnimatedRotation(
-                      turns: _open ? 0.5 : 0,
-                      duration: motion.dropdownOpen.duration,
-                      curve: motion.dropdownOpen.curve,
-                      child: Icon(
-                        LucideIcons.chevronDown,
-                        size: GenaiSize.xs.iconSize,
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
