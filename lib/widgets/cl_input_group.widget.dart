@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -130,44 +132,33 @@ class _CLInputGroupState<T> extends State<CLInputGroup<T>> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final Color borderColor = widget.hasError
-        ? theme.danger
-        : (_isFocused
-            ? theme.ring
-            : (widget.enabled
-                ? theme.cardBorder
-                : theme.cardBorder.withValues(alpha: 0.5)));
+    final Color borderColor =
+        widget.hasError ? theme.danger : (_isFocused ? theme.ring : (widget.enabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)));
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       height: CLSizes.inputHeight,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: widget.enabled
-            ? theme.secondaryBackground
-            : theme.secondaryBackground.withValues(alpha: 0.6),
+        color: widget.enabled ? theme.secondaryBackground : theme.secondaryBackground.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(CLSizes.radiusControl),
         border: Border.all(color: borderColor, width: 1),
-        boxShadow: _isFocused && !widget.hasError
-            ? [BoxShadow(color: theme.ring, spreadRadius: 1, blurRadius: 0)]
-            : null,
+        boxShadow: _isFocused && !widget.hasError ? [BoxShadow(color: theme.ring, spreadRadius: 1, blurRadius: 0)] : null,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
-        child: Row(
-          children: [
-            // ── Dropdown segment (auto-sized) ────────────────────────
-            widget.dropdownWidth != null
-                ? SizedBox(
-                    width: widget.dropdownWidth,
-                    child: _buildDropdown(theme),
-                  )
-                : IntrinsicWidth(child: _buildDropdown(theme)),
-            // ── Vertical divider ────────────────────────────────────
-            Container(width: 1, color: theme.cardBorder),
-            // ── Text input segment ──────────────────────────────────
-            Expanded(child: _buildTextField(theme)),
-          ],
-        ),
+      child: Row(
+        children: [
+          // ── Dropdown segment (auto-sized) ────────────────────────
+          widget.dropdownWidth != null
+              ? SizedBox(
+                  width: widget.dropdownWidth,
+                  child: _buildDropdown(theme),
+                )
+              : IntrinsicWidth(child: _buildDropdown(theme)),
+          // ── Vertical divider ────────────────────────────────────
+          Container(width: 1, color: theme.cardBorder),
+          // ── Text input segment ──────────────────────────────────
+          Expanded(child: _buildTextField(theme)),
+        ],
       ),
     );
   }
@@ -222,10 +213,12 @@ class _CLInputGroupState<T> extends State<CLInputGroup<T>> {
 
 /// Borderless dropdown segment used inside [CLInputGroup].
 ///
-/// Renders the selected label + chevron in a tappable area. On tap a
-/// Material popup menu opens with the available items, anchored under
-/// the segment. Mirrors `CLDropdown` UX (compact, primary tint hover)
-/// without rendering its own chrome — outer [CLInputGroup] handles it.
+/// Renders the selected label + chevron. On tap, opens a custom overlay
+/// popup anchored to the segment via [LayerLink]/[CompositedTransformFollower].
+/// This mechanism — same one used by Flutter's [DropdownButton] — guarantees
+/// pixel-perfect anchoring regardless of parent transforms or clip paths
+/// (the outer [CLInputGroup] uses [ClipRRect] + rounded corners which broke
+/// [PopupMenuButton]'s positioning math).
 class _DropdownSegment<T> extends StatefulWidget {
   final List<CLInputGroupItem<T>> items;
   final CLInputGroupItem<T> selected;
@@ -246,81 +239,200 @@ class _DropdownSegment<T> extends StatefulWidget {
 }
 
 class _DropdownSegmentState<T> extends State<_DropdownSegment<T>> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlay;
   bool _hovered = false;
 
-  Future<void> _open() async {
-    if (!widget.isInteractive) return;
-    final theme = CLTheme.of(context);
-    final RenderBox box = context.findRenderObject() as RenderBox;
-    final pos = box.localToGlobal(Offset.zero);
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  bool get _isOpen => _overlay != null;
 
-    final selected = await showMenu<T>(
-      context: context,
-      color: theme.secondaryBackground,
-      elevation: 4,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(pos.dx, pos.dy + box.size.height + 4, box.size.width, 0),
-        Offset.zero & overlay.size,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
-        side: BorderSide(color: theme.cardBorder),
-      ),
-      items: widget.items
-          .map((it) => PopupMenuItem<T>(
-                value: it.value,
-                height: 36,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (it.icon != null) ...[
-                      Icon(it.icon, size: 14, color: theme.secondaryText),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(it.label, style: theme.bodyText),
-                  ],
-                ),
-              ))
-          .toList(),
-    );
-    if (selected != null && selected != widget.selected.value) {
-      widget.onChanged?.call(selected);
+  void _toggle() {
+    if (_isOpen) {
+      _close();
+    } else {
+      _open();
     }
+  }
+
+  void _open() {
+    final theme = CLTheme.of(context);
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final size = box.size;
+
+    _overlay = OverlayEntry(
+      builder: (overlayContext) {
+        return Positioned(
+          width: max(size.width, 160),
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            offset: const Offset(0, 1),
+            child: TapRegion(
+              onTapOutside: (_) => _close(),
+              child: Material(
+                color: theme.secondaryBackground,
+                borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
+                elevation: 4,
+                shadowColor: Colors.black.withValues(alpha: 0.10),
+                clipBehavior: Clip.antiAlias,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
+                    border: Border.all(color: theme.cardBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: widget.items.map((it) {
+                      final isSelected = it.value == widget.selected.value;
+                      return _MenuItem<T>(
+                        item: it,
+                        isSelected: isSelected,
+                        onTap: () {
+                          _close();
+                          if (!isSelected) widget.onChanged?.call(it.value);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_overlay!);
+    setState(() {});
+  }
+
+  void _close() {
+    _overlay?.remove();
+    _overlay = null;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _overlay?.remove();
+    _overlay = null;
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final fg = widget.enabled ? theme.primaryText : theme.mutedForeground;
+
+    final Widget label = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.selected.icon != null) ...[
+          Icon(widget.selected.icon, size: 14, color: theme.secondaryText),
+          const SizedBox(width: 8),
+        ],
+        Text(widget.selected.label, style: theme.bodyText.copyWith(color: fg)),
+        const SizedBox(width: 6),
+        Icon(
+          LucideIcons.chevronDown,
+          size: 14,
+          color: widget.isInteractive ? theme.secondaryText : theme.mutedForeground,
+        ),
+      ],
+    );
+
+    final bool tinted = widget.isInteractive && (_hovered || _isOpen);
+
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: MouseRegion(
+        cursor: widget.isInteractive ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        onEnter: widget.isInteractive ? (_) => setState(() => _hovered = true) : null,
+        onExit: widget.isInteractive ? (_) => setState(() => _hovered = false) : null,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.isInteractive ? _toggle : null,
+          child: Container(
+            decoration: BoxDecoration(
+              color: tinted ? theme.muted : Colors.transparent,
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(CLSizes.radiusControl),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            alignment: Alignment.center,
+            child: label,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Single row inside the dropdown overlay popup.
+///
+/// Renders selected/hover tints aligned with the design system:
+/// - hovered (not selected): `theme.muted`
+/// - selected: `theme.primary` at 10% alpha + primary-tinted label/icon
+/// - trailing check mark when selected
+class _MenuItem<T> extends StatefulWidget {
+  final CLInputGroupItem<T> item;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MenuItem({
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_MenuItem<T>> createState() => _MenuItemState<T>();
+}
+
+class _MenuItemState<T> extends State<_MenuItem<T>> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+
+    final Color bg = widget.isSelected ? theme.primary.withValues(alpha: 0.10) : (_hovered ? theme.muted : Colors.transparent);
+    final Color fg = widget.isSelected ? theme.primary : theme.primaryText;
+    final FontWeight weight = widget.isSelected ? FontWeight.w600 : FontWeight.w400;
+
     return MouseRegion(
-      cursor: widget.isInteractive
-          ? SystemMouseCursors.click
-          : SystemMouseCursors.basic,
-      onEnter: widget.isInteractive ? (_) => setState(() => _hovered = true) : null,
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.isInteractive ? _open : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          color: _hovered ? theme.muted : Colors.transparent,
+        onTap: widget.onTap,
+        child: Container(
+          height: 36,
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12),
+          color: bg,
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              if (widget.selected.icon != null) ...[
-                Icon(widget.selected.icon, size: 14, color: theme.secondaryText),
+              if (widget.item.icon != null) ...[
+                Icon(widget.item.icon, size: 14, color: fg),
                 const SizedBox(width: 8),
               ],
-              Text(widget.selected.label, style: theme.bodyText.copyWith(color: fg)),
-              const SizedBox(width: 6),
-              Icon(
-                LucideIcons.chevronDown,
-                size: 14,
-                color: widget.isInteractive ? theme.secondaryText : theme.mutedForeground,
+              Expanded(
+                child: Text(
+                  widget.item.label,
+                  style: theme.bodyText.copyWith(color: fg, fontWeight: weight),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              if (widget.isSelected) ...[
+                const SizedBox(width: 8),
+                Icon(LucideIcons.check, size: 14, color: theme.primary),
+              ],
             ],
           ),
         ),

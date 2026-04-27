@@ -306,43 +306,55 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   }
 
   Future<void> _showExtraMenuOverlay(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state, GlobalKey buttonExtraMenuKey) async {
+    final theme = CLTheme.of(context);
     final RenderBox renderBox = buttonExtraMenuKey.currentContext!.findRenderObject() as RenderBox;
     final Offset position = renderBox.localToGlobal(Offset.zero);
+    final Size buttonSize = renderBox.size;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+
     if (ResponsiveBreakpoints.of(context).isDesktop) {
+      final menuWidth = 240.0;
+      final left = (position.dx + buttonSize.width - menuWidth).clamp(8.0, overlay.size.width - menuWidth - 8.0);
+      final top = position.dy + buttonSize.height + 4;
+
       await showDialog(
         context: context,
         barrierColor: Colors.transparent,
-        builder: (BuildContext context) {
+        builder: (BuildContext ctx) {
           return Stack(
-            children: <Widget>[
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(ctx).pop(),
+                ),
+              ),
               Positioned(
-                left: MediaQuery.of(context).size.width - 362,
-                top: position.dy + 50,
+                left: left,
+                top: top,
                 child: Material(
                   color: Colors.transparent,
                   child: Container(
-                    padding: const EdgeInsets.all(Sizes.padding),
-                    width: 320.0,
+                    width: menuWidth,
                     decoration: BoxDecoration(
-                      color: CLTheme.of(context).secondaryBackground,
-                      border: Border.all(color: CLTheme.of(context).borderColor, width: 1),
-                      borderRadius: BorderRadius.circular(Sizes.padding),
+                      color: theme.secondaryBackground,
+                      border: Border.all(color: theme.cardBorder, width: 1),
+                      borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
+                      boxShadow: theme.cardShadow,
                     ),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text("Azioni generali", style: CLTheme.of(context).bodyLabel),
-                        Divider(thickness: 1, color: CLTheme.of(context).borderColor),
-                        ...extraMenus.map(
-                          (menu) => GestureDetector(
+                        for (final menu in extraMenus)
+                          _ExtraMenuRow(
+                            content: menu.content,
                             onTap: () {
-                              Navigator.of(context).pop();
+                              Navigator.of(ctx).pop();
                               menu.onTap();
                             },
-                            child: menu.content,
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -355,30 +367,35 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     } else {
       await showModalBottomSheet(
         context: context,
-        barrierColor: Colors.transparent,
-        builder: (BuildContext context) {
-          return Container(
-            padding: const EdgeInsets.all(Sizes.padding),
-            decoration: BoxDecoration(
-              color: CLTheme.of(context).secondaryBackground,
-              border: Border.all(color: CLTheme.of(context).borderColor, width: 1),
-              borderRadius: BorderRadius.circular(Sizes.padding),
-            ),
+        backgroundColor: theme.secondaryBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(CLSizes.radiusModal)),
+        ),
+        builder: (BuildContext ctx) {
+          return SafeArea(
             child: Column(
-              mainAxisSize: MainAxisSize.max,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("Azioni generali", style: CLTheme.of(context).bodyLabel),
-                Divider(thickness: 1, color: CLTheme.of(context).borderColor),
-                ...extraMenus.map(
-                  (menu) => GestureDetector(
-                    onTap: () {
-                      menu.onTap.call();
-                      Navigator.of(context).pop();
-                    },
-                    child: menu.content,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: CLSizes.gapSm),
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(color: theme.borderColor, borderRadius: BorderRadius.circular(2)),
+                    ),
                   ),
                 ),
+                for (final menu in extraMenus)
+                  _ExtraMenuRow(
+                    content: menu.content,
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      menu.onTap();
+                    },
+                  ),
+                const SizedBox(height: CLSizes.gapSm),
               ],
             ),
           );
@@ -666,6 +683,44 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Single row inside extra-menu popup. Hover bg + 36px height + horizontal
+/// padding consistent with `tableActions` row context menu UX.
+class _ExtraMenuRow extends StatefulWidget {
+  final Widget content;
+  final VoidCallback onTap;
+
+  const _ExtraMenuRow({required this.content, required this.onTap});
+
+  @override
+  State<_ExtraMenuRow> createState() => _ExtraMenuRowState();
+}
+
+class _ExtraMenuRowState extends State<_ExtraMenuRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Container(
+          height: 40,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapMd),
+          color: _hovered ? theme.muted : Colors.transparent,
+          alignment: Alignment.centerLeft,
+          child: widget.content,
+        ),
+      ),
     );
   }
 }
