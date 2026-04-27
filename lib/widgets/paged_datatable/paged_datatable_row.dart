@@ -94,8 +94,9 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
     final model = widget.model;
     final state = widget.state;
     final theme = CLTheme.of(context);
-    final actions = widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
-    final showControls = _isHovered || model._isSelected || _isDialogOpen;
+    final allActions = widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
+    final inlineActions = allActions.where((a) => a.inline).toList();
+    final actions = allActions.where((a) => !a.inline).toList();
     final hasExpandedBuilder = widget.expandedRowBuilder != null;
     final isSelected = model._isSelected;
     final deco = _resolveRowDecoration(theme, isSelected);
@@ -144,7 +145,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                         _RowSelectionCell<TKey, TResultId, TResult>(
                           model: model,
                           state: state,
-                          visible: showControls || isSelected,
+                          visible: true,
                         ),
                       ...state.columns.map(
                         (column) => _DataTableCell<TResultId, TResult>(
@@ -154,13 +155,28 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                         ),
                       ),
                       const Spacer(),
+                      if (inlineActions.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var i = 0; i < inlineActions.length; i++) ...[
+                              if (i > 0) const SizedBox(width: CLSizes.gapMd),
+                              _InlineActionButton<TResultId, TResult>(
+                                action: inlineActions[i],
+                                model: model,
+                              ),
+                            ],
+                          ],
+                        ),
                       if (actions.isNotEmpty)
-                        SizedBox(
-                          width: 40,
-                          child: Center(
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 150),
-                              opacity: showControls ? 1.0 : 0.0,
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: inlineActions.isNotEmpty ? CLSizes.gapSm : 0,
+                            right: Sizes.padding,
+                          ),
+                          child: SizedBox(
+                            width: 40,
+                            child: Center(
                               child: _ActionButton(
                                 iconKey: iconKey,
                                 actions: actions,
@@ -175,7 +191,9 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                               ),
                             ),
                           ),
-                        ),
+                        )
+                      else if (inlineActions.isNotEmpty)
+                        const SizedBox(width: Sizes.padding),
                     ],
                   ),
                 ),
@@ -239,9 +257,11 @@ class _RowSelectionCell<TKey extends Comparable, TResultId extends Comparable, T
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: Sizes.padding - 2.5),
+      // Left: visual checkbox edge at Sizes.padding from outer (subtract 2.5
+      // border + 7 Material internal padding compensation).
+      padding: const EdgeInsets.only(left: Sizes.padding - 2.5 - 7),
       child: SizedBox(
-        width: 32,
+        width: 40,
         child: Align(
           alignment: Alignment.centerLeft,
           child: AnimatedOpacity(
@@ -321,5 +341,45 @@ class _ExpandedRowContent extends StatelessWidget {
             )
           : child,
     );
+  }
+}
+
+/// Inline action rendered in a row as a compact `CLOutlineButton`.
+/// Used when `TableAction.inline == true`. Tonal variant resolved from
+/// `action.color`: `theme.danger` → danger, `theme.warning` → warning,
+/// `theme.success` → success, `theme.info` → info, otherwise primary.
+class _InlineActionButton<TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
+  final TableAction<TResult> action;
+  final _PagedDataTableRowState<TResultId, TResult> model;
+
+  const _InlineActionButton({required this.action, required this.model});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final color = action.color ?? theme.primary;
+    // Inline action sempre icon-only: text vuoto → CLOutlineButton renderizza
+    // come IconButton compatto (32x32). Tooltip dal label se presente.
+    final icon = action.icon;
+    void onTap() => action.onTap(model.item);
+
+    Widget btn;
+    if (color == theme.danger) {
+      btn = CLOutlineButton.danger(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
+    } else if (color == theme.warning) {
+      btn = CLOutlineButton.warning(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
+    } else if (color == theme.success) {
+      btn = CLOutlineButton.success(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
+    } else if (color == theme.info) {
+      btn = CLOutlineButton.info(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
+    } else {
+      btn = CLOutlineButton.primary(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
+    }
+
+    final label = action.label;
+    if (label != null && label.isNotEmpty) {
+      return Tooltip(message: label, child: btn);
+    }
+    return btn;
   }
 }

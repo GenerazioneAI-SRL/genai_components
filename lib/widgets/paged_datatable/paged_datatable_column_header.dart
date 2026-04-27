@@ -6,8 +6,9 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
   final ModelIdGetter<TResultId, TResult> idGetter;
   final bool hasActions;
   final bool hasExpandIcon;
+  final double actionsColumnWidth;
 
-  const _PagedDataTableHeaderRow(this.rowsSelectable, this.width, this.idGetter, this.hasActions, this.hasExpandIcon);
+  const _PagedDataTableHeaderRow(this.rowsSelectable, this.width, this.idGetter, this.hasActions, this.hasExpandIcon, this.actionsColumnWidth);
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +45,12 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                         child: const SizedBox(width: 24),
                       ),
 
-                    // Checkbox header - same layout as rows
+                    // Checkbox header - aligned LEFT edge with search-field SizedBox left.
                     if (rowsSelectable)
                       Padding(
-                        padding: const EdgeInsets.only(left: Sizes.padding - leftBorderWidth),
+                        padding: const EdgeInsets.only(left: Sizes.padding - leftBorderWidth - 7),
                         child: SizedBox(
-                          width: 32,
+                          width: 40,
                           child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
                             selector: (context, model) => model._rowsSelectionChange,
                             builder: (context, value, child) {
@@ -59,7 +60,8 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                               // evitando che selezioni su altre pagine influenzino il checkbox header
                               final hasCurrentPageSelection = state._items.any((item) => state.selectedRows.containsKey(idGetter(item)));
 
-                              return Center(
+                              return Align(
+                                alignment: Alignment.centerLeft,
                                 child: Transform.scale(
                                   scale: 0.9,
                                   child: Checkbox(
@@ -108,8 +110,8 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                     // Spacer to match rows
                     const Spacer(),
 
-                    // Actions placeholder to match rows
-                    if (hasActions) const SizedBox(width: 40),
+                    // Actions placeholder to match rows (inline buttons + popup 40 + right padding)
+                    if (hasActions) SizedBox(width: actionsColumnWidth),
                   ],
                 ),
               );

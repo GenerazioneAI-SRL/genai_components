@@ -34,11 +34,14 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         final activeExtraFilters = state.filters.entries.where((e) => !e.value._filter.isMainFilter && e.value.hasValue).toList();
 
         Widget child = Container(
-            decoration: BoxDecoration(
-              color: CLTheme.of(context).secondaryBackground,
-            ),
-            padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? Sizes.padding : 0),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          decoration: BoxDecoration(
+            color: CLTheme.of(context).secondaryBackground,
+          ),
+          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? Sizes.padding : 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -188,23 +191,26 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       // Main menus (with horizontal spacing between buttons)
                       if (mainMenus.isNotEmpty)
                         for (var i = 0; i < mainMenus.length; i++) ...[
-                          if (i > 0) const SizedBox(width: Sizes.borderRadius),
+                          if (i > 0) const SizedBox(width: CLSizes.gapMd),
                           mainMenus[i],
                         ],
 
-                      // Extra menu
-                      if (extraMenus.isNotEmpty)
-                        IconButton(
+                      // Extra menu (icon-only ghost button)
+                      if (extraMenus.isNotEmpty) ...[
+                        if (mainMenus.isNotEmpty) const SizedBox(width: CLSizes.gapMd),
+                        KeyedSubtree(
                           key: buttonExtraMenuKey,
-                          splashColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          padding: const EdgeInsets.only(left: Sizes.small),
-                          icon: Icon(Icons.more_vert, color: theme.buttonsColor),
-                          onPressed: () async {
-                            _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
-                          },
+                          child: CLGhostButton.primary(
+                            text: '',
+                            iconAlignment: IconAlignment.start,
+                            icon: LucideIcons.ellipsisVertical400,
+                            onTap: () async {
+                              _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
+                            },
+                            context: context,
+                          ),
                         ),
+                      ],
 
                       // Checkbox (solo mobile)
                       if (rowsSelectable && !ResponsiveBreakpoints.of(context).isDesktop)
@@ -307,55 +313,68 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
 
   Future<void> _showExtraMenuOverlay(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state, GlobalKey buttonExtraMenuKey) async {
     final theme = CLTheme.of(context);
-    final RenderBox renderBox = buttonExtraMenuKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset position = renderBox.localToGlobal(Offset.zero);
-    final Size buttonSize = renderBox.size;
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
 
     if (ResponsiveBreakpoints.of(context).isDesktop) {
-      final menuWidth = 240.0;
-      final left = (position.dx + buttonSize.width - menuWidth).clamp(8.0, overlay.size.width - menuWidth - 8.0);
-      final top = position.dy + buttonSize.height + 4;
+      final buttonCtx = buttonExtraMenuKey.currentContext;
+      if (buttonCtx == null) return;
+      final overlayState = Overlay.of(context);
+      final RenderBox button = buttonCtx.findRenderObject() as RenderBox;
+      final RenderBox overlay = overlayState.context.findRenderObject() as RenderBox;
+      final buttonPos = button.localToGlobal(Offset.zero, ancestor: overlay);
+      final buttonSize = button.size;
+      const double menuWidth = 240;
+      final screenSize = overlay.size;
+      double left = buttonPos.dx + buttonSize.width - menuWidth;
+      if (left < 8) left = 8;
+      if (left + menuWidth > screenSize.width - 8) left = screenSize.width - menuWidth - 8;
+      final double top = buttonPos.dy + buttonSize.height + 4;
 
-      await showDialog(
-        context: context,
-        barrierColor: Colors.transparent,
-        builder: (BuildContext ctx) {
+      OverlayEntry? entry;
+      void close() {
+        entry?.remove();
+        entry = null;
+      }
+
+      entry = OverlayEntry(
+        builder: (ctx) {
           return Stack(
             children: [
               Positioned.fill(
                 child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(ctx).pop(),
+                  behavior: HitTestBehavior.translucent,
+                  onTap: close,
                 ),
               ),
               Positioned(
                 left: left,
                 top: top,
-                child: Material(
-                  color: Colors.transparent,
-                  child: Container(
-                    width: menuWidth,
-                    decoration: BoxDecoration(
-                      color: theme.secondaryBackground,
-                      border: Border.all(color: theme.cardBorder, width: 1),
-                      borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
-                      boxShadow: theme.cardShadow,
-                    ),
+                width: menuWidth,
+                child: TapRegion(
+                  onTapOutside: (_) => close(),
+                  child: Material(
+                    color: theme.secondaryBackground,
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
                     clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final menu in extraMenus)
-                          _ExtraMenuRow(
-                            content: menu.content,
-                            onTap: () {
-                              Navigator.of(ctx).pop();
-                              menu.onTap();
-                            },
-                          ),
-                      ],
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(CLSizes.radiusSurface),
+                        border: Border.all(color: theme.cardBorder, width: 1),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < extraMenus.length; i++)
+                            _ExtraMenuRow(
+                              content: extraMenus[i].content,
+                              onTap: () {
+                                close();
+                                extraMenus[i].onTap();
+                              },
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -364,6 +383,8 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           );
         },
       );
+
+      overlayState.insert(entry!);
     } else {
       await showModalBottomSheet(
         context: context,

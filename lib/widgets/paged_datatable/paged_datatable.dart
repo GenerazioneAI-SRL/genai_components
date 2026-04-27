@@ -2,12 +2,12 @@ import '../../utils/models/pagination.model.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_ghost_button.widget.dart';
+import '../buttons/cl_outline_button.widget.dart';
 import '../cl_shimmer.widget.dart';
 import '../cl_text_field.widget.dart';
 import '../cl_container.widget.dart';
@@ -237,19 +237,36 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         var state = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
         // Update columns reference so cellBuilder closures use the latest theme
         state.columns = columns;
-        // Whether actions column is present (either static or dynamic)
-        final hasActions = tableActions.isNotEmpty || actionsBuilder != null;
+        // Split actions into inline (rendered as compact CLOutlineButton in
+        // the row) and popup (rendered behind the 3-dot menu).
+        final inlineActions = tableActions.where((a) => a.inline).toList();
+        final popupActionsCount = tableActions.where((a) => !a.inline).length;
+        // Popup column shows when static popup actions exist or a dynamic
+        // actionsBuilder is provided (which may yield popup actions per row).
+        final hasPopupActions = popupActionsCount > 0 || actionsBuilder != null;
         // Whether rows have expand icon
         final hasExpandIcon = expandedRowBuilder != null;
         // Left border indicator width in rows
         const double leftBorderWidth = 2.5;
-        // Actions column width
-        const double actionsColumnWidth = 40.0;
+        // Inline action button: icon-only CLOutlineButton compact = 32x32.
+        const double inlineActionWidth = 32.0;
+        const double inlineActionGap = 12.0; // gapMd between inline buttons
+        final double inlineActionsAreaWidth =
+            inlineActions.isEmpty ? 0.0 : (inlineActions.length * inlineActionWidth) + ((inlineActions.length - 1) * inlineActionGap);
+        // Popup 3-dot button column width (40 + Sizes.padding right gap).
+        const double popupActionsColumnWidth = 40.0 + Sizes.padding;
+        // Total width reserved for the actions cluster on the right edge.
+        final double actionsColumnWidth = inlineActionsAreaWidth +
+            (hasPopupActions ? popupActionsColumnWidth : 0) +
+            // When ONLY inline actions are present we still need a right gap
+            // so buttons don't touch the table edge.
+            (inlineActions.isNotEmpty && !hasPopupActions ? Sizes.padding : 0);
+        final hasAnyActions = hasPopupActions || inlineActions.isNotEmpty;
         // Derivati dai token: il padding sinistro in rows/header è `Sizes.padding - leftBorderWidth`,
         // da non disallineare se Sizes.padding cambia (pena overflow nella Row delle righe).
-        const double checkboxWidth = 32;
+        const double checkboxWidth = 40;
         const double expandIconWidth = 24;
-        final double checkboxAreaWidth = (Sizes.padding - leftBorderWidth) + checkboxWidth;
+        final double checkboxAreaWidth = (Sizes.padding - leftBorderWidth - 7) + checkboxWidth;
         final double expandIconAreaWidth = (Sizes.padding - leftBorderWidth) + expandIconWidth;
 
         Widget child = LayoutBuilder(
@@ -260,7 +277,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 -
                 (hasExpandIcon ? expandIconAreaWidth : 0) -
                 (rowsSelectable ? checkboxAreaWidth : 0) -
-                (hasActions ? actionsColumnWidth : 0);
+                (hasAnyActions ? actionsColumnWidth : 0);
             state.availableWidth = width;
             return ResponsiveBreakpoints.of(context).isDesktop
                 ? Container(
@@ -380,7 +397,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                           ),
 
                         /* HEADER ROW */
-                        _PagedDataTableHeaderRow<TKey, TResultId, TResult>(rowsSelectable, width, idGetter, hasActions, hasExpandIcon),
+                        _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
+                            rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth),
                         /* ITEMS */
                         _PagedDataTableRows<TKey, TResultId, TResult>(
                           rowsSelectable,
