@@ -3,9 +3,11 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
+import '../buttons/cl_ghost_button.widget.dart';
 import '../cl_shimmer.widget.dart';
 import '../cl_text_field.widget.dart';
 import '../cl_container.widget.dart';
@@ -70,7 +72,7 @@ part 'types.dart';
 class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
   /// The callback that gets executed when a page is fetched.
   final Future<(List<TResult>, Pagination?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})
-  fetchPage;
+      fetchPage;
 
   /// The initial page to fetch.
   final TKey initialPage;
@@ -193,44 +195,44 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTheme = theme ?? PagedDataTableThemeData(
-      rowColors: [CLTheme.of(context).secondaryBackground, CLTheme.of(context).secondaryBackground],
-      border: const RoundedRectangleBorder(side: BorderSide.none),
-      backgroundColor: Colors.transparent,
-      headerBackgroundColor: Colors.transparent,
-      filtersHeaderBackgroundColor: Colors.transparent,
-      footerBackgroundColor: Colors.transparent,
-      titleStyle: CLTheme.of(context).heading1,
-      footerTextStyle: CLTheme.of(context).bodyLabel,
-      headerTextStyle: CLTheme.of(context).bodyLabel,
-      textStyle: CLTheme.of(context).bodyText,
-      buttonsColor: CLTheme.of(context).primary,
-      rowsTextStyle: CLTheme.of(context).bodyText,
-      configuration: PagedDataTableConfiguration(
-        filterBarVisibile: isFilterBarVisible,
-        footer: PagedDataTableFooterConfiguration(footerVisible: isFooterVisible),
-        pageSizes: pageSizes ?? [5, 25, 50, 100],
-        initialPageSize: initialPageSize ?? pageSizes?.first ?? 5,
-      ),
-    );
+    final effectiveTheme = theme ??
+        PagedDataTableThemeData(
+          rowColors: [CLTheme.of(context).secondaryBackground, CLTheme.of(context).secondaryBackground],
+          border: const RoundedRectangleBorder(side: BorderSide.none),
+          backgroundColor: Colors.transparent,
+          headerBackgroundColor: Colors.transparent,
+          filtersHeaderBackgroundColor: Colors.transparent,
+          footerBackgroundColor: Colors.transparent,
+          titleStyle: CLTheme.of(context).heading1,
+          footerTextStyle: CLTheme.of(context).bodyLabel,
+          headerTextStyle: CLTheme.of(context).bodyLabel,
+          textStyle: CLTheme.of(context).bodyText,
+          buttonsColor: CLTheme.of(context).primary,
+          rowsTextStyle: CLTheme.of(context).bodyText,
+          configuration: PagedDataTableConfiguration(
+            filterBarVisibile: isFilterBarVisible,
+            footer: PagedDataTableFooterConfiguration(footerVisible: isFooterVisible),
+            pageSizes: pageSizes ?? [5, 25, 50, 100],
+            initialPageSize: initialPageSize ?? pageSizes?.first ?? 5,
+          ),
+        );
 
     final localTheme = effectiveTheme;
     return ChangeNotifierProvider<_PagedDataTableState<TKey, TResultId, TResult>>(
-      create:
-          (context) => _PagedDataTableState(
-            downloadCallback: downloadPage,
-            columns: columns,
-            rowsSelectable: rowsSelectable,
-            showShimmerLoading: showShimmerLoading,
-            mainFilter: mainFilter,
-            extraFilters: extraFilters,
-            idGetter: idGetter,
-            controller: controller,
-            fetchCallback: fetchPage,
-            initialPage: initialPage,
-            pageSize: localTheme.configuration.initialPageSize,
-            refreshListener: refreshListener,
-          ),
+      create: (context) => _PagedDataTableState(
+        downloadCallback: downloadPage,
+        columns: columns,
+        rowsSelectable: rowsSelectable,
+        showShimmerLoading: showShimmerLoading,
+        mainFilter: mainFilter,
+        extraFilters: extraFilters,
+        idGetter: idGetter,
+        controller: controller,
+        fetchCallback: fetchPage,
+        initialPage: initialPage,
+        pageSize: localTheme.configuration.initialPageSize,
+        refreshListener: refreshListener,
+      ),
       builder: (context, widget) {
         var state = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
         // Update columns reference so cellBuilder closures use the latest theme
@@ -253,8 +255,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         Widget child = LayoutBuilder(
           builder: (context, constraints) {
             // Calculate width available for columns only
-            var width =
-                constraints.maxWidth -
+            var width = constraints.maxWidth -
                 leftBorderWidth // left border in rows
                 -
                 (hasExpandIcon ? expandIconAreaWidth : 0) -
@@ -263,131 +264,175 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
             state.availableWidth = width;
             return ResponsiveBreakpoints.of(context).isDesktop
                 ? Container(
-                  decoration: BoxDecoration(
-                    color: CLTheme.of(context).secondaryBackground,
-                    border: showTopBorder ? Border(top: BorderSide(color: CLTheme.of(context).borderColor, width: 1)) : null,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(Sizes.borderRadius),
-                      topRight: Radius.circular(Sizes.borderRadius),
+                    decoration: BoxDecoration(
+                      color: CLTheme.of(context).secondaryBackground,
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      /* FILTER TAB */
-                      if (localTheme.configuration.filterBarVisibile &&
-                          (header != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty || state.filters.isNotEmpty)) ...[
-                        _PagedDataTableFilterTab<TKey, TResultId, TResult>(
-                          mainMenus,
-                          extraMenus,
-                          header,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        /* FILTER TAB */
+                        if (localTheme.configuration.filterBarVisibile &&
+                            (header != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty || state.filters.isNotEmpty)) ...[
+                          _PagedDataTableFilterTab<TKey, TResultId, TResult>(
+                            mainMenus,
+                            extraMenus,
+                            header,
+                            rowsSelectable,
+                            idGetter,
+                            downloadPage,
+                            downloadButtonText,
+                            downloadButtonIcon,
+                            isFilterBarRounded,
+                          ),
+                        ],
+
+                        /* SELECTION TOOLBAR */
+                        if (selectionActionsBuilder != null)
+                          Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
+                            selector: (context, model) => model._rowsSelectionChange,
+                            builder: (context, _, __) {
+                              final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
+                              final selectedCount = st.selectedRows.length;
+                              final clTheme = CLTheme.of(context);
+
+                              Widget toolbarContent;
+                              if (selectedCount == 0) {
+                                toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
+                              } else {
+                                final selectedItems =
+                                    st.selectedRows.entries.where((e) => e.value < st._items.length).map((e) => st._items[e.value]).toList();
+                                final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
+                                toolbarContent = Container(
+                                  key: const ValueKey('toolbar_visible'),
+                                  padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: clTheme.primary.withValues(alpha: 0.06),
+                                    border: Border(
+                                      bottom: BorderSide(color: clTheme.primary.withValues(alpha: 0.15), width: 1),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Badge "X selezionati"
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: clTheme.primary.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                                          style: clTheme.bodyLabel.copyWith(
+                                            color: clTheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      // Azioni custom
+                                      if (actionWidgets.isNotEmpty) ...[
+                                        const SizedBox(width: Sizes.padding),
+                                        ...actionWidgets,
+                                      ],
+                                      const Spacer(),
+                                      // Deseleziona tutto
+                                      TextButton(
+                                        onPressed: () => st.clearAllSelections(),
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          'Deseleziona tutto',
+                                          style: clTheme.bodyLabel.copyWith(
+                                            color: clTheme.secondaryText,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+
+                              return AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 220),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                transitionBuilder: (child, animation) => SizeTransition(
+                                  sizeFactor: animation,
+                                  axisAlignment: -1,
+                                  child: FadeTransition(
+                                    opacity: animation,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, -0.3),
+                                        end: Offset.zero,
+                                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                                      child: child,
+                                    ),
+                                  ),
+                                ),
+                                child: toolbarContent,
+                              );
+                            },
+                          ),
+
+                        /* HEADER ROW */
+                        _PagedDataTableHeaderRow<TKey, TResultId, TResult>(rowsSelectable, width, idGetter, hasActions, hasExpandIcon),
+                        /* ITEMS */
+                        _PagedDataTableRows<TKey, TResultId, TResult>(
                           rowsSelectable,
-                          idGetter,
-                          downloadPage,
-                          downloadButtonText,
-                          downloadButtonIcon,
-                          isFilterBarRounded,
+                          onItemTap,
+                          isInSnippet,
+                          customRowBuilder ??
+                              CustomRowBuilder<TResult>(
+                                builder: (context, item) => throw UnimplementedError("This does not build nothing"),
+                                shouldUse: (context, item) => false,
+                              ),
+                          noItemsFoundBuilder,
+                          errorBuilder,
+                          width,
+                          actionsTitle,
+                          tableActions,
+                          actionsBuilder,
+                          localTheme.configuration.initialPageSize,
+                          showShimmerLoading,
+                          expandedRowBuilder,
+                          onRowExpanded,
                         ),
                       ],
-
-                      /* SELECTION TOOLBAR */
-                      if (selectionActionsBuilder != null)
-                        Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
-                          selector: (context, model) => model._rowsSelectionChange,
-                          builder: (context, _, __) {
-                            final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
-                            final selectedCount = st.selectedRows.length;
-                            final clTheme = CLTheme.of(context);
-
-                            Widget toolbarContent;
-                            if (selectedCount == 0) {
-                              toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
-                            } else {
-                              final selectedItems = st.selectedRows.entries
-                                  .where((e) => e.value < st._items.length)
-                                  .map((e) => st._items[e.value])
-                                  .toList();
-                              final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
-                              toolbarContent = Container(
-                                key: const ValueKey('toolbar_visible'),
-                                padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: clTheme.primary.withValues(alpha: 0.06),
-                                  border: Border(
-                                    bottom: BorderSide(color: clTheme.primary.withValues(alpha: 0.15), width: 1),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    // Badge "X selezionati"
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: clTheme.primary.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
-                                        style: clTheme.bodyLabel.copyWith(
-                                          color: clTheme.primary,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    // Azioni custom
-                                    if (actionWidgets.isNotEmpty) ...[
-                                      const SizedBox(width: Sizes.padding),
-                                      ...actionWidgets,
-                                    ],
-                                    const Spacer(),
-                                    // Deseleziona tutto
-                                    TextButton(
-                                      onPressed: () => st.clearAllSelections(),
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Text(
-                                        'Deseleziona tutto',
-                                        style: clTheme.bodyLabel.copyWith(
-                                          color: clTheme.secondaryText,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              switchInCurve: Curves.easeOutCubic,
-                              switchOutCurve: Curves.easeInCubic,
-                              transitionBuilder: (child, animation) => SizeTransition(
-                                sizeFactor: animation,
-                                axisAlignment: -1,
-                                child: FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, -0.3),
-                                      end: Offset.zero,
-                                    ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                                    child: child,
-                                  ),
-                                ),
-                              ),
-                              child: toolbarContent,
-                            );
-                          },
+                    ),
+                  )
+                : Column(
+                    children: [
+                      if (localTheme.configuration.filterBarVisibile &&
+                          (header != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty || state.filters.isNotEmpty)) ...[
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: CLTheme.of(context).secondaryBackground,
+                            borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(Sizes.padding),
+                            child: _PagedDataTableFilterTab<TKey, TResultId, TResult>(
+                              mainMenus,
+                              extraMenus,
+                              header,
+                              rowsSelectable,
+                              idGetter,
+                              downloadPage,
+                              downloadButtonText,
+                              downloadButtonIcon,
+                              isFilterBarRounded,
+                            ),
+                          ),
                         ),
-
-                      /* HEADER ROW */
-                      _PagedDataTableHeaderRow<TKey, TResultId, TResult>(rowsSelectable, width, idGetter, hasActions, hasExpandIcon),
-                      /* ITEMS */
-                      _PagedDataTableRows<TKey, TResultId, TResult>(
+                        const SizedBox(height: Sizes.small),
+                      ],
+                      _PagedDataTableBoxed<TKey, TResultId, TResult>(
                         rowsSelectable,
                         onItemTap,
                         isInSnippet,
@@ -402,59 +447,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         actionsTitle,
                         tableActions,
                         actionsBuilder,
-                        localTheme.configuration.initialPageSize,
-                        showShimmerLoading,
-                        expandedRowBuilder,
-                        onRowExpanded,
                       ),
                     ],
-                  ),
-                )
-                : Column(
-                  children: [
-                    if (localTheme.configuration.filterBarVisibile &&
-                        (header != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty || state.filters.isNotEmpty)) ...[
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: CLTheme.of(context).primaryBackground,
-                          borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(Sizes.padding),
-                          child: _PagedDataTableFilterTab<TKey, TResultId, TResult>(
-                            mainMenus,
-                            extraMenus,
-                            header,
-                            rowsSelectable,
-                            idGetter,
-                            downloadPage,
-                            downloadButtonText,
-                            downloadButtonIcon,
-                            isFilterBarRounded,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: Sizes.small),
-                    ],
-                    _PagedDataTableBoxed<TKey, TResultId, TResult>(
-                      rowsSelectable,
-                      onItemTap,
-                      isInSnippet,
-                      customRowBuilder ??
-                          CustomRowBuilder<TResult>(
-                            builder: (context, item) => throw UnimplementedError("This does not build nothing"),
-                            shouldUse: (context, item) => false,
-                          ),
-                      noItemsFoundBuilder,
-                      errorBuilder,
-                      width,
-                      actionsTitle,
-                      tableActions,
-                      actionsBuilder,
-                    ),
-                  ],
-                );
+                  );
           },
         );
         // apply configuration to this widget only
@@ -462,20 +457,22 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         assert(effectiveTheme.rowColors != null ? effectiveTheme.rowColors!.length == 2 : true, "rowColors must contain exactly two colors");
 
         return Container(
-          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: CLTheme.of(context).secondaryBackground,
             borderRadius: BorderRadius.circular(Sizes.radiusCard),
-            border:
-                showBorder
-                    ? Border.all(color: CLTheme.of(context).cardBorder, width: 1)
-                    : null,
             boxShadow: showBorder ? CLTheme.of(context).cardShadow : null,
           ),
-          child:
-              ResponsiveBreakpoints.of(context).isDesktop
-                  ? SingleChildScrollView(
+          child: Material(
+            type: MaterialType.card,
+            color: CLTheme.of(context).secondaryBackground,
+            shape: RoundedRectangleBorder(
+              side: showBorder ? BorderSide(color: CLTheme.of(context).borderColor, width: 1) : BorderSide.none,
+              borderRadius: BorderRadius.circular(Sizes.radiusCard),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ResponsiveBreakpoints.of(context).isDesktop
+                ? SingleChildScrollView(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Container(
                           decoration: BoxDecoration(
@@ -486,37 +483,39 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         localTheme.configuration.footer.footerVisible
                             ? showFooter
                                 ? Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: CLTheme.of(context).primaryBackground,
-                                  ),
-                                  child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
-                                )
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: CLTheme.of(context).primaryBackground,
+                                    ),
+                                    child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
+                                  )
                                 : SizedBox.shrink()
                             : const SizedBox.shrink(),
                       ],
                     ),
                   )
-                  : SingleChildScrollView(
+                : SingleChildScrollView(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         child,
                         SizedBox(height: Sizes.padding),
                         localTheme.configuration.footer.footerVisible
                             ? showFooter
                                 ? Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: CLTheme.of(context).primaryBackground,
-                                  ),
-                                  child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
-                                )
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: CLTheme.of(context).primaryBackground,
+                                    ),
+                                    child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
+                                  )
                                 : SizedBox.shrink()
                             : const SizedBox.shrink(),
                         !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
                       ],
                     ),
                   ),
+          ),
         );
       },
     );

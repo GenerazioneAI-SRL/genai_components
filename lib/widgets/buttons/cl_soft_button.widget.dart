@@ -272,7 +272,9 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 }),
                 elevation: WidgetStateProperty.all(0),
                 minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
+                fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.standard,
                 iconSize: WidgetStateProperty.all(iconSz),
               ),
               label: Text(
@@ -297,7 +299,9 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 elevation: WidgetStateProperty.all(0),
                 shadowColor: WidgetStateProperty.all(Colors.transparent),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
+                fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.standard,
               ),
               icon: AnimatedCrossFade(
                 firstChild: widget.hugeIcon != null

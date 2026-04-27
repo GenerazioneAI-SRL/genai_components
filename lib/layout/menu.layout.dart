@@ -64,10 +64,9 @@ class _CLMenuLayoutState extends State<CLMenuLayout> {
     final authState = context.read<CLAuthState>();
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Mobile: sfondo opaco. Desktop: trasparente (il glass è nel container di app.layout)
-    final menuBg = isMobile ? (isDark ? theme.primaryBackground : Colors.white) : Colors.transparent;
+    final menuBg = isMobile ? theme.secondaryBackground : Colors.transparent;
 
     return Container(
       width: isMobile ? double.infinity : null,

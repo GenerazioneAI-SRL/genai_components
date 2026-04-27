@@ -141,7 +141,8 @@ class _PageSizeControls extends StatelessWidget {
     final t = theme;
     return Container(
       height: 36,
-      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(Sizes.borderRadius - 2), border: Border.all(color: t.borderColor, width: 1)),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(CLSizes.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(pageSizes.length, (i) {
@@ -213,10 +214,6 @@ class _PageSizeButtonState extends State<_PageSizeButton> {
                 : _isHovered
                     ? t.primary.withValues(alpha: 0.04)
                     : Colors.transparent,
-            borderRadius: BorderRadius.horizontal(
-              left: widget.isFirst ? const Radius.circular(9.5) : Radius.zero,
-              right: widget.isLast ? const Radius.circular(9.5) : Radius.zero,
-            ),
             border: !widget.isFirst ? Border(left: BorderSide(color: t.borderColor, width: 1)) : null,
           ),
           child: Center(
@@ -253,7 +250,8 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
 
     return Container(
       height: 36,
-      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(Sizes.borderRadius - 2), border: Border.all(color: t.borderColor, width: 1)),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(CLSizes.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -266,7 +264,7 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
             enabled: canPrev,
             isFirst: true,
             theme: t,
-            child: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: canPrev ? t.primaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
+            child: Icon(LucideIcons.chevronLeft, color: canPrev ? t.primaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
           ),
 
           // ── Pagina corrente ─────────────────────────────────────
@@ -309,7 +307,7 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
             enabled: canNext,
             isFirst: false,
             theme: t,
-            child: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: canNext ? t.primaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
+            child: Icon(LucideIcons.chevronRight, color: canNext ? t.primaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
           ),
         ],
       ),
@@ -358,10 +356,6 @@ class _PaginationButtonState extends State<_PaginationButton> {
             color: _isHovered && widget.enabled
                 ? t.primary.withValues(alpha: 0.06)
                 : Colors.transparent,
-            borderRadius: BorderRadius.horizontal(
-              left: widget.isFirst ? const Radius.circular(9.5) : Radius.zero,
-              right: !widget.isFirst ? const Radius.circular(9.5) : Radius.zero,
-            ),
           ),
           child: Center(child: widget.child),
         ),

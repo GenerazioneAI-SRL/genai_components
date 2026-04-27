@@ -269,7 +269,9 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(CLSizes.radiusControl)),
                  ),
                  minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
+                 fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                 visualDensity: VisualDensity.standard,
                  iconSize: WidgetStateProperty.all(iconSz),
                ),
               label: Text(
@@ -295,7 +297,9 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                   side: BorderSide(color: theme.cardBorder, width: 1.0),
                 )),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
+                fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.standard,
               ),
               icon: AnimatedCrossFade(
                 firstChild: widget.hugeIcon ??

@@ -255,9 +255,9 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                       alignment: Alignment.center,
                       firstChild: widget.hugeIcon ??
                           (widget.iconData != null
-                              ? Icon(widget.iconData, color: fgColor, size: iconSz)
+                              ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz)
                               : SizedBox(width: iconSz, height: iconSz)),
-                      secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
+                      secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
                       crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                       duration: const Duration(milliseconds: 200),
                     )
@@ -284,7 +284,9 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                       );
                     }),
                     minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
+                    fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.standard,
                     iconSize: WidgetStateProperty.all(iconSz),
                   ),
               label: Text(
@@ -307,12 +309,14 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(CLSizes.radiusControl))),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
+                fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.standard,
               ),
               icon: AnimatedCrossFade(
                 firstChild:
-                    widget.hugeIcon ?? (widget.iconData != null ? Icon(widget.iconData, color: fgColor, size: iconSz) : const SizedBox.shrink()),
-                secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
+                    widget.hugeIcon ?? (widget.iconData != null ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz) : const SizedBox.shrink()),
+                secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
                 crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 200),
               ),

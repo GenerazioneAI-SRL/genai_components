@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../models/pageaction.model.dart';
@@ -85,12 +84,9 @@ class _CLPageHeaderState extends State<CLPageHeader> {
   @override
   void dispose() {
     widget.scrollController?.removeListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) return;
-      try {
-        context.read<NavigationState>().headerTitleVisible.value = false;
-      } catch (_) {}
-    });
+    try {
+      context.read<NavigationState>().headerTitleVisible.value = false;
+    } catch (_) {}
     super.dispose();
   }
 
@@ -220,7 +216,7 @@ class _CLPageHeaderState extends State<CLPageHeader> {
 
   Widget? _buildPill({required CLTheme theme, required Color accent}) {
     final crumbs = _moduleCrumbLabels(context);
-    if (widget.icon == null && crumbs.isEmpty) return null;
+    if (crumbs.isEmpty) return null;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -228,27 +224,17 @@ class _CLPageHeaderState extends State<CLPageHeader> {
         vertical: CLSizes.gapXs + 2,
       ),
       decoration: BoxDecoration(
-        color: accent,
+        color: accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(CLSizes.radiusChip + 2),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.icon != null) ...[
-            HugeIcon(icon: widget.icon, color: Colors.white, size: 14),
-            if (crumbs.isNotEmpty) const SizedBox(width: CLSizes.gapXs + 2),
-          ],
-          if (crumbs.isNotEmpty)
-            Text(
-              crumbs.map((s) => s.toUpperCase()).join(' · '),
-              style: theme.smallLabel.copyWith(
-                color: Colors.white,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-              ),
-            ),
-        ],
+      child: Text(
+        crumbs.map((s) => s.toUpperCase()).join(' · '),
+        style: theme.smallLabel.copyWith(
+          color: accent,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
       ),
     );
   }

@@ -70,15 +70,12 @@ class TextTableFilter extends TableFilter<String> {
       controller: _controller!,
       focusNode: _focusNode,
       labelText: isMainFilter ? "Cerca per $title" : "Filtra per $title",
-      prefixIcon: HugeIcon(
-        icon: HugeIcons.strokeRoundedSearch01,
+      prefixIcon: Icon(
+        LucideIcons.search,
         color: CLTheme.of(context).secondaryText,
-        size: Sizes.medium,
+        size: 18,
       ),
-      prefixIconConstraints: BoxConstraints(
-        minWidth: Sizes.medium + 16,
-        minHeight: Sizes.medium + 16,
-      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 0),
       onChanged:
           onChange != null
               ? (value) async {

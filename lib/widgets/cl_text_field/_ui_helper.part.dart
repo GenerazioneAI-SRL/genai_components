@@ -7,6 +7,9 @@ class _TextFieldUiHelper extends _Helper {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final bool isInline = w.dateFieldType != null;
+    final String? semanticLabelText = w.isTextArea
+        ? null
+        : (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
 
     final VoidCallback? gestureTap = w.onColorPicked != null
         ? () => s._colorHelper.pick(context)
@@ -30,7 +33,141 @@ class _TextFieldUiHelper extends _Helper {
                 ? s.isDatePicked
                 : w.isReadOnly;
 
-    return MouseRegion(
+    // ─── textArea path: untouched (uses Material InputDecorator) ────────
+    if (w.isTextArea) {
+      final formField = TextFormField(
+        textAlignVertical: TextAlignVertical.center,
+        textCapitalization:
+            w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
+        cursorColor: theme.primary,
+        cursorWidth: 1.5,
+        cursorRadius: const Radius.circular(1),
+        readOnly: readOnly,
+        onTap: w.onTap,
+        controller: s.controllerRef,
+        focusNode: s.focusNodeRef,
+        maxLines: w.maxLines,
+        keyboardType: w.inputType,
+        obscureText: false,
+        enabled: w.isEnabled,
+        onChanged: w.onChanged,
+        inputFormatters: w.inputFormatters ?? _defaultInputFormatters(),
+        style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
+        decoration: _decoration(context, theme),
+        validator: _combineValidators(_effectiveValidators),
+      );
+      return MouseRegion(
+        cursor: !w.isEnabled ? SystemMouseCursors.forbidden : SystemMouseCursors.text,
+        child: formField,
+      );
+    }
+
+    // ─── non-textArea: custom Container chrome — exact 40px ─────────────
+    // Bypass InputDecorator entirely. Material's InputDecorator reserves
+    // vertical space for label + helper + error + tap-target floor that
+    // forces the field above 40px even with isDense, hintText, and
+    // shrinkWrap. By rendering chrome ourselves we get pixel-perfect 40.
+    final hintText = w.dateFieldType?.hint ??
+        (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
+
+    final innerField = TextFormField(
+      textAlignVertical: TextAlignVertical.center,
+      textCapitalization:
+          w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
+      cursorColor: theme.primary,
+      cursorWidth: 1.5,
+      cursorRadius: const Radius.circular(1),
+      readOnly: readOnly,
+      onTap: w.onTap,
+      controller: s.controllerRef,
+      focusNode: s.focusNodeRef,
+      maxLines: 1,
+      keyboardType: isInline ? TextInputType.number : w.inputType,
+      obscureText: w.isObscured && !s.isPasswordVisibleRef,
+      enabled: w.isEnabled,
+      onChanged: isInline
+          ? (value) {
+              // ignore: invalid_use_of_protected_member
+              s.setState(() {});
+              _handleDateFieldParsing(value);
+              w.onChanged?.call(value);
+            }
+          : w.onChanged,
+      inputFormatters: isInline
+          ? [DateMaskFormatter(w.dateFieldType!)]
+          : (w.inputFormatters ?? _defaultInputFormatters()),
+      style: theme.bodyText.copyWith(fontWeight: FontWeight.w400),
+      // Full InputDecoration with border.none + isDense + symmetric vertical
+      // padding tuned to center text in the 40px Container.
+      decoration: InputDecoration(
+        isDense: true,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        hintText: hintText,
+        hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
+      ),
+      validator: _combineValidators(_effectiveValidators),
+    );
+
+    final hasPrefix = w.prefixIcon != null;
+    final suffix = _suffixIcon(context, theme);
+
+    final Widget chrome = AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      height: CLSizes.inputHeight,
+      decoration: BoxDecoration(
+        color: w.isEnabled
+            ? (w.fillColor ?? theme.secondaryBackground)
+            : (w.fillColor ?? theme.secondaryBackground)
+                .withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(
+            w.isRounded ? CLSizes.inputHeight / 2 : CLSizes.radiusControl),
+        border: Border.all(
+          color: s.isFocusedRef
+              ? theme.ring
+              : (w.isEnabled
+                  ? theme.cardBorder
+                  : theme.cardBorder.withValues(alpha: 0.5)),
+          width: 1,
+        ),
+        boxShadow: s.isFocusedRef
+            ? [BoxShadow(color: theme.ring, spreadRadius: 1, blurRadius: 0)]
+            : null,
+      ),
+      child: Row(
+        children: [
+          if (hasPrefix)
+            Padding(
+              padding: const EdgeInsets.only(left: 12, right: 8),
+              child: w.prefixIcon,
+            )
+          else
+            const SizedBox(width: 12),
+          Expanded(child: innerField),
+          if (suffix != null) suffix else const SizedBox(width: 12),
+        ],
+      ),
+    );
+
+    // Material ancestor still required for TextFormField internals
+    // (selection, IME, ripple). Force shrinkWrap to neutralize any
+    // residual tap-target floor inherited from app theme.
+    final themedChrome = Theme(
+      data: Theme.of(context).copyWith(
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: chrome,
+      ),
+    );
+
+    final field = MouseRegion(
       cursor: !w.isEnabled
           ? SystemMouseCursors.forbidden
           : gestureTap != null
@@ -40,60 +177,52 @@ class _TextFieldUiHelper extends _Helper {
         onTap: gestureTap,
         child: AbsorbPointer(
           absorbing: absorb,
-          child: TextFormField(
-            textAlignVertical: TextAlignVertical.center,
-            textCapitalization:
-                w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
-            cursorColor: theme.primary,
-            cursorWidth: 1.5,
-            cursorRadius: const Radius.circular(1),
-            readOnly: readOnly,
-            onTap: w.onTap,
-            controller: s.controllerRef,
-            focusNode: s.focusNodeRef,
-            maxLines: w.isTextArea ? w.maxLines : 1,
-            keyboardType: isInline ? TextInputType.number : w.inputType,
-            obscureText: w.isObscured && !s.isPasswordVisibleRef,
-            enabled: w.isEnabled,
-            onChanged: isInline
-                ? (value) {
-                    // ignore: invalid_use_of_protected_member
-                    s.setState(() {});
-                    _handleDateFieldParsing(value);
-                    w.onChanged?.call(value);
-                  }
-                : w.onChanged,
-            inputFormatters: isInline
-                ? [DateMaskFormatter(w.dateFieldType!)]
-                : (w.inputFormatters ?? _defaultInputFormatters()),
-            style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.4),
-            decoration: _decoration(context, theme),
-            validator: _combineValidators(_effectiveValidators),
-          ),
+          child: themedChrome,
         ),
       ),
     );
+
+    return semanticLabelText == null
+        ? field
+        : Semantics(label: semanticLabelText, textField: true, child: field);
   }
 
   InputDecoration _decoration(BuildContext context, CLTheme theme) {
     OutlineInputBorder b(Color c, double bw) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Sizes.radiusSm),
+          borderRadius: BorderRadius.circular(CLSizes.radiusControl),
           borderSide: BorderSide(color: c, width: bw),
         );
+    final String labelOrHint =
+        s.shouldShowRequired ? '${w.labelText}*' : w.labelText;
+    // For non-textArea fields we render the label as hintText (placeholder)
+    // instead of labelText. labelText reserves vertical space above the input
+    // for floating-label position, pushing intrinsic height to ~48 even with
+    // isDense:true. hintText does NOT reserve that space, so the field
+    // collapses to ~36-38 intrinsic and fits CLSizes.inputHeight (40) cleanly.
+    // Accessibility: an outer Semantics(label:...) preserves screen-reader
+    // announcement of the field name.
+    final bool useHintForLabel = !w.isTextArea;
     return InputDecoration(
       isDense: true,
-      floatingLabelBehavior: FloatingLabelBehavior.auto,
-      floatingLabelStyle: theme.smallText.copyWith(
-        color: s.isFocusedRef ? theme.primary : theme.secondaryText,
-        fontWeight: s.isFocusedRef ? FontWeight.w500 : FontWeight.w400,
-        height: 1,
-      ),
-      labelStyle: theme.bodyLabel,
+      floatingLabelBehavior:
+          w.isTextArea ? FloatingLabelBehavior.auto : FloatingLabelBehavior.never,
+      floatingLabelStyle: w.isTextArea
+          ? theme.smallText.copyWith(
+              color: s.isFocusedRef ? theme.primary : theme.secondaryText,
+              fontWeight: s.isFocusedRef ? FontWeight.w500 : FontWeight.w400,
+              height: 1,
+            )
+          : null,
+      labelStyle: w.isTextArea ? theme.bodyLabel : null,
       alignLabelWithHint: w.isTextArea,
       errorMaxLines: 200,
+      // Vertical padding tuned so that border(1+1) + text(~14 @ fs13/h1.0) +
+      // pad(10+10) ≈ 36 ≤ CLSizes.inputHeight (40). InputDecorator centers the
+      // content vertically inside the SizedBox(40) outer wrap → exact 40px slot
+      // matching CLButton.primary.
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      labelText: s.shouldShowRequired ? '${w.labelText}*' : w.labelText,
-      hintText: w.dateFieldType?.hint,
+      labelText: w.isTextArea ? labelOrHint : null,
+      hintText: useHintForLabel ? (w.dateFieldType?.hint ?? labelOrHint) : w.dateFieldType?.hint,
       hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
       prefixIcon: w.prefixIcon != null
           ? Padding(padding: const EdgeInsets.only(left: 12, right: 8), child: w.prefixIcon)

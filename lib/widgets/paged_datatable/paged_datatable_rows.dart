@@ -81,10 +81,7 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       separatorBuilder: (_, __) => theme.dividerColor == null
-          ? Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.5),
-              child: Divider(height: 0, color: clTheme.borderColor, thickness: 1),
-            )
+          ? Divider(height: 0, color: clTheme.borderColor, thickness: 1)
           : const SizedBox.shrink(),
       itemCount: state._rowsState.length,
       shrinkWrap: true,

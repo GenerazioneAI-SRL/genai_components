@@ -61,7 +61,7 @@ class CLAvatarWidget extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: _gradientFor(context, name),
+                color: _tintBgFor(context, name),
                 border: Border.all(
                   color: Colors.white,
                   width: 1,
@@ -76,23 +76,16 @@ class CLAvatarWidget extends StatelessWidget {
     );
   }
 
-  /// Gradient morbido derivato da due tonalità del color hash del nome.
-  /// Stessa tinta di base in light/dark, l'effetto è identitario.
-  LinearGradient _gradientFor(BuildContext context, String text) {
+  /// Bg tinted alpha 0.12 dal color hash del nome — pattern coerente con
+  /// menu selected item / pill page header / accreditation icons.
+  Color _tintBgFor(BuildContext context, String text) {
     final base = CLTheme.of(context).generateColorFromText(text);
-    final HSLColor hsl = HSLColor.fromColor(base);
-    final Color top = hsl
-        .withLightness((hsl.lightness + 0.10).clamp(0.0, 1.0))
-        .withSaturation((hsl.saturation + 0.05).clamp(0.0, 1.0))
-        .toColor();
-    final Color bottom = hsl
-        .withLightness((hsl.lightness - 0.08).clamp(0.0, 1.0))
-        .toColor();
-    return LinearGradient(
-      colors: [top, bottom],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
+    return base.withValues(alpha: 0.12);
+  }
+
+  /// Color base hash (per icone/iniziali su tinted bg).
+  Color _baseFor(BuildContext context, String text) {
+    return CLTheme.of(context).generateColorFromText(text);
   }
 
   Widget _initialsAvatar(
@@ -106,7 +99,7 @@ class CLAvatarWidget extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: _gradientFor(context, text),
+        color: _tintBgFor(context, text),
         border: withWhiteBorder
             ? Border.all(
                 color: Colors.white,
@@ -219,7 +212,7 @@ class CLAvatarWidget extends StatelessWidget {
       child: Text(
         initials.toUpperCase(),
         style: CLTheme.of(context).smallText.override(
-              color: Colors.white,
+              color: _baseFor(context, fullName),
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,

@@ -16,18 +16,13 @@ class CLTabView extends StatefulWidget {
   final String? title;
   final bool showDivider;
 
-  const CLTabView(
-      {super.key,
-      required this.clTabItems,
-      this.title,
-      this.showDivider = false});
+  const CLTabView({super.key, required this.clTabItems, this.title, this.showDivider = false});
 
   @override
   State<CLTabView> createState() => _CLTabViewState();
 }
 
-class _CLTabViewState extends State<CLTabView>
-    with SingleTickerProviderStateMixin {
+class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMixin {
   late TabController _controller;
 
   static const Duration _kAnimDuration = Duration(milliseconds: 200);
@@ -48,8 +43,7 @@ class _CLTabViewState extends State<CLTabView>
     if (oldWidget.clTabItems.length != widget.clTabItems.length) {
       _controller.removeListener(_onTabChanged);
       _controller.dispose();
-      _controller =
-          TabController(length: widget.clTabItems.length, vsync: this);
+      _controller = TabController(length: widget.clTabItems.length, vsync: this);
       _controller.addListener(_onTabChanged);
     }
   }
@@ -67,7 +61,7 @@ class _CLTabViewState extends State<CLTabView>
 
   void _selectIndex(int index) {
     if (_controller.index == index) return;
-    _controller.animateTo(index);
+    _controller.animateTo(index, duration: Duration.zero);
   }
 
   @override
@@ -90,26 +84,25 @@ class _CLTabViewState extends State<CLTabView>
         Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(widget.clTabItems.length, (index) {
-              final item = widget.clTabItems[index];
-              final isActive = _controller.index == index;
-              return Padding(
-                padding: EdgeInsets.only(
-                  right: index == widget.clTabItems.length - 1
-                      ? 0
-                      : CLSizes.gapMd,
-                ),
-                child: _CLTabUnderlineItem(
-                  item: item,
-                  isActive: isActive,
-                  onTap: () => _selectIndex(index),
-                  theme: theme,
-                  animDuration: _kAnimDuration,
-                  animCurve: _kAnimCurve,
-                  activeUnderline: _kActiveUnderline,
-                  height: _kTabHeight,
-                ),
-              );
-            }),
+            final item = widget.clTabItems[index];
+            final isActive = _controller.index == index;
+            return Padding(
+              padding: EdgeInsets.only(
+                right: index == widget.clTabItems.length - 1 ? 0 : CLSizes.gapLg,
+              ),
+              child: _CLTabUnderlineItem(
+                item: item,
+                isActive: isActive,
+                onTap: () => _selectIndex(index),
+                theme: theme,
+                animDuration: _kAnimDuration,
+                animCurve: _kAnimCurve,
+                activeUnderline: _kActiveUnderline,
+                height: _kTabHeight,
+                showRail: widget.showDivider,
+              ),
+            );
+          }),
         ),
 
         // Divider opzionale sotto la tab bar (oltre a quello di default)
@@ -118,16 +111,13 @@ class _CLTabViewState extends State<CLTabView>
           Divider(color: theme.borderColor, height: 1),
         ],
 
-        const SizedBox(height: CLSizes.gapSm),
+        const SizedBox(height: CLSizes.gapLg),
 
         // Contenuto (IndexedStack per mantenere lo stato)
         IndexedStack(
           index: _controller.index,
           children: List.generate(widget.clTabItems.length, (index) {
-            return Visibility(
-                visible: _controller.index == index,
-                maintainState: true,
-                child: widget.clTabItems[index].tabContent);
+            return Visibility(visible: _controller.index == index, maintainState: true, child: widget.clTabItems[index].tabContent);
           }),
         ),
       ],
@@ -146,6 +136,7 @@ class _CLTabUnderlineItem extends StatefulWidget {
   final Curve animCurve;
   final double activeUnderline;
   final double height;
+  final bool showRail;
 
   const _CLTabUnderlineItem({
     required this.item,
@@ -156,6 +147,7 @@ class _CLTabUnderlineItem extends StatefulWidget {
     required this.animCurve,
     required this.activeUnderline,
     required this.height,
+    required this.showRail,
   });
 
   @override
@@ -169,19 +161,15 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
 
-    final Color textColor = widget.isActive
-        ? theme.primaryText
-        : (_hovered ? theme.primaryText : theme.mutedForeground);
+    final Color textColor = widget.isActive ? theme.primaryText : (_hovered ? theme.primaryText : theme.mutedForeground);
 
     // Underline:
     // - active: 3px primary
-    // - inactive + hover: 1px borderColor
-    // - inactive: trasparente (il divider continuo della row gestisce la base)
-    final Color underlineColor = widget.isActive
-        ? theme.primary
-        : (_hovered ? theme.borderColor : Colors.transparent);
-    final double underlineThickness =
-        widget.isActive ? widget.activeUnderline : 1.0;
+    // - inactive + hover: 1px borderColor SOLO se showRail (divider attivo)
+    // - inactive: trasparente
+    // Quando showRail=false: ZERO linee tranne tab attivo.
+    final Color underlineColor = widget.isActive ? theme.primary : (widget.showRail && _hovered ? theme.borderColor : Colors.transparent);
+    final double underlineThickness = widget.isActive ? widget.activeUnderline : 1.0;
 
     final TextStyle baseStyle = theme.title.override(
       fontSize: 14,
@@ -200,8 +188,7 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
           duration: widget.animDuration,
           curve: widget.animCurve,
           height: widget.height,
-          padding:
-              const EdgeInsets.symmetric(horizontal: CLSizes.gapLg),
+          padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapLg),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(

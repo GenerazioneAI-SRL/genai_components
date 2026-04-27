@@ -35,10 +35,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
 
         Widget child = Container(
             decoration: BoxDecoration(
-              color: CLTheme.of(context).primaryBackground,
-              borderRadius: isFilterBarRounded
-                  ? BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius))
-                  : null,
+              color: CLTheme.of(context).secondaryBackground,
             ),
             padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? Sizes.padding : 0),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -88,23 +85,19 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                               }
 
                               if (isDesktop) {
-                                // Desktop: CLButton con testo + icona + badge
+                                // Desktop: CLOutlineButton con testo + icona + badge
                                 return Stack(
                                   clipBehavior: Clip.none,
                                   children: [
-                                    CLButton(
+                                    KeyedSubtree(
                                       key: buttonKey,
-                                      text: "Filtri",
-                                      iconAlignment: IconAlignment.start,
-                                      backgroundColor: CLTheme.of(context).secondaryBackground,
-                                      textStyle: CLTheme.of(context).bodyLabel.copyWith(fontWeight: FontWeight.w500),
-                                      hugeIcon: HugeIcon(
-                                        icon: HugeIcons.strokeRoundedFilterHorizontal,
-                                        color: CLTheme.of(context).secondaryText,
-                                        size: 16,
+                                      child: CLGhostButton.primary(
+                                        text: "Filtri",
+                                        iconAlignment: IconAlignment.start,
+                                        icon: LucideIcons.slidersHorizontal,
+                                        onTap: isDisabled ? () {} : onTap,
+                                        context: context,
                                       ),
-                                      onTap: isDisabled ? () {} : onTap,
-                                      context: context,
                                     ),
                                     if (activeCount > 0)
                                       Positioned(
@@ -135,8 +128,8 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                   children: [
                                     IconButton(
                                       key: buttonKey,
-                                      icon: HugeIcon(
-                                        icon: HugeIcons.strokeRoundedFilterHorizontal,
+                                      icon: Icon(
+                                        LucideIcons.slidersHorizontal,
                                         color: CLTheme.of(context).primaryText,
                                         size: Sizes.medium,
                                       ),
@@ -192,8 +185,12 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                         const SizedBox(width: Sizes.padding),
                       ],
 
-                      // Main menus
-                      if (mainMenus.isNotEmpty) ...mainMenus,
+                      // Main menus (with horizontal spacing between buttons)
+                      if (mainMenus.isNotEmpty)
+                        for (var i = 0; i < mainMenus.length; i++) ...[
+                          if (i > 0) const SizedBox(width: Sizes.borderRadius),
+                          mainMenus[i],
+                        ],
 
                       // Extra menu
                       if (extraMenus.isNotEmpty)

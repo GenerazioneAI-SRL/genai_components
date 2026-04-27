@@ -479,9 +479,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
     Widget buildIconSlot(double size) {
       final iconChild = widget.hugeIcon ??
-          (widget.iconData != null
-              ? Icon(widget.iconData, color: widget.iconColor ?? fgColor, size: size)
-              : SizedBox(width: size, height: size));
+          (widget.iconData != null ? Icon(widget.iconData, color: widget.iconColor ?? fgColor, size: size) : SizedBox(width: size, height: size));
       return AnimatedSwitcher(
         duration: _iconSwapDuration,
         switchInCurve: Curves.easeOutCubic,

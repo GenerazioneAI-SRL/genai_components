@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
@@ -141,18 +142,38 @@ class _CLMetricCardState extends State<CLMetricCard> {
       fontWeight: FontWeight.w400,
     );
 
+    final clickable = widget.onTap != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Top row: solid filled icon container — no glow, no alpha tint.
-        Container(
-          padding: EdgeInsets.all(iconBoxPad),
-          decoration: BoxDecoration(
-            color: widget.color,
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
-          ),
-          child: Icon(widget.icon, size: iconSize, color: Colors.white),
+        // Top row: tinted icon container + optional clickable chevron.
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(iconBoxPad),
+              decoration: BoxDecoration(
+                color: widget.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+              ),
+              child: Icon(widget.icon, size: iconSize, color: widget.color),
+            ),
+            if (clickable) ...[
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: widget.color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  LucideIcons.arrowUpRight,
+                  size: 14,
+                  color: widget.color,
+                ),
+              ),
+            ],
+          ],
         ),
         SizedBox(height: widget.compact ? CLSizes.gapMd : CLSizes.gapLg),
         // Hero value with count-up animation (only when numeric).

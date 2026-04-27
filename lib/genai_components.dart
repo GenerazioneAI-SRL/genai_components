@@ -13,11 +13,13 @@ export 'widgets/buttons/cl_outline_button.widget.dart';
 export 'widgets/buttons/cl_ghost_button.widget.dart';
 export 'widgets/buttons/cl_soft_button.widget.dart';
 export 'widgets/buttons/cl_action_text.widget.dart';
+export 'widgets/buttons/cl_action_chip.widget.dart';
 export 'widgets/buttons/cl_confirm_dialog.dart';
 
 // Layout widgets
 export 'widgets/cl_card.widget.dart';
 export 'widgets/cl_container.widget.dart';
+export 'widgets/cl_input_group.widget.dart';
 export 'widgets/layout/cl_page_container.widget.dart';
 export 'widgets/layout/cl_responsive_stack.widget.dart';
 export 'widgets/layout/cl_responsive_grid_shadcn.widget.dart';

@@ -77,7 +77,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
     if (_isHovered) {
       return (
         rowColor: theme.primaryText.withValues(alpha: 0.025),
-        leftBorderColor: theme.primary.withValues(alpha: 0.3),
+        leftBorderColor: theme.primary,
         leftBorderWidth: 2.5,
       );
     }

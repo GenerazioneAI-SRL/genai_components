@@ -156,6 +156,17 @@ abstract class CLTheme {
 
 /// --- Light / Dark --------------------------------------------------------
 
+/// Light shadow tokens (DS sottile) — riutilizzati da Material elevation
+/// e da decorazioni di card.
+const _kLightCardShadow = <BoxShadow>[
+  BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 2)),
+  BoxShadow(color: Color(0x05000000), blurRadius: 4, offset: Offset(0, 1)),
+];
+
+const _kDarkCardShadow = <BoxShadow>[
+  BoxShadow(color: Color(0x33000000), blurRadius: 14, offset: Offset(0, 3)),
+];
+
 class LightModeTheme extends CLTheme {
   const LightModeTheme({
     super.primary = const Color(0xFF0C8EC7),
@@ -163,7 +174,7 @@ class LightModeTheme extends CLTheme {
     super.alternate = const Color(0xFFE8EBF0),
     super.primaryText = const Color(0xF2000000),
     super.secondaryText = const Color(0xFF615D59),
-    super.primaryBackground = const Color(0xFFF6F5F4),
+    super.primaryBackground = const Color(0xFFF6F6FA),
     super.secondaryBackground = const Color(0xFFFFFFFF),
     super.tertiaryBackground = const Color(0xFFECEBE9),
     super.success = const Color(0xFF16A34A),
@@ -182,12 +193,7 @@ class LightModeTheme extends CLTheme {
   });
 
   @override
-  List<BoxShadow> get cardShadow => const [
-        BoxShadow(color: Color(0x0A000000), blurRadius: 18, offset: Offset(0, 4)),
-        BoxShadow(color: Color(0x07000000), blurRadius: 7.85, offset: Offset(0, 2.025)),
-        BoxShadow(color: Color(0x05000000), blurRadius: 2.93, offset: Offset(0, 0.8)),
-        BoxShadow(color: Color(0x03000000), blurRadius: 1.04, offset: Offset(0, 0.175)),
-      ];
+  List<BoxShadow> get cardShadow => _kLightCardShadow;
 }
 
 class DarkModeTheme extends CLTheme {
@@ -216,10 +222,7 @@ class DarkModeTheme extends CLTheme {
   });
 
   @override
-  List<BoxShadow> get cardShadow => const [
-        BoxShadow(color: Color(0x29000000), blurRadius: 18, offset: Offset(0, 4)),
-        BoxShadow(color: Color(0x1A000000), blurRadius: 8, offset: Offset(0, 2)),
-      ];
+  List<BoxShadow> get cardShadow => _kDarkCardShadow;
 }
 
 /// --- Typography ----------------------------------------------------------
