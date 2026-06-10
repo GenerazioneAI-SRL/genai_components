@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import '_dialog_chrome.dart';
 
 /// A simple yes/no confirmation dialog.
@@ -86,17 +85,17 @@ class CLConfirmationDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              CLSizes.gap2Xl,
-              CLSizes.gap2Xl,
-              CLSizes.gap2Xl,
-              CLSizes.gapLg,
+            padding: EdgeInsets.fromLTRB(
+              cl.gap2Xl,
+              cl.gap2Xl,
+              cl.gap2Xl,
+              cl.gapLg,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconBadge(icon: headerIcon, color: tone, size: 48, iconSize: 24),
-                const SizedBox(width: CLSizes.gapLg),
+                SizedBox(width: cl.gapLg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +109,7 @@ class CLConfirmationDialog extends StatelessWidget {
                           height: 1.3,
                         ),
                       ),
-                      const SizedBox(height: CLSizes.gapSm),
+                      SizedBox(height: cl.gapSm),
                       Text(
                         message,
                         style: cl.bodyText.copyWith(

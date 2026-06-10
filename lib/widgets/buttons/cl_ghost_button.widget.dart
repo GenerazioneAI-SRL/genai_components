@@ -228,11 +228,11 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
   @override
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
-    final hPad = widget.isCompact ? CLSizes.gapMd : CLSizes.gapLg;
-    const vPad = 0.0;
     final theme = CLTheme.of(context);
+    final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
+    const vPad = 0.0;
     final fgColor = widget.foregroundColor ?? theme.primaryText;
-    final iconSz = widget.isCompact ? CLSizes.iconSizeCompact - 2 : CLSizes.iconSizeCompact;
+    final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
     final hoverBg = theme.accent;
     final pressedBg = Color.lerp(hoverBg, Colors.black, 0.08)!;
@@ -277,7 +277,7 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                     padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                     shape: WidgetStateProperty.resolveWith((states) {
                       return RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+                        borderRadius: BorderRadius.circular(theme.radiusControl),
                         side: states.contains(WidgetState.focused)
                             ? BorderSide(color: focusBorder, width: 2)
                             : BorderSide.none,
@@ -307,7 +307,7 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                   return Colors.transparent;
                 }),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(CLSizes.radiusControl))),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl))),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,

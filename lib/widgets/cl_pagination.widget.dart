@@ -74,7 +74,7 @@ class CLPagination extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(width: CLSizes.gapMd),
+        SizedBox(width: theme.gapMd),
 
         // ── Controlli paginazione ──
         Row(
@@ -93,10 +93,10 @@ class CLPagination extends StatelessWidget {
               child: HugeIcon(
                 icon: HugeIcons.strokeRoundedArrowLeft01,
                 color: canPrev ? theme.primaryText : theme.mutedForeground,
-                size: CLSizes.iconSizeCompact,
+                size: theme.iconSizeCompact,
               ),
             ),
-            const SizedBox(width: CLSizes.gapXs),
+            SizedBox(width: theme.gapXs),
 
             // Page tokens
             ..._buildPageTokens().expand((tok) sync* {
@@ -121,11 +121,11 @@ class CLPagination extends StatelessWidget {
                         ),
                       ),
                     );
-              yield const SizedBox(width: CLSizes.gapXs);
+              yield SizedBox(width: theme.gapXs);
             }).toList()
               ..removeLast(),
 
-            const SizedBox(width: CLSizes.gapXs),
+            SizedBox(width: theme.gapXs),
             // Next
             _PageTile(
               theme: theme,
@@ -139,7 +139,7 @@ class CLPagination extends StatelessWidget {
               child: HugeIcon(
                 icon: HugeIcons.strokeRoundedArrowRight01,
                 color: canNext ? theme.primaryText : theme.mutedForeground,
-                size: CLSizes.iconSizeCompact,
+                size: theme.iconSizeCompact,
               ),
             ),
           ],
@@ -209,10 +209,10 @@ class _PageTileState extends State<_PageTile> {
         minWidth: CLSizes.buttonHeightCompact,
         minHeight: CLSizes.buttonHeightCompact,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapSm),
+      padding: EdgeInsets.symmetric(horizontal: t.gapSm),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        borderRadius: BorderRadius.circular(t.radiusControl),
         border: Border.all(
           color: _focused ? t.ring : border,
           width: _focused ? 1.5 : 1,

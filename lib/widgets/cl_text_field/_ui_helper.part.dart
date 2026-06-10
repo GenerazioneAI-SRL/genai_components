@@ -126,7 +126,7 @@ class _TextFieldUiHelper extends _Helper {
             : (w.fillColor ?? theme.secondaryBackground)
                 .withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(
-            w.isRounded ? CLSizes.inputHeight / 2 : CLSizes.radiusControl),
+            w.isRounded ? CLSizes.inputHeight / 2 : theme.radiusControl),
         border: Border.all(
           color: s.isFocusedRef
               ? theme.primary
@@ -189,7 +189,7 @@ class _TextFieldUiHelper extends _Helper {
 
   InputDecoration _decoration(BuildContext context, CLTheme theme) {
     OutlineInputBorder b(Color c, double bw) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+          borderRadius: BorderRadius.circular(theme.radiusControl),
           borderSide: BorderSide(color: c, width: bw),
         );
     final String labelOrHint =

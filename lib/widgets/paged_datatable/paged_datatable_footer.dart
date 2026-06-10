@@ -8,7 +8,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
   @override
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
-    final hPadding = Sizes.padding;
+    final hPadding = CLTheme.of(context).pagePadX;
 
     return Consumer<_PagedDataTableState<TKey, TResultId, TResult>>(
       builder: (context, state, child) {
@@ -46,7 +46,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
             Text('Righe per pagina:', style: t.smallLabel.copyWith(color: t.secondaryText, fontSize: 12)),
             const SizedBox(width: 10),
             _PageSizeControls(pageSizes: pageSizes, currentPageSize: state._pageSize, onChanged: (size) => state.setPageSize(size), theme: t),
-            const SizedBox(width: Sizes.padding),
+            SizedBox(width: CLTheme.of(context).pagePadX),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -142,7 +142,7 @@ class _PageSizeControls extends StatelessWidget {
     return Container(
       height: 36,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(CLSizes.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
+      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(t.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(pageSizes.length, (i) {
@@ -252,7 +252,7 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
     return Container(
       height: 36,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(CLSizes.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
+      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(t.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

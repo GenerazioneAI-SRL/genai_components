@@ -70,7 +70,7 @@ class CLErrorPage extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Padding(
-              padding: const EdgeInsets.all(CLSizes.gap2Xl),
+              padding: EdgeInsets.all(cl.gap2Xl),
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: const Duration(milliseconds: 360),
@@ -83,10 +83,10 @@ class CLErrorPage extends StatelessWidget {
                   ),
                 ),
                 child: Container(
-                  padding: const EdgeInsets.all(CLSizes.gap3Xl),
+                  padding: EdgeInsets.all(cl.gap3Xl),
                   decoration: BoxDecoration(
                     color: cl.secondaryBackground,
-                    borderRadius: BorderRadius.circular(CLSizes.radiusModal),
+                    borderRadius: BorderRadius.circular(cl.radiusModal),
                     border: Border.all(color: cl.cardBorder, width: 1),
                     boxShadow: cl.cardShadow,
                   ),
@@ -95,7 +95,7 @@ class CLErrorPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       _ErrorBadge(color: cl.danger),
-                      const SizedBox(height: CLSizes.gap2Xl),
+                      SizedBox(height: cl.gap2Xl),
                       if (errorCode != null) ...[
                         Text(
                           'CODICE $errorCode',
@@ -105,7 +105,7 @@ class CLErrorPage extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: CLSizes.gapSm),
+                        SizedBox(height: cl.gapSm),
                       ],
                       Text(
                         title ?? 'Errore',
@@ -113,7 +113,7 @@ class CLErrorPage extends StatelessWidget {
                         textAlign: TextAlign.center,
                       ),
                       if (message != null) ...[
-                        const SizedBox(height: CLSizes.gapMd),
+                        SizedBox(height: cl.gapMd),
                         Text(
                           message!,
                           textAlign: TextAlign.center,
@@ -121,16 +121,16 @@ class CLErrorPage extends StatelessWidget {
                         ),
                       ],
                       if (detail != null) ...[
-                        const SizedBox(height: CLSizes.gapLg),
+                        SizedBox(height: cl.gapLg),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: CLSizes.gapLg,
-                            vertical: CLSizes.gapMd,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: cl.gapLg,
+                            vertical: cl.gapMd,
                           ),
                           decoration: BoxDecoration(
                             color: cl.muted,
-                            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+                            borderRadius: BorderRadius.circular(cl.radiusControl),
                             border: Border.all(color: cl.borderColor, width: 1),
                           ),
                           child: SelectableText(
@@ -145,7 +145,7 @@ class CLErrorPage extends StatelessWidget {
                         ),
                       ],
                       if (onRetry != null || onGoHome != null) ...[
-                        const SizedBox(height: CLSizes.gap2Xl),
+                        SizedBox(height: cl.gap2Xl),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -160,7 +160,7 @@ class CLErrorPage extends StatelessWidget {
                                 ),
                               ),
                             if (onRetry != null && onGoHome != null)
-                              const SizedBox(width: CLSizes.gapMd),
+                              SizedBox(width: cl.gapMd),
                             if (onGoHome != null)
                               Expanded(
                                 child: _GhostButton(
@@ -237,6 +237,7 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = CLTheme.of(context);
     final hoverBg = Color.alphaBlend(Colors.black.withValues(alpha: _hover ? 0.10 : 0), widget.background);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -255,18 +256,18 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
               ? (Matrix4.identity()..scaleByDouble(0.98, 0.98, 1, 1))
               : Matrix4.identity(),
           transformAlignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapLg),
+          padding: EdgeInsets.symmetric(horizontal: cl.gapLg),
           decoration: BoxDecoration(
             color: hoverBg,
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+            borderRadius: BorderRadius.circular(cl.radiusControl),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.icon != null) ...[
-                Icon(widget.icon, size: CLSizes.iconSizeCompact, color: widget.foreground),
-                const SizedBox(width: CLSizes.gapSm),
+                Icon(widget.icon, size: cl.iconSizeCompact, color: widget.foreground),
+                SizedBox(width: cl.gapSm),
               ],
               Text(
                 widget.label,
@@ -313,6 +314,7 @@ class _GhostButtonState extends State<_GhostButton> {
 
   @override
   Widget build(BuildContext context) {
+    final cl = CLTheme.of(context);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
@@ -330,10 +332,10 @@ class _GhostButtonState extends State<_GhostButton> {
               ? (Matrix4.identity()..scaleByDouble(0.98, 0.98, 1, 1))
               : Matrix4.identity(),
           transformAlignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapLg),
+          padding: EdgeInsets.symmetric(horizontal: cl.gapLg),
           decoration: BoxDecoration(
             color: _hover ? widget.hoverBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+            borderRadius: BorderRadius.circular(cl.radiusControl),
             border: Border.all(color: widget.borderColor, width: 1),
           ),
           child: Row(
@@ -341,8 +343,8 @@ class _GhostButtonState extends State<_GhostButton> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.icon != null) ...[
-                Icon(widget.icon, size: CLSizes.iconSizeCompact, color: widget.foreground),
-                const SizedBox(width: CLSizes.gapSm),
+                Icon(widget.icon, size: cl.iconSizeCompact, color: widget.foreground),
+                SizedBox(width: cl.gapSm),
               ],
               Text(
                 widget.label,

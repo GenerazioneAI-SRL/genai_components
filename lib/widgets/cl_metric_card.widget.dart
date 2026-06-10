@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// Hero-style KPI card for dashboards.
 ///
@@ -82,7 +81,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
         : theme.cardShadow;
 
     final EdgeInsets cardPadding = EdgeInsets.all(
-      widget.compact ? CLSizes.gapLg : CLSizes.gapXl,
+      widget.compact ? theme.gapLg : theme.gapXl,
     );
 
     final card = AnimatedContainer(
@@ -91,7 +90,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
       padding: cardPadding,
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(CLSizes.radiusCard),
+        borderRadius: BorderRadius.circular(theme.radiusCard),
         border: Border.all(color: theme.cardBorder),
         boxShadow: shadow,
       ),
@@ -120,10 +119,10 @@ class _CLMetricCardState extends State<CLMetricCard> {
   }
 
   Widget _buildContent(CLTheme theme) {
-    final double iconBoxPad = widget.compact ? CLSizes.gapSm : CLSizes.gapMd;
+    final double iconBoxPad = widget.compact ? theme.gapSm : theme.gapMd;
     final double iconSize = widget.compact
-        ? CLSizes.iconSizeCompact
-        : CLSizes.iconSizeDefault;
+        ? theme.iconSizeCompact
+        : theme.iconSizeDefault;
 
     // Hero number style — Satoshi medium-bold, restrained.
     final TextStyle valueStyle = (widget.compact
@@ -154,7 +153,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
               padding: EdgeInsets.all(iconBoxPad),
               decoration: BoxDecoration(
                 color: widget.color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+                borderRadius: BorderRadius.circular(theme.radiusControl),
               ),
               child: Icon(widget.icon, size: iconSize, color: widget.color),
             ),
@@ -175,7 +174,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
             ],
           ],
         ),
-        SizedBox(height: widget.compact ? CLSizes.gapMd : CLSizes.gapLg),
+        SizedBox(height: widget.compact ? theme.gapMd : theme.gapLg),
         // Hero value with count-up animation (only when numeric).
         if (_parsed.isNumeric)
           TweenAnimationBuilder<double>(
@@ -198,7 +197,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        const SizedBox(height: CLSizes.gapXs),
+        SizedBox(height: theme.gapXs),
         Text(
           widget.label,
           style: captionStyle,

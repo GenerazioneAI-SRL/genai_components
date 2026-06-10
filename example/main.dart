@@ -1,141 +1,132 @@
-// ignore_for_file: unused_local_variable
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:responsive_framework/responsive_framework.dart';
-import 'package:genai_components/genai_components.dart';
-import 'package:genai_components/providers/notifications_panel_provider.dart';
+import 'package:genai_components/genai_components.dart' hide WidgetBuilder;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import 'screens/buttons_screen.dart';
 import 'screens/form_screen.dart';
 
-/// Demo con CLAppLayout (include CLMenuLayout + CLHeaderLayout).
+/// Widget gallery for genai_components (UI-pure).
 /// Run: flutter run -t example/main.dart -d macos
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedManager.initPrefs();
-
-  await Modular.configure(
-    appModule: _ExampleModule(),
-    initialRoute: '/buttons',
-    debugLogDiagnostics: false,
-    debugLogDiagnosticsGoRouter: false,
-    observers: [GoRouterBreadcrumbObserver()],
-  );
-
-  runApp(const _RootApp());
+  runApp(const GalleryApp());
 }
 
-// ── Router / Module ───────────────────────────────────────────────────────
-
-final List<ModularRoute> _shellRoutes = [
-  ChildRoute.build(
-    route: CLRoute(name: 'Buttons', path: 'buttons'),
-    childBuilder: (_, __) => const ButtonsScreen(),
-    icon: LucideIcons.aArrowDown300,
-  ),
-  ChildRoute.build(
-    route: CLRoute(name: 'Form', path: 'form'),
-    childBuilder: (_, __) => const FormScreen(),
-    icon: LucideIcons.aArrowUp300,
-  ),
-];
-
-class _ExampleModule extends Module {
-  @override
-  CLRoute get moduleRoute => CLRoute(name: 'App', path: '/app');
+class GalleryApp extends StatefulWidget {
+  const GalleryApp({super.key});
 
   @override
-  List<ModularRoute> get routes => [
-        ShellModularRoute(
-          builder: (context, state, child) => CLAppLayout(shellChild: child, shellRoutes: _shellRoutes),
-          routes: _shellRoutes,
-          observers: [GoRouterBreadcrumbObserver()],
-        ),
-      ];
+  State<GalleryApp> createState() => _GalleryAppState();
 }
 
-// ── App root + providers richiesti da CLAppLayout/menu/header ───────────
+class _GalleryAppState extends State<GalleryApp> {
+  ThemeMode _themeMode = ThemeMode.light;
 
-class _RootApp extends StatelessWidget {
-  const _RootApp();
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AppState()),
-        ChangeNotifierProvider(create: (_) => NavigationState()),
-        ChangeNotifierProvider<CLAuthState>(create: (_) => _NoAuthState()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => ModuleThemeProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationsPanelProvider()),
-      ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return MaterialApp.router(
-            title: 'CL Components Example',
-            debugShowCheckedModeBanner: false,
-            routerConfig: GoRouterModular.routerConfig,
-            theme: ThemeData(
-              brightness: Brightness.light,
-              scaffoldBackgroundColor: const Color(0xFFFAF9F7),
-            ),
-            darkTheme: ThemeData(
-              brightness: Brightness.dark,
-              scaffoldBackgroundColor: const Color(0xFF121218),
-            ),
-            themeMode: themeProvider.themeMode,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('it', 'IT'), Locale('en', 'US')],
-            locale: const Locale('it', 'IT'),
-            builder: (context, child) => ResponsiveBreakpoints.builder(
-              child: child!,
-              breakpoints: const [
-                Breakpoint(start: 0,   end: 767,            name: MOBILE),
-                Breakpoint(start: 768, end: double.infinity, name: DESKTOP),
-              ],
-            ),
-          );
-        },
+    return ChangeNotifierProvider<CLThemeProvider>(
+      create: (_) => CLThemeProvider(),
+      child: MaterialApp(
+        title: 'genai_components Gallery',
+        debugShowCheckedModeBanner: false,
+        themeMode: _themeMode,
+        theme: ThemeData(
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: const Color(0xFFFAF9F7),
+        ),
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF121218),
+        ),
+        home: GalleryHome(
+          isDark: _themeMode == ThemeMode.dark,
+          onToggleTheme: _toggleTheme,
+        ),
       ),
     );
   }
 }
 
-class _NoAuthState extends CLAuthState {
-  @override
-  bool get isAuthenticated => true;
+class _GalleryEntry {
+  const _GalleryEntry({required this.title, required this.icon, required this.builder});
 
-  @override
-  bool get isLoading => false;
-
-  @override
-  bool get isAuthenticating => false;
-
-  @override
-  String? get accessToken => null;
-
-  @override
-  CLUserInfo? get currentUserInfo => null;
-
-  @override
-  CLTenant? get currentTenant => null;
-
-  @override
-  List<CLTenant> get tenantList => const [];
-
-  @override
-  void setCurrentTenant(CLTenant? tenant) {}
-
-  @override
-  Future<void> signIn(BuildContext context) async {}
-
-  @override
-  Future<void> signOut() async {}
+  final String title;
+  final IconData icon;
+  final WidgetBuilder builder;
 }
 
+final List<_GalleryEntry> _entries = [
+  _GalleryEntry(
+    title: 'Buttons',
+    icon: LucideIcons.mousePointerClick,
+    builder: (_) => const ButtonsScreen(),
+  ),
+  _GalleryEntry(
+    title: 'Form',
+    icon: LucideIcons.textCursorInput,
+    builder: (_) => const FormScreen(),
+  ),
+];
+
+class GalleryHome extends StatefulWidget {
+  const GalleryHome({super.key, required this.isDark, required this.onToggleTheme});
+
+  final bool isDark;
+  final VoidCallback onToggleTheme;
+
+  @override
+  State<GalleryHome> createState() => _GalleryHomeState();
+}
+
+class _GalleryHomeState extends State<GalleryHome> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final entry = _entries[_selectedIndex];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(entry.title, style: theme.heading4),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: widget.isDark ? 'Light mode' : 'Dark mode',
+            icon: Icon(widget.isDark ? LucideIcons.sun : LucideIcons.moon, size: 18),
+            onPressed: widget.onToggleTheme,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Row(
+        children: [
+          NavigationRail(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+            labelType: NavigationRailLabelType.all,
+            backgroundColor: Colors.transparent,
+            destinations: [
+              for (final e in _entries)
+                NavigationRailDestination(
+                  icon: Icon(e.icon, size: 20),
+                  label: Text(e.title),
+                ),
+            ],
+          ),
+          VerticalDivider(width: 1, thickness: 1, color: theme.borderColor),
+          Expanded(child: entry.builder(context)),
+        ],
+      ),
+    );
+  }
+}

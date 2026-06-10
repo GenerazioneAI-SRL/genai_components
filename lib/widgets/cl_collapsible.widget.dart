@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// Sezione espandibile/collassabile con animazione. Alternativa più semplice
 /// a `CustomExpansionTile` con stile coerente al tema.
@@ -61,22 +60,22 @@ class _CLCollapsibleState extends State<CLCollapsible> {
             curve: Curves.easeOut,
             decoration: BoxDecoration(
               color: headerBg,
-              borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+              borderRadius: BorderRadius.circular(theme.radiusControl),
               border: expandedBorder,
             ),
             child: InkWell(
               onTap: _toggle,
-              borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+              borderRadius: BorderRadius.circular(theme.radiusControl),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CLSizes.gapMd,
-                  vertical: CLSizes.gapMd,
+                padding: EdgeInsets.symmetric(
+                  horizontal: theme.gapMd,
+                  vertical: theme.gapMd,
                 ),
                 child: Row(
                   children: [
                     if (widget.leading != null) ...[
                       widget.leading!,
-                      const SizedBox(width: CLSizes.gapSm),
+                      SizedBox(width: theme.gapSm),
                     ],
                     Expanded(
                       child: Text(widget.title, style: theme.title),
@@ -87,7 +86,7 @@ class _CLCollapsibleState extends State<CLCollapsible> {
                       curve: Curves.easeInOutCubic,
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        size: CLSizes.iconSizeCompact + 2,
+                        size: theme.iconSizeCompact + 2,
                         color: theme.mutedForeground,
                       ),
                     ),
@@ -106,9 +105,9 @@ class _CLCollapsibleState extends State<CLCollapsible> {
             child: _expanded
                 ? Padding(
                     key: const ValueKey('cl-collapsible-expanded'),
-                    padding: const EdgeInsets.only(
-                      top: CLSizes.gapMd,
-                      bottom: CLSizes.gapMd,
+                    padding: EdgeInsets.only(
+                      top: theme.gapMd,
+                      bottom: theme.gapMd,
                     ),
                     child: widget.child,
                   )

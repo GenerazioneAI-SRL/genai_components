@@ -142,7 +142,7 @@ class _CLInputGroupState<T> extends State<CLInputGroup<T>> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: widget.enabled ? theme.secondaryBackground : theme.secondaryBackground.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        borderRadius: BorderRadius.circular(theme.radiusControl),
         border: Border.all(color: borderColor, width: 1),
         boxShadow: _isFocused && !widget.hasError ? [BoxShadow(color: theme.ring, spreadRadius: 1, blurRadius: 0)] : null,
       ),
@@ -347,8 +347,8 @@ class _DropdownSegmentState<T> extends State<_DropdownSegment<T>> {
           child: Container(
             decoration: BoxDecoration(
               color: tinted ? theme.muted : Colors.transparent,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(CLSizes.radiusControl),
+              borderRadius: BorderRadius.horizontal(
+                left: Radius.circular(theme.radiusControl),
               ),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12),

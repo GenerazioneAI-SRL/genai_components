@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'utils/providers/cl_theme.provider.dart';
-import 'utils/providers/module_theme.util.provider.dart';
 import 'utils/shared_manager.util.dart';
 
 const kThemeModeKey = '__theme_mode__';
@@ -46,10 +45,6 @@ abstract class CLTheme {
     required this.accentForeground,
     required this.ring,
     required this.cardBorder,
-    required this.idColor,
-    required this.certColor,
-    required this.hrColor,
-    required this.lmsColor,
   });
 
   static Color hexToColor(String code) => ColorUtils.fromHex(code);
@@ -77,13 +72,6 @@ abstract class CLTheme {
       return isDark ? tp.darkTheme : tp.lightTheme;
     } catch (_) {}
 
-    // 2. Fallback: cerca il vecchio ModuleThemeProvider (retrocompatibilità)
-    // listen:false — stesso motivo: lookup dati tema, non flusso reattivo.
-    try {
-      // ignore: deprecated_member_use_from_same_package
-      final mp = Provider.of<ModuleThemeProvider>(context, listen: false);
-      return isDark ? mp.darkTheme : mp.lightTheme;
-    } catch (_) {}
 
     // 3. Default built-in
     return isDark ? dark : light;
@@ -116,19 +104,69 @@ abstract class CLTheme {
   final Color ring; // Focus ring / outline color
   final Color cardBorder; // Card and panel border
 
-  /// Colore identificativo del modulo SkillID
-  final Color idColor;
-
-  /// Colore identificativo del modulo Certificazioni
-  final Color certColor;
-
-  /// Colore identificativo del modulo HR
-  final Color hrColor;
-
-  /// Colore identificativo del modulo LMS
-  final Color lmsColor;
 
   List<BoxShadow> get cardShadow;
+
+  // --------- Design token dimensionali ----------
+  // Default = valori storici di CLSizes. Override nel tema di progetto per
+  // personalizzare spaziature/radii senza toccare la libreria.
+
+  /// 4px — gap atomico.
+  double get gapXs => 4.0;
+
+  /// 8px — gap denso (chip, badge, liste compatte).
+  double get gapSm => 8.0;
+
+  /// 12px — gap medio (campi form vicini, card dense).
+  double get gapMd => 12.0;
+
+  /// 16px — gap standard (sezioni form, card in griglia).
+  double get gapLg => 16.0;
+
+  /// 20px — gap ampio.
+  double get gapXl => 20.0;
+
+  /// 24px — gap tra blocchi.
+  double get gap2Xl => 24.0;
+
+  /// 32px — gap tra macro-sezioni.
+  double get gap3Xl => 32.0;
+
+  /// 48px — gap massimo (hero, empty state).
+  double get gap4Xl => 48.0;
+
+  /// 20px — padding orizzontale di pagina.
+  double get pagePadX => 20.0;
+
+  /// 80px — offset verticale header pagina.
+  double get pageTop => 80.0;
+
+  /// 4px — radius chip/badge.
+  double get radiusChip => 4.0;
+
+  /// 8px — radius controlli (bottoni, input).
+  double get radiusControl => 8.0;
+
+  /// 10px — radius superfici (popup, dropdown).
+  double get radiusSurface => 10.0;
+
+  /// 14px — radius card.
+  double get radiusCard => 14.0;
+
+  /// 20px — radius modali.
+  double get radiusModal => 20.0;
+
+  /// 9999px — radius pill.
+  double get radiusPill => 9999.0;
+
+  /// 16px — icone compatte (dentro chip, celle tabella).
+  double get iconSizeCompact => 16.0;
+
+  /// 20px — icone default.
+  double get iconSizeDefault => 20.0;
+
+  /// 24px — icone grandi (header, empty state).
+  double get iconSizeLarge => 24.0;
 
   /// Typography provider
   Typography get typography => ThemeTypography(this);
@@ -206,10 +244,6 @@ class LightModeTheme extends CLTheme {
     super.accentForeground = const Color(0xFF31302E),
     super.ring = const Color(0xFF097FE8),
     super.cardBorder = const Color(0x1A000000),
-    super.idColor = const Color(0xFF0C8EC7),
-    super.certColor = const Color(0xFF7C3AED),
-    super.hrColor = const Color(0xFFE17B47),
-    super.lmsColor = const Color(0xFF059669),
   });
 
   @override
@@ -239,10 +273,6 @@ class DarkModeTheme extends CLTheme {
     super.accentForeground = const Color(0xFFFAFAFA),
     super.ring = const Color(0xFF3BA8D8),
     super.cardBorder = const Color(0xFF27272A),
-    super.idColor = const Color(0xFF3BA8D8),
-    super.certColor = const Color(0xFF9D6BFF),
-    super.hrColor = const Color(0xFFF59563),
-    super.lmsColor = const Color(0xFF34D399),
   });
 
   @override

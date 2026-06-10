@@ -28,6 +28,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     var theme = PagedDataTableTheme.of(context);
     return Consumer<_PagedDataTableState<TKey, TResultId, TResult>>(
       builder: (context, state, _) {
+        final clTheme = CLTheme.of(context);
         final GlobalKey buttonKey = state.filterButtonKey;
         final GlobalKey buttonExtraMenuKey = state.extraMenuButtonKey;
         // Filtri extra attivi (non main) per i chip
@@ -37,7 +38,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
           ),
-          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? Sizes.padding : 0),
+          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? clTheme.pagePadX : 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -72,7 +73,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
 
                         // Pulsante filtri (solo se ci sono filtri extra)
                         if (state.filters.entries.where((element) => element.value._filter.isMainFilter == false).isNotEmpty) ...[
-                          const SizedBox(width: Sizes.borderRadius),
+                          SizedBox(width: clTheme.radiusControl),
                           Builder(
                             builder: (context) {
                               final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
@@ -136,7 +137,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                       icon: Icon(
                                         LucideIcons.slidersHorizontal,
                                         color: CLTheme.of(context).primaryText,
-                                        size: Sizes.medium,
+                                        size: clTheme.gapXl,
                                       ),
                                       onPressed: isDisabled ? null : onTap,
                                     ),
@@ -175,7 +176,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Header custom
-                      if (header != null) ...[Flexible(child: header!), const SizedBox(width: Sizes.padding)],
+                      if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.pagePadX)],
 
                       // Download button
                       if (downloadPage != null) ...[
@@ -187,19 +188,19 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                           },
                           context: context,
                         ),
-                        const SizedBox(width: Sizes.padding),
+                        SizedBox(width: clTheme.pagePadX),
                       ],
 
                       // Main menus (with horizontal spacing between buttons)
                       if (mainMenus.isNotEmpty)
                         for (var i = 0; i < mainMenus.length; i++) ...[
-                          if (i > 0) const SizedBox(width: CLSizes.gapMd),
+                          if (i > 0) SizedBox(width: clTheme.gapMd),
                           mainMenus[i],
                         ],
 
                       // Extra menu (icon-only ghost button)
                       if (extraMenus.isNotEmpty) ...[
-                        if (mainMenus.isNotEmpty) const SizedBox(width: CLSizes.gapMd),
+                        if (mainMenus.isNotEmpty) SizedBox(width: clTheme.gapMd),
                         KeyedSubtree(
                           key: buttonExtraMenuKey,
                           child: CLGhostButton.primary(
@@ -382,7 +383,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         context: context,
         backgroundColor: theme.secondaryBackground,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(CLSizes.radiusModal)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(theme.radiusModal)),
         ),
         builder: (BuildContext ctx) {
           return SafeArea(
@@ -391,7 +392,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: CLSizes.gapSm),
+                  padding: EdgeInsets.symmetric(vertical: theme.gapSm),
                   child: Center(
                     child: Container(
                       width: 36,
@@ -408,7 +409,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       menu.onTap();
                     },
                   ),
-                const SizedBox(height: CLSizes.gapSm),
+                SizedBox(height: theme.gapSm),
               ],
             ),
           );
@@ -429,7 +430,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     final menuWidth = screenWidth / 3;
     double dx = position.dx;
     if (dx + menuWidth > screenWidth) {
-      dx = screenWidth - menuWidth - Sizes.padding;
+      dx = screenWidth - menuWidth - CLTheme.of(context).pagePadX;
     }
     final topPos = position.dy + renderBox.size.height + 8;
     final openUpwards = topPos + 300 > screenHeight;
@@ -480,6 +481,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     final state = widget.state;
     List<Map<BaseTableColumn<TResult>?, bool>> items = [];
     state.columns.where((column) => column.sortable == true).map((column) {
@@ -495,7 +497,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(Sizes.padding),
+                padding: EdgeInsets.all(theme.pagePadX),
                 child: Column(
                   children: [
                     CLDropdown<Map<BaseTableColumn<TResult>?, bool>>.singleSync(
@@ -545,7 +547,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(Sizes.padding),
+            padding: EdgeInsets.all(theme.pagePadX),
             child: Row(
               children: [
                 CLButton(
@@ -618,7 +620,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                 children: [
                   // Header
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.65),
+                    padding: EdgeInsets.symmetric(horizontal: theme.pagePadX, vertical: theme.pagePadX * 0.65),
                     decoration: BoxDecoration(
                       color: theme.primaryBackground,
                       border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
@@ -630,7 +632,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                   ),
                   // Filters
                   Padding(
-                    padding: const EdgeInsets.all(Sizes.padding),
+                    padding: EdgeInsets.all(theme.pagePadX),
                     child: Form(
                       key: state.filtersFormKey,
                       child: Column(
@@ -650,7 +652,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                   ),
                   // Footer buttons
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.65),
+                    padding: EdgeInsets.symmetric(horizontal: theme.pagePadX, vertical: theme.pagePadX * 0.65),
                     decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.borderColor, width: 1))),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -717,7 +719,7 @@ class _ExtraMenuRowState extends State<_ExtraMenuRow> {
         child: Container(
           height: 40,
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapMd),
+          padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
           color: _hovered ? theme.muted : Colors.transparent,
           alignment: Alignment.centerLeft,
           child: widget.content,

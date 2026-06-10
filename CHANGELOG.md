@@ -1,7 +1,29 @@
 # Changelog
 
+## 5.0.0
+
+**BREAKING — the package is now a pure UI kit.** The application framework has been removed:
+apps own their bootstrap, routing, state, auth and HTTP layers.
+
+- **Removed (framework):** `CLApp`, `CLAppConfig`, `GoRouterModular` (Module, ChildRoute, CLRoute,
+  RouteRegistry, transitions), `ApiManager`/`ApiConfig`, auth (`CLAuthState`, `AuthSingleton`,
+  `CLUserInfo`, `CLTenant`), providers (`AppState`, `NavigationState`, `ErrorState`,
+  `ThemeProvider`, `UiToggleState`, `MaintenanceState`, `RefreshState`, `AppThemeState`,
+  `HeaderVisibilityState`), `CLBaseViewModel` + core utils, layout shell (`CLAppLayout`,
+  `CLMenuLayout`, `CLHeaderLayout`, breadcrumbs, notifications panel), `ErrorPage`,
+  `CLPageHeader` + `PageAction`.
+- **Removed (app domain):** `City`, `Province`, `Country`, `State`, `Tolerances` models,
+  `CityGraphData`/`UserGraphData`, `FiscalCodeCalculator`, `ModuleThemeProvider`.
+- **Theme (breaking):** `CLTheme` no longer has `idColor`/`certColor`/`hrColor`/`lmsColor`;
+  `CLTheme.of` resolves `CLThemeProvider` only (ModuleThemeProvider fallback removed).
+- **Theme (new):** 19 dimensional design tokens on `CLTheme` as overridable getters
+  (`gapXs..gap4Xl`, `pagePadX`, `pageTop`, `radiusChip/Control/Surface/Card/Modal/Pill`,
+  `iconSizeCompact/Default/Large`). Widgets read spacing/radius/icon sizes from the theme;
+  `CLSizes` stays unchanged for backward compatibility.
 - **Widgets:** `CLTextField` now supports optional `fillColor` in `time`, `date`, `dateTime`,
   `month`, and `year` factory constructors (retrocompatible).
+- **Deps removed:** go_router, stacked, flutter_breadcrumb, http_parser, package_info_plus.
+- **Example:** rewritten as a pure widget gallery (no framework).
 
 ## 4.2.28
 

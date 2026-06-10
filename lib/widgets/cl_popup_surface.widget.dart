@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// Shared visual + entry-animation wrapper for floating popups
 /// (dropdowns, overlay menus, autocomplete suggestions).
@@ -70,7 +69,7 @@ class _CLPopupSurfaceState extends State<CLPopupSurface> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final radius = widget.borderRadius ?? BorderRadius.circular(CLSizes.radiusSurface);
+    final radius = widget.borderRadius ?? BorderRadius.circular(theme.radiusSurface);
     final bg = widget.backgroundColor ?? theme.secondaryBackground;
     final border = widget.borderColor ?? theme.cardBorder;
 

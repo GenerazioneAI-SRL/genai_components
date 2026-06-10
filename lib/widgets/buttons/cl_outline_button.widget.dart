@@ -211,12 +211,12 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
   @override
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
-    // Padding orizzontale da token; verticale 0 — minimumSize governa l'altezza.
-    final hPad = widget.isCompact ? CLSizes.gapMd : CLSizes.gapLg;
-    const vPad = 0.0;
     final theme = CLTheme.of(context);
+    // Padding orizzontale da token; verticale 0 — minimumSize governa l'altezza.
+    final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
+    const vPad = 0.0;
     final fgColor = theme.primaryText;
-    final iconSz = widget.isCompact ? CLSizes.iconSizeCompact - 2 : CLSizes.iconSizeCompact;
+    final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
     final spinnerColor = fgColor;
     final hoverBg = theme.accent;
@@ -266,7 +266,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                  animationDuration: const Duration(milliseconds: 150),
                  padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                  shape: WidgetStateProperty.all(
-                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(CLSizes.radiusControl)),
+                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl)),
                  ),
                  minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
                  fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
@@ -293,7 +293,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                 }),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+                  borderRadius: BorderRadius.circular(theme.radiusControl),
                   side: BorderSide(color: theme.cardBorder, width: 1.0),
                 )),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),

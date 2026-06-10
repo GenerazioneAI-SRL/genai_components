@@ -405,9 +405,9 @@ class CLButton extends StatefulWidget {
 
 // Padding orizzontale: gapMd (12) compact, gapLg (16) default. Vertical 0 — l'altezza
 // è governata da minHeight (CLSizes.buttonHeight*) per garantire 32/40/48 esatti.
-({double h, double v}) _paddingFor({required bool isMobile, required bool isCompact}) {
-  if (isCompact) return (h: CLSizes.gapMd, v: 0.0);
-  return (h: CLSizes.gapLg, v: 0.0);
+({double h, double v}) _paddingFor({required CLTheme theme, required bool isMobile, required bool isCompact}) {
+  if (isCompact) return (h: theme.gapMd, v: 0.0);
+  return (h: theme.gapLg, v: 0.0);
 }
 
 class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
@@ -468,13 +468,13 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final pressedBg = Color.lerp(bgColor, Colors.black, 0.16)!;
 
     // ── Padding (tabella pura, helper esterno) ───────────────────────
-    final pad = _paddingFor(isMobile: isMobile, isCompact: widget.isCompact);
-    final iconSz = widget.iconSize ?? (widget.isCompact ? CLSizes.iconSizeCompact - 2 : CLSizes.iconSizeCompact);
+    final pad = _paddingFor(theme: theme, isMobile: isMobile, isCompact: widget.isCompact);
+    final iconSz = widget.iconSize ?? (widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact);
 
     // Altezze fisse da design tokens: 32 compact, 40 default. Niente +/- mobile.
     final minHeight = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
     final iconOnlySide = minHeight;
-    final radius = widget.borderRadius ?? CLSizes.radiusControl;
+    final radius = widget.borderRadius ?? theme.radiusControl;
 
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
     Widget buildIconSlot(double size) {
@@ -504,7 +504,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
         );
 
     final hasInlineIcon = widget.iconData != null || widget.hugeIcon != null || isLoading;
-    final iconTextGap = CLSizes.gapSm;
+    final iconTextGap = theme.gapSm;
 
     Widget content;
     if (widget.text.isNotEmpty) {
@@ -536,7 +536,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
         ],
       );
     } else {
-      content = Center(child: buildIconSlot(widget.iconSize ?? Sizes.medium));
+      content = Center(child: buildIconSlot(widget.iconSize ?? theme.gapXl));
     }
 
     // ── Superficie animata (bg + padding insieme: niente gap trasparente) ─

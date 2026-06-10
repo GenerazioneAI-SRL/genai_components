@@ -212,11 +212,11 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
   @override
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
-    final hPad = widget.isCompact ? CLSizes.gapMd : CLSizes.gapLg;
-    const vPad = 0.0;
     final theme = CLTheme.of(context);
+    final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
+    const vPad = 0.0;
     final fgColor = theme.primaryText;
-    final iconSz = widget.isCompact ? CLSizes.iconSizeCompact - 2 : CLSizes.iconSizeCompact;
+    final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
     final baseBg = theme.muted;
     final hoverBg = Color.lerp(baseBg, Colors.black, 0.08)!;
@@ -264,7 +264,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                 shape: WidgetStateProperty.resolveWith((states) {
                   return RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+                    borderRadius: BorderRadius.circular(theme.radiusControl),
                     side: states.contains(WidgetState.focused)
                         ? BorderSide(color: focusBorder, width: 2)
                         : BorderSide.none,
@@ -295,7 +295,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 }),
                 foregroundColor: WidgetStateProperty.all(fgColor),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(CLSizes.radiusControl))),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl))),
                 elevation: WidgetStateProperty.all(0),
                 shadowColor: WidgetStateProperty.all(Colors.transparent),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
