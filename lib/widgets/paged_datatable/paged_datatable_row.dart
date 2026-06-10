@@ -165,7 +165,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             for (var i = 0; i < inlineActions.length; i++) ...[
-                              if (i > 0) const SizedBox(width: CLSizes.gapMd),
+                              if (i > 0) SizedBox(width: theme.gapMd),
                               _InlineActionButton<TResultId, TResult>(
                                 action: inlineActions[i],
                                 model: model,
@@ -176,8 +176,8 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                       if (actions.isNotEmpty)
                         Padding(
                           padding: EdgeInsets.only(
-                            left: inlineActions.isNotEmpty ? CLSizes.gapSm : 0,
-                            right: Sizes.padding,
+                            left: inlineActions.isNotEmpty ? theme.gapSm : 0,
+                            right: theme.pagePadX,
                           ),
                           child: SizedBox(
                             width: 40,
@@ -198,7 +198,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                           ),
                         )
                       else if (inlineActions.isNotEmpty)
-                        const SizedBox(width: Sizes.padding),
+                        SizedBox(width: theme.pagePadX),
                     ],
                   ),
                 ),
@@ -231,7 +231,7 @@ class _ExpandIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: Sizes.padding - 2.5),
+      padding: EdgeInsets.only(left: CLTheme.of(context).pagePadX - 2.5),
       child: SizedBox(
         width: 24,
         child: Align(
@@ -262,9 +262,9 @@ class _RowSelectionCell<TKey extends Comparable, TResultId extends Comparable, T
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // Left: visual checkbox edge at Sizes.padding from outer (subtract 2.5
+      // Left: visual checkbox edge at pagePadX from outer (subtract 2.5
       // border + 7 Material internal padding compensation).
-      padding: const EdgeInsets.only(left: Sizes.padding - 2.5 - 7),
+      padding: EdgeInsets.only(left: CLTheme.of(context).pagePadX - 2.5 - 7),
       child: SizedBox(
         width: 40,
         child: Align(
@@ -299,7 +299,7 @@ class _DataTableCell<TResultId extends Comparable, TResult extends Object> exten
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.75),
+      padding: EdgeInsets.symmetric(horizontal: CLTheme.of(context).pagePadX, vertical: CLTheme.of(context).pagePadX * 0.75),
       width: width,
       child: Align(
         alignment: column.isNumeric ? Alignment.centerRight : Alignment.centerLeft,
@@ -329,10 +329,10 @@ class _ExpandedRowContent extends StatelessWidget {
         ),
       ),
       margin: EdgeInsets.only(left: rowsSelectable ? 56 : 0),
-      padding: const EdgeInsets.all(Sizes.padding),
+      padding: EdgeInsets.all(theme.pagePadX),
       child: isLoading
           ? Padding(
-              padding: const EdgeInsets.all(Sizes.padding),
+              padding: EdgeInsets.all(theme.pagePadX),
               child: Center(
                 child: SizedBox(
                   width: 24,

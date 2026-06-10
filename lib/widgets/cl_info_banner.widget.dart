@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// CLInfoBanner — banner esplicativo contestuale con icona, testo e azione opzionale.
 ///
@@ -62,11 +61,11 @@ class _CLInfoBannerState extends State<CLInfoBanner> {
         );
       },
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        borderRadius: BorderRadius.circular(theme.radiusControl),
         child: Container(
           decoration: BoxDecoration(
             color: c.withValues(alpha: tintAlpha),
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+            borderRadius: BorderRadius.circular(theme.radiusControl),
             border: Border.all(
               color: c.withValues(alpha: borderAlpha),
               width: 1,
@@ -83,19 +82,19 @@ class _CLInfoBannerState extends State<CLInfoBanner> {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: CLSizes.gapLg,
-                      vertical: CLSizes.gapMd,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: theme.gapLg,
+                      vertical: theme.gapMd,
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Leading IconBadge
                         Container(
-                          padding: const EdgeInsets.all(CLSizes.gapSm),
+                          padding: EdgeInsets.all(theme.gapSm),
                           decoration: BoxDecoration(
                             color: c.withValues(alpha: iconBgAlpha),
-                            borderRadius: BorderRadius.circular(CLSizes.radiusChip + 2),
+                            borderRadius: BorderRadius.circular(theme.radiusChip + 2),
                             border: Border.all(
                               color: c.withValues(alpha: borderAlpha),
                               width: 0.5,
@@ -104,10 +103,10 @@ class _CLInfoBannerState extends State<CLInfoBanner> {
                           child: HugeIcon(
                             icon: widget.icon ?? HugeIcons.strokeRoundedInformationCircle,
                             color: c,
-                            size: CLSizes.iconSizeCompact,
+                            size: theme.iconSizeCompact,
                           ),
                         ),
-                        const SizedBox(width: CLSizes.gapMd),
+                        SizedBox(width: theme.gapMd),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +122,7 @@ class _CLInfoBannerState extends State<CLInfoBanner> {
                                 ),
                               ),
                               if (widget.actionText != null && widget.onAction != null) ...[
-                                const SizedBox(height: CLSizes.gapSm),
+                                SizedBox(height: theme.gapSm),
                                 _ActionLink(
                                   label: widget.actionText!,
                                   color: c,
@@ -137,7 +136,7 @@ class _CLInfoBannerState extends State<CLInfoBanner> {
                           ),
                         ),
                         if (widget.dismissible) ...[
-                          const SizedBox(width: CLSizes.gapSm),
+                          SizedBox(width: theme.gapSm),
                           _DismissButton(
                             hovered: _hoverDismiss,
                             onHover: (h) => setState(() => _hoverDismiss = h),

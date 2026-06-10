@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// CLDivider — divider con stile standard del design system.
 ///
@@ -49,15 +48,15 @@ class CLDivider extends StatelessWidget {
         children: [
           Expanded(child: Divider(thickness: 1, height: 1, color: lineColor)),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapMd),
+            padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: CLSizes.gapSm,
-                vertical: CLSizes.gapXs / 2,
+              padding: EdgeInsets.symmetric(
+                horizontal: theme.gapSm,
+                vertical: theme.gapXs / 2,
               ),
               decoration: BoxDecoration(
                 color: theme.muted,
-                borderRadius: BorderRadius.circular(CLSizes.radiusChip),
+                borderRadius: BorderRadius.circular(theme.radiusChip),
               ),
               child: Text(label!, style: effectiveLabelStyle),
             ),

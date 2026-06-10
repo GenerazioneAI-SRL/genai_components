@@ -106,14 +106,14 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
                 children: [
                   if (_selected.isNotEmpty)
                     Container(
-                      margin: const EdgeInsets.only(right: CLSizes.gapSm),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CLSizes.gapMd,
-                        vertical: CLSizes.gapXs,
+                      margin: EdgeInsets.only(right: cl.gapSm),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: cl.gapMd,
+                        vertical: cl.gapXs,
                       ),
                       decoration: BoxDecoration(
                         color: cl.primary.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(CLSizes.radiusPill),
+                        borderRadius: BorderRadius.circular(cl.radiusPill),
                         border: Border.all(
                           color: cl.primary.withValues(alpha: 0.22),
                           width: 1,
@@ -134,7 +134,7 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: CLSizes.gap2Xl),
+              padding: EdgeInsets.symmetric(horizontal: cl.gap2Xl),
               child: _SearchField(
                 controller: _searchController,
                 focusNode: _searchFocus,
@@ -147,19 +147,19 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
                 hasQuery: _query.isNotEmpty,
               ),
             ),
-            const SizedBox(height: CLSizes.gapMd),
+            SizedBox(height: cl.gapMd),
             Expanded(
               child: filtered.isEmpty
                   ? _EmptyState(query: _query)
                   : Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CLSizes.gapLg,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: cl.gapLg,
                       ),
                       child: ListView.separated(
                         physics: const BouncingScrollPhysics(),
                         itemCount: filtered.length,
                         separatorBuilder: (_, __) =>
-                            const SizedBox(height: CLSizes.gapXs),
+                            SizedBox(height: cl.gapXs),
                         itemBuilder: (context, i) {
                           final entity = filtered[i];
                           final selected = _selected.contains(entity);
@@ -236,16 +236,16 @@ class _SearchField extends StatelessWidget {
       height: CLSizes.inputHeight,
       decoration: BoxDecoration(
         color: cl.muted,
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        borderRadius: BorderRadius.circular(cl.radiusControl),
         border: Border.all(color: cl.borderColor, width: 1),
       ),
       child: Row(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapMd),
+            padding: EdgeInsets.symmetric(horizontal: cl.gapMd),
             child: Icon(
               Icons.search_rounded,
-              size: CLSizes.iconSizeDefault,
+              size: cl.iconSizeDefault,
               color: cl.mutedForeground,
             ),
           ),
@@ -270,7 +270,7 @@ class _SearchField extends StatelessWidget {
             IconButton(
               icon: Icon(
                 Icons.close_rounded,
-                size: CLSizes.iconSizeCompact,
+                size: cl.iconSizeCompact,
                 color: cl.mutedForeground,
               ),
               splashRadius: 16,
@@ -278,7 +278,7 @@ class _SearchField extends StatelessWidget {
             )
           else
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapMd),
+              padding: EdgeInsets.symmetric(horizontal: cl.gapMd),
               child: _ShortcutHint(),
             ),
         ],
@@ -295,7 +295,7 @@ class _ShortcutHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: cl.secondaryBackground,
-        borderRadius: BorderRadius.circular(CLSizes.radiusChip),
+        borderRadius: BorderRadius.circular(cl.radiusChip),
         border: Border.all(color: cl.borderColor, width: 1),
       ),
       child: Text(
@@ -357,13 +357,13 @@ class _EntityRowState extends State<_EntityRow> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(
-            horizontal: CLSizes.gapMd,
-            vertical: CLSizes.gapMd,
+          padding: EdgeInsets.symmetric(
+            horizontal: cl.gapMd,
+            vertical: cl.gapMd,
           ),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+            borderRadius: BorderRadius.circular(cl.radiusControl),
             border: Border.all(color: borderColor, width: 1),
           ),
           child: Row(
@@ -394,7 +394,7 @@ class _EntityRowState extends State<_EntityRow> {
                   ),
                 ),
               ),
-              const SizedBox(width: CLSizes.gapMd),
+              SizedBox(width: cl.gapMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,7 +421,7 @@ class _EntityRowState extends State<_EntityRow> {
                   ],
                 ),
               ),
-              const SizedBox(width: CLSizes.gapMd),
+              SizedBox(width: cl.gapMd),
               _SelectionIndicator(
                 selected: widget.selected,
                 multiSelect: widget.multiSelect,
@@ -496,7 +496,7 @@ class _EmptyState extends StatelessWidget {
     final cl = CLTheme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(CLSizes.gap2Xl),
+        padding: EdgeInsets.all(cl.gap2Xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -514,13 +514,13 @@ class _EmptyState extends StatelessWidget {
                 color: cl.mutedForeground,
               ),
             ),
-            const SizedBox(height: CLSizes.gapLg),
+            SizedBox(height: cl.gapLg),
             Text(
               query.isEmpty ? 'Nessun elemento disponibile' : 'Nessun risultato',
               style: cl.heading5.copyWith(color: cl.primaryText),
             ),
             if (query.isNotEmpty) ...[
-              const SizedBox(height: CLSizes.gapXs),
+              SizedBox(height: cl.gapXs),
               Text(
                 'Nessuna corrispondenza per "$query"',
                 style: cl.smallLabel.copyWith(color: cl.mutedForeground),

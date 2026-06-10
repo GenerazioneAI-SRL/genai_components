@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import 'cl_tab_item.model.dart';
 
 /// Tab view in stile editoriale: nessun chrome a bottone, label sottolineata
@@ -94,7 +93,7 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
         // Titolo opzionale
         if (widget.title != null) ...[
           Padding(
-            padding: const EdgeInsets.only(bottom: CLSizes.gapSm),
+            padding: EdgeInsets.only(bottom: theme.gapSm),
             child: Text(widget.title!, style: theme.bodyLabel),
           ),
         ],
@@ -107,7 +106,7 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
             final isActive = _controller.index == index;
             return Padding(
               padding: EdgeInsets.only(
-                right: index == widget.clTabItems.length - 1 ? 0 : CLSizes.gapLg,
+                right: index == widget.clTabItems.length - 1 ? 0 : theme.gapLg,
               ),
               child: _CLTabUnderlineItem(
                 item: item,
@@ -127,11 +126,11 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
 
         // Divider opzionale sotto la tab bar (oltre a quello di default)
         if (widget.showDivider) ...[
-          const SizedBox(height: CLSizes.gapSm),
+          SizedBox(height: theme.gapSm),
           Divider(color: theme.borderColor, height: 1),
         ],
 
-        const SizedBox(height: CLSizes.gapLg),
+        SizedBox(height: theme.gapLg),
 
         // Contenuto: lazy-mount per evitare di costruire tutti i tab al primo
         // paint. Tabs non ancora visitati renderizzano come SizedBox.shrink()
@@ -220,7 +219,7 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
           duration: widget.animDuration,
           curve: widget.animCurve,
           height: widget.height,
-          padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapLg),
+          padding: EdgeInsets.symmetric(horizontal: theme.gapLg),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
@@ -238,11 +237,11 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
                   child: Icon(
                     widget.item.icon,
                     key: ValueKey<Color>(textColor),
-                    size: CLSizes.iconSizeCompact,
+                    size: theme.iconSizeCompact,
                     color: textColor,
                   ),
                 ),
-                const SizedBox(width: CLSizes.gapSm),
+                SizedBox(width: theme.gapSm),
               ],
               AnimatedDefaultTextStyle(
                 duration: widget.animDuration,

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// CLPill — chip/pill atomico per stati, conteggi, tag.
 ///
 /// Linguaggio Skillera Refined Editorial:
 /// - bg soft tint (color × 0.08), border tonale 1px (color × 0.22)
-/// - pill radius (`CLSizes.radiusPill`)
+/// - pill radius (`CLTheme.radiusPill`)
 /// - tipografia Inter SemiBold (`smallLabel` con peso w600)
-/// - icona opzionale `CLSizes.iconSizeCompact` (16) — riducibile inline a 14
+/// - icona opzionale `CLTheme.iconSizeCompact` (16) — riducibile inline a 14
 ///   per restare proporzionata al testo del pill.
 class CLPill extends StatelessWidget {
   const CLPill({
@@ -39,13 +38,13 @@ class CLPill extends StatelessWidget {
 
     return IntrinsicWidth(
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: CLSizes.gapSm,
-          vertical: CLSizes.gapXs / 2 + 1,
+        padding: EdgeInsets.symmetric(
+          horizontal: theme.gapSm,
+          vertical: theme.gapXs / 2 + 1,
         ),
         decoration: BoxDecoration(
           color: outline ? Colors.transparent : softBg,
-          borderRadius: BorderRadius.circular(CLSizes.radiusPill),
+          borderRadius: BorderRadius.circular(theme.radiusPill),
           border: Border.all(
             color: outline ? pillColor : tonalBorder,
             width: 1,
@@ -56,7 +55,7 @@ class CLPill extends StatelessWidget {
           children: [
             if (icon != null) ...[
               Icon(icon, size: 14, color: pillColor),
-              const SizedBox(width: CLSizes.gapXs),
+              SizedBox(width: theme.gapXs),
             ],
             Text(
               pillText,

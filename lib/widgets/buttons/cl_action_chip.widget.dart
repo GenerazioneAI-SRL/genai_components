@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 
 /// Tonal variants for [CLActionChip].
 enum CLActionChipTone { primary, secondary, success, warning, danger, neutral }
@@ -95,11 +94,11 @@ class _CLActionChipState extends State<CLActionChip> {
       curve: Curves.easeOut,
       height: 28,
       padding: EdgeInsets.symmetric(
-        horizontal: widget.icon != null ? CLSizes.gapSm : CLSizes.gapMd,
+        horizontal: widget.icon != null ? theme.gapSm : theme.gapMd,
       ),
       decoration: BoxDecoration(
         color: base.withValues(alpha: bgAlpha),
-        borderRadius: BorderRadius.circular(CLSizes.radiusChip + 2),
+        borderRadius: BorderRadius.circular(theme.radiusChip + 2),
         border: Border.all(color: base.withValues(alpha: borderAlpha), width: 1),
       ),
       child: Row(

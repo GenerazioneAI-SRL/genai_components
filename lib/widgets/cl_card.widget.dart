@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// Generic elevated card with optional clickable hover/press feedback.
 ///
@@ -74,10 +73,10 @@ class _CLCardState extends State<CLCard> {
       duration: _kAnim,
       curve: _kCurve,
       clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.all(CLSizes.gapXl),
+      padding: EdgeInsets.all(theme.gapXl),
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(CLSizes.radiusCard),
+        borderRadius: BorderRadius.circular(theme.radiusCard),
         border: Border.all(color: theme.cardBorder),
         boxShadow: shadow,
       ),
@@ -146,7 +145,7 @@ class _VerticalContent extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _IconBadge(color: color, icon: icon),
-          const SizedBox(height: CLSizes.gapLg),
+          SizedBox(height: theme.gapLg),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -158,7 +157,7 @@ class _VerticalContent extends StatelessWidget {
                 maxLines: 2,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: CLSizes.gapXs),
+              SizedBox(height: theme.gapXs),
               Text(
                 subtitle,
                 style: theme.bodyLabel,
@@ -197,9 +196,9 @@ class _HorizontalContent extends StatelessWidget {
         _IconBadge(color: color, icon: icon),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(
-              left: CLSizes.gapLg,
-              right: CLSizes.gapSm,
+            padding: EdgeInsets.only(
+              left: theme.gapLg,
+              right: theme.gapSm,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -210,7 +209,7 @@ class _HorizontalContent extends StatelessWidget {
                   style: theme.title,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: CLSizes.gapXs),
+                SizedBox(height: theme.gapXs),
                 Text(
                   subtitle,
                   style: theme.bodyLabel,
@@ -233,10 +232,11 @@ class _IconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return Container(
-      padding: const EdgeInsets.all(CLSizes.gapMd),
+      padding: EdgeInsets.all(theme.gapMd),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        borderRadius: BorderRadius.circular(theme.radiusControl),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -249,7 +249,7 @@ class _IconBadge extends StatelessWidget {
       child: Icon(
         icon,
         color: Colors.white,
-        size: CLSizes.iconSizeLarge,
+        size: theme.iconSizeLarge,
       ),
     );
   }

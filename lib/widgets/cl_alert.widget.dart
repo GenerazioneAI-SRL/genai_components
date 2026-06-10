@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 import 'excerpt_text.widget.dart';
 
 /// Skillera Refined Editorial alert.
@@ -12,7 +11,7 @@ import 'excerpt_text.widget.dart';
 /// revision: only internal build/style is upgraded.
 class CLAlert extends StatelessWidget {
   const CLAlert._(this.alertTitle, this.alertText,
-      {super.key, this.icon, this.iconAlignment, this.decoration, this.foregroundColor, this.onClose, this.downloadPercentageStream});
+      {super.key, this.icon, this.iconAlignment, this.decoration, this.foregroundColor, this.onClose, this.downloadPercentageStream, this.radiusToken});
 
   final String alertTitle;
   final String alertText;
@@ -22,6 +21,11 @@ class CLAlert extends StatelessWidget {
   final Color? foregroundColor;
   final void Function()? onClose;
   final BehaviorSubject<double>? downloadPercentageStream;
+
+  /// Resolves the corner radius from the active [CLTheme] at build time
+  /// (decorations are assembled in the constructors, where no [BuildContext]
+  /// is available yet).
+  final double Function(CLTheme theme)? radiusToken;
 
   /// Solid (filled) variant. Background color saturates to the semantic tone;
   /// foreground stays light. Kept for high-emphasis system messages.
@@ -40,10 +44,8 @@ class CLAlert extends StatelessWidget {
           alertText,
           icon: icon,
           iconAlignment: iconAlignment,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(CLSizes.radiusCard),
-          ),
+          decoration: BoxDecoration(color: backgroundColor),
+          radiusToken: _cardRadius,
           foregroundColor: foregroundColor ?? Colors.white,
           onClose: onClose,
         );
@@ -66,12 +68,12 @@ class CLAlert extends StatelessWidget {
           iconAlignment: iconAlignment,
           decoration: BoxDecoration(
             color: (backgroundColor ?? const Color(0xFF0C8EC7)).withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
             border: Border.all(
               color: (backgroundColor ?? const Color(0xFF0C8EC7)).withValues(alpha: 0.22),
               width: 1,
             ),
           ),
+          radiusToken: _controlRadius,
           foregroundColor: backgroundColor ?? const Color(0xFF0C8EC7),
           onClose: onClose,
         );
@@ -96,12 +98,12 @@ class CLAlert extends StatelessWidget {
           downloadPercentageStream: downloadPercentageStream,
           decoration: BoxDecoration(
             color: (backgroundColor ?? const Color(0xFF0C8EC7)).withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(CLSizes.radiusCard),
             border: Border.all(
               color: (backgroundColor ?? const Color(0xFF0C8EC7)).withValues(alpha: 0.22),
               width: 1,
             ),
           ),
+          radiusToken: _cardRadius,
           foregroundColor: backgroundColor ?? const Color(0xFF0C8EC7),
           onClose: onClose,
         );
@@ -124,15 +126,18 @@ class CLAlert extends StatelessWidget {
           iconAlignment: iconAlignment,
           decoration: BoxDecoration(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
             border: Border.all(
               color: (backgroundColor ?? const Color(0xFF0C8EC7)).withValues(alpha: 0.30),
               width: 1,
             ),
           ),
+          radiusToken: _controlRadius,
           foregroundColor: backgroundColor ?? const Color(0xFF0C8EC7),
           onClose: onClose,
         );
+
+  static double _cardRadius(CLTheme theme) => theme.radiusCard;
+  static double _controlRadius(CLTheme theme) => theme.radiusControl;
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +159,7 @@ class CLAlert extends StatelessWidget {
         alertText: alertText,
         icon: icon,
         decoration: decoration,
+        radiusToken: radiusToken,
         foregroundColor: foregroundColor,
         onClose: onClose,
         downloadPercentageStream: downloadPercentageStream,
@@ -170,6 +176,7 @@ class _AlertBody extends StatefulWidget {
     required this.alertText,
     required this.icon,
     required this.decoration,
+    required this.radiusToken,
     required this.foregroundColor,
     required this.onClose,
     required this.downloadPercentageStream,
@@ -179,6 +186,7 @@ class _AlertBody extends StatefulWidget {
   final String alertText;
   final IconData? icon;
   final BoxDecoration? decoration;
+  final double Function(CLTheme theme)? radiusToken;
   final Color? foregroundColor;
   final VoidCallback? onClose;
   final BehaviorSubject<double>? downloadPercentageStream;
@@ -234,11 +242,14 @@ class _AlertBodyState extends State<_AlertBody> {
       curve: Curves.easeOut,
       decoration: baseDeco.copyWith(
         color: opaqueColor,
+        borderRadius: widget.radiusToken != null
+            ? BorderRadius.circular(widget.radiusToken!(theme))
+            : null,
         boxShadow: shadow,
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: CLSizes.gapLg,
-        vertical: CLSizes.gapMd,
+      padding: EdgeInsets.symmetric(
+        horizontal: theme.gapLg,
+        vertical: theme.gapMd,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +260,7 @@ class _AlertBodyState extends State<_AlertBody> {
               children: [
                 if (widget.downloadPercentageStream != null)
                   Padding(
-                    padding: const EdgeInsets.only(right: CLSizes.gapMd, top: 2),
+                    padding: EdgeInsets.only(right: theme.gapMd, top: 2),
                     child: _DownloadBadge(
                       tone: tone,
                       stream: widget.downloadPercentageStream!,
@@ -258,7 +269,7 @@ class _AlertBodyState extends State<_AlertBody> {
                   )
                 else if (widget.icon != null) ...[
                   _IconBadge(icon: widget.icon!, tone: tone, isSolid: isSolid),
-                  const SizedBox(width: CLSizes.gapMd),
+                  SizedBox(width: theme.gapMd),
                 ],
                 Expanded(
                   child: Column(
@@ -271,7 +282,7 @@ class _AlertBodyState extends State<_AlertBody> {
                         overflow: TextOverflow.visible,
                         softWrap: true,
                       ),
-                      const SizedBox(height: CLSizes.gapXs),
+                      SizedBox(height: theme.gapXs),
                       DefaultTextStyle.merge(
                         style: theme.bodyText.copyWith(color: bodyColor),
                         child: ExcerptText(
@@ -287,7 +298,7 @@ class _AlertBodyState extends State<_AlertBody> {
             ),
           ),
           if (widget.onClose != null && widget.downloadPercentageStream == null) ...[
-            const SizedBox(width: CLSizes.gapSm),
+            SizedBox(width: theme.gapSm),
             _CloseButton(
               onTap: widget.onClose!,
               isSolid: isSolid,
@@ -322,7 +333,7 @@ class _IconBadge extends StatelessWidget {
       // On a solid bg the badge would disappear — render a plain icon instead.
       return Padding(
         padding: const EdgeInsets.only(top: 1),
-        child: Icon(icon, color: Colors.white, size: CLSizes.iconSizeDefault),
+        child: Icon(icon, color: Colors.white, size: CLTheme.of(context).iconSizeDefault),
       );
     }
     return Container(
@@ -334,7 +345,7 @@ class _IconBadge extends StatelessWidget {
         border: Border.all(color: tone.withValues(alpha: 0.22), width: 1.5),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, color: tone, size: CLSizes.iconSizeCompact),
+      child: Icon(icon, color: tone, size: CLTheme.of(context).iconSizeCompact),
     );
   }
 }

@@ -32,7 +32,7 @@ class ConfirmationDialog extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: dialogWidth),
         child: Padding(
-          padding: const EdgeInsets.all(CLSizes.gapLg),
+          padding: EdgeInsets.all(cl.gapLg),
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
             duration: const Duration(milliseconds: 240),
@@ -49,7 +49,7 @@ class ConfirmationDialog extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: cl.secondaryBackground,
-                  borderRadius: BorderRadius.circular(CLSizes.radiusModal),
+                  borderRadius: BorderRadius.circular(cl.radiusModal),
                   border: Border.all(color: cl.cardBorder, width: 1),
                   boxShadow: cl.cardShadow,
                 ),
@@ -58,11 +58,11 @@ class ConfirmationDialog extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        CLSizes.gap2Xl,
-                        CLSizes.gap2Xl,
-                        CLSizes.gap2Xl,
-                        CLSizes.gapLg,
+                      padding: EdgeInsets.fromLTRB(
+                        cl.gap2Xl,
+                        cl.gap2Xl,
+                        cl.gap2Xl,
+                        cl.gapLg,
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,7 +71,7 @@ class ConfirmationDialog extends StatelessWidget {
                             icon: Icons.help_outline_rounded,
                             color: tone,
                           ),
-                          const SizedBox(width: CLSizes.gapLg),
+                          SizedBox(width: cl.gapLg),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +85,7 @@ class ConfirmationDialog extends StatelessWidget {
                                     height: 1.3,
                                   ),
                                 ),
-                                const SizedBox(height: CLSizes.gapSm),
+                                SizedBox(height: cl.gapSm),
                                 Text(
                                   confirmationMessage ??
                                       "Sei sicuro di voler effettuare quest'operazione?",
@@ -107,9 +107,9 @@ class ConfirmationDialog extends StatelessWidget {
                         ),
                         color: cl.muted.withValues(alpha: 0.40),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CLSizes.gap2Xl,
-                        vertical: CLSizes.gapLg,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: cl.gap2Xl,
+                        vertical: cl.gapLg,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -119,7 +119,7 @@ class ConfirmationDialog extends StatelessWidget {
                             tone: _LegacyTone.ghost,
                             onPressed: () => Navigator.of(context).pop(),
                           ),
-                          const SizedBox(width: CLSizes.gapMd),
+                          SizedBox(width: cl.gapMd),
                           _LegacyDialogButton(
                             label: 'Conferma',
                             tone: _LegacyTone.primary,
@@ -242,10 +242,10 @@ class _LegacyDialogButtonState extends State<_LegacyDialogButton> {
                 ? (Matrix4.identity()..scaleByDouble(0.98, 0.98, 1, 1))
                 : Matrix4.identity(),
             transformAlignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: CLSizes.gapLg),
+            padding: EdgeInsets.symmetric(horizontal: cl.gapLg),
             decoration: BoxDecoration(
               color: background,
-              borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+              borderRadius: BorderRadius.circular(cl.radiusControl),
               border: borderColor != null
                   ? Border.all(color: borderColor, width: 1)
                   : null,

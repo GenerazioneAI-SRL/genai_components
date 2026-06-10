@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 import 'dialogs/_dialog_chrome.dart';
 
 /// Base class for CL dialogs with title, optional subtitle, and confirm/cancel actions.
@@ -74,11 +73,11 @@ abstract class CLDialog<T> extends StatelessWidget {
           ),
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                CLSizes.gap2Xl,
+              padding: EdgeInsets.fromLTRB(
+                cl.gap2Xl,
                 0,
-                CLSizes.gap2Xl,
-                CLSizes.gap2Xl,
+                cl.gap2Xl,
+                cl.gap2Xl,
               ),
               child: DefaultTextStyle.merge(
                 style: cl.bodyText.copyWith(color: cl.primaryText),

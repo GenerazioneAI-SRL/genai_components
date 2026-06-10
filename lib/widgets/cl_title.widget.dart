@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 import 'cl_divider.widget.dart';
 
 /// CLTitle — titolo di sezione con divider opzionali sopra/sotto.
@@ -43,7 +42,7 @@ class CLTitle extends StatelessWidget {
       children: [
         if (dividerTop) ...[
           const CLDivider(),
-          const SizedBox(height: CLSizes.gapLg),
+          SizedBox(height: theme.gapLg),
         ],
         Text(
           title,
@@ -52,10 +51,10 @@ class CLTitle extends StatelessWidget {
           maxLines: 1,
         ),
         if (dividerBottom) ...[
-          const SizedBox(height: CLSizes.gapMd),
+          SizedBox(height: theme.gapMd),
           const CLDivider(),
         ] else
-          const SizedBox(height: CLSizes.gapMd),
+          SizedBox(height: theme.gapMd),
       ],
     );
   }

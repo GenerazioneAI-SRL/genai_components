@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import './alertmanager/alert_manager.dart';
 
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// CLClipboardWidget — testo + bottone copia con feedback visivo.
 ///
@@ -65,14 +64,14 @@ class _CLClipboardWidgetState extends State<CLClipboardWidget> {
             style: widget.textStyle ?? theme.bodyText,
           ),
         ),
-        const SizedBox(width: CLSizes.gapXs),
+        SizedBox(width: theme.gapXs),
         Tooltip(
           message: _copied ? 'Copiato' : 'Copia',
           child: InkWell(
             onTap: _handleCopy,
-            borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+            borderRadius: BorderRadius.circular(theme.radiusControl),
             child: Padding(
-              padding: const EdgeInsets.all(CLSizes.gapXs + 2),
+              padding: EdgeInsets.all(theme.gapXs + 2),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 180),
                 transitionBuilder: (child, animation) => ScaleTransition(
@@ -83,13 +82,13 @@ class _CLClipboardWidgetState extends State<CLClipboardWidget> {
                     ? Icon(
                         Icons.check_rounded,
                         key: const ValueKey('cl-clipboard-check'),
-                        size: CLSizes.iconSizeCompact,
+                        size: theme.iconSizeCompact,
                         color: theme.success,
                       )
                     : Icon(
                         Icons.copy_rounded,
                         key: const ValueKey('cl-clipboard-copy'),
-                        size: CLSizes.iconSizeCompact,
+                        size: theme.iconSizeCompact,
                         color: theme.mutedForeground,
                       ),
               ),

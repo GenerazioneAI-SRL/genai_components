@@ -54,7 +54,6 @@ export 'widgets/table_action_item.widget.dart';
 export 'widgets/cl_universal_repeatable.widget.dart';
 
 // Navigation
-export 'widgets/cl_page_header.widget.dart';
 export 'widgets/cl_pagination.widget.dart';
 export 'widgets/cl_popup_menu.widget.dart';
 export 'widgets/cl_view_toggle.widget.dart';
@@ -81,7 +80,6 @@ export 'widgets/loading.widget.dart';
 export 'widgets/gradient_background.widget.dart';
 export 'widgets/logo.widget.dart';
 export 'widgets/cl_pdf_viewer.widget.dart';
-export 'widgets/fiscal_code_calculator.dart';
 
 // Calendar
 export 'widgets/cl_month_calendar.widget.dart';
@@ -111,77 +109,12 @@ export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';
 export 'widgets/cl_tooltip_wrapper.widget.dart';
 export 'utils/shared_manager.util.dart';
 export 'utils/providers/cl_theme.provider.dart';
-export 'utils/providers/module_theme.util.provider.dart';
 export 'utils/models/custom_model.model.dart';
 
-// Auth (interfacce astratte)
-export 'auth/cl_auth_state.dart';
-export 'auth/cl_user_info.dart';
-export 'auth/cl_tenant.dart';
-export 'auth/auth_singleton.dart';
-
-// App
-export 'app/cl_app.dart';
-export 'app/cl_app_config.dart'
-    show CLAppConfig, ShellLayoutBuilder, AiButtonPosition, ProfilePosition;
-
-// Router
-export 'router/go_router_modular/module.dart';
-export 'router/go_router_modular/go_router_modular_configure.dart';
-export 'router/go_router_modular/cl_path_utils.dart';
-export 'router/go_router_modular/page_transition_enum.dart';
-export 'router/go_router_modular/route_registry.dart';
-export 'router/go_router_modular/routes/child_route.dart';
-export 'router/go_router_modular/routes/cl_route.dart';
-export 'router/go_router_modular/routes/modular_route.dart';
-export 'router/go_router_modular/routes/module_route.dart';
-export 'router/go_router_modular/routes/shell_modular_route.dart';
-export 'router/resume_observer.dart';
-export 'router/page_data.dart';
-
-// Layout
-export 'layout/app.layout.dart';
-export 'layout/menu.layout.dart';
-export 'layout/header.layout.dart';
-export 'layout/breadcrumbs.layout.dart';
-
-// API
-export 'api/api_manager.dart';
-export 'api/api_config.dart';
-
-// Providers
-export 'providers/app_state.dart';
-export 'providers/error_state.dart';
-export 'providers/theme_provider.dart';
-export 'providers/ui_toggle_state.dart';
-export 'providers/maintenance_state.dart';
-export 'providers/refresh_state.dart';
-export 'providers/app_theme_state.dart';
-export 'utils/providers/navigation.util.provider.dart';
-export 'utils/providers/header_visibility_state.dart';
-
-// Core Utils
-export 'core_utils/base_viewmodel.dart';
-export 'core_utils/extension.util.dart';
-export 'core_utils/navigation_observer.dart';
-export 'core_utils/cl_window_size.dart';
-export 'core_utils/disposable_mixin.dart';
-export 'core_utils/form_validation_mixin.dart';
-export 'core_utils/safe_call_extension.dart';
 
 // Core Models
 export 'core_models/upload_file.model.dart';
 export 'core_models/media.model.dart';
-export 'core_models/city.model.dart';
-export 'core_models/country.model.dart';
-export 'core_models/province.model.dart';
-export 'core_models/state.model.dart' hide State;
-export 'core_models/tolerances.model.dart';
-
-// Models
-export 'models/pageaction.model.dart';
-export 'models/city_graph_data.model.dart';
-export 'models/user_graph_data.model.dart';
 
 // Enums
 export 'enums/resource_type.enum.dart';

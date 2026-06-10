@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import '_dialog_chrome.dart';
 
 /// A dialog that displays a QR code rendered from [data] along with the
@@ -56,17 +55,17 @@ class QRCodeDialog extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              CLSizes.gap2Xl,
+            padding: EdgeInsets.fromLTRB(
+              cl.gap2Xl,
               0,
-              CLSizes.gap2Xl,
-              CLSizes.gap2Xl,
+              cl.gap2Xl,
+              cl.gap2Xl,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _QRFrame(size: size, data: data),
-                const SizedBox(height: CLSizes.gapLg),
+                SizedBox(height: cl.gapLg),
                 _PayloadCard(data: data),
               ],
             ),
@@ -116,10 +115,10 @@ class _QRFrame extends StatelessWidget {
     final cl = CLTheme.of(context);
     return Center(
       child: Container(
-        padding: const EdgeInsets.all(CLSizes.gapLg),
+        padding: EdgeInsets.all(cl.gapLg),
         decoration: BoxDecoration(
           color: cl.secondaryBackground,
-          borderRadius: BorderRadius.circular(CLSizes.radiusCard),
+          borderRadius: BorderRadius.circular(cl.radiusCard),
           border: Border.all(color: cl.borderColor, width: 1),
         ),
         child: SizedBox(
@@ -137,13 +136,13 @@ class _QRFrame extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CLSizes.gapMd,
-                  vertical: CLSizes.gapSm,
+                padding: EdgeInsets.symmetric(
+                  horizontal: cl.gapMd,
+                  vertical: cl.gapSm,
                 ),
                 decoration: BoxDecoration(
                   color: cl.secondaryBackground,
-                  borderRadius: BorderRadius.circular(CLSizes.radiusChip),
+                  borderRadius: BorderRadius.circular(cl.radiusChip),
                   border: Border.all(color: cl.borderColor, width: 1),
                 ),
                 child: Text(
@@ -236,20 +235,20 @@ class _PayloadCard extends StatelessWidget {
     final cl = CLTheme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: CLSizes.gapLg,
-        vertical: CLSizes.gapMd,
+      padding: EdgeInsets.symmetric(
+        horizontal: cl.gapLg,
+        vertical: cl.gapMd,
       ),
       decoration: BoxDecoration(
         color: cl.muted,
-        borderRadius: BorderRadius.circular(CLSizes.radiusControl),
+        borderRadius: BorderRadius.circular(cl.radiusControl),
         border: Border.all(color: cl.borderColor, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.tag_rounded, size: 14, color: cl.mutedForeground),
-          const SizedBox(width: CLSizes.gapSm),
+          SizedBox(width: cl.gapSm),
           Expanded(
             child: SelectableText(
               data,
