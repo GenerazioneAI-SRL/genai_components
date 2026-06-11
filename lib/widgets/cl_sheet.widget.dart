@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
+import 'cl_popup_surface.widget.dart';
 
 /// Pannello slide-in laterale da destra. Utile per form di dettaglio.
 /// Usa [CLSheet.show] per aprirlo.
@@ -17,7 +18,7 @@ class CLSheet {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'CLSheet',
-      barrierColor: Colors.black.withValues(alpha: 0.4),
+      barrierColor: kCLModalScrim,
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (context, animation, secondaryAnimation) =>
           _CLSheetWidget(title: title, width: width, child: child),
@@ -46,6 +47,12 @@ class _CLSheetWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
+    // Modal chrome coerente: radiusModal sul lato libero (sinistro),
+    // bordo hairline e theme.cardShadow come gli altri modali.
+    final radius = BorderRadius.only(
+      topLeft: Radius.circular(theme.radiusModal),
+      bottomLeft: Radius.circular(theme.radiusModal),
+    );
     return Align(
       alignment: Alignment.centerRight,
       child: Material(
@@ -53,18 +60,12 @@ class _CLSheetWidget extends StatelessWidget {
         child: Container(
           width: width,
           height: double.infinity,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: theme.secondaryBackground,
-            border: Border(
-              left: BorderSide(color: theme.cardBorder),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(-4, 0),
-              ),
-            ],
+            borderRadius: radius,
+            border: Border.all(color: theme.cardBorder),
+            boxShadow: theme.cardShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

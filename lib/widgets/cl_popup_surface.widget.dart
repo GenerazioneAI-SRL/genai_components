@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../cl_theme.dart';
 
+/// Shared overlay scrim tokens — single source of truth for barrier colors.
+///
+/// [kCLModalScrim]: modal surfaces (dialogs, sheets) — black @ 45%.
+/// [kCLPopoverScrim]: anchored popovers (menus, dropdown overlays) — light.
+const Color kCLModalScrim = Color(0x73000000); // Colors.black, alpha 0.45
+const Color kCLPopoverScrim = Colors.black12;
+
 /// Shared visual + entry-animation wrapper for floating popups
 /// (dropdowns, overlay menus, autocomplete suggestions).
 ///
@@ -93,9 +100,14 @@ class _CLPopupSurfaceState extends State<CLPopupSurface> with SingleTickerProvid
       ),
       child: ClipRRect(
         borderRadius: radius,
-        child: Padding(
-          padding: widget.padding ?? EdgeInsets.zero,
-          child: widget.child,
+        // Material transparente: dà l'antenato richiesto da InkWell/ripple
+        // dei contenuti (menu item, liste) senza aggiungere ombre fisiche.
+        child: Material(
+          type: MaterialType.transparency,
+          child: Padding(
+            padding: widget.padding ?? EdgeInsets.zero,
+            child: widget.child,
+          ),
         ),
       ),
     );

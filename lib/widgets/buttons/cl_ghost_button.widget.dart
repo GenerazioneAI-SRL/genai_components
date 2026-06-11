@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
 
@@ -35,7 +34,7 @@ class CLGhostButton extends StatefulWidget {
     this.confirmationMessage,
     this.width,
     this.foregroundColor,
-    this.isCompact = false,
+    this.isCompact = true,
   });
 
   factory CLGhostButton.primary({
@@ -49,7 +48,7 @@ class CLGhostButton extends StatefulWidget {
     Widget? hugeIcon,
     Color? foregroundColor,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLGhostButton(
       text: text,
@@ -78,7 +77,7 @@ class CLGhostButton extends StatefulWidget {
     Widget? hugeIcon,
     Color? foregroundColor,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLGhostButton(
       text: text,
@@ -107,7 +106,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLGhostButton(
       text: text,
@@ -136,7 +135,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLGhostButton(
       text: text,
@@ -165,7 +164,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLGhostButton(
       context: context,
@@ -194,7 +193,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLGhostButton(
       context: context,
@@ -233,7 +232,7 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
     const vPad = 0.0;
     final fgColor = widget.foregroundColor ?? theme.primaryText;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
-    final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
+    final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final hoverBg = theme.accent;
     final pressedBg = Color.lerp(hoverBg, Colors.black, 0.08)!;
     final focusBorder = theme.primary;

@@ -168,6 +168,21 @@ abstract class CLTheme {
   /// 24px — icone grandi (header, empty state).
   double get iconSizeLarge => 24.0;
 
+  /// 40px — altezza bottone default.
+  double get buttonHeightDefault => 40.0;
+
+  /// 32px — altezza bottone compatto (`isCompact: true`).
+  double get buttonHeightCompact => 32.0;
+
+  /// 48px — altezza bottone large (CTA hero).
+  double get buttonHeightLarge => 48.0;
+
+  /// 40px — altezza standard input (CLTextField, CLDropdown).
+  double get inputHeight => 40.0;
+
+  /// 32px — altezza input compatto (`isCompact: true`).
+  double get inputHeightCompact => 32.0;
+
   /// Typography provider
   Typography get typography => ThemeTypography(this);
 

@@ -178,6 +178,11 @@ class CLSizes {
   /// `buttonHeightDefault` per row form coerenti.
   static const inputHeight = 40.0;
 
+  /// 32px — altezza input compatto.
+  /// Usato per: `CLTextField`/`CLDropdown` con `isCompact: true` — allineata a
+  /// `buttonHeightCompact` per toolbar e row dense coerenti.
+  static const inputHeightCompact = 32.0;
+
   /// 24px — avatar small.
   /// Usato per: avatar in liste dense, leading di chip utente, indicatori
   /// di presenza in tabelle.

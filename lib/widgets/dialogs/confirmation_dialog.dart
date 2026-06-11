@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../cl_theme.dart';
+import '../cl_popup_surface.widget.dart';
 import '_dialog_chrome.dart';
 
 /// A simple yes/no confirmation dialog.
@@ -60,6 +61,7 @@ class CLConfirmationDialog extends StatelessWidget {
   }) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierColor: kCLModalScrim,
       builder: (_) => CLConfirmationDialog(
         title: title,
         message: message,

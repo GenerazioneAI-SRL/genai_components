@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+**Behavior change — compact by default.** Buttons, text fields and dropdowns now render
+in compact size (`isCompact: true`) by default; pass `isCompact: false` to keep the
+previous standard height. Signatures are otherwise unchanged.
+
+- **Theme (new tokens):** `buttonHeightDefault` (40), `buttonHeightCompact` (32),
+  `buttonHeightLarge` (48), `inputHeight` (40), `inputHeightCompact` (32) — overridable getters.
+- **Buttons:** `CLButton`, `CLOutlineButton`, `CLSoftButton`, `CLGhostButton` support
+  `isCompact` (default `true`); heights/paddings read from theme tokens; icon-only compact 16px.
+- **CLTextField:** `isCompact` on constructor + factories (textArea excluded); compact uses
+  `inputHeightCompact`, cursor 16, line-height 1.0, compact icons, full-height clear tap target.
+- **CLDropdown:** `isCompact` on all factories; dense menu items, compact search field,
+  computed search bar height, compact chevron/clear icons, compact multi-select checkbox.
+- **Overlays:** `CLPopupSurface` now provides a transparent `Material` ancestor (fixes
+  "No Material widget found" for InkWell/ListTile content); exported scrim tokens
+  `kCLModalScrim`/`kCLPopoverScrim` applied consistently to sheets, dialogs and popovers;
+  `CLSheet` uses `radiusModal`, theme `cardShadow` and border.
+- **Example:** new `Compact` gallery screen comparing standard vs compact.
+
 ## 5.0.0
 
 **BREAKING — the package is now a pure UI kit.** The application framework has been removed:

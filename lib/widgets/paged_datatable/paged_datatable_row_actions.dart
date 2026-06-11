@@ -49,7 +49,7 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
 
     await showGeneralDialog(
       context: context,
-      barrierColor: Colors.black12,
+      barrierColor: kCLPopoverScrim,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       transitionDuration: const Duration(milliseconds: 200),

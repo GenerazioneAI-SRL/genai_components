@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
 
@@ -30,7 +29,7 @@ class CLOutlineButton extends StatefulWidget {
     this.needConfirmation = false,
     this.confirmationMessage,
     this.width,
-    this.isCompact = false,
+    this.isCompact = true,
   });
 
   factory CLOutlineButton.primary({
@@ -43,7 +42,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLOutlineButton(
       text: text,
@@ -70,7 +69,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLOutlineButton(
       text: text,
@@ -97,7 +96,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLOutlineButton(
       text: text,
@@ -124,7 +123,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLOutlineButton(
       text: text,
@@ -151,7 +150,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLOutlineButton(
       text: text,
@@ -178,7 +177,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLOutlineButton(
       text: text,
@@ -217,7 +216,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
     const vPad = 0.0;
     final fgColor = theme.primaryText;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
-    final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
+    final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final spinnerColor = fgColor;
     final hoverBg = theme.accent;
     final pressedBg = Color.lerp(hoverBg, Colors.black, 0.08)!;
