@@ -43,6 +43,9 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
   /// The hint text for this dropdown — used as key in [CLDropdownRegistry].
   final String? hint;
 
+  /// Se `true`, item del menu più densi (ListTile dense).
+  final bool isCompact;
+
   // ═══════════════════════════════════════════════════════════════════════════
   // INFINITE SCROLL
   // ═══════════════════════════════════════════════════════════════════════════
@@ -67,6 +70,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     required this.searchColumn,
     this.onClearItem,
     this.hint,
+    this.isCompact = true,
   }) {
     if (isMultiple) {
       assert(onSelectItems != null);
@@ -317,8 +321,13 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     var offset = renderBox.localToGlobal(Offset.zero);
 
     final screenHeight = MediaQuery.of(context).size.height;
+    final theme = CLTheme.of(context);
     const gap = 4.0;
-    const searchBarHeight = 56.0;
+    // Altezza barra ricerca = campo (32 compact / 40 default) + padding verticale.
+    final searchBarHeight =
+        (isCompact ? theme.inputHeightCompact : theme.inputHeight) +
+            Sizes.padding;
+    final searchIconSize = isCompact ? theme.iconSizeCompact : Sizes.medium;
     const maxDropdownHeight = 250.0;
     // Altezza stimata totale dell'overlay (search + lista)
     final hasSearch = syncSearchCallback != null || asyncSearchCallback != null;
@@ -372,13 +381,14 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                           child: CLTextField(
                             controller: searchController,
                             labelText: 'Cerca...',
+                            isCompact: isCompact,
                             prefixIcon: HugeIcon(
                                 icon: HugeIcons.strokeRoundedSearch01,
                                 color: CLTheme.of(context).secondaryText,
-                                size: Sizes.medium),
+                                size: searchIconSize),
                             prefixIconConstraints: BoxConstraints(
-                                minWidth: Sizes.medium + 16,
-                                minHeight: Sizes.medium + 16),
+                                minWidth: searchIconSize + 16,
+                                minHeight: searchIconSize + 16),
                             onChanged: (value) async {
                               await onSearch(searchColumn, value);
                             },
@@ -444,12 +454,26 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                                       child: Material(
                                         type: MaterialType.transparency,
                                         child: ListTile(
+                                          dense: isCompact,
+                                          visualDensity: isCompact
+                                              ? VisualDensity.compact
+                                              : null,
                                           titleTextStyle:
                                               CLTheme.of(context).bodyText,
                                           title: itemBuilder(context, item),
                                           trailing: isMultiple
                                               ? Checkbox(
                                                   splashRadius: 0,
+                                                  // In compact: niente floor 48px
+                                                  // del tap target Material.
+                                                  materialTapTargetSize: isCompact
+                                                      ? MaterialTapTargetSize
+                                                          .shrinkWrap
+                                                      : MaterialTapTargetSize
+                                                          .padded,
+                                                  visualDensity: isCompact
+                                                      ? VisualDensity.compact
+                                                      : null,
                                                   value: selectedItems
                                                       .contains(item),
                                                   onChanged: (value) {

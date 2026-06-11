@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
 
@@ -31,7 +30,7 @@ class CLSoftButton extends StatefulWidget {
     this.iconData,
     this.hugeIcon,
     this.width,
-    this.isCompact = false,
+    this.isCompact = true,
   });
 
   factory CLSoftButton.primary({
@@ -44,7 +43,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLSoftButton(
       text: text,
@@ -71,7 +70,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLSoftButton(
       text: text,
@@ -98,7 +97,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLSoftButton(
       text: text,
@@ -125,7 +124,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLSoftButton(
       text: text,
@@ -152,7 +151,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLSoftButton(
       text: text,
@@ -179,7 +178,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = false,
+    bool isCompact = true,
   }) {
     return CLSoftButton(
       text: text,
@@ -217,7 +216,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
     const vPad = 0.0;
     final fgColor = theme.primaryText;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
-    final btnH = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
+    final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final baseBg = theme.muted;
     final hoverBg = Color.lerp(baseBg, Colors.black, 0.08)!;
     final pressedBg = Color.lerp(baseBg, Colors.black, 0.16)!;

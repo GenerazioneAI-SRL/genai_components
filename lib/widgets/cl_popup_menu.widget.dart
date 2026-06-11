@@ -127,7 +127,7 @@ class CLPopupMenu extends StatefulWidget {
 
     await showGeneralDialog(
       context: context,
-      barrierColor: Colors.black12,
+      barrierColor: kCLPopoverScrim,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       transitionDuration: const Duration(milliseconds: 180),
@@ -143,7 +143,6 @@ class CLPopupMenu extends StatefulWidget {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
                 child: CLPopupSurface(
-                  borderRadius: BorderRadius.circular(Sizes.radiusLg),
                   animateUpward: openUpwards,
                   child: Material(
                     type: MaterialType.transparency,
@@ -209,22 +208,24 @@ class CLPopupMenu extends StatefulWidget {
 class _CLPopupMenuState extends State<CLPopupMenu> {
   final GlobalKey _anchorKey = GlobalKey();
 
-  void _open() {
-    CLPopupMenu.show(
-      context: context,
-      anchorKey: _anchorKey,
-      items: widget.items,
-      title: widget.title,
-      titleWidget: widget.titleWidget,
-      alignment: widget.alignment,
-      minWidth: widget.minWidth,
-      maxWidth: widget.maxWidth,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(key: _anchorKey, child: widget.builder(context, _open));
+    return SizedBox(
+      key: _anchorKey,
+      child: widget.builder(
+        context,
+        () => CLPopupMenu.show(
+          context: context,
+          anchorKey: _anchorKey,
+          items: widget.items,
+          title: widget.title,
+          titleWidget: widget.titleWidget,
+          alignment: widget.alignment,
+          minWidth: widget.minWidth,
+          maxWidth: widget.maxWidth,
+        ),
+      ),
+    );
   }
 }
 

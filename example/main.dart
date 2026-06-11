@@ -4,6 +4,7 @@ import 'package:genai_components/genai_components.dart' hide WidgetBuilder;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'screens/buttons_screen.dart';
+import 'screens/compact_screen.dart';
 import 'screens/form_screen.dart';
 
 /// Widget gallery for genai_components (UI-pure).
@@ -73,6 +74,11 @@ final List<_GalleryEntry> _entries = [
     title: 'Form',
     icon: LucideIcons.textCursorInput,
     builder: (_) => const FormScreen(),
+  ),
+  _GalleryEntry(
+    title: 'Compact',
+    icon: LucideIcons.foldVertical,
+    builder: (_) => const CompactScreen(),
   ),
 ];
 

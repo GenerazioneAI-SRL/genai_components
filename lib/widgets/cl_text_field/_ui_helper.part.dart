@@ -4,12 +4,15 @@ part of '../cl_text_field.widget.dart';
 class _TextFieldUiHelper extends _Helper {
   _TextFieldUiHelper(super.s);
 
+  /// Altezza cursore in compact: deve stare nel box testo da 18px
+  /// (32 − 2 bordo − 12 padding verticale). Senza override il cursore segue
+  /// fontSize × lineHeight (≈22px con bodyText 14/1.6) e sforerebbe.
+  static const double _kCompactCursorHeight = 16.0;
+
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final bool isInline = w.dateFieldType != null;
-    final String? semanticLabelText = w.isTextArea
-        ? null
-        : (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
+    final String? semanticLabelText = w.isTextArea ? null : (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
 
     final VoidCallback? gestureTap = w.onColorPicked != null
         ? () => s._colorHelper.pick(context)
@@ -19,9 +22,7 @@ class _TextFieldUiHelper extends _Helper {
                 ? () => s._fileHelper.pick(context)
                 : null;
 
-    final bool absorb = (!isInline &&
-            (w.onDateTimeSelected != null || w.onTimeSelected != null) &&
-            !s.isDatePicked) ||
+    final bool absorb = (!isInline && (w.onDateTimeSelected != null || w.onTimeSelected != null) && !s.isDatePicked) ||
         w.onColorPicked != null ||
         (w.onFilePicked != null && !s.isFilePicked);
 
@@ -37,8 +38,7 @@ class _TextFieldUiHelper extends _Helper {
     if (w.isTextArea) {
       final formField = TextFormField(
         textAlignVertical: TextAlignVertical.center,
-        textCapitalization:
-            w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
+        textCapitalization: w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
         cursorColor: theme.primary,
         cursorWidth: 1.5,
         cursorRadius: const Radius.circular(1),
@@ -62,20 +62,20 @@ class _TextFieldUiHelper extends _Helper {
       );
     }
 
-    // ─── non-textArea: custom Container chrome — exact 40px ─────────────
+    // ─── non-textArea: custom Container chrome — exact 40px (32 compact) ─
     // Bypass InputDecorator entirely. Material's InputDecorator reserves
     // vertical space for label + helper + error + tap-target floor that
     // forces the field above 40px even with isDense, hintText, and
     // shrinkWrap. By rendering chrome ourselves we get pixel-perfect 40.
-    final hintText = w.dateFieldType?.hint ??
-        (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
+    final inputH = w.isCompact ? theme.inputHeightCompact : theme.inputHeight;
+    final hintText = w.dateFieldType?.hint ?? (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
 
     final innerField = TextFormField(
       textAlignVertical: TextAlignVertical.center,
-      textCapitalization:
-          w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
+      textCapitalization: w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
       cursorColor: theme.primary,
       cursorWidth: 1.5,
+      cursorHeight: w.isCompact ? _kCompactCursorHeight : null,
       cursorRadius: const Radius.circular(1),
       readOnly: readOnly,
       onTap: w.onTap,
@@ -93,10 +93,11 @@ class _TextFieldUiHelper extends _Helper {
               w.onChanged?.call(value);
             }
           : w.onChanged,
-      inputFormatters: isInline
-          ? [DateMaskFormatter(w.dateFieldType!)]
-          : (w.inputFormatters ?? _defaultInputFormatters()),
-      style: theme.bodyText.copyWith(fontWeight: FontWeight.w400),
+      inputFormatters:
+          isInline ? [DateMaskFormatter(w.dateFieldType!)] : (w.inputFormatters ?? _defaultInputFormatters()),
+      // In compact la line-height 1.6 di bodyText (≈22px) supera il box testo
+      // da 18px: height 1.0 riporta la riga a 14px e centra il testo.
+      style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: w.isCompact ? 1.0 : null),
       // Full InputDecoration with border.none + isDense + symmetric vertical
       // padding tuned to center text in the 40px Container.
       decoration: InputDecoration(
@@ -107,9 +108,9 @@ class _TextFieldUiHelper extends _Helper {
         errorBorder: InputBorder.none,
         focusedErrorBorder: InputBorder.none,
         disabledBorder: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        contentPadding: EdgeInsets.symmetric(vertical: w.isCompact ? 6 : 12),
         hintText: hintText,
-        hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
+        hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: w.isCompact ? 1.0 : null),
       ),
       validator: _combineValidators(_effectiveValidators),
     );
@@ -119,25 +120,19 @@ class _TextFieldUiHelper extends _Helper {
 
     final Widget chrome = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
-      height: CLSizes.inputHeight,
+      height: inputH,
       decoration: BoxDecoration(
         color: w.isEnabled
             ? (w.fillColor ?? theme.secondaryBackground)
-            : (w.fillColor ?? theme.secondaryBackground)
-                .withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(
-            w.isRounded ? CLSizes.inputHeight / 2 : theme.radiusControl),
+            : (w.fillColor ?? theme.secondaryBackground).withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(w.isRounded ? inputH / 2 : theme.radiusControl),
         border: Border.all(
           color: s.isFocusedRef
               ? theme.primary
-              : (w.isEnabled
-                  ? theme.cardBorder
-                  : theme.cardBorder.withValues(alpha: 0.5)),
+              : (w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)),
           width: 1,
         ),
-        boxShadow: s.isFocusedRef
-            ? [BoxShadow(color: theme.primary, spreadRadius: 1, blurRadius: 0)]
-            : null,
+        boxShadow: s.isFocusedRef ? [BoxShadow(color: theme.primary, spreadRadius: 1, blurRadius: 0)] : null,
       ),
       child: Row(
         children: [
@@ -182,9 +177,7 @@ class _TextFieldUiHelper extends _Helper {
       ),
     );
 
-    return semanticLabelText == null
-        ? field
-        : Semantics(label: semanticLabelText, textField: true, child: field);
+    return semanticLabelText == null ? field : Semantics(label: semanticLabelText, textField: true, child: field);
   }
 
   InputDecoration _decoration(BuildContext context, CLTheme theme) {
@@ -192,8 +185,7 @@ class _TextFieldUiHelper extends _Helper {
           borderRadius: BorderRadius.circular(theme.radiusControl),
           borderSide: BorderSide(color: c, width: bw),
         );
-    final String labelOrHint =
-        s.shouldShowRequired ? '${w.labelText}*' : w.labelText;
+    final String labelOrHint = s.shouldShowRequired ? '${w.labelText}*' : w.labelText;
     // For non-textArea fields we render the label as hintText (placeholder)
     // instead of labelText. labelText reserves vertical space above the input
     // for floating-label position, pushing intrinsic height to ~48 even with
@@ -204,8 +196,7 @@ class _TextFieldUiHelper extends _Helper {
     final bool useHintForLabel = !w.isTextArea;
     return InputDecoration(
       isDense: true,
-      floatingLabelBehavior:
-          w.isTextArea ? FloatingLabelBehavior.auto : FloatingLabelBehavior.never,
+      floatingLabelBehavior: w.isTextArea ? FloatingLabelBehavior.auto : FloatingLabelBehavior.never,
       floatingLabelStyle: w.isTextArea
           ? theme.smallText.copyWith(
               color: s.isFocusedRef ? theme.primary : theme.secondaryText,
@@ -227,8 +218,8 @@ class _TextFieldUiHelper extends _Helper {
       prefixIcon: w.prefixIcon != null
           ? Padding(padding: const EdgeInsets.only(left: 12, right: 8), child: w.prefixIcon)
           : null,
-      prefixIconConstraints: w.prefixIconConstraints ??
-          (w.prefixIcon != null ? const BoxConstraints(minWidth: 0, minHeight: 0) : null),
+      prefixIconConstraints:
+          w.prefixIconConstraints ?? (w.prefixIcon != null ? const BoxConstraints(minWidth: 0, minHeight: 0) : null),
       suffixIcon: _suffixIcon(context, theme),
       suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       hoverColor: Colors.transparent,
@@ -257,11 +248,13 @@ class _TextFieldUiHelper extends _Helper {
           : _dateFieldTypeIcon(theme);
     }
     if (w.onColorPicked != null) {
+      // Swatch 20px in compact (gapXl): 24px lascerebbe solo 4px di aria nel box da 32.
+      final double swatchSide = w.isCompact ? theme.gapXl : 24;
       return Padding(
         padding: const EdgeInsets.only(right: 10),
         child: Container(
-          width: 24,
-          height: 24,
+          width: swatchSide,
+          height: swatchSide,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(6),
             color: s._colorHelper.hexToColor(w.controller.text),
@@ -347,7 +340,7 @@ class _TextFieldUiHelper extends _Helper {
       padding: const EdgeInsets.only(right: 10),
       child: HugeIcon(
         icon: isTime ? HugeIcons.strokeRoundedClock01 : HugeIcons.strokeRoundedCalendar03,
-        size: CLTextFieldState.kIconSize,
+        size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
         color: s.isFocusedRef ? theme.primary : theme.secondaryText,
       ),
     );
@@ -355,9 +348,13 @@ class _TextFieldUiHelper extends _Helper {
 
   Widget _clearButton(CLTheme theme, VoidCallback onPressed) => GestureDetector(
         onTap: onPressed,
+        // Hit-test opaco + padding verticale gapSm: porta il tap target a
+        // tutta l'altezza del campo (16 icona + 8+8 = 32 in compact).
+        behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: Icon(Icons.close_rounded, size: 18, color: theme.danger.withValues(alpha: 0.8)),
+          padding: EdgeInsets.only(right: 10, top: theme.gapSm, bottom: theme.gapSm),
+          child: Icon(Icons.close_rounded,
+              size: w.isCompact ? theme.iconSizeCompact : 18, color: theme.danger.withValues(alpha: 0.8)),
         ),
       );
 
@@ -365,7 +362,7 @@ class _TextFieldUiHelper extends _Helper {
         padding: const EdgeInsets.only(right: 10),
         child: HugeIcon(
           icon: HugeIcons.strokeRoundedCalendar03,
-          size: CLTextFieldState.kIconSize,
+          size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
           color: s.isFocusedRef ? theme.primary : theme.secondaryText,
         ),
       );
@@ -376,14 +373,13 @@ class _TextFieldUiHelper extends _Helper {
           padding: const EdgeInsets.only(right: 10),
           child: Icon(
             s.isPasswordVisibleRef ? FontAwesomeIcons.eye : FontAwesomeIcons.eyeSlash,
-            size: CLTextFieldState.kIconSize,
+            size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
             color: s.isFocusedRef ? theme.primary : theme.secondaryText,
           ),
         ),
       );
 
-  static FormFieldValidator<String>? _combineValidators(
-      List<FormFieldValidator<String>>? vs) {
+  static FormFieldValidator<String>? _combineValidators(List<FormFieldValidator<String>>? vs) {
     if (vs == null || vs.isEmpty) return null;
     return (String? value) {
       final errors = <String>[];

@@ -27,6 +27,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     this.onSelectItems,
     this.onClearItem,
     this.fillColor,
+    this.isCompact = true,
   });
 
   final TextEditingController controller;
@@ -51,6 +52,9 @@ class CLDropdown<T extends Object> extends StatefulWidget {
   final bool isEnabled;
   final Color? fillColor;
 
+  /// Se `true`, campo a 32px e item del menu più densi.
+  final bool isCompact;
+
   @override
   State<CLDropdown<T>> createState() => _CLDropdownState<T>();
 
@@ -67,6 +71,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     T? selectedValues,
     Function()? onClearItem,
     Color? fillColor,
+    bool isCompact = true,
   }) {
     List<T> previousvalueToShows = [];
     if (selectedValues != null) {
@@ -86,6 +91,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
       syncSearchCallback: searchCallback,
       onClearItem: onClearItem,
       fillColor: fillColor,
+      isCompact: isCompact,
     );
   }
 
@@ -108,6 +114,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     required Function(T?)? onSelectItem,
     Function()? onClearItem,
     Color? fillColor,
+    bool isCompact = true,
   }) {
     List<T> previousvalueToShows = [];
     if (selectedValues != null) {
@@ -129,6 +136,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
       length: length,
       onClearItem: onClearItem,
       fillColor: fillColor,
+      isCompact: isCompact,
     );
   }
 
@@ -143,6 +151,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     final List<FormFieldValidator<String>>? validators,
     List<T> selectedValues = const [],
     int length = 10,
+    bool isCompact = true,
   }) {
     return CLDropdown(
       key: key,
@@ -157,6 +166,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
       length: length,
       syncSearchCallback: searchCallback,
       validators: validators,
+      isCompact: isCompact,
     );
   }
 
@@ -176,6 +186,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     final List<FormFieldValidator<String>>? validators,
     List<T> selectedValues = const [],
     int length = 10,
+    bool isCompact = true,
   }) {
     return CLDropdown(
       key: key,
@@ -190,6 +201,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
       onSelectItems: onSelectItems,
       length: length,
       validators: validators,
+      isCompact: isCompact,
     );
   }
 }
@@ -245,6 +257,7 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
         perPage: widget.length,
         searchColumn: widget.searchColumn,
         hint: widget.hint,
+        isCompact: widget.isCompact,
       ),
       builder: (context, child) {
         var state = context.watch<DropdownState<T>>();
@@ -355,6 +368,7 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                 isReadOnly: true,
                 validators: widget.validators,
                 fillColor: widget.fillColor,
+                isCompact: widget.isCompact,
                 onTap: widget.isEnabled ? () => state.toggleOverlay() : null,
                 suffixIcon: !widget.isEnabled
                     ? null
@@ -364,17 +378,23 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2))
                         : state.selectedItem != null
-                            ? _deleteButton(
-                                onPressed: () {
-                                  state.removeItem(state.selectedItem!);
-                                },
+                            ? GestureDetector(
+                                onTap: () =>
+                                    state.removeItem(state.selectedItem!),
+                                child: Icon(Icons.close_rounded,
+                                    size: widget.isCompact
+                                        ? theme.iconSizeCompact
+                                        : 18,
+                                    color: CLTheme.of(context)
+                                        .danger
+                                        .withValues(alpha: 0.8)),
                               )
                             : HugeIcon(
                                 icon: state.isOverlayOpen
                                     ? HugeIcons.strokeRoundedArrowUp01
                                     : HugeIcons.strokeRoundedArrowDown01,
                                 color: CLTheme.of(context).secondaryText,
-                                size: 16,
+                                size: theme.iconSizeCompact,
                               ),
               ),
             ),
@@ -382,13 +402,5 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
         );
       },
     );
-  }
-
-  Widget _deleteButton({required Function() onPressed}) {
-    return GestureDetector(
-        onTap: onPressed,
-        child: Icon(Icons.close_rounded,
-            size: 18,
-            color: CLTheme.of(context).danger.withValues(alpha: 0.8)));
   }
 }

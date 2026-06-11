@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
 
@@ -65,7 +64,7 @@ class CLButton extends StatefulWidget {
     this.textStyle,
     this.iconColor,
     this.hugeIcon,
-    this.isCompact = false,
+    this.isCompact = true,
     this.enabled = true,
     this.tooltip,
     this.loading,
@@ -88,7 +87,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -134,7 +133,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -180,7 +179,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -226,7 +225,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -272,7 +271,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -318,7 +317,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -365,7 +364,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = false,
+    bool isCompact = true,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -401,13 +400,6 @@ class CLButton extends StatefulWidget {
 
   @override
   State<CLButton> createState() => _CLButtonState();
-}
-
-// Padding orizzontale: gapMd (12) compact, gapLg (16) default. Vertical 0 — l'altezza
-// è governata da minHeight (CLSizes.buttonHeight*) per garantire 32/40/48 esatti.
-({double h, double v}) _paddingFor({required CLTheme theme, required bool isMobile, required bool isCompact}) {
-  if (isCompact) return (h: theme.gapMd, v: 0.0);
-  return (h: theme.gapLg, v: 0.0);
 }
 
 class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
@@ -467,12 +459,13 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final hoverBg = Color.lerp(bgColor, Colors.black, 0.08)!;
     final pressedBg = Color.lerp(bgColor, Colors.black, 0.16)!;
 
-    // ── Padding (tabella pura, helper esterno) ───────────────────────
-    final pad = _paddingFor(theme: theme, isMobile: isMobile, isCompact: widget.isCompact);
+    // ── Padding orizzontale: gapMd (12) compact, gapLg (16) default. Vertical
+    // 0 — l'altezza è governata da minHeight per garantire 32/40/48 esatti.
+    final padH = widget.isCompact ? theme.gapMd : theme.gapLg;
     final iconSz = widget.iconSize ?? (widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact);
 
     // Altezze fisse da design tokens: 32 compact, 40 default. Niente +/- mobile.
-    final minHeight = widget.isCompact ? CLSizes.buttonHeightCompact : CLSizes.buttonHeightDefault;
+    final minHeight = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final iconOnlySide = minHeight;
     final radius = widget.borderRadius ?? theme.radiusControl;
 
@@ -536,7 +529,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
         ],
       );
     } else {
-      content = Center(child: buildIconSlot(widget.iconSize ?? theme.gapXl));
+      content = Center(child: buildIconSlot(widget.iconSize ?? (widget.isCompact ? theme.iconSizeCompact : theme.gapXl)));
     }
 
     // ── Superficie animata (bg + padding insieme: niente gap trasparente) ─
@@ -572,7 +565,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
           child: AnimatedContainer(
             duration: _hoverDuration,
             curve: Curves.easeOut,
-            padding: widget.text.isNotEmpty ? EdgeInsets.symmetric(horizontal: pad.h, vertical: pad.v) : EdgeInsets.zero,
+            padding: widget.text.isNotEmpty ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
             constraints: constraints,
             decoration: BoxDecoration(
               color: currentBg,
