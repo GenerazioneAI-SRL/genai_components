@@ -1,11 +1,8 @@
 # Changelog
 
-## Unreleased
-
 **Behavior change — compact by default.** Buttons, text fields and dropdowns now render
 in compact size (`isCompact: true`) by default; pass `isCompact: false` to keep the
 previous standard height. Signatures are otherwise unchanged.
-
 - **Theme (new tokens):** `buttonHeightDefault` (40), `buttonHeightCompact` (32),
   `buttonHeightLarge` (48), `inputHeight` (40), `inputHeightCompact` (32) — overridable getters.
 - **Buttons:** `CLButton`, `CLOutlineButton`, `CLSoftButton`, `CLGhostButton` support
@@ -19,6 +16,15 @@ previous standard height. Signatures are otherwise unchanged.
   `kCLModalScrim`/`kCLPopoverScrim` applied consistently to sheets, dialogs and popovers;
   `CLSheet` uses `radiusModal`, theme `cardShadow` and border.
 - **Example:** new `Compact` gallery screen comparing standard vs compact.
+
+## 5.1.0
+
+- **Widgets:** Updated 13 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Changelog Md
+- **Example:** Updated Main, Compact Screen
+
 
 ## 5.0.0
 
