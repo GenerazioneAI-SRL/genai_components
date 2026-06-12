@@ -25,6 +25,7 @@ class CLContainer extends StatefulWidget {
     this.showBorder = true,
     this.titleBackgroundColor,
     this.titleIcon,
+    this.plainHeader = false,
   });
 
   final Widget child;
@@ -52,6 +53,11 @@ class CLContainer extends StatefulWidget {
   /// Icona opzionale mostrata a sinistra del [title].
   /// Ignorata se viene fornito [titleWidget].
   final Widget? titleIcon;
+
+  /// Header "grouped" stile iOS: titolo come label sopra il contenuto, senza
+  /// barra di sfondo grigia né divider inferiore. La card resta una superficie
+  /// unica delimitata da bordo/contrasto. Default `false` (header classico).
+  final bool plainHeader;
 
   @override
   State<CLContainer> createState() => _CLContainerState();
@@ -91,15 +97,21 @@ class _CLContainerState extends State<CLContainer> {
             if (hasTitle) ...[
               Container(
                 decoration: BoxDecoration(
-                  color: widget.titleBackgroundColor != null
-                      ? widget.titleBackgroundColor!.withValues(alpha: 0.08)
-                      : theme.primaryBackground,
-                  border: widget.customHeader == null
+                  // plainHeader: nessuna barra grigia né divider — il titolo è
+                  // una label sopra il contenuto (grouped iOS).
+                  color: widget.plainHeader
+                      ? Colors.transparent
+                      : widget.titleBackgroundColor != null
+                          ? widget.titleBackgroundColor!.withValues(alpha: 0.08)
+                          : theme.primaryBackground,
+                  border: (widget.customHeader == null && !widget.plainHeader)
                       ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1))
                       : null,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.verticalPadding),
+                  padding: widget.plainHeader
+                      ? const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding, Sizes.padding, 0)
+                      : const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.verticalPadding),
                   child: Row(
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
