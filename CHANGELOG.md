@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.2.0
+
+- **Widgets:** Updated 16 components
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Changelog Md, Genai Components
+- **Package:** Updated Pubspec Yaml
+
+
 ## 5.1.0
 
 **Behavior change — compact by default.** Buttons, text fields and dropdowns now render
