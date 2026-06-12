@@ -164,7 +164,7 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
         return CLAlert.border(
           widget.title,
           widget.message,
-          icon: FontAwesomeIcons.check,
+          icon: Icons.check,
           backgroundColor: CLTheme.of(context).success,
           onClose: () {
             _close();
@@ -174,7 +174,7 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
         return CLAlert.border(
           widget.title,
           widget.message,
-          icon: FontAwesomeIcons.triangleExclamation,
+          icon: Icons.warning_amber,
           backgroundColor: CLTheme.of(context).danger,
           onClose: () {
             _close();
@@ -184,7 +184,7 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
         return CLAlert.border(
           widget.title,
           widget.message,
-          icon: FontAwesomeIcons.triangleExclamation,
+          icon: Icons.warning_amber,
           backgroundColor: CLTheme.of(context).warning,
           onClose: () {
             _close();
@@ -194,7 +194,7 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
         return CLAlert.border(
           widget.title,
           widget.message,
-          icon: FontAwesomeIcons.info,
+          icon: Icons.info_outline,
           backgroundColor: CLTheme.of(context).info,
           onClose: () {
             _close();
@@ -205,7 +205,7 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
           widget.title,
           widget.message,
           //foregroundColor: Colors.white,
-          icon: FontAwesomeIcons.bell,
+          icon: Icons.notifications,
           backgroundColor: CLTheme.of(context).info,
           onClose: () {
             _close();
@@ -215,7 +215,7 @@ class _OverlayBodyState extends State<_OverlayBody> with SingleTickerProviderSta
         return CLAlert.download(
           widget.title,
           widget.message,
-          icon: FontAwesomeIcons.info,
+          icon: Icons.info_outline,
           backgroundColor: CLTheme.of(context).info,
           downloadPercentageStream: widget.downloadPercentageStream!,
           onClose: () {

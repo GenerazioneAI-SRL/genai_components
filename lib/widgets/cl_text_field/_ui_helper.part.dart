@@ -274,7 +274,7 @@ class _TextFieldUiHelper extends _Helper {
           : Padding(
               padding: const EdgeInsets.only(right: 4),
               child: CLSoftButton.primary(
-                icon: FontAwesomeIcons.file,
+                icon: Icons.description,
                 text: 'Seleziona file',
                 onTap: () {},
                 context: context,
@@ -372,7 +372,7 @@ class _TextFieldUiHelper extends _Helper {
         child: Padding(
           padding: const EdgeInsets.only(right: 10),
           child: Icon(
-            s.isPasswordVisibleRef ? FontAwesomeIcons.eye : FontAwesomeIcons.eyeSlash,
+            s.isPasswordVisibleRef ? Icons.visibility : Icons.visibility_off,
             size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
             color: s.isFocusedRef ? theme.primary : theme.secondaryText,
           ),
