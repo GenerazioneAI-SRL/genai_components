@@ -16,6 +16,9 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
   final Widget Function(BuildContext context, TResult item)? expandedRowBuilder;
   final Future<void> Function(TResult item)? onRowExpanded;
 
+  /// Se true le righe scorrono da sole nello spazio (bounded) assegnato.
+  final bool fillHeight;
+
   const _PagedDataTableRows(
     this.rowsSelectable,
     this.onItemTap,
@@ -31,6 +34,7 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
     this.showShimmerLoading,
     this.expandedRowBuilder,
     this.onRowExpanded,
+    this.fillHeight,
   );
 
   @override
@@ -70,21 +74,26 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
     final clTheme = CLTheme.of(context);
 
     if (state._rowsState.isEmpty && state.tableState == _TableState.displaying) {
-      return noItemsFoundBuilder?.call(context) ?? const _EmptyState();
+      final empty = noItemsFoundBuilder?.call(context) ?? const _EmptyState();
+      // In fillHeight lo stato vuoto si centra nello spazio disponibile.
+      return fillHeight ? Center(child: empty) : empty;
     }
 
     if (state.tableState == _TableState.error) {
-      return errorBuilder?.call(state.currentError!) ?? _ErrorState(error: state.currentError);
+      final error = errorBuilder?.call(state.currentError!) ?? _ErrorState(error: state.currentError);
+      return fillHeight ? Center(child: error) : error;
     }
 
     return ListView.separated(
-      physics: const NeverScrollableScrollPhysics(),
+      // In fillHeight la lista scorre da sola nello spazio assegnato.
+      physics: fillHeight ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      primary: false,
       padding: EdgeInsets.zero,
       separatorBuilder: (_, __) => theme.dividerColor == null
           ? Divider(height: 0, color: clTheme.borderColor, thickness: 1)
           : const SizedBox.shrink(),
       itemCount: state._rowsState.length,
-      shrinkWrap: true,
+      shrinkWrap: !fillHeight,
       itemBuilder: (context, index) => ChangeNotifierProvider<_PagedDataTableRowState<TResultId, TResult>>.value(
         value: state._rowsState[index],
         child: Consumer<_PagedDataTableRowState<TResultId, TResult>>(

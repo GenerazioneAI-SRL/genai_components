@@ -5,15 +5,15 @@ part of 'paged_datatable.dart';
 /// Two display modes:
 /// - **Popup** (default `inline: false`): rendered inside the 3-dot menu.
 ///   Provide [content] (typically a `TableActionItem(name, iconData)`).
-/// - **Inline** (`inline: true`): rendered directly in the row as a compact
-///   `CLOutlineButton`. Provide [label] and optional [icon] (LucideIcons) +
-///   optional [color] for tonal variant (e.g. `theme.danger` for "Elimina").
+/// - **Inline** (`inline: true`): rendered directly in the row as a plain
+///   compact icon button. Provide [label] and optional [icon] (LucideIcons) +
+///   optional [color] for the hover tint (e.g. `theme.danger` for "Elimina").
 ///   The [content] field is unused in inline mode.
 class TableAction<T extends Object> {
   final Widget content;
   final void Function(Object) _onTapInternal;
 
-  /// When true, this action renders as a compact `CLOutlineButton` directly
+  /// When true, this action renders as a plain compact icon button directly
   /// inline in the row, before the 3-dot popup menu.
   final bool inline;
 

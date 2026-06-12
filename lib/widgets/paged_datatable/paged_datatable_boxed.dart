@@ -12,6 +12,9 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
   final bool rowsSelectable;
   final Function(TResult)? actionsTitle;
 
+  /// Se true le card scorrono da sole nello spazio (bounded) assegnato.
+  final bool fillHeight;
+
   const _PagedDataTableBoxed(
     this.rowsSelectable,
     this.onItemTap,
@@ -23,6 +26,7 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
     this.actionsTitle,
     this.tableActions,
     this.actionsBuilder,
+    this.fillHeight,
   );
 
   @override
@@ -125,18 +129,23 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
     final clTheme = CLTheme.of(context);
 
     if (state._rowsState.isEmpty && state.tableState == _TableState.displaying) {
-      return noItemsFoundBuilder?.call(context) ?? _buildEmptyState(context, clTheme);
+      final empty = noItemsFoundBuilder?.call(context) ?? _buildEmptyState(context, clTheme);
+      // In fillHeight lo stato vuoto si centra nello spazio disponibile.
+      return fillHeight ? Center(child: empty) : empty;
     }
 
     if (state.tableState == _TableState.error) {
-      return errorBuilder?.call(state.currentError!) ?? _buildErrorState(context, clTheme, state.currentError);
+      final error = errorBuilder?.call(state.currentError!) ?? _buildErrorState(context, clTheme, state.currentError);
+      return fillHeight ? Center(child: error) : error;
     }
 
     return ListView.builder(
-      physics: const NeverScrollableScrollPhysics(),
+      // In fillHeight la lista scorre da sola nello spazio assegnato.
+      physics: fillHeight ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      primary: false,
       padding: EdgeInsets.zero,
       itemCount: state._rowsState.length,
-      shrinkWrap: true,
+      shrinkWrap: !fillHeight,
       itemBuilder: (context, index) => ChangeNotifierProvider<_PagedDataTableRowState<TResultId, TResult>>.value(
         value: state._rowsState[index],
         child: Consumer<_PagedDataTableRowState<TResultId, TResult>>(
@@ -192,7 +201,6 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
               decoration: BoxDecoration(
                 color: _effectiveTablePrimary(context).withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(Sizes.borderRadius + 2),
-                border: Border.all(color: _effectiveTablePrimary(context).withValues(alpha: 0.1)),
               ),
               child: Icon(Icons.search_off_rounded, size: 26, color: _effectiveTablePrimary(context).withValues(alpha: 0.5)),
             ),
@@ -236,7 +244,6 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
               decoration: BoxDecoration(
                 color: theme.danger.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(Sizes.borderRadius),
-                border: Border.all(color: theme.danger.withValues(alpha: 0.15)),
               ),
               child: Icon(Icons.error_outline_rounded, size: 24, color: theme.danger.withValues(alpha: 0.8)),
             ),
@@ -373,13 +380,13 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(theme.radiusControl),
                           onTap: () => _showActionsSheet(context, actions, model),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: theme.primaryText.withValues(alpha: 0.04),
-                              borderRadius: BorderRadius.circular(8),
+                              color: theme.muted,
+                              borderRadius: BorderRadius.circular(theme.radiusControl),
                             ),
                             child: Icon(Icons.more_vert_rounded, size: 18, color: theme.secondaryText),
                           ),

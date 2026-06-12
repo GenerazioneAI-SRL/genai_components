@@ -7,7 +7,6 @@ import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_ghost_button.widget.dart';
-import '../buttons/cl_outline_button.widget.dart';
 import '../cl_popup_surface.widget.dart';
 import '../cl_shimmer.widget.dart';
 import '../cl_text_field.widget.dart';
@@ -181,6 +180,12 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// Se null, viene usato `CLTheme.of(context).primary`.
   final Color? primaryColor;
 
+  /// Se true la tabella riempie l'altezza del parent (che DEVE essere bounded,
+  /// es. dentro un `Expanded`): filter bar, header e footer restano fissi e
+  /// scorrono solo le righe. Se false (default) la tabella è alta quanto il
+  /// contenuto e scorre col parent.
+  final bool fillHeight;
+
   const PagedDataTable({
     this.downloadPage,
     this.downloadButtonText,
@@ -223,6 +228,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.titleIcon,
     this.titleBackgroundColor,
     this.primaryColor,
+    this.fillHeight = false,
     super.key,
   });
 
@@ -270,7 +276,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         var state = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
         // Update columns reference so cellBuilder closures use the latest theme
         state.columns = columns;
-        // Split actions into inline (rendered as compact CLOutlineButton in
+        // Split actions into inline (rendered as plain compact icon button in
         // the row) and popup (rendered behind the 3-dot menu).
         final inlineActions = tableActions.where((a) => a.inline).toList();
         final popupActionsCount = tableActions.where((a) => !a.inline).length;
@@ -281,7 +287,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         final hasExpandIcon = expandedRowBuilder != null;
         // Left border indicator width in rows
         const double leftBorderWidth = 2.5;
-        // Inline action button: icon-only CLOutlineButton compact = 32x32.
+        // Inline action button: icon-only plain button compact = 32x32.
         const double inlineActionWidth = 32.0;
         const double inlineActionGap = 12.0; // gapMd between inline buttons
         final double inlineActionsAreaWidth = inlineActions.isEmpty
@@ -313,6 +319,49 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 (rowsSelectable ? checkboxAreaWidth : 0) -
                 (hasAnyActions ? actionsColumnWidth : 0);
             state.availableWidth = width;
+            // Sezione righe desktop: in fillHeight occupa lo spazio rimanente
+            // e scorre da sola (header/filter bar restano fissi sopra).
+            Widget rowsSection = _PagedDataTableRows<TKey, TResultId, TResult>(
+              rowsSelectable,
+              onItemTap,
+              isInSnippet,
+              customRowBuilder ??
+                  CustomRowBuilder<TResult>(
+                    builder: (context, item) => throw UnimplementedError("This does not build nothing"),
+                    shouldUse: (context, item) => false,
+                  ),
+              noItemsFoundBuilder,
+              errorBuilder,
+              width,
+              actionsTitle,
+              tableActions,
+              actionsBuilder,
+              localTheme.configuration.initialPageSize,
+              showShimmerLoading,
+              expandedRowBuilder,
+              onRowExpanded,
+              fillHeight,
+            );
+            if (fillHeight) rowsSection = Expanded(child: rowsSection);
+            // Sezione card mobile: stesso trattamento.
+            Widget boxedSection = _PagedDataTableBoxed<TKey, TResultId, TResult>(
+              rowsSelectable,
+              onItemTap,
+              isInSnippet,
+              customRowBuilder ??
+                  CustomRowBuilder<TResult>(
+                    builder: (context, item) => throw UnimplementedError("This does not build nothing"),
+                    shouldUse: (context, item) => false,
+                  ),
+              noItemsFoundBuilder,
+              errorBuilder,
+              width,
+              actionsTitle,
+              tableActions,
+              actionsBuilder,
+              fillHeight,
+            );
+            if (fillHeight) boxedSection = Expanded(child: boxedSection);
             return ResponsiveBreakpoints.of(context).isDesktop
                 ? Container(
                     decoration: BoxDecoration(
@@ -440,26 +489,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
                             rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth),
                         /* ITEMS */
-                        _PagedDataTableRows<TKey, TResultId, TResult>(
-                          rowsSelectable,
-                          onItemTap,
-                          isInSnippet,
-                          customRowBuilder ??
-                              CustomRowBuilder<TResult>(
-                                builder: (context, item) => throw UnimplementedError("This does not build nothing"),
-                                shouldUse: (context, item) => false,
-                              ),
-                          noItemsFoundBuilder,
-                          errorBuilder,
-                          width,
-                          actionsTitle,
-                          tableActions,
-                          actionsBuilder,
-                          localTheme.configuration.initialPageSize,
-                          showShimmerLoading,
-                          expandedRowBuilder,
-                          onRowExpanded,
-                        ),
+                        rowsSection,
                       ],
                     ),
                   )
@@ -493,22 +523,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         ),
                         const SizedBox(height: Sizes.small),
                       ],
-                      _PagedDataTableBoxed<TKey, TResultId, TResult>(
-                        rowsSelectable,
-                        onItemTap,
-                        isInSnippet,
-                        customRowBuilder ??
-                            CustomRowBuilder<TResult>(
-                              builder: (context, item) => throw UnimplementedError("This does not build nothing"),
-                              shouldUse: (context, item) => false,
-                            ),
-                        noItemsFoundBuilder,
-                        errorBuilder,
-                        width,
-                        actionsTitle,
-                        tableActions,
-                        actionsBuilder,
-                      ),
+                      boxedSection,
                     ],
                   );
           },
@@ -518,12 +533,23 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
         final titleHeader = _buildTitleHeader(context);
 
+        // Footer paginazione, condiviso tra le due modalità di layout.
+        // Stessa superficie della tabella, separato da hairline superiore.
+        final Widget footerSection = localTheme.configuration.footer.footerVisible && showFooter
+            ? Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: CLTheme.of(context).borderColor)),
+                ),
+                child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
+              )
+            : const SizedBox.shrink();
+
         return PagedDataTableTheme(
           data: effectiveTheme,
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(Sizes.radiusCard),
-              boxShadow: showBorder ? CLTheme.of(context).cardShadow : null,
             ),
             child: Material(
               type: MaterialType.card,
@@ -534,53 +560,62 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               ),
               clipBehavior: Clip.antiAlias,
               child: ResponsiveBreakpoints.of(context).isDesktop
-                  ? SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (titleHeader != null) titleHeader,
-                          Container(
-                            decoration: BoxDecoration(
-                              color: CLTheme.of(context).secondaryBackground,
+                  // In fillHeight niente scroll esterno: titolo, filter bar,
+                  // header e footer fissi, scorrono solo le righe (Expanded).
+                  ? fillHeight
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (titleHeader != null) titleHeader,
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: CLTheme.of(context).secondaryBackground,
+                                ),
+                                child: child,
+                              ),
                             ),
-                            child: child,
+                            footerSection,
+                          ],
+                        )
+                      : SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (titleHeader != null) titleHeader,
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: CLTheme.of(context).secondaryBackground,
+                                ),
+                                child: child,
+                              ),
+                              footerSection,
+                            ],
                           ),
-                          localTheme.configuration.footer.footerVisible
-                              ? showFooter
-                                  ? Container(
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: CLTheme.of(context).primaryBackground,
-                                      ),
-                                      child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
-                                    )
-                                  : SizedBox.shrink()
-                              : const SizedBox.shrink(),
-                        ],
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (titleHeader != null) titleHeader,
-                          child,
-                          SizedBox(height: Sizes.padding),
-                          localTheme.configuration.footer.footerVisible
-                              ? showFooter
-                                  ? Container(
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: CLTheme.of(context).primaryBackground,
-                                      ),
-                                      child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
-                                    )
-                                  : SizedBox.shrink()
-                              : const SizedBox.shrink(),
-                          !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
-                        ],
-                      ),
-                    ),
+                        )
+                  : fillHeight
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (titleHeader != null) titleHeader,
+                            Expanded(child: child),
+                            SizedBox(height: Sizes.padding),
+                            footerSection,
+                            !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
+                          ],
+                        )
+                      : SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (titleHeader != null) titleHeader,
+                              child,
+                              SizedBox(height: Sizes.padding),
+                              footerSection,
+                              !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
+                            ],
+                          ),
+                        ),
             ),
           ),
         );

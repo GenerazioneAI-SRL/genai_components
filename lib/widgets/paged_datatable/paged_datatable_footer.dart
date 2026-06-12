@@ -50,8 +50,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: t.primaryText.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(6),
+                color: t.muted,
+                borderRadius: BorderRadius.circular(t.radiusControl),
               ),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -102,8 +102,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: t.primaryText.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(6),
+                color: t.muted,
+                borderRadius: BorderRadius.circular(t.radiusControl),
               ),
               child: Text(
                 state.totalElement > 0
@@ -139,31 +139,23 @@ class _PageSizeControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = theme;
-    return Container(
-      height: 36,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(t.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(pageSizes.length, (i) {
-          final size = pageSizes[i];
-          final selected = size == currentPageSize;
-          final isFirst = i == 0;
-          final isLast = i == pageSizes.length - 1;
-
-          return _PageSizeButton(
-            size: size,
-            selected: selected,
-            isFirst: isFirst,
-            isLast: isLast,
+    // Plain: nessun box bordato, solo l'elemento selezionato ha fill tinted.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < pageSizes.length; i++) ...[
+          if (i > 0) SizedBox(width: t.gapXs),
+          _PageSizeButton(
+            size: pageSizes[i],
+            selected: pageSizes[i] == currentPageSize,
             onTap: () {
               HapticFeedback.lightImpact();
-              onChanged(size);
+              onChanged(pageSizes[i]);
             },
             theme: t,
-          );
-        }),
-      ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -172,16 +164,12 @@ class _PageSizeControls extends StatelessWidget {
 class _PageSizeButton extends StatefulWidget {
   final int size;
   final bool selected;
-  final bool isFirst;
-  final bool isLast;
   final VoidCallback onTap;
   final CLTheme theme;
 
   const _PageSizeButton({
     required this.size,
     required this.selected,
-    required this.isFirst,
-    required this.isLast,
     required this.onTap,
     required this.theme,
   });
@@ -211,11 +199,11 @@ class _PageSizeButtonState extends State<_PageSizeButton> {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             color: widget.selected
-                ? primary.withValues(alpha: 0.12)
+                ? primary.withValues(alpha: 0.1)
                 : _isHovered
-                    ? primary.withValues(alpha: 0.04)
+                    ? t.muted
                     : Colors.transparent,
-            border: !widget.isFirst ? Border(left: BorderSide(color: t.borderColor, width: 1)) : null,
+            borderRadius: BorderRadius.circular(t.radiusControl),
           ),
           child: Center(
             child: Text(
@@ -246,72 +234,69 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
   @override
   Widget build(BuildContext context) {
     final t = theme;
+    final primary = _effectiveTablePrimary(context);
     final canPrev = state.hasPreviousPage && state.tableState != _TableState.loading;
     final canNext = state.hasNextPage && state.tableState != _TableState.loading;
 
-    return Container(
-      height: 36,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(t.radiusControl), border: Border.all(color: t.borderColor, width: 1)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Prev ───────────────────────────────────────────────
-          _PaginationButton(
-            onTap: canPrev ? () {
-              HapticFeedback.lightImpact();
-              state.previousPage();
-            } : null,
-            enabled: canPrev,
-            isFirst: true,
-            theme: t,
-            child: Icon(LucideIcons.chevronLeft, color: canPrev ? t.primaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
-          ),
+    // Plain: niente box bordato; solo la pagina corrente ha fill tinted primary.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Prev ───────────────────────────────────────────────
+        _PaginationButton(
+          onTap: canPrev ? () {
+            HapticFeedback.lightImpact();
+            state.previousPage();
+          } : null,
+          enabled: canPrev,
+          theme: t,
+          child: Icon(LucideIcons.chevronLeft, color: canPrev ? t.secondaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
+        ),
+        SizedBox(width: t.gapXs),
 
-          // ── Pagina corrente ─────────────────────────────────────
-          Container(
-            constraints: const BoxConstraints(minWidth: 40),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border.symmetric(
-                vertical: BorderSide(color: t.borderColor, width: 1),
+        // ── Pagina corrente ─────────────────────────────────────
+        Container(
+          height: 36,
+          constraints: const BoxConstraints(minWidth: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(t.radiusControl),
+          ),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.3),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
               ),
-            ),
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.3),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                ),
-                child: Text(
-                  '${state.currentPage + 1}',
-                  key: ValueKey<int>(state.currentPage),
-                  style: t.smallLabel.copyWith(fontWeight: FontWeight.w700, fontSize: 12, color: t.primaryText),
-                ),
+              child: Text(
+                '${state.currentPage + 1}',
+                key: ValueKey<int>(state.currentPage),
+                style: t.smallLabel.copyWith(fontWeight: FontWeight.w700, fontSize: 12, color: primary),
               ),
             ),
           ),
+        ),
+        SizedBox(width: t.gapXs),
 
-          // ── Next ────────────────────────────────────────────────
-          _PaginationButton(
-            onTap: canNext ? () {
-              HapticFeedback.lightImpact();
-              state.nextPage();
-            } : null,
-            enabled: canNext,
-            isFirst: false,
-            theme: t,
-            child: Icon(LucideIcons.chevronRight, color: canNext ? t.primaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
-          ),
-        ],
-      ),
+        // ── Next ────────────────────────────────────────────────
+        _PaginationButton(
+          onTap: canNext ? () {
+            HapticFeedback.lightImpact();
+            state.nextPage();
+          } : null,
+          enabled: canNext,
+          theme: t,
+          child: Icon(LucideIcons.chevronRight, color: canNext ? t.secondaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
+        ),
+      ],
     );
   }
 }
@@ -320,14 +305,12 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
 class _PaginationButton extends StatefulWidget {
   final VoidCallback? onTap;
   final bool enabled;
-  final bool isFirst;
   final CLTheme theme;
   final Widget child;
 
   const _PaginationButton({
     required this.onTap,
     required this.enabled,
-    required this.isFirst,
     required this.theme,
     required this.child,
   });
@@ -341,8 +324,6 @@ class _PaginationButtonState extends State<_PaginationButton> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = _effectiveTablePrimary(context);
-
     return MouseRegion(
       cursor: widget.enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onEnter: widget.enabled ? (_) => setState(() => _isHovered = true) : null,
@@ -354,9 +335,8 @@ class _PaginationButtonState extends State<_PaginationButton> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: _isHovered && widget.enabled
-                ? primary.withValues(alpha: 0.06)
-                : Colors.transparent,
+            color: _isHovered && widget.enabled ? widget.theme.muted : Colors.transparent,
+            borderRadius: BorderRadius.circular(widget.theme.radiusControl),
           ),
           child: Center(child: widget.child),
         ),

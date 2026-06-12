@@ -23,7 +23,8 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(theme.radiusControl),
+        hoverColor: theme.muted,
         onTap: () => _showActionsMenu(context),
         child: Container(
           key: iconKey,
@@ -149,7 +150,7 @@ class _ActionMenuItemState<TResultId extends Comparable, TResult extends Object>
             vertical: Sizes.padding * 0.6,
           ),
           decoration: BoxDecoration(
-            color: _isHovered ? _effectiveTablePrimary(context).withValues(alpha: 0.04) : Colors.transparent,
+            color: _isHovered ? theme.muted : Colors.transparent,
             border: !widget.isLast
                 ? Border(
                     bottom: BorderSide(color: theme.borderColor, width: 1),

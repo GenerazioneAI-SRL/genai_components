@@ -64,31 +64,74 @@ class TextTableFilter extends TableFilter<String> {
   Widget buildPicker(BuildContext context, TableFilterState state) {
     _controller ??= TextEditingController(text: state.value);
     _focusNode ??= FocusNode();
+    final theme = CLTheme.of(context);
+
+    void onFieldChanged(String value) {
+      if (onChange != null) {
+        _debounceTimer?.cancel();
+        _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+          onChange!(value);
+        });
+      } else if (value.isNotEmpty) {
+        state.value = value;
+      }
+    }
+
+    if (isMainFilter) {
+      // Search field: flat muted fill, no border (iOS-clean).
+      return Container(
+        height: theme.inputHeightCompact,
+        decoration: BoxDecoration(
+          color: theme.muted,
+          borderRadius: BorderRadius.circular(theme.radiusControl),
+        ),
+        child: Row(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
+              child: Icon(
+                LucideIcons.search,
+                color: theme.secondaryText,
+                size: 18,
+              ),
+            ),
+            Expanded(
+              child: TextFormField(
+                controller: _controller!,
+                focusNode: _focusNode,
+                maxLines: 1,
+                style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
+                decoration: InputDecoration(
+                  isDense: true,
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: "Cerca per $title",
+                  hintStyle: theme.bodyText.copyWith(color: theme.secondaryText, height: 1.0),
+                ),
+                onChanged: onFieldChanged,
+              ),
+            ),
+            SizedBox(width: theme.gapMd),
+          ],
+        ),
+      );
+    }
 
     return CLTextField(
-      fillColor: CLTheme.of(context).secondaryBackground,
+      fillColor: theme.secondaryBackground,
       controller: _controller!,
       focusNode: _focusNode,
-      labelText: isMainFilter ? "Cerca per $title" : "Filtra per $title",
+      labelText: "Filtra per $title",
       prefixIcon: Icon(
         LucideIcons.search,
-        color: CLTheme.of(context).secondaryText,
+        color: theme.secondaryText,
         size: 18,
       ),
       prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 0),
-      onChanged:
-          onChange != null
-              ? (value) async {
-                  _debounceTimer?.cancel();
-                  _debounceTimer = Timer(const Duration(milliseconds: 350), () {
-                    onChange!(value);
-                  });
-                }
-              : (value) async {
-                  if (value.isNotEmpty) {
-                    state.value = value;
-                  }
-                },
+      onChanged: (value) async => onFieldChanged(value),
     );
   }
 

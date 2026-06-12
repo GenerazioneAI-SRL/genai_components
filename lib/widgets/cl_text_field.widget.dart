@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
@@ -337,11 +336,11 @@ class CLTextField extends StatefulWidget {
         key: key, controller: controller, labelText: labelText,
         isRequired: isRequired,
         prefixIcon: iconAlignment == IconAlignment.start
-            ? const Icon(FontAwesomeIcons.moneyCheck, size: 14, color: Colors.grey)
+            ? const Icon(Icons.payments, size: 14, color: Colors.grey)
             : null,
         inputType: const TextInputType.numberWithOptions(decimal: true),
         suffixIcon: iconAlignment == IconAlignment.end
-            ? const Icon(FontAwesomeIcons.moneyCheck, size: 14, color: Colors.grey)
+            ? const Icon(Icons.payments, size: 14, color: Colors.grey)
             : null,
         onChanged: onChanged, focusNode: focusNode, onTap: onTap,
         isReadOnly: isReadOnly, isRounded: isRounded, isEnabled: isEnabled,

@@ -72,7 +72,6 @@ abstract class CLTheme {
       return isDark ? tp.darkTheme : tp.lightTheme;
     } catch (_) {}
 
-
     // 3. Default built-in
     return isDark ? dark : light;
   }
@@ -103,7 +102,6 @@ abstract class CLTheme {
   final Color accentForeground; // Text on accent surfaces
   final Color ring; // Focus ring / outline color
   final Color cardBorder; // Card and panel border
-
 
   List<BoxShadow> get cardShadow;
 
