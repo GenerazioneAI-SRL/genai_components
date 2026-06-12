@@ -536,11 +536,10 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         // Footer paginazione, condiviso tra le due modalità di layout.
         // Stessa superficie della tabella, separato da hairline superiore.
         final Widget footerSection = localTheme.configuration.footer.footerVisible && showFooter
-            ? Container(
+            // Border top fornito dal solo _PagedDataTableFooter: il wrapper non lo
+            // ridisegna, altrimenti doppio hairline sopra la paginazione.
+            ? SizedBox(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: CLTheme.of(context).borderColor)),
-                ),
                 child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
               )
             : const SizedBox.shrink();

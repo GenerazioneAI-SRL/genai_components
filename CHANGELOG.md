@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.2.1
+
+- **Widgets:** Updated Paged Datatable
+
+
 ## 5.2.0
 
 - **Widgets:** Updated 16 components
