@@ -68,17 +68,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
     final clickable = widget.onTap != null;
 
     // Hover lift via boxShadow growth.
-    final List<BoxShadow> shadow = clickable && _hovering
-        ? <BoxShadow>[
-            for (final s in theme.cardShadow)
-              BoxShadow(
-                color: s.color,
-                blurRadius: s.blurRadius * 1.5,
-                offset: Offset(s.offset.dx, s.offset.dy + 2),
-                spreadRadius: s.spreadRadius,
-              ),
-          ]
-        : theme.cardShadow;
+    final List<BoxShadow> shadow = theme.cardShadow;
 
     final EdgeInsets cardPadding = EdgeInsets.all(
       widget.compact ? theme.gapLg : theme.gapXl,
@@ -91,7 +81,6 @@ class _CLMetricCardState extends State<CLMetricCard> {
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
         borderRadius: BorderRadius.circular(theme.radiusCard),
-        border: Border.all(color: theme.cardBorder),
         boxShadow: shadow,
       ),
       child: _buildContent(theme),
@@ -120,15 +109,10 @@ class _CLMetricCardState extends State<CLMetricCard> {
 
   Widget _buildContent(CLTheme theme) {
     final double iconBoxPad = widget.compact ? theme.gapSm : theme.gapMd;
-    final double iconSize = widget.compact
-        ? theme.iconSizeCompact
-        : theme.iconSizeDefault;
+    final double iconSize = widget.compact ? theme.iconSizeCompact : theme.iconSizeDefault;
 
     // Hero number style — Satoshi medium-bold, restrained.
-    final TextStyle valueStyle = (widget.compact
-            ? theme.heading4
-            : theme.heading3)
-        .copyWith(
+    final TextStyle valueStyle = (widget.compact ? theme.heading4 : theme.heading3).copyWith(
       color: theme.primaryText,
       fontWeight: FontWeight.w600,
       letterSpacing: -0.4,
@@ -320,4 +304,3 @@ class _ParsedValue {
     return '$prefix$body$suffix';
   }
 }
-

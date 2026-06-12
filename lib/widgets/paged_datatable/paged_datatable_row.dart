@@ -349,39 +349,62 @@ class _ExpandedRowContent extends StatelessWidget {
   }
 }
 
-/// Inline action rendered in a row as a compact `CLOutlineButton`.
-/// Used when `TableAction.inline == true`. Tonal variant resolved from
-/// `action.color`: `theme.danger` → danger, `theme.warning` → warning,
-/// `theme.success` → success, `theme.info` → info, otherwise primary.
-class _InlineActionButton<TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
+/// Inline action rendered in a row as a plain icon button (iOS-clean):
+/// icona nuda `secondaryText`, fill `muted` su hover, nessun bordo.
+/// Used when `TableAction.inline == true`. Al hover l'icona vira sul colore
+/// semantico dell'azione (`action.color`, es. `theme.danger` per "Elimina"),
+/// altrimenti `primaryText`.
+class _InlineActionButton<TResultId extends Comparable, TResult extends Object> extends StatefulWidget {
   final TableAction<TResult> action;
   final _PagedDataTableRowState<TResultId, TResult> model;
 
   const _InlineActionButton({required this.action, required this.model});
 
   @override
+  State<_InlineActionButton<TResultId, TResult>> createState() => _InlineActionButtonState<TResultId, TResult>();
+}
+
+class _InlineActionButtonState<TResultId extends Comparable, TResult extends Object>
+    extends State<_InlineActionButton<TResultId, TResult>> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final color = action.color ?? theme.primary;
-    // Inline action sempre icon-only: text vuoto → CLOutlineButton renderizza
-    // come IconButton compatto (32x32). Tooltip dal label se presente.
-    final icon = action.icon;
-    void onTap() => action.onTap(model.item);
+    final color = widget.action.color;
+    // Colore icona al hover: semantico se l'azione ne dichiara uno
+    // (danger/warning/success/info), altrimenti primaryText.
+    final hoverIconColor = (color == null || color == theme.primary) ? theme.primaryText : color;
 
-    Widget btn;
-    if (color == theme.danger) {
-      btn = CLOutlineButton.danger(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
-    } else if (color == theme.warning) {
-      btn = CLOutlineButton.warning(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
-    } else if (color == theme.success) {
-      btn = CLOutlineButton.success(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
-    } else if (color == theme.info) {
-      btn = CLOutlineButton.info(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
-    } else {
-      btn = CLOutlineButton.primary(context: context, text: '', icon: icon, isCompact: true, onTap: onTap);
-    }
+    final Widget btn = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          widget.action.onTap(widget.model.item);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: theme.buttonHeightCompact,
+          height: theme.buttonHeightCompact,
+          decoration: BoxDecoration(
+            color: _isHovered ? theme.muted : Colors.transparent,
+            borderRadius: BorderRadius.circular(theme.radiusControl),
+          ),
+          child: Center(
+            child: Icon(
+              widget.action.icon,
+              size: theme.iconSizeCompact - 2,
+              color: _isHovered ? hoverIconColor : theme.secondaryText,
+            ),
+          ),
+        ),
+      ),
+    );
 
-    final label = action.label;
+    final label = widget.action.label;
     if (label != null && label.isNotEmpty) {
       return Tooltip(message: label, child: btn);
     }

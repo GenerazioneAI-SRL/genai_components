@@ -178,11 +178,15 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       // Header custom
                       if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.pagePadX)],
 
-                      // Download button
+                      // Download button — gray secondary: fill muted, testo primaryText, no bordo
                       if (downloadPage != null) ...[
-                        CLButton.secondary(
+                        CLButton(
+                          backgroundColor: clTheme.muted,
+                          textStyle: clTheme.bodyText.copyWith(color: clTheme.primaryText, fontWeight: FontWeight.w500),
+                          iconColor: clTheme.primaryText,
+                          iconAlignment: IconAlignment.start,
                           text: downloadButtonText ?? "Download",
-                          icon: downloadButtonIcon,
+                          iconData: downloadButtonIcon,
                           onTap: () async {
                             await state._dispatchDownloadCallback();
                           },
@@ -269,8 +273,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       padding: const EdgeInsets.only(left: 10, right: 4, top: 4, bottom: 4),
                       decoration: BoxDecoration(
                         color: clTheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: clTheme.primary.withValues(alpha: 0.2), width: 1),
+                        borderRadius: BorderRadius.circular(clTheme.radiusPill),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -551,9 +554,9 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
             child: Row(
               children: [
                 CLButton(
-                  textStyle: CLTheme.of(context).bodyText,
+                  textStyle: CLTheme.of(context).bodyText.copyWith(color: CLTheme.of(context).primaryText),
                   iconAlignment: IconAlignment.start,
-                  backgroundColor: CLTheme.of(context).primaryBackground,
+                  backgroundColor: CLTheme.of(context).muted,
                   text: "Ripristina",
                   onTap: () {
                     Navigator.pop(context);
@@ -658,9 +661,9 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         CLButton(
-                          textStyle: theme.bodyLabel,
+                          textStyle: theme.bodyLabel.copyWith(color: theme.primaryText),
                           iconAlignment: IconAlignment.start,
-                          backgroundColor: theme.primaryBackground,
+                          backgroundColor: theme.muted,
                           text: "Ripristina",
                           onTap: () {
                             Navigator.pop(context);
