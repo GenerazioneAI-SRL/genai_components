@@ -146,32 +146,32 @@ class CLSizes {
   /// 16px — icona compatta.
   /// Usato per: icone dentro chip/badge, icone in tabelle dense, leading di
   /// liste compatte.
-  static const iconSizeCompact = 16.0;
+  static const iconSizeCompact = 14.0;
 
   /// 20px — icona standard.
   /// Usato per: icone di bottoni default, icone in header di card, leading
   /// nelle voci di menu.
-  static const iconSizeDefault = 20.0;
+  static const iconSizeDefault = 18.0;
 
   /// 24px — icona large.
   /// Usato per: icone hero, azioni primarie evidenziate, icone in toolbar
   /// principali.
-  static const iconSizeLarge = 24.0;
+  static const iconSizeLarge = 22.0;
 
   /// 32px — bottone compatto.
   /// Usato per: `CLButton` size compact, azioni secondarie in toolbar dense,
   /// bottoni inline in tabelle.
-  static const buttonHeightCompact = 32.0;
+  static const buttonHeightCompact = 28.0;
 
   /// 40px — bottone default.
   /// Usato per: `CLButton` size default, azioni primarie standard di pagina,
   /// bottoni in form.
-  static const buttonHeightDefault = 40.0;
+  static const buttonHeightDefault = 36.0;
 
   /// 48px — bottone large.
   /// Usato per: `CLButton` size large, CTA hero, azioni primarie in modali
   /// di onboarding.
-  static const buttonHeightLarge = 48.0;
+  static const buttonHeightLarge = 40.0;
 
   /// 40px — altezza standard input.
   /// Usato per: `CLTextField`, `CLDropdown`, `CLDatePicker` — allineata a
@@ -181,12 +181,12 @@ class CLSizes {
   /// 32px — altezza input compatto.
   /// Usato per: `CLTextField`/`CLDropdown` con `isCompact: true` — allineata a
   /// `buttonHeightCompact` per toolbar e row dense coerenti.
-  static const inputHeightCompact = 32.0;
+  static const inputHeightCompact = 36.0;
 
   /// 24px — avatar small.
   /// Usato per: avatar in liste dense, leading di chip utente, indicatori
   /// di presenza in tabelle.
-  static const avatarSizeSmall = 24.0;
+  static const avatarSizeSmall = 32.0;
 
   /// 36px — avatar medium.
   /// Usato per: avatar in header di card, voci di menu utente, row di
@@ -196,7 +196,7 @@ class CLSizes {
   /// 48px — avatar large.
   /// Usato per: avatar in profilo utente, header di pagina, dialog di
   /// dettaglio persona.
-  static const avatarSizeLarge = 48.0;
+  static const avatarSizeLarge = 40.0;
 }
 
 /// Retrocompatibilità: il vecchio nome [Sizes] resta disponibile come alias.

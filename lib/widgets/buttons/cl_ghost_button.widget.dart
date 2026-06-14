@@ -34,7 +34,7 @@ class CLGhostButton extends StatefulWidget {
     this.confirmationMessage,
     this.width,
     this.foregroundColor,
-    this.isCompact = true,
+    this.isCompact = false,
   });
 
   factory CLGhostButton.primary({
@@ -48,7 +48,7 @@ class CLGhostButton extends StatefulWidget {
     Widget? hugeIcon,
     Color? foregroundColor,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLGhostButton(
       text: text,
@@ -77,7 +77,7 @@ class CLGhostButton extends StatefulWidget {
     Widget? hugeIcon,
     Color? foregroundColor,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLGhostButton(
       text: text,
@@ -106,7 +106,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLGhostButton(
       text: text,
@@ -135,7 +135,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLGhostButton(
       text: text,
@@ -164,7 +164,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLGhostButton(
       context: context,
@@ -193,7 +193,7 @@ class CLGhostButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLGhostButton(
       context: context,
@@ -239,31 +239,66 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
     final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
 
     return Theme(
-      data: Theme.of(context).copyWith(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        splashFactory: NoSplash.splashFactory,
-      ),
-      child: SizedBox(
-      width: widget.width,
-      child: widget.text.isNotEmpty
-          ? TextButton.icon(
-              iconAlignment: widget.iconAlignment,
-               icon: (widget.hugeIcon != null || widget.iconData != null || loading)
-                  ? AnimatedCrossFade(
-                      alignment: Alignment.center,
-                      firstChild: widget.hugeIcon ??
-                          (widget.iconData != null
-                              ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz)
-                              : SizedBox(width: iconSz, height: iconSz)),
-                      secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
-                      crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 200),
-                    )
-                  : null,
-              onPressed: _handleTap,
-              style: widget.buttonStyle ??
-                  ButtonStyle(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
+        ),
+        child: SizedBox(
+          width: widget.width,
+          child: widget.text.isNotEmpty
+              ? TextButton.icon(
+                  iconAlignment: widget.iconAlignment,
+                  icon: (widget.hugeIcon != null || widget.iconData != null || loading)
+                      ? AnimatedCrossFade(
+                          alignment: Alignment.center,
+                          firstChild: widget.hugeIcon ??
+                              (widget.iconData != null
+                                  ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz)
+                                  : SizedBox(width: iconSz, height: iconSz)),
+                          secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
+                          crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 200),
+                        )
+                      : null,
+                  onPressed: _handleTap,
+                  style: widget.buttonStyle ??
+                      ButtonStyle(
+                        foregroundColor: WidgetStateProperty.all(fgColor),
+                        backgroundColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.pressed)) return pressedBg;
+                          if (states.contains(WidgetState.hovered)) return hoverBg;
+                          return Colors.transparent;
+                        }),
+                        overlayColor: WidgetStateProperty.all(Colors.transparent),
+                        splashFactory: NoSplash.splashFactory,
+                        animationDuration: const Duration(milliseconds: 150),
+                        padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
+                        shape: WidgetStateProperty.resolveWith((states) {
+                          return RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(theme.radiusControl),
+                            side: states.contains(WidgetState.focused)
+                                ? BorderSide(color: focusBorder, width: 2)
+                                : BorderSide.none,
+                          );
+                        }),
+                        minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
+                        fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.standard,
+                        iconSize: WidgetStateProperty.all(iconSz),
+                      ),
+                  label: Text(
+                    widget.text,
+                    style: labelStyle,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                )
+              : IconButton(
+                  onPressed: _handleTap,
+                  iconSize: iconSz,
+                  style: ButtonStyle(
                     foregroundColor: WidgetStateProperty.all(fgColor),
                     backgroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.pressed)) return pressedBg;
@@ -271,55 +306,23 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                       return Colors.transparent;
                     }),
                     overlayColor: WidgetStateProperty.all(Colors.transparent),
-                    splashFactory: NoSplash.splashFactory,
-                    animationDuration: const Duration(milliseconds: 150),
-                    padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
-                    shape: WidgetStateProperty.resolveWith((states) {
-                      return RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(theme.radiusControl),
-                        side: states.contains(WidgetState.focused)
-                            ? BorderSide(color: focusBorder, width: 2)
-                            : BorderSide.none,
-                      );
-                    }),
-                    minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
-                    fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
+                    shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl))),
+                    minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
+                    fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.standard,
-                    iconSize: WidgetStateProperty.all(iconSz),
                   ),
-              label: Text(
-                widget.text,
-                style: labelStyle,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            )
-          : IconButton(
-              onPressed: _handleTap,
-              iconSize: iconSz,
-              style: ButtonStyle(
-                foregroundColor: WidgetStateProperty.all(fgColor),
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.pressed)) return pressedBg;
-                  if (states.contains(WidgetState.hovered)) return hoverBg;
-                  return Colors.transparent;
-                }),
-                overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl))),
-                minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
-                fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.standard,
-              ),
-              icon: AnimatedCrossFade(
-                firstChild:
-                    widget.hugeIcon ?? (widget.iconData != null ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz) : const SizedBox.shrink()),
-                secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
-                crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 200),
-              ),
-            ),
-    ));
+                  icon: AnimatedCrossFade(
+                    firstChild: widget.hugeIcon ??
+                        (widget.iconData != null
+                            ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz)
+                            : const SizedBox.shrink()),
+                    secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
+                    crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 200),
+                  ),
+                ),
+        ));
   }
 }

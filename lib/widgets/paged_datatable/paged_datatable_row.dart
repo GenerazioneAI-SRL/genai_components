@@ -66,7 +66,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
     widget.onItemTap?.call(widget.model.item);
   }
 
-  ({Color rowColor, Color leftBorderColor, double leftBorderWidth}) _resolveRowDecoration(
+  ({Color rowColor, Color leftBorderColor}) _resolveRowDecoration(
     CLTheme theme,
     Color primary,
     bool isSelected,
@@ -75,20 +75,17 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
       return (
         rowColor: primary.withValues(alpha: 0.08),
         leftBorderColor: primary,
-        leftBorderWidth: 2.5,
       );
     }
     if (_isHovered) {
       return (
         rowColor: theme.primaryText.withValues(alpha: 0.025),
         leftBorderColor: primary,
-        leftBorderWidth: 2.5,
       );
     }
     return (
       rowColor: Colors.transparent,
       leftBorderColor: Colors.transparent,
-      leftBorderWidth: 2.5,
     );
   }
 
@@ -98,6 +95,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
     final model = widget.model;
     final state = widget.state;
     final theme = CLTheme.of(context);
+    final m = PagedDataTableRowMetrics.of(context);
     final allActions = widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
     final inlineActions = allActions.where((a) => a.inline).toList();
     final actions = allActions.where((a) => !a.inline).toList();
@@ -135,7 +133,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                   border: Border(
                     left: BorderSide(
                       color: deco.leftBorderColor,
-                      width: deco.leftBorderWidth,
+                      width: m.leftBorderWidth,
                     ),
                   ),
                 ),
@@ -165,7 +163,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             for (var i = 0; i < inlineActions.length; i++) ...[
-                              if (i > 0) SizedBox(width: theme.gapMd),
+                              if (i > 0) SizedBox(width: m.gap),
                               _InlineActionButton<TResultId, TResult>(
                                 action: inlineActions[i],
                                 model: model,
@@ -176,11 +174,11 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                       if (actions.isNotEmpty)
                         Padding(
                           padding: EdgeInsets.only(
-                            left: inlineActions.isNotEmpty ? theme.gapSm : 0,
-                            right: theme.pagePadX,
+                            left: inlineActions.isNotEmpty ? m.popupLeftGapWithInline : 0,
+                            right: m.popupRightGap,
                           ),
                           child: SizedBox(
-                            width: 40,
+                            width: m.popupButtonSlot,
                             child: Center(
                               child: _ActionButton(
                                 iconKey: iconKey,
@@ -198,7 +196,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable, 
                           ),
                         )
                       else if (inlineActions.isNotEmpty)
-                        SizedBox(width: theme.pagePadX),
+                        SizedBox(width: m.popupRightGap),
                     ],
                   ),
                 ),
@@ -230,10 +228,11 @@ class _ExpandIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final m = PagedDataTableRowMetrics.of(context);
     return Padding(
-      padding: EdgeInsets.only(left: CLTheme.of(context).pagePadX - 2.5),
+      padding: EdgeInsets.only(left: m.expandLeftPad),
       child: SizedBox(
-        width: 24,
+        width: m.expandSlot,
         child: Align(
           alignment: Alignment.centerLeft,
           child: AnimatedRotation(
@@ -261,14 +260,14 @@ class _RowSelectionCell<TKey extends Comparable, TResultId extends Comparable, T
 
   @override
   Widget build(BuildContext context) {
+    final m = PagedDataTableRowMetrics.of(context);
     return Padding(
-      // Left: visual checkbox edge at pagePadX from outer (subtract 2.5
-      // border + 7 Material internal padding compensation).
-      padding: EdgeInsets.only(left: CLTheme.of(context).pagePadX - 2.5 - 7),
+      // Slot centered on the search-field prefix-icon center (see metrics).
+      padding: EdgeInsets.only(left: m.checkboxLeftPad),
       child: SizedBox(
-        width: 40,
+        width: m.checkboxSlot,
         child: Align(
-          alignment: Alignment.centerLeft,
+          alignment: Alignment.center,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 150),
             opacity: visible ? 1.0 : 0.0,
@@ -319,16 +318,17 @@ class _ExpandedRowContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
+    final m = PagedDataTableRowMetrics.of(context);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: theme.primaryBackground.withValues(alpha: 0.5),
         border: Border(
-          left: BorderSide(color: _effectiveTablePrimary(context).withValues(alpha: 0.4), width: 2.5),
+          left: BorderSide(color: _effectiveTablePrimary(context).withValues(alpha: 0.4), width: m.leftBorderWidth),
           bottom: BorderSide(color: theme.borderColor, width: 1),
         ),
       ),
-      margin: EdgeInsets.only(left: rowsSelectable ? 56 : 0),
+      margin: EdgeInsets.only(left: rowsSelectable ? m.checkboxAreaWidth + m.leftBorderWidth : 0),
       padding: EdgeInsets.all(theme.pagePadX),
       child: isLoading
           ? Padding(
@@ -349,65 +349,33 @@ class _ExpandedRowContent extends StatelessWidget {
   }
 }
 
-/// Inline action rendered in a row as a plain icon button (iOS-clean):
-/// icona nuda `secondaryText`, fill `muted` su hover, nessun bordo.
-/// Used when `TableAction.inline == true`. Al hover l'icona vira sul colore
-/// semantico dell'azione (`action.color`, es. `theme.danger` per "Elimina"),
-/// altrimenti `primaryText`.
-class _InlineActionButton<TResultId extends Comparable, TResult extends Object> extends StatefulWidget {
+/// Inline action rendered in a row as a `CLIconButton` muted tondo — stesso
+/// linguaggio del pulsante "Cambia azienda" (fill `muted`, icona `primaryText`,
+/// size default, raggio pill). Used when `TableAction.inline == true`.
+/// L'icona usa il colore semantico se dichiarato (`action.color`,
+/// es. `theme.danger` per "Elimina" → icona rossa), altrimenti `primaryText`.
+class _InlineActionButton<TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
   final TableAction<TResult> action;
   final _PagedDataTableRowState<TResultId, TResult> model;
 
   const _InlineActionButton({required this.action, required this.model});
 
   @override
-  State<_InlineActionButton<TResultId, TResult>> createState() => _InlineActionButtonState<TResultId, TResult>();
-}
-
-class _InlineActionButtonState<TResultId extends Comparable, TResult extends Object>
-    extends State<_InlineActionButton<TResultId, TResult>> {
-  bool _isHovered = false;
-
-  @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final color = widget.action.color;
-    // Colore icona al hover: semantico se l'azione ne dichiara uno
-    // (danger/warning/success/info), altrimenti primaryText.
-    final hoverIconColor = (color == null || color == theme.primary) ? theme.primaryText : color;
+    final m = PagedDataTableRowMetrics.of(context);
+    final semantic = action.color;
+    final iconColor = (semantic == null || semantic == theme.primary) ? theme.primaryText : semantic;
 
-    final Widget btn = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          widget.action.onTap(widget.model.item);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: theme.buttonHeightCompact,
-          height: theme.buttonHeightCompact,
-          decoration: BoxDecoration(
-            color: _isHovered ? theme.muted : Colors.transparent,
-            borderRadius: BorderRadius.circular(theme.radiusControl),
-          ),
-          child: Center(
-            child: Icon(
-              widget.action.icon,
-              size: theme.iconSizeCompact - 2,
-              color: _isHovered ? hoverIconColor : theme.secondaryText,
-            ),
-          ),
-        ),
-      ),
+    // size from the SAME metric the reservation math uses (reserve == render).
+    return CLIconButton(
+      onTap: () => action.onTap(model.item),
+      iconData: action.icon,
+      backgroundColor: theme.muted,
+      iconColor: iconColor,
+      size: m.inlineButtonSide,
+      iconSize: theme.iconSizeCompact,
+      tooltip: action.label,
     );
-
-    final label = widget.action.label;
-    if (label != null && label.isNotEmpty) {
-      return Tooltip(message: label, child: btn);
-    }
-    return btn;
   }
 }

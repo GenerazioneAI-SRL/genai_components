@@ -97,10 +97,16 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                   children: [
                                     KeyedSubtree(
                                       key: buttonKey,
-                                      child: CLGhostButton.primary(
+                                      child: CLButton(
                                         text: "Filtri",
                                         iconAlignment: IconAlignment.start,
-                                        icon: LucideIcons.slidersHorizontal,
+                                        iconData: LucideIcons.slidersHorizontal,
+                                        backgroundColor: _tableButtonFill(context),
+                                        iconColor: CLTheme.of(context).primaryText,
+                                        textStyle: CLTheme.of(context).bodyText.copyWith(
+                                          color: CLTheme.of(context).primaryText,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                         onTap: isDisabled ? () {} : onTap,
                                         context: context,
                                       ),
@@ -178,10 +184,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       // Header custom
                       if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.pagePadX)],
 
-                      // Download button — gray secondary: fill muted, testo primaryText, no bordo
+                      // Download button — gray secondary: fill controlFill, testo primaryText, no bordo
                       if (downloadPage != null) ...[
                         CLButton(
-                          backgroundColor: clTheme.muted,
+                          backgroundColor: _tableButtonFill(context),
                           textStyle: clTheme.bodyText.copyWith(color: clTheme.primaryText, fontWeight: FontWeight.w500),
                           iconColor: clTheme.primaryText,
                           iconAlignment: IconAlignment.start,
@@ -202,15 +208,22 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                           mainMenus[i],
                         ],
 
-                      // Extra menu (icon-only ghost button)
+                      // Extra menu (icon button default)
                       if (extraMenus.isNotEmpty) ...[
                         if (mainMenus.isNotEmpty) SizedBox(width: clTheme.gapMd),
                         KeyedSubtree(
                           key: buttonExtraMenuKey,
-                          child: CLGhostButton.primary(
-                            text: '',
+                          child: CLButton(
+                            text: 'Altre azioni',
+                            iconData: LucideIcons.ellipsisVertical400,
                             iconAlignment: IconAlignment.start,
-                            icon: LucideIcons.ellipsisVertical400,
+                            backgroundColor: _tableButtonFill(context),
+                            iconColor: clTheme.primaryText,
+                            textStyle: clTheme.bodyText.copyWith(
+                              color: clTheme.primaryText,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            tooltip: 'Altre azioni',
                             onTap: () async {
                               _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
                             },
@@ -663,7 +676,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                         CLButton(
                           textStyle: theme.bodyLabel.copyWith(color: theme.primaryText),
                           iconAlignment: IconAlignment.start,
-                          backgroundColor: theme.muted,
+                          backgroundColor: theme.controlFill,
                           text: "Ripristina",
                           onTap: () {
                             Navigator.pop(context);

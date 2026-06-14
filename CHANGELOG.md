@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.2.2
+
+- **Widgets:** Updated 14 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+
+
 ## 5.2.1
 
 - **Widgets:** Updated Paged Datatable

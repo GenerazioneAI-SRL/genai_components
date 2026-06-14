@@ -6,7 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
-import '../buttons/cl_ghost_button.widget.dart';
+import '../buttons/cl_icon_button.widget.dart';
 import '../cl_popup_surface.widget.dart';
 import '../cl_shimmer.widget.dart';
 import '../cl_text_field.widget.dart';
@@ -66,12 +66,126 @@ part 'pagination_result.dart';
 
 part 'types.dart';
 
+/// Single source of truth for the fixed leading/trailing slot widths of a
+/// desktop PagedDataTable row. The RESERVATION math (PagedDataTable.build),
+/// the DATA row (_PagedDataTableRow), the HEADER row (_PagedDataTableHeaderRow)
+/// and the SHIMMER rows (_ShimmerRows) all read these exact values, so the
+/// width reserved for columns can never drift from the width actually rendered.
+///
+/// Pure-layout constants (NOT theme tokens, intentionally): the left border
+/// indicator, the Material checkbox internal-padding compensation, and the
+/// checkbox / expand placeholder slot widths.
+class PagedDataTableRowMetrics {
+  PagedDataTableRowMetrics._({
+    required this.leftBorderWidth,
+    required this.checkboxSlot,
+    required this.expandSlot,
+    required this.searchPrefixLeftPad,
+    required this.searchPrefixIconSize,
+    required this.pagePadX,
+    required this.gap,
+    required this.popupButtonSlot,
+    required this.popupRightGap,
+    required this.popupLeftGapWithInline,
+    required this.inlineButtonSide,
+  });
+
+  // Pure-layout constants (shared by reserve + render).
+  final double leftBorderWidth; // row left BorderSide width
+  final double checkboxSlot; // SizedBox holding the 0.9-scaled Checkbox
+  final double expandSlot; // SizedBox holding the chevron
+  final double searchPrefixLeftPad; // left pad of the search-field prefix icon (== gapMd)
+  final double searchPrefixIconSize; // search-field prefix icon size (shared with the filter bar)
+
+  // Theme-derived (sourced from the SAME CLTheme getters the widgets use).
+  final double pagePadX; // theme.pagePadX
+  final double gap; // theme.gapMd — gap BETWEEN inline buttons
+  final double popupButtonSlot; // SizedBox around the 3-dot _ActionButton
+  final double popupRightGap; // trailing gap right of the popup button
+  final double popupLeftGapWithInline; // theme.gapSm — gap when inline+popup coexist
+  final double inlineButtonSide; // theme.buttonHeightDefault — CLIconButton side
+
+  factory PagedDataTableRowMetrics.of(BuildContext context) {
+    final t = CLTheme.of(context);
+    return PagedDataTableRowMetrics._(
+      leftBorderWidth: 2.5,
+      checkboxSlot: 40.0,
+      expandSlot: 24.0,
+      searchPrefixLeftPad: t.gapMd,
+      searchPrefixIconSize: 18.0,
+      pagePadX: t.pagePadX,
+      gap: t.gapMd,
+      popupButtonSlot: 40.0,
+      popupRightGap: t.pagePadX,
+      popupLeftGapWithInline: t.gapSm,
+      inlineButtonSide: t.buttonHeightCompact, // 32 — the value CLIconButton renders
+    );
+  }
+
+  // ── Leading slot total widths (left padding + slot), reserve == render ──
+  // The checkbox is CENTERED in its slot, and the slot is centered on the search
+  // field's prefix-icon center — so the select-all checkbox sits directly under
+  // the search magnifier with equal space left/right. Before expand: pagePadX
+  // visual edge minus border.
+  double get searchIconCenterX => pagePadX + searchPrefixLeftPad + searchPrefixIconSize / 2;
+  double get checkboxLeftPad => searchIconCenterX - leftBorderWidth - checkboxSlot / 2;
+  double get expandLeftPad => pagePadX - leftBorderWidth;
+  double get checkboxAreaWidth => checkboxLeftPad + checkboxSlot; // 18.5 + 40 = 58.5
+  double get expandIconAreaWidth => expandLeftPad + expandSlot; // 17.5 + 24 = 41.5
+
+  // ── Trailing actions cluster total width, reserve == render ──
+  // inlineCount inline buttons (each inlineButtonSide wide, gap between them),
+  // then optionally the popup column. The popup column carries its own right
+  // gap; when inline buttons precede it, it also carries a left gap. When there
+  // are inline buttons but NO popup, the cluster still needs a trailing gap.
+  double inlineAreaWidth(int inlineCount) =>
+      inlineCount == 0 ? 0.0 : inlineCount * inlineButtonSide + (inlineCount - 1) * gap;
+
+  double popupColumnWidth(bool inlinePresent) =>
+      (inlinePresent ? popupLeftGapWithInline : 0.0) + popupButtonSlot + popupRightGap;
+
+  double actionsColumnWidth({required int inlineCount, required bool hasPopup}) {
+    final inline = inlineAreaWidth(inlineCount);
+    if (hasPopup) return inline + popupColumnWidth(inlineCount > 0);
+    if (inlineCount > 0) return inline + popupRightGap; // trailing gap, no popup
+    return 0.0;
+  }
+}
+
 /// Restituisce il colore primario effettivo per gli elementi della tabella:
 /// usa `PagedDataTableTheme.buttonsColor` se valorizzato (override via
 /// `PagedDataTable(primaryColor: ...)`), altrimenti `CLTheme.primary`.
 Color _effectiveTablePrimary(BuildContext context) {
-  return PagedDataTableTheme.maybeOf(context)?.buttonsColor ?? CLTheme.of(context).primary;
+  return CLTableStyle.maybeOf(context)?.primary ??
+      PagedDataTableTheme.maybeOf(context)?.buttonsColor ??
+      CLTheme.of(context).primary;
 }
+
+/// Override colori per-istanza di [PagedDataTable]. Ogni campo null -> token CLTheme.
+class CLTableStyle {
+  final Color? primary; // accent: selezione, sort, badge, checkbox
+  final Color? searchFill; // bg campo ricerca
+  final Color? headerBackground; // bg riga header
+  final Color? buttonFill; // bg bottoni toolbar (Filtri / Altre azioni)
+  final Color? border; // bordi / divider
+
+  const CLTableStyle({this.primary, this.searchFill, this.headerBackground, this.buttonFill, this.border});
+
+  static CLTableStyle? maybeOf(BuildContext c) =>
+      c.dependOnInheritedWidgetOfExactType<_CLTableStyleScope>()?.style;
+}
+
+class _CLTableStyleScope extends InheritedWidget {
+  final CLTableStyle? style;
+  const _CLTableStyleScope({required this.style, required super.child});
+  @override
+  bool updateShouldNotify(_CLTableStyleScope old) => old.style != style;
+}
+
+Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).muted;
+Color _tableHeaderBg(BuildContext c) => CLTableStyle.maybeOf(c)?.headerBackground ?? CLTheme.of(c).secondaryBackground;
+Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).muted;
+Color _tableBorder(BuildContext c) => CLTableStyle.maybeOf(c)?.border ?? CLTheme.of(c).borderColor;
 
 /// A paginated DataTable that allows page caching and filtering
 /// [TKey] is the type of the page token
@@ -114,6 +228,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
   /// A custom theme to apply only to this DataTable instance.
   final PagedDataTableThemeData? theme;
+
+  /// Override colori per-istanza (vedi [CLTableStyle]). Null -> token CLTheme.
+  final CLTableStyle? style;
 
   /// Indicates if the table allows the user to select rows.
   final bool rowsSelectable;
@@ -229,6 +346,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.titleBackgroundColor,
     this.primaryColor,
     this.fillHeight = false,
+    this.style,
     super.key,
   });
 
@@ -285,35 +403,19 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         final hasPopupActions = popupActionsCount > 0 || actionsBuilder != null;
         // Whether rows have expand icon
         final hasExpandIcon = expandedRowBuilder != null;
-        // Left border indicator width in rows
-        const double leftBorderWidth = 2.5;
-        // Inline action button: icon-only plain button compact = 32x32.
-        const double inlineActionWidth = 32.0;
-        const double inlineActionGap = 12.0; // gapMd between inline buttons
-        final double inlineActionsAreaWidth = inlineActions.isEmpty
-            ? 0.0
-            : (inlineActions.length * inlineActionWidth) + ((inlineActions.length - 1) * inlineActionGap);
-        // Popup 3-dot button column width (40 + Sizes.padding right gap).
-        const double popupActionsColumnWidth = 40.0 + Sizes.padding;
-        // Total width reserved for the actions cluster on the right edge.
-        final double actionsColumnWidth = inlineActionsAreaWidth +
-            (hasPopupActions ? popupActionsColumnWidth : 0) +
-            // When ONLY inline actions are present we still need a right gap
-            // so buttons don't touch the table edge.
-            (inlineActions.isNotEmpty && !hasPopupActions ? Sizes.padding : 0);
+        // Single source of truth: reserve == render for every leading/trailing slot.
+        final m = PagedDataTableRowMetrics.of(context);
+        final inlineCount = inlineActions.length;
+        final double actionsColumnWidth = m.actionsColumnWidth(inlineCount: inlineCount, hasPopup: hasPopupActions);
+        final double checkboxAreaWidth = m.checkboxAreaWidth;
+        final double expandIconAreaWidth = m.expandIconAreaWidth;
         final hasAnyActions = hasPopupActions || inlineActions.isNotEmpty;
-        // Derivati dai token: il padding sinistro in rows/header è `Sizes.padding - leftBorderWidth`,
-        // da non disallineare se Sizes.padding cambia (pena overflow nella Row delle righe).
-        const double checkboxWidth = 40;
-        const double expandIconWidth = 24;
-        final double checkboxAreaWidth = (Sizes.padding - leftBorderWidth - 7) + checkboxWidth;
-        final double expandIconAreaWidth = (Sizes.padding - leftBorderWidth) + expandIconWidth;
 
         Widget child = LayoutBuilder(
           builder: (context, constraints) {
             // Calculate width available for columns only
             var width = constraints.maxWidth -
-                leftBorderWidth // left border in rows
+                m.leftBorderWidth // left border in rows
                 -
                 (hasExpandIcon ? expandIconAreaWidth : 0) -
                 (rowsSelectable ? checkboxAreaWidth : 0) -
@@ -341,6 +443,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               expandedRowBuilder,
               onRowExpanded,
               fillHeight,
+              hasExpandIcon,
+              hasAnyActions ? actionsColumnWidth : 0.0,
             );
             if (fillHeight) rowsSection = Expanded(child: rowsSection);
             // Sezione card mobile: stesso trattamento.
@@ -544,7 +648,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               )
             : const SizedBox.shrink();
 
-        return PagedDataTableTheme(
+        return _CLTableStyleScope(
+          style: style,
+          child: PagedDataTableTheme(
           data: effectiveTheme,
           child: Container(
             decoration: BoxDecoration(
@@ -617,6 +723,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         ),
             ),
           ),
+        ),
         );
       },
     );

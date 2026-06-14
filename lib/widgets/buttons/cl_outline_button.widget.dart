@@ -29,7 +29,7 @@ class CLOutlineButton extends StatefulWidget {
     this.needConfirmation = false,
     this.confirmationMessage,
     this.width,
-    this.isCompact = true,
+    this.isCompact = false,
   });
 
   factory CLOutlineButton.primary({
@@ -42,7 +42,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLOutlineButton(
       text: text,
@@ -69,7 +69,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLOutlineButton(
       text: text,
@@ -96,7 +96,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLOutlineButton(
       text: text,
@@ -123,7 +123,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLOutlineButton(
       text: text,
@@ -150,7 +150,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLOutlineButton(
       text: text,
@@ -177,7 +177,7 @@ class CLOutlineButton extends StatefulWidget {
     IconData? icon,
     Widget? hugeIcon,
     double? width,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLOutlineButton(
       text: text,

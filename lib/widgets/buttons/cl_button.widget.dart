@@ -49,6 +49,12 @@ class CLButton extends StatefulWidget {
   /// Override del raggio di angolo. Se `null` usa `Sizes.radiusControl` (6, scala shadcn).
   final double? borderRadius;
 
+  /// Ombra esterna opzionale. Se `null` il bottone resta piatto (default DS).
+  final List<BoxShadow>? boxShadow;
+
+  /// Bordo opzionale. Se `null` nessun bordo (focus ring a parte).
+  final BoxBorder? border;
+
   const CLButton({
     super.key,
     this.backgroundColor,
@@ -64,7 +70,7 @@ class CLButton extends StatefulWidget {
     this.textStyle,
     this.iconColor,
     this.hugeIcon,
-    this.isCompact = true,
+    this.isCompact = false,
     this.enabled = true,
     this.tooltip,
     this.loading,
@@ -72,6 +78,8 @@ class CLButton extends StatefulWidget {
     this.fullWidth = false,
     this.haptic = true,
     this.borderRadius,
+    this.boxShadow,
+    this.border,
   });
 
   factory CLButton.primary({
@@ -87,7 +95,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -95,6 +103,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) =>
       _fromColor(
         context: context,
@@ -118,6 +128,8 @@ class CLButton extends StatefulWidget {
         fullWidth: fullWidth,
         haptic: haptic,
         borderRadius: borderRadius,
+        boxShadow: boxShadow,
+        border: border,
       );
 
   factory CLButton.secondary({
@@ -133,7 +145,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -141,6 +153,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) =>
       _fromColor(
         context: context,
@@ -164,6 +178,8 @@ class CLButton extends StatefulWidget {
         fullWidth: fullWidth,
         haptic: haptic,
         borderRadius: borderRadius,
+        boxShadow: boxShadow,
+        border: border,
       );
 
   factory CLButton.success({
@@ -179,7 +195,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -187,6 +203,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) =>
       _fromColor(
         context: context,
@@ -210,6 +228,8 @@ class CLButton extends StatefulWidget {
         fullWidth: fullWidth,
         haptic: haptic,
         borderRadius: borderRadius,
+        boxShadow: boxShadow,
+        border: border,
       );
 
   factory CLButton.info({
@@ -225,7 +245,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -233,6 +253,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) =>
       _fromColor(
         context: context,
@@ -256,6 +278,8 @@ class CLButton extends StatefulWidget {
         fullWidth: fullWidth,
         haptic: haptic,
         borderRadius: borderRadius,
+        boxShadow: boxShadow,
+        border: border,
       );
 
   factory CLButton.warning({
@@ -271,7 +295,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -279,6 +303,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) =>
       _fromColor(
         context: context,
@@ -302,6 +328,8 @@ class CLButton extends StatefulWidget {
         fullWidth: fullWidth,
         haptic: haptic,
         borderRadius: borderRadius,
+        boxShadow: boxShadow,
+        border: border,
       );
 
   factory CLButton.danger({
@@ -317,7 +345,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -325,6 +353,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) =>
       _fromColor(
         context: context,
@@ -348,6 +378,8 @@ class CLButton extends StatefulWidget {
         fullWidth: fullWidth,
         haptic: haptic,
         borderRadius: borderRadius,
+        boxShadow: boxShadow,
+        border: border,
       );
 
   static CLButton _fromColor({
@@ -364,7 +396,7 @@ class CLButton extends StatefulWidget {
     TextStyle? textStyle,
     Color? iconColor,
     Widget? hugeIcon,
-    bool isCompact = true,
+    bool isCompact = false,
     bool enabled = true,
     String? tooltip,
     bool? loading,
@@ -372,6 +404,8 @@ class CLButton extends StatefulWidget {
     bool fullWidth = false,
     bool haptic = true,
     double? borderRadius,
+    List<BoxShadow>? boxShadow,
+    BoxBorder? border,
   }) {
     return CLButton(
       text: text,
@@ -395,6 +429,8 @@ class CLButton extends StatefulWidget {
       fullWidth: fullWidth,
       haptic: haptic,
       borderRadius: borderRadius,
+      boxShadow: boxShadow,
+      border: border,
     );
   }
 
@@ -472,7 +508,9 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
     Widget buildIconSlot(double size) {
       final iconChild = widget.hugeIcon ??
-          (widget.iconData != null ? Icon(widget.iconData, color: widget.iconColor ?? fgColor, size: size) : SizedBox(width: size, height: size));
+          (widget.iconData != null
+              ? Icon(widget.iconData, color: widget.iconColor ?? fgColor, size: size)
+              : SizedBox(width: size, height: size));
       return AnimatedSwitcher(
         duration: _iconSwapDuration,
         switchInCurve: Curves.easeOutCubic,
@@ -529,7 +567,8 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
         ],
       );
     } else {
-      content = Center(child: buildIconSlot(widget.iconSize ?? (widget.isCompact ? theme.iconSizeCompact : theme.gapXl)));
+      content =
+          Center(child: buildIconSlot(widget.iconSize ?? (widget.isCompact ? theme.iconSizeCompact : theme.gapXl)));
     }
 
     // ── Superficie animata (bg + padding insieme: niente gap trasparente) ─
@@ -570,7 +609,9 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
             decoration: BoxDecoration(
               color: currentBg,
               borderRadius: BorderRadius.circular(radius),
-              border: isFocused ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2) : null,
+              border: isFocused ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2) : widget.border,
+              // Ombra attenuata su press per dare profondità coerente con lo scale-down.
+              boxShadow: (widget.boxShadow != null && !isPressed) ? widget.boxShadow : null,
             ),
             child: stableChild,
           ),

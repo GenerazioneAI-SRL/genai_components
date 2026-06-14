@@ -14,14 +14,14 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
   Widget build(BuildContext context) {
     var theme = PagedDataTableTheme.of(context);
     final clTheme = CLTheme.of(context);
-    // Same left border width as rows (2.5px) for alignment
-    const double leftBorderWidth = 2.5;
+    // Same leading/trailing geometry as data rows (single source of truth).
+    final m = PagedDataTableRowMetrics.of(context);
 
     Widget child = Container(
       decoration: BoxDecoration(
-        color: clTheme.primaryBackground,
+        color: _tableHeaderBg(context),
         border: Border(
-          bottom: BorderSide(color: clTheme.borderColor, width: 1),
+          bottom: BorderSide(color: _tableBorder(context), width: 1),
         ),
       ),
       height: theme.configuration.columnsHeaderHeight,
@@ -35,22 +35,22 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
               var state = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
               return Padding(
                 // Match left border offset from rows
-                padding: const EdgeInsets.only(left: leftBorderWidth),
+                padding: EdgeInsets.only(left: m.leftBorderWidth),
                 child: Row(
                   children: [
                     // Expand icon placeholder - same space as rows
                     if (hasExpandIcon)
                       Padding(
-                        padding: const EdgeInsets.only(left: Sizes.padding - leftBorderWidth),
-                        child: const SizedBox(width: 24),
+                        padding: EdgeInsets.only(left: m.expandLeftPad),
+                        child: SizedBox(width: m.expandSlot),
                       ),
 
-                    // Checkbox header - aligned LEFT edge with search-field SizedBox left.
+                    // Checkbox header - slot centered on the search-field prefix-icon center.
                     if (rowsSelectable)
                       Padding(
-                        padding: const EdgeInsets.only(left: Sizes.padding - leftBorderWidth - 7),
+                        padding: EdgeInsets.only(left: m.checkboxLeftPad),
                         child: SizedBox(
-                          width: 40,
+                          width: m.checkboxSlot,
                           child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
                             selector: (context, model) => model._rowsSelectionChange,
                             builder: (context, value, child) {
@@ -61,7 +61,7 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                               final hasCurrentPageSelection = state._items.any((item) => state.selectedRows.containsKey(idGetter(item)));
 
                               return Align(
-                                alignment: Alignment.centerLeft,
+                                alignment: Alignment.center,
                                 child: Transform.scale(
                                   scale: 0.9,
                                   child: Checkbox(
