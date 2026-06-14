@@ -31,7 +31,7 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
           /* COLUMNS */
           Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
             selector: (context, state) => state._sortChange,
-            builder: (context, isSorted, child) {
+            builder: (context, _, child) {
               var state = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
               return Padding(
                 // Match left border offset from rows
@@ -195,7 +195,7 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding),
+          padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg),
           decoration: BoxDecoration(
             color: _isHovered && canSort ? theme.primaryText.withValues(alpha: 0.02) : Colors.transparent,
           ),
@@ -217,7 +217,7 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
 
               // Sort indicator — always hint sortability on hover
               if (canSort) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: Sizes.gapXs),
                 AnimatedOpacity(
                   duration: const Duration(milliseconds: 150),
                   opacity: widget.isSorted ? 1.0 : (_isHovered ? 0.5 : 0.15),

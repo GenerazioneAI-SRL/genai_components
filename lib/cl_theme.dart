@@ -206,11 +206,17 @@ abstract class CLTheme {
   /// 14px — radius card.
   double get radiusCard => 14.0;
 
-  /// 20px — radius modali.
+  /// 24px — radius modali.
   double get radiusModal => 24.0;
 
   /// 9999px — radius pill.
   double get radiusPill => 9999.0;
+
+  /// 36px — radius delle bolle shell (header/menu/contenuto/AI). Pari a metà
+  /// dell'altezza della bolla header (≈ buttonHeightDefault + 2·gapLg) così
+  /// l'header risulta tondo alle estremità (capsula); le bolle più alte
+  /// condividono lo stesso raggio per coerenza visiva.
+  double get radiusBubble => 36.0;
 
   /// 16px — icone compatte (dentro chip, celle tabella).
   double get iconSizeCompact => 16.0;
