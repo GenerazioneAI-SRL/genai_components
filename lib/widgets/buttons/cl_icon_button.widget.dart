@@ -24,7 +24,8 @@ class CLIconButton extends StatefulWidget {
   /// Widget icona custom (es. HugeIcon). Se presente vince su [iconData].
   final Widget? hugeIcon;
 
-  /// Colore di sfondo. Se `null` usa `theme.primary`.
+  /// Colore di sfondo. Se `null` usa `theme.muted` (default neutro: fill grigio,
+  /// icona nera auto-contrast, tondo). Per un bottone primario passa `theme.primary`.
   final Color? backgroundColor;
 
   /// Colore icona. Se `null` auto-contrast sul background (nero/bianco).
@@ -131,15 +132,13 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
     final isInteractive = widget.enabled && !isLoading;
 
     // ── Colori ────────────────────────────────────────────────────────
-    final bgColor = widget.backgroundColor ?? theme.primary;
+    final bgColor = widget.backgroundColor ?? theme.muted;
     // Variante "plain" (bg trasparente): icona nuda, il fill appare solo su
     // hover/press usando theme.muted — il lerp verso nero su un colore
     // trasparente produrrebbe un velo scuro sbagliato, e l'auto-contrast
     // (luminance 0 → bianco) renderebbe l'icona invisibile su superfici chiare.
     final isPlain = bgColor.a == 0.0;
-    final fgColor = isPlain
-        ? theme.primaryText
-        : (bgColor.computeLuminance() > 0.5 ? Colors.black : Colors.white);
+    final fgColor = isPlain ? theme.primaryText : (bgColor.computeLuminance() > 0.5 ? Colors.black : Colors.white);
     final iconColor = widget.iconColor ?? fgColor;
 
     // Hover/press: alpha-blend uniforme nero 0.08/0.16 (no glow, no colored shadow).

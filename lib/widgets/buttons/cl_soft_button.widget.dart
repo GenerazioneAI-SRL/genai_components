@@ -30,7 +30,7 @@ class CLSoftButton extends StatefulWidget {
     this.iconData,
     this.hugeIcon,
     this.width,
-    this.isCompact = true,
+    this.isCompact = false,
   });
 
   factory CLSoftButton.primary({
@@ -43,7 +43,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLSoftButton(
       text: text,
@@ -70,7 +70,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLSoftButton(
       text: text,
@@ -97,7 +97,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLSoftButton(
       text: text,
@@ -124,7 +124,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLSoftButton(
       text: text,
@@ -151,7 +151,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLSoftButton(
       text: text,
@@ -178,7 +178,7 @@ class CLSoftButton extends StatefulWidget {
     double? width,
     bool needConfirmation = false,
     String? confirmationMessage,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLSoftButton(
       text: text,

@@ -19,6 +19,10 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
   /// Se true le righe scorrono da sole nello spazio (bounded) assegnato.
   final bool fillHeight;
 
+  /// Shimmer geometry: mirrors the data/header leading + trailing envelope.
+  final bool hasExpandIcon;
+  final double actionsColumnWidth;
+
   const _PagedDataTableRows(
     this.rowsSelectable,
     this.onItemTap,
@@ -35,6 +39,8 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
     this.expandedRowBuilder,
     this.onRowExpanded,
     this.fillHeight,
+    this.hasExpandIcon,
+    this.actionsColumnWidth,
   );
 
   @override
@@ -51,6 +57,8 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
             state: state,
             itemCount: initialPageSize,
             rowsSelectable: rowsSelectable,
+            hasExpandIcon: hasExpandIcon,
+            actionsColumnWidth: actionsColumnWidth,
           );
         }
 

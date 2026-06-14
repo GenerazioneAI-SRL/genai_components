@@ -78,21 +78,25 @@ class TextTableFilter extends TableFilter<String> {
     }
 
     if (isMainFilter) {
-      // Search field: flat muted fill, no border (iOS-clean).
+      // Search field: flat controlFill, no border (iOS-clean). Altezza standard
+      // (inputHeight) per allineare con gli altri controlli della toolbar.
+      // Prefix-icon left pad + size sono la sorgente unica su cui la colonna
+      // checkbox si centra (vedi PagedDataTableRowMetrics.searchIconCenterX).
+      final m = PagedDataTableRowMetrics.of(context);
       return Container(
         height: theme.inputHeightCompact,
         decoration: BoxDecoration(
-          color: theme.muted,
+          color: _tableSearchFill(context),
           borderRadius: BorderRadius.circular(theme.radiusControl),
         ),
         child: Row(
           children: [
             Padding(
-              padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
+              padding: EdgeInsets.only(left: m.searchPrefixLeftPad, right: theme.gapSm),
               child: Icon(
                 LucideIcons.search,
-                color: theme.secondaryText,
-                size: 18,
+                color: theme.primaryText,
+                size: m.searchPrefixIconSize,
               ),
             ),
             Expanded(
@@ -121,7 +125,7 @@ class TextTableFilter extends TableFilter<String> {
     }
 
     return CLTextField(
-      fillColor: theme.secondaryBackground,
+      fillColor: theme.controlFill,
       controller: _controller!,
       focusNode: _focusNode,
       labelText: "Filtra per $title",

@@ -93,7 +93,7 @@ class CLTextField extends StatefulWidget {
     this.fillColor,
     this.dateFieldType,
     this.capitalize = false,
-    this.isCompact = true,
+    this.isCompact = false,
   });
 
   @override
@@ -110,11 +110,18 @@ class CLTextField extends StatefulWidget {
     bool isRequired = false,
     bool isRounded = false,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        onTap: onTap, isReadOnly: isReadOnly, isRequired: isRequired,
-        isRounded: isRounded, isEnabled: false, validators: validators,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: false,
+        validators: validators,
         isCompact: isCompact,
       );
 
@@ -129,12 +136,21 @@ class CLTextField extends StatefulWidget {
     dynamic prefix,
     dynamic suffix,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        isObscured: true, isReadOnly: isReadOnly, isRequired: isRequired,
-        isRounded: isRounded, isEnabled: isEnabled, validators: validators,
-        prefixIcon: prefix, suffixIcon: suffix, isCompact: isCompact,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        isObscured: true,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        validators: validators,
+        prefixIcon: prefix,
+        suffixIcon: suffix,
+        isCompact: isCompact,
       );
 
   factory CLTextField.time({
@@ -151,14 +167,24 @@ class CLTextField extends StatefulWidget {
     Function(DateTime?)? onDateTimeSelected,
     Color? fillColor,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        inputType: TextInputType.number, onTap: onTap, isReadOnly: isReadOnly,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
-        initialSelectedTime: initialSelectedTime, onTimeSelected: onTimeSelected,
-        onDateTimeSelected: onDateTimeSelected, fillColor: fillColor,
-        validators: validators, dateFieldType: CLDateFieldType.time,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        inputType: TextInputType.number,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        initialSelectedTime: initialSelectedTime,
+        onTimeSelected: onTimeSelected,
+        onDateTimeSelected: onDateTimeSelected,
+        fillColor: fillColor,
+        validators: validators,
+        dateFieldType: CLDateFieldType.time,
         isCompact: isCompact,
       );
 
@@ -176,13 +202,22 @@ class CLTextField extends StatefulWidget {
     required Function(DateTime?) onDateTimeSelected,
     Color? fillColor,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        inputType: TextInputType.number, onTap: onTap, isReadOnly: isReadOnly,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
-        withTime: withTime, initialSelectedDateTime: initialSelectedDateTime,
-        onDateTimeSelected: onDateTimeSelected, fillColor: fillColor,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        inputType: TextInputType.number,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        withTime: withTime,
+        initialSelectedDateTime: initialSelectedDateTime,
+        onDateTimeSelected: onDateTimeSelected,
+        fillColor: fillColor,
         validators: validators,
         dateFieldType: withTime ? CLDateFieldType.dateTime : CLDateFieldType.date,
         isCompact: isCompact,
@@ -201,14 +236,23 @@ class CLTextField extends StatefulWidget {
     required Function(DateTime?) onDateTimeSelected,
     Color? fillColor,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        inputType: TextInputType.number, onTap: onTap, isReadOnly: isReadOnly,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        inputType: TextInputType.number,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
         initialSelectedDateTime: initialSelectedDateTime,
-        onDateTimeSelected: onDateTimeSelected, fillColor: fillColor,
-        validators: validators, dateFieldType: CLDateFieldType.dateTime,
+        onDateTimeSelected: onDateTimeSelected,
+        fillColor: fillColor,
+        validators: validators,
+        dateFieldType: CLDateFieldType.dateTime,
         isCompact: isCompact,
       );
 
@@ -225,14 +269,23 @@ class CLTextField extends StatefulWidget {
     required Function(DateTime?) onDateTimeSelected,
     Color? fillColor,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        inputType: TextInputType.number, onTap: onTap, isReadOnly: isReadOnly,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        inputType: TextInputType.number,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
         initialSelectedDateTime: initialSelectedDateTime,
-        onDateTimeSelected: onDateTimeSelected, fillColor: fillColor,
-        validators: validators, dateFieldType: CLDateFieldType.month,
+        onDateTimeSelected: onDateTimeSelected,
+        fillColor: fillColor,
+        validators: validators,
+        dateFieldType: CLDateFieldType.month,
         isCompact: isCompact,
       );
 
@@ -249,14 +302,23 @@ class CLTextField extends StatefulWidget {
     required Function(DateTime?) onDateTimeSelected,
     Color? fillColor,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        inputType: TextInputType.number, onTap: onTap, isReadOnly: isReadOnly,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        inputType: TextInputType.number,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
         initialSelectedDateTime: initialSelectedDateTime,
-        onDateTimeSelected: onDateTimeSelected, fillColor: fillColor,
-        validators: validators, dateFieldType: CLDateFieldType.year,
+        onDateTimeSelected: onDateTimeSelected,
+        fillColor: fillColor,
+        validators: validators,
+        dateFieldType: CLDateFieldType.year,
         isCompact: isCompact,
       );
 
@@ -271,12 +333,20 @@ class CLTextField extends StatefulWidget {
     bool isEnabled = true,
     required Function(File?) onFilePicked,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        onTap: onTap, isReadOnly: isReadOnly, isRequired: isRequired,
-        isRounded: isRounded, isEnabled: isEnabled, validators: validators,
-        onFilePicked: onFilePicked, isCompact: isCompact,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        validators: validators,
+        onFilePicked: onFilePicked,
+        isCompact: isCompact,
       );
 
   factory CLTextField.colorPicker({
@@ -290,12 +360,20 @@ class CLTextField extends StatefulWidget {
     bool isRounded = false,
     bool isEnabled = true,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        onColorPicked: onColorPicked, onTap: onTap, isReadOnly: true,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
-        validators: validators, isCompact: isCompact,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        onColorPicked: onColorPicked,
+        onTap: onTap,
+        isReadOnly: true,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        validators: validators,
+        isCompact: isCompact,
       );
 
   factory CLTextField.textArea({
@@ -310,11 +388,21 @@ class CLTextField extends StatefulWidget {
     String? initValue,
     Future Function(String value)? onChanged,
     List<FormFieldValidator<String>>? validators,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        maxLines: 5, isTextArea: true, onTap: onTap, isReadOnly: isReadOnly,
-        isRequired: isRequired, isRounded: isRounded, isEnabled: isEnabled,
-        validators: validators, initValue: initValue, onChanged: onChanged,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        maxLines: 5,
+        isTextArea: true,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRequired: isRequired,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        validators: validators,
+        initValue: initValue,
+        onChanged: onChanged,
       );
 
   factory CLTextField.currency({
@@ -331,20 +419,27 @@ class CLTextField extends StatefulWidget {
     bool isEnabled = true,
     String? initValue,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
         isRequired: isRequired,
-        prefixIcon: iconAlignment == IconAlignment.start
-            ? const Icon(Icons.payments, size: 14, color: Colors.grey)
-            : null,
+        prefixIcon:
+            iconAlignment == IconAlignment.start ? const Icon(Icons.payments, size: 14, color: Colors.grey) : null,
         inputType: const TextInputType.numberWithOptions(decimal: true),
-        suffixIcon: iconAlignment == IconAlignment.end
-            ? const Icon(Icons.payments, size: 14, color: Colors.grey)
-            : null,
-        onChanged: onChanged, focusNode: focusNode, onTap: onTap,
-        isReadOnly: isReadOnly, isRounded: isRounded, isEnabled: isEnabled,
-        validators: validators, initValue: initValue, isCompact: isCompact,
+        suffixIcon:
+            iconAlignment == IconAlignment.end ? const Icon(Icons.payments, size: 14, color: Colors.grey) : null,
+        onChanged: onChanged,
+        focusNode: focusNode,
+        onTap: onTap,
+        isReadOnly: isReadOnly,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        validators: validators,
+        initValue: initValue,
+        isCompact: isCompact,
       );
 
   factory CLTextField.number({
@@ -362,14 +457,23 @@ class CLTextField extends StatefulWidget {
     List<FormFieldValidator<String>>? validators,
     String? initValue,
     bool withDecimal = false,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
         isRequired: isRequired,
         inputType: TextInputType.numberWithOptions(decimal: withDecimal),
-        onChanged: onChanged, focusNode: focusNode, onTap: onTap,
-        initValue: initValue, isReadOnly: isReadOnly, isRounded: isRounded,
-        isEnabled: isEnabled, validators: validators, isCompact: isCompact,
+        onChanged: onChanged,
+        focusNode: focusNode,
+        onTap: onTap,
+        initValue: initValue,
+        isReadOnly: isReadOnly,
+        isRounded: isRounded,
+        isEnabled: isEnabled,
+        validators: validators,
+        isCompact: isCompact,
       );
 
   factory CLTextField.icon({
@@ -387,21 +491,30 @@ class CLTextField extends StatefulWidget {
     bool isEnabled = true,
     String? initValue,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     Widget? toIconWidget(dynamic ic) {
       if (ic == null) return null;
       if (ic is IconData) return Icon(ic, size: 16, color: Colors.grey);
       return ic as Widget;
     }
+
     return CLTextField(
-      key: key, controller: controller, labelText: labelText,
-      isRequired: isRequired, initValue: initValue,
+      key: key,
+      controller: controller,
+      labelText: labelText,
+      isRequired: isRequired,
+      initValue: initValue,
       prefixIcon: iconAlignment == IconAlignment.start ? toIconWidget(icon) : null,
       suffixIcon: iconAlignment == IconAlignment.end ? toIconWidget(icon) : null,
-      onChanged: onChanged, focusNode: focusNode, onTap: onTap,
-      isReadOnly: isReadOnly, isRounded: isRounded, isEnabled: isEnabled,
-      validators: validators, isCompact: isCompact,
+      onChanged: onChanged,
+      focusNode: focusNode,
+      onTap: onTap,
+      isReadOnly: isReadOnly,
+      isRounded: isRounded,
+      isEnabled: isEnabled,
+      validators: validators,
+      isCompact: isCompact,
     );
   }
 
@@ -420,18 +533,28 @@ class CLTextField extends StatefulWidget {
     String? initValue,
     bool isReadOnly = false,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     Widget? toIconWidget(dynamic ic) {
       if (ic is IconData) return Icon(ic, size: 16, color: Colors.grey);
       return ic as Widget;
     }
+
     return CLTextField(
-      key: key, controller: controller, labelText: labelText,
-      prefixIcon: toIconWidget(leftIcon), suffixIcon: toIconWidget(rightIcon),
-      onChanged: onChanged, focusNode: focusNode, onTap: onTap,
-      isReadOnly: isReadOnly, isRounded: isRounded, isEnabled: isEnabled,
-      validators: validators, initValue: initValue, isCompact: isCompact,
+      key: key,
+      controller: controller,
+      labelText: labelText,
+      prefixIcon: toIconWidget(leftIcon),
+      suffixIcon: toIconWidget(rightIcon),
+      onChanged: onChanged,
+      focusNode: focusNode,
+      onTap: onTap,
+      isReadOnly: isReadOnly,
+      isRounded: isRounded,
+      isEnabled: isEnabled,
+      validators: validators,
+      initValue: initValue,
+      isCompact: isCompact,
     );
   }
 
@@ -447,12 +570,21 @@ class CLTextField extends StatefulWidget {
     bool isReadOnly = false,
     String? initValue,
     List<FormFieldValidator<String>>? validators,
-    bool isCompact = true,
-  }) => CLTextField(
-        key: key, controller: controller, labelText: labelText,
-        suffixIcon: null, onTap: onTap, onChanged: onChanged,
-        focusNode: focusNode, isReadOnly: isReadOnly, isRounded: true,
-        isEnabled: isEnabled, validators: validators, initValue: initValue,
+    bool isCompact = false,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        suffixIcon: null,
+        onTap: onTap,
+        onChanged: onChanged,
+        focusNode: focusNode,
+        isReadOnly: isReadOnly,
+        isRounded: true,
+        isEnabled: isEnabled,
+        validators: validators,
+        initValue: initValue,
         isCompact: isCompact,
       );
 }

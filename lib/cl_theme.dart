@@ -45,6 +45,7 @@ abstract class CLTheme {
     required this.accentForeground,
     required this.ring,
     required this.cardBorder,
+    required this.controlFill,
   });
 
   static Color hexToColor(String code) => ColorUtils.fromHex(code);
@@ -102,6 +103,7 @@ abstract class CLTheme {
   final Color accentForeground; // Text on accent surfaces
   final Color ring; // Focus ring / outline color
   final Color cardBorder; // Card and panel border
+  final Color controlFill; // Fill controlli neutri su superficie (es. icon button su L1)
 
   List<BoxShadow> get cardShadow;
 
@@ -133,6 +135,59 @@ abstract class CLTheme {
   /// 48px — gap massimo (hero, empty state).
   double get gap4Xl => 48.0;
 
+  // ═══════════════════════════════════════════════════════════
+  // OPACITY SCALE — alpha semantici per tinte/bordi tonali.
+  // Additivi, no breaking. Consolidano i valori alpha sparsi nel DS
+  // (0.04 → 0.30) in step nominati intent-revealing. Si usano come
+  // `color.withValues(alpha: theme.opacityXxx)`.
+  // Step crescenti = presenza visiva crescente sulla stessa tinta.
+  // ═══════════════════════════════════════════════════════════
+
+  /// 0.04 — tinta quasi impercettibile.
+  /// Usato per: wash di sfondo pagina su tinta semantica (error page),
+  /// fondo gradiente di card tonali nel punto più tenue, hint di colore.
+  double get opacityFaint => 0.04;
+
+  /// 0.06 — tinta morbida.
+  /// Usato per: fill di info banner/alert in light mode, sfondo di summary
+  /// card non-compatte, glow di gradienti decorativi.
+  double get opacitySubtle => 0.06;
+
+  /// 0.10 — fill tonale standard (cluster dominante del DS).
+  /// Usato per: sfondo di badge/chip/pill tinti, alert soft, stato selezionato
+  /// di voci lista/menu/calendario, container icona tenue. Default per tinta su superficie.
+  double get opacitySoft => 0.10;
+
+  /// 0.14 — fill tonale enfatizzato.
+  /// Usato per: sfondo container icona in card metriche/summary, stato selezionato
+  /// di view toggle, avatar tinti, evidenziazioni leggermente più marcate.
+  double get opacityMuted => 0.14;
+
+  /// 0.20 — bordo tonale / hover fill.
+  /// Usato per: bordo di pill/alert/info banner, hover fill su superfici neutre,
+  /// avatar role badge, separatori tinti su tinta.
+  double get opacityMedium => 0.20;
+
+  /// 0.28 — bordo tonale forte / hover.
+  /// Usato per: bordo di summary card, bordo hover di action chip, bordo
+  /// info banner in dark mode, contorni che devono restare leggibili.
+  double get opacityStrong => 0.28;
+
+  /// 0.50 — scrim / stato disabilitato.
+  /// Usato per: bordo e sfondo di controlli disabilitati (input, card border
+  /// disabled), overlay arco di loading, dimming di elementi non interattivi.
+  double get opacityDisabled => 0.50;
+
+  // ═══════════════════════════════════════════════════════════
+  // SPACING — token mancante.
+  // ═══════════════════════════════════════════════════════════
+
+  /// 6px — gap icona↔testo (off-grid intenzionale).
+  /// Usato per: spaziatura tra icona leading e label in bottoni/chip/dropdown,
+  /// dove `gapSm` (8) è troppo largo e `gapXs` (4) troppo stretto. Consolida i
+  /// vari `spacing: 6` / `SizedBox(width: 6)` sparsi (e l'`iconTextGap` locale).
+  double get gapIconText => 6.0;
+
   /// 20px — padding orizzontale di pagina.
   double get pagePadX => 20.0;
 
@@ -152,7 +207,7 @@ abstract class CLTheme {
   double get radiusCard => 14.0;
 
   /// 20px — radius modali.
-  double get radiusModal => 20.0;
+  double get radiusModal => 24.0;
 
   /// 9999px — radius pill.
   double get radiusPill => 9999.0;
@@ -226,12 +281,13 @@ abstract class CLTheme {
 /// Light shadow tokens (DS sottile) — riutilizzati da Material elevation
 /// e da decorazioni di card.
 const _kLightCardShadow = <BoxShadow>[
-  BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 2)),
-  BoxShadow(color: Color(0x05000000), blurRadius: 4, offset: Offset(0, 1)),
+  BoxShadow(color: Color(0x80000000), blurRadius: 24, offset: Offset(0, 8)),
+  BoxShadow(color: Color(0x48000000), blurRadius: 10, offset: Offset(0, 3)),
 ];
 
 const _kDarkCardShadow = <BoxShadow>[
-  BoxShadow(color: Color(0x33000000), blurRadius: 14, offset: Offset(0, 3)),
+  BoxShadow(color: Color(0x9A000000), blurRadius: 22, offset: Offset(0, 6)),
+  BoxShadow(color: Color(0x4C000000), blurRadius: 8, offset: Offset(0, 2)),
 ];
 
 class LightModeTheme extends CLTheme {
@@ -241,7 +297,7 @@ class LightModeTheme extends CLTheme {
     super.alternate = const Color(0xFFE8EBF0),
     super.primaryText = const Color(0xF2000000),
     super.secondaryText = const Color(0xFF615D59),
-    super.primaryBackground = const Color(0xFFF6F6FA),
+    super.primaryBackground = const Color(0xFFFDFDFC),
     super.secondaryBackground = const Color(0xFFFFFFFF),
     super.tertiaryBackground = const Color(0xFFECEBE9),
     super.success = const Color(0xFF16A34A),
@@ -257,6 +313,7 @@ class LightModeTheme extends CLTheme {
     super.accentForeground = const Color(0xFF31302E),
     super.ring = const Color(0xFF097FE8),
     super.cardBorder = const Color(0x1A000000),
+    super.controlFill = const Color(0xFFEEF1F5),
   });
 
   @override
@@ -270,9 +327,9 @@ class DarkModeTheme extends CLTheme {
     super.alternate = const Color(0xFF2A2A34),
     super.primaryText = const Color(0xFFE8E8EC),
     super.secondaryText = const Color(0xFF8B8FA0),
-    super.primaryBackground = const Color(0xFF121218),
-    super.secondaryBackground = const Color(0xFF1E1E26),
-    super.tertiaryBackground = const Color(0xFF2A2A34),
+    super.primaryBackground = const Color(0xFF1A1A18),
+    super.secondaryBackground = const Color(0xFF242421),
+    super.tertiaryBackground = const Color(0xFF2E2E2A),
     super.success = const Color(0xFF4ADE80),
     super.warning = const Color(0xFFFBBF24),
     super.danger = const Color(0xFFF87171),
@@ -286,6 +343,7 @@ class DarkModeTheme extends CLTheme {
     super.accentForeground = const Color(0xFFFAFAFA),
     super.ring = const Color(0xFF3BA8D8),
     super.cardBorder = const Color(0xFF27272A),
+    super.controlFill = const Color(0xFF2A2A34),
   });
 
   @override

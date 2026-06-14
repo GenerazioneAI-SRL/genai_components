@@ -5,16 +5,21 @@ class _ShimmerRows<TKey extends Comparable, TResultId extends Comparable, TResul
   final _PagedDataTableState<TKey, TResultId, TResult> state;
   final int itemCount;
   final bool rowsSelectable;
+  final bool hasExpandIcon;
+  final double actionsColumnWidth;
 
   const _ShimmerRows({
     required this.state,
     required this.itemCount,
     required this.rowsSelectable,
+    required this.hasExpandIcon,
+    required this.actionsColumnWidth,
   });
 
   @override
   Widget build(BuildContext context) {
     final clTheme = CLTheme.of(context);
+    final m = PagedDataTableRowMetrics.of(context);
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
@@ -25,13 +30,24 @@ class _ShimmerRows<TKey extends Comparable, TResultId extends Comparable, TResul
         final widthMultiplier = [0.7, 0.5, 0.85, 0.6, 0.75][index % 5];
         return Container(
           height: 52,
-          padding: const EdgeInsets.only(left: 2.5),
+          padding: EdgeInsets.only(left: m.leftBorderWidth),
           child: Row(
             children: [
+              if (hasExpandIcon)
+                Padding(
+                  padding: EdgeInsets.only(left: m.expandLeftPad),
+                  child: SizedBox(width: m.expandSlot),
+                ),
               if (rowsSelectable)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: Sizes.padding),
-                  child: CLShimmer(width: 18, height: 18, borderRadius: 4),
+                  padding: EdgeInsets.only(left: m.checkboxLeftPad),
+                  child: SizedBox(
+                    width: m.checkboxSlot,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: CLShimmer(width: 18, height: 18, borderRadius: 4),
+                    ),
+                  ),
                 ),
               ...List.generate(state.columns.length, (colIndex) {
                 final col = state.columns[colIndex];
@@ -51,6 +67,7 @@ class _ShimmerRows<TKey extends Comparable, TResultId extends Comparable, TResul
                   ),
                 );
               }),
+              SizedBox(width: actionsColumnWidth),
             ],
           ),
         );

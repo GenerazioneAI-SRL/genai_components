@@ -48,10 +48,12 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
             _PageSizeControls(pageSizes: pageSizes, currentPageSize: state._pageSize, onChanged: (size) => state.setPageSize(size), theme: t),
             SizedBox(width: CLTheme.of(context).pagePadX),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              height: t.buttonHeightCompact,
+              alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: t.gapMd),
               decoration: BoxDecoration(
                 color: t.muted,
-                borderRadius: BorderRadius.circular(t.radiusControl),
+                borderRadius: BorderRadius.circular(t.radiusPill),
               ),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -62,7 +64,6 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                   key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
                   style: t.smallLabel.copyWith(
                     color: t.secondaryText,
-                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -100,16 +101,18 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
               ],
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              height: t.buttonHeightCompact,
+              alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: t.gapSm),
               decoration: BoxDecoration(
                 color: t.muted,
-                borderRadius: BorderRadius.circular(t.radiusControl),
+                borderRadius: BorderRadius.circular(t.radiusPill),
               ),
               child: Text(
                 state.totalElement > 0
                     ? '${state.rangeStart}–${state.rangeEnd} di ${state.totalElement}'
                     : '0 risultati',
-                style: t.smallLabel.copyWith(fontWeight: FontWeight.w500, fontSize: 11, color: t.secondaryText),
+                style: t.smallLabel.copyWith(fontWeight: FontWeight.w500, color: t.secondaryText),
               ),
             ),
           ],
@@ -125,7 +128,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAGE SIZE CONTROLS — bottoni stile paginazione, nessun overlay
+// PAGE SIZE CONTROLS — segmented control iOS: track pill grigio, segmento
+// selezionato pill scuro. Token-only, zero magic number.
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _PageSizeControls extends StatelessWidget {
@@ -139,35 +143,40 @@ class _PageSizeControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = theme;
-    // Plain: nessun box bordato, solo l'elemento selezionato ha fill tinted.
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < pageSizes.length; i++) ...[
-          if (i > 0) SizedBox(width: t.gapXs),
-          _PageSizeButton(
-            size: pageSizes[i],
-            selected: pageSizes[i] == currentPageSize,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onChanged(pageSizes[i]);
-            },
-            theme: t,
-          ),
+    return Container(
+      padding: EdgeInsets.all(t.gapXs),
+      decoration: BoxDecoration(
+        color: t.muted,
+        borderRadius: BorderRadius.circular(t.radiusPill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final size in pageSizes)
+            _PageSizeSegment(
+              size: size,
+              selected: size == currentPageSize,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onChanged(size);
+              },
+              theme: t,
+            ),
         ],
-      ],
+      ),
     );
   }
 }
 
-/// Individual page size button with hover state
-class _PageSizeButton extends StatefulWidget {
+/// Singolo segmento. Selezionato = pill `secondaryBackground` con label
+/// `primaryText`, si auto-inverte tra tema chiaro/scuro.
+class _PageSizeSegment extends StatefulWidget {
   final int size;
   final bool selected;
   final VoidCallback onTap;
   final CLTheme theme;
 
-  const _PageSizeButton({
+  const _PageSizeSegment({
     required this.size,
     required this.selected,
     required this.onTap,
@@ -175,44 +184,39 @@ class _PageSizeButton extends StatefulWidget {
   });
 
   @override
-  State<_PageSizeButton> createState() => _PageSizeButtonState();
+  State<_PageSizeSegment> createState() => _PageSizeSegmentState();
 }
 
-class _PageSizeButtonState extends State<_PageSizeButton> {
-  bool _isHovered = false;
+class _PageSizeSegmentState extends State<_PageSizeSegment> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
-    final primary = _effectiveTablePrimary(context);
+    final selected = widget.selected;
 
     return MouseRegion(
-      cursor: widget.selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      onEnter: widget.selected ? null : (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      cursor: selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      onEnter: selected ? null : (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: widget.selected ? null : widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          height: 36,
-          constraints: const BoxConstraints(minWidth: 36),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+        onTap: selected ? null : widget.onTap,
+        child: Container(
+          height: t.buttonHeightCompact,
+          constraints: BoxConstraints(minWidth: t.buttonHeightCompact),
+          padding: EdgeInsets.symmetric(horizontal: t.gapMd),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: widget.selected
-                ? primary.withValues(alpha: 0.1)
-                : _isHovered
-                    ? t.muted
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(t.radiusControl),
+            color: selected ? t.secondaryBackground : Colors.transparent,
+            borderRadius: BorderRadius.circular(t.radiusPill),
           ),
-          child: Center(
-            child: Text(
-              '${widget.size}',
-              style: t.smallLabel.copyWith(
-                fontSize: 12,
-                fontWeight: widget.selected ? FontWeight.w700 : FontWeight.normal,
-                color: widget.selected ? primary : (_isHovered ? t.primaryText : t.secondaryText),
-              ),
+          child: Text(
+            '${widget.size}',
+            style: t.smallLabel.copyWith(
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: selected
+                  ? t.primaryText
+                  : (_hovered ? t.primaryText : t.secondaryText),
             ),
           ),
         ),
@@ -234,36 +238,38 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
   @override
   Widget build(BuildContext context) {
     final t = theme;
-    final primary = _effectiveTablePrimary(context);
     final canPrev = state.hasPreviousPage && state.tableState != _TableState.loading;
     final canNext = state.hasNextPage && state.tableState != _TableState.loading;
 
-    // Plain: niente box bordato; solo la pagina corrente ha fill tinted primary.
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // ── Prev ───────────────────────────────────────────────
-        _PaginationButton(
-          onTap: canPrev ? () {
-            HapticFeedback.lightImpact();
-            state.previousPage();
-          } : null,
-          enabled: canPrev,
-          theme: t,
-          child: Icon(LucideIcons.chevronLeft, color: canPrev ? t.secondaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
-        ),
-        SizedBox(width: t.gapXs),
-
-        // ── Pagina corrente ─────────────────────────────────────
-        Container(
-          height: 36,
-          constraints: const BoxConstraints(minWidth: 40),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(t.radiusControl),
+    // Stesso linguaggio del segmented page-size: track `muted`, pagina corrente
+    // = pill `secondaryBackground`, chevron come segmenti inattivi.
+    return Container(
+      padding: EdgeInsets.all(t.gapXs),
+      decoration: BoxDecoration(
+        color: t.muted,
+        borderRadius: BorderRadius.circular(t.radiusPill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Prev ───────────────────────────────────────────────
+          _PaginationButton(
+            onTap: canPrev ? () {
+              HapticFeedback.lightImpact();
+              state.previousPage();
+            } : null,
+            enabled: canPrev,
+            theme: t,
+            child: Icon(LucideIcons.chevronLeft, color: canPrev ? t.primaryText : t.mutedForeground, size: t.iconSizeCompact),
           ),
-          child: Center(
+          SizedBox(width: t.gapXs),
+
+          // ── Pagina corrente (solo indicatore, non cliccabile) ───
+          Container(
+            height: t.buttonHeightCompact,
+            constraints: BoxConstraints(minWidth: t.buttonHeightCompact),
+            padding: EdgeInsets.symmetric(horizontal: t.gapMd),
+            alignment: Alignment.center,
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               transitionBuilder: (child, animation) => FadeTransition(
@@ -279,30 +285,31 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
               child: Text(
                 '${state.currentPage + 1}',
                 key: ValueKey<int>(state.currentPage),
-                style: t.smallLabel.copyWith(fontWeight: FontWeight.w700, fontSize: 12, color: primary),
+                style: t.smallLabel.copyWith(fontWeight: FontWeight.w600, color: t.secondaryText),
               ),
             ),
           ),
-        ),
-        SizedBox(width: t.gapXs),
+          SizedBox(width: t.gapXs),
 
-        // ── Next ────────────────────────────────────────────────
-        _PaginationButton(
-          onTap: canNext ? () {
-            HapticFeedback.lightImpact();
-            state.nextPage();
-          } : null,
-          enabled: canNext,
-          theme: t,
-          child: Icon(LucideIcons.chevronRight, color: canNext ? t.secondaryText : t.secondaryText.withValues(alpha: 0.3), size: 15),
-        ),
-      ],
+          // ── Next ────────────────────────────────────────────────
+          _PaginationButton(
+            onTap: canNext ? () {
+              HapticFeedback.lightImpact();
+              state.nextPage();
+            } : null,
+            enabled: canNext,
+            theme: t,
+            child: Icon(LucideIcons.chevronRight, color: canNext ? t.primaryText : t.mutedForeground, size: t.iconSizeCompact),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// Pagination button with hover state
-class _PaginationButton extends StatefulWidget {
+/// Pagination button: pill bianco persistente quando cliccabile (è un bottone).
+/// Disabilitato = nessun pill, solo chevron muted.
+class _PaginationButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool enabled;
   final CLTheme theme;
@@ -316,29 +323,19 @@ class _PaginationButton extends StatefulWidget {
   });
 
   @override
-  State<_PaginationButton> createState() => _PaginationButtonState();
-}
-
-class _PaginationButtonState extends State<_PaginationButton> {
-  bool _isHovered = false;
-
-  @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      cursor: widget.enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      onEnter: widget.enabled ? (_) => setState(() => _isHovered = true) : null,
-      onExit: (_) => setState(() => _isHovered = false),
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 36,
-          height: 36,
+        onTap: onTap,
+        child: Container(
+          width: theme.buttonHeightCompact,
+          height: theme.buttonHeightCompact,
           decoration: BoxDecoration(
-            color: _isHovered && widget.enabled ? widget.theme.muted : Colors.transparent,
-            borderRadius: BorderRadius.circular(widget.theme.radiusControl),
+            color: enabled ? theme.secondaryBackground : Colors.transparent,
+            borderRadius: BorderRadius.circular(theme.radiusPill),
           ),
-          child: Center(child: widget.child),
+          child: Center(child: child),
         ),
       ),
     );
