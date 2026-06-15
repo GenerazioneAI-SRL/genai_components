@@ -153,6 +153,13 @@ class PagedDataTableRowMetrics {
   }
 }
 
+/// Soglia (px) sotto cui la tabella usa la vista a card (telefono).
+/// Tablet e desktop (>= soglia) usano la tabella classica.
+const double _kTableCardBreakpoint = 600.0;
+
+/// True su telefono (larghezza < soglia): la tabella mostra le card.
+bool _isTableCompact(BuildContext context) => MediaQuery.sizeOf(context).width < _kTableCardBreakpoint;
+
 /// Restituisce il colore primario effettivo per gli elementi della tabella:
 /// usa `PagedDataTableTheme.buttonsColor` se valorizzato (override via
 /// `PagedDataTable(primaryColor: ...)`), altrimenti `CLTheme.primary`.
@@ -488,7 +495,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             .map((e) => st._items[e.value])
                             .toList();
                         final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
-                        final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+                        final isDesktop = !_isTableCompact(context);
                         final isAllSelected = st._items.isNotEmpty &&
                             st._items.every((it) => st.selectedRows.containsKey(idGetter(it)));
                         toolbarContent = Container(
@@ -588,7 +595,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                       );
                     },
                   );
-            return ResponsiveBreakpoints.of(context).isDesktop
+            return !_isTableCompact(context)
                 ? Container(
                     decoration: BoxDecoration(
                       color: CLTheme.of(context).secondaryBackground,
@@ -694,7 +701,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 borderRadius: BorderRadius.circular(Sizes.radiusCard),
               ),
               clipBehavior: Clip.antiAlias,
-              child: ResponsiveBreakpoints.of(context).isDesktop
+              child: !_isTableCompact(context)
                   // In fillHeight niente scroll esterno: titolo, filter bar,
                   // header e footer fissi, scorrono solo le righe (Expanded).
                   ? fillHeight
