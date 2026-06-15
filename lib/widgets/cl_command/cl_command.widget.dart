@@ -169,9 +169,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
     if (_query.isEmpty) return widget.previewItems ?? widget.items;
     final q = _query.toLowerCase();
     return widget.items
-        .where((i) =>
-            i.label.toLowerCase().contains(q) ||
-            (i.description?.toLowerCase().contains(q) ?? false))
+        .where((i) => i.label.toLowerCase().contains(q) || (i.description?.toLowerCase().contains(q) ?? false))
         .toList();
   }
 
@@ -218,8 +216,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
       }
     }
 
-    final showAskAi =
-        widget.onAskAi != null && _query.isNotEmpty && hits.isEmpty && !_loading;
+    final showAskAi = widget.onAskAi != null && _query.isNotEmpty && hits.isEmpty && !_loading;
     if (showAskAi) {
       final index = selectable.length;
       final q = _query;
@@ -245,8 +242,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
             _move(1);
           } else if (e.logicalKey == LogicalKeyboardKey.arrowUp) {
             _move(-1);
-          } else if (e.logicalKey == LogicalKeyboardKey.enter ||
-              e.logicalKey == LogicalKeyboardKey.numpadEnter) {
+          } else if (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.numpadEnter) {
             if (_selectable.isNotEmpty) _activate(_selectable[_selected]);
           } else if (e.logicalKey == LogicalKeyboardKey.escape) {
             Navigator.of(context).pop();
@@ -308,7 +304,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: theme.secondaryBackground,
-                        borderRadius: BorderRadius.circular(Sizes.radiusSurface),
+                        borderRadius: BorderRadius.circular(theme.radiusModal),
                         border: Border.all(color: theme.cardBorder),
                         boxShadow: shadow,
                       ),
@@ -321,9 +317,11 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
                                 textAlign: TextAlign.center,
                               ),
                             )
+                          // Padding verticale gapSm: tiene la prima/ultima riga
+                          // dentro le curve del radiusModal (no clip agli angoli).
                           : ListView(
                               shrinkWrap: true,
-                              padding: EdgeInsets.all(theme.gapXs),
+                              padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: theme.gapMd),
                               children: rows,
                             ),
                     ),
@@ -339,8 +337,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
 
   Widget _groupHeader(CLTheme theme, String label, int count) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-          theme.gapMd, theme.gapSm, theme.gapMd, theme.gapXs),
+      padding: EdgeInsets.fromLTRB(theme.gapMd, theme.gapSm, theme.gapMd, theme.gapXs),
       child: Text(
         '$label · $count',
         style: theme.smallLabel.copyWith(
@@ -361,10 +358,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
       child: Row(
         children: [
           if (item.icon != null) ...[
-            Icon(item.icon,
-                size: 16,
-                color:
-                    isSelected ? theme.primaryText : theme.mutedForeground),
+            Icon(item.icon, size: 16, color: isSelected ? theme.primaryText : theme.mutedForeground),
             SizedBox(width: theme.gapSm),
           ],
           Expanded(
@@ -372,13 +366,9 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(item.label,
-                    style: theme.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(item.label, style: theme.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 if (item.description != null)
-                  Text(item.description!,
-                      style: theme.bodyLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(item.description!, style: theme.bodyLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -434,8 +424,7 @@ class _HoverRow extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          padding:
-              EdgeInsets.symmetric(horizontal: theme.gapMd, vertical: theme.gapSm),
+          padding: EdgeInsets.symmetric(horizontal: theme.gapMd, vertical: theme.gapSm),
           decoration: BoxDecoration(
             color: isSelected ? theme.accent : null,
             borderRadius: BorderRadius.circular(Sizes.borderRadius - 2),

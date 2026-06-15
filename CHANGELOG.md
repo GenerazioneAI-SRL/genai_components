@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.2.4
+
+- **Widgets:** Updated CLCommand, CLDropdown, Dropdown State
+
+
 ## 5.2.3
 
 - **Widgets:** Updated 12 components

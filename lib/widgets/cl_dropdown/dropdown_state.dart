@@ -2,12 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../cl_popup_surface.widget.dart';
-import '../cl_text_field.widget.dart';
 import 'cl_dropdown_registry.dart';
 
 class DropdownState<T extends Object> extends ChangeNotifier implements ISelectableDropdown {
@@ -33,7 +31,11 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
   final bool isMultiple;
   GlobalKey textFormFieldKey = GlobalKey();
   final TextEditingController textEditingController = TextEditingController();
-  final TextEditingController searchController = TextEditingController();
+
+  /// Query corrente digitata nel campo trigger. Distinta dal testo del
+  /// controller (che può mostrare la label dell'elemento selezionato): viene
+  /// valorizzata solo dall'input utente via [onSearch] e usata per il paging.
+  String searchQuery = '';
   final BuildContext context;
   final FocusNode focusNode;
   final String? searchColumn;
@@ -193,7 +195,6 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
 
     try {
       final nextPage = _currentPage + 1;
-      final searchQuery = searchController.text;
       final Map<String, dynamic>? searchBy =
           searchQuery.isNotEmpty && searchColumn != null
               ? {searchColumn!: searchQuery}
@@ -304,11 +305,21 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     _scrollController?.dispose();
     _scrollController = null;
 
-    if (searchController.text.isNotEmpty) {
-      searchController.clear();
+    if (searchQuery.isNotEmpty) {
+      searchQuery = '';
       items = [];
       _currentPage = 1;
       _hasMorePages = true;
+    }
+
+    // Il campo trigger ospita la ricerca: alla chiusura ripristina il testo
+    // mostrato (label selezionata / conteggio multiplo) scartando la query.
+    if (isMultiple) {
+      _updateMultipleText();
+    } else if (selectedItem != null) {
+      textEditingController.text = valueToShow(selectedItem!);
+    } else {
+      textEditingController.clear();
     }
 
     notifyListeners();
@@ -321,18 +332,10 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     var offset = renderBox.localToGlobal(Offset.zero);
 
     final screenHeight = MediaQuery.of(context).size.height;
-    final theme = CLTheme.of(context);
     const gap = 4.0;
-    // Altezza barra ricerca = campo (32 compact / 40 default) + padding verticale.
-    final searchBarHeight =
-        (isCompact ? theme.inputHeightCompact : theme.inputHeight) +
-            Sizes.padding;
-    final searchIconSize = isCompact ? theme.iconSizeCompact : Sizes.medium;
     const maxDropdownHeight = 250.0;
-    // Altezza stimata totale dell'overlay (search + lista)
-    final hasSearch = syncSearchCallback != null || asyncSearchCallback != null;
-    final estimatedHeight =
-        maxDropdownHeight + (hasSearch ? searchBarHeight : 0) + 16;
+    // La ricerca ora vive nel campo trigger: l'overlay contiene solo la lista.
+    final estimatedHeight = maxDropdownHeight + 16;
 
     final spaceBelow = screenHeight - (offset.dy + size.height + gap);
     final spaceAbove = offset.dy - gap;
@@ -343,8 +346,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     // Limita l'altezza della lista allo spazio disponibile
     final availableSpace = openUpward ? spaceAbove : spaceBelow;
     final listMaxHeight =
-        (availableSpace - (hasSearch ? searchBarHeight : 0) - 16)
-            .clamp(80.0, maxDropdownHeight);
+        (availableSpace - 16).clamp(80.0, maxDropdownHeight);
 
     return OverlayEntry(
       builder: (context) => Stack(
@@ -372,30 +374,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Campo di ricerca nell'overlay
-                    if (hasSearch)
-                      Padding(
-                        padding: const EdgeInsets.all(Sizes.padding / 2),
-                        child: Material(
-                          type: MaterialType.transparency,
-                          child: CLTextField(
-                            controller: searchController,
-                            labelText: 'Cerca...',
-                            isCompact: isCompact,
-                            prefixIcon: HugeIcon(
-                                icon: HugeIcons.strokeRoundedSearch01,
-                                color: CLTheme.of(context).secondaryText,
-                                size: searchIconSize),
-                            prefixIconConstraints: BoxConstraints(
-                                minWidth: searchIconSize + 16,
-                                minHeight: searchIconSize + 16),
-                            onChanged: (value) async {
-                              await onSearch(searchColumn, value);
-                            },
-                          ),
-                        ),
-                      ),
-                    // Lista degli elementi
+                    // Lista degli elementi (la ricerca vive nel campo trigger)
                     loading && items.isEmpty
                         ? Material(
                             type: MaterialType.transparency,
@@ -421,12 +400,17 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                             : ConstrainedBox(
                                 constraints:
                                     BoxConstraints(maxHeight: listMaxHeight),
-                                child: ListView.builder(
+                                child: ListView.separated(
                                   controller: _scrollController,
                                   padding: EdgeInsets.zero,
                                   shrinkWrap: true,
                                   itemCount:
                                       items.length + (_loadingMore ? 1 : 0),
+                                  separatorBuilder: (context, index) => Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: CLTheme.of(context).borderColor,
+                                  ),
                                   itemBuilder: (context, index) {
                                     // Loader di fine lista
                                     if (index >= items.length) {
@@ -558,10 +542,20 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
   }
 
   Future<void> onSearch(String? searchColumn, String query) async {
+    searchQuery = query;
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
       _performSearch(searchColumn, query);
     });
+  }
+
+  /// Invocata dall'input utente nel campo trigger: registra la query, apre
+  /// l'overlay se chiuso e avvia la ricerca (debounced per l'async).
+  void onTriggerChanged(String value) {
+    if (!isOverlayOpen) {
+      openOverlay();
+    }
+    onSearch(searchColumn, value);
   }
 
   Future<void> _performSearch(String? searchColumn, String query) async {
@@ -615,7 +609,6 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     }
     closeOverlay();
     textEditingController.dispose();
-    searchController.dispose();
     super.dispose();
   }
 }
@@ -648,7 +641,8 @@ class _DropdownHoverItemState extends State<_DropdownHoverItem> {
     if (widget.isSelected) {
       bgColor = theme.primary.withValues(alpha: isDark ? 0.15 : 0.08);
     } else if (_isHovered) {
-      bgColor = theme.primary.withValues(alpha: isDark ? 0.08 : 0.04);
+      // Hover grigio neutro (stesso standard delle voci di menu), non tint blu.
+      bgColor = theme.secondaryText.withValues(alpha: isDark ? 0.12 : 0.08);
     } else {
       bgColor = Colors.transparent;
     }

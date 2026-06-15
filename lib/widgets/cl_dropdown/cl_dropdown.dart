@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:hugeicons/hugeicons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../cl_theme.dart';
@@ -273,6 +273,9 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
         }
 
         final theme = CLTheme.of(context);
+        // Single-select con valore scelto → input BLOCCATO: per cercare di nuovo
+        // bisogna prima svuotare con la ✕ (no typing diretto sulla selezione).
+        final lockTyping = !widget.isMultiple && state.selectedItem != null;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -362,14 +365,21 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
               child: CLTextField(
                 key: state.textFormFieldKey,
                 controller: state.textEditingController,
+                focusNode: _focusNode,
                 labelText: widget.hint,
                 isRequired: false,
                 isEnabled: widget.isEnabled,
-                isReadOnly: true,
+                // Ricerca nel campo (non più in un box dell'overlay). Ma con un
+                // valore già selezionato (single) il campo è BLOCCATO: per
+                // cercare di nuovo si svuota prima con la ✕.
+                isReadOnly: lockTyping,
                 validators: widget.validators,
                 fillColor: widget.fillColor,
                 isCompact: widget.isCompact,
-                onTap: widget.isEnabled ? () => state.toggleOverlay() : null,
+                onTap: (widget.isEnabled && !lockTyping) ? () => state.openOverlay() : null,
+                onChanged: (widget.isEnabled && !lockTyping)
+                    ? (value) async => state.onTriggerChanged(value)
+                    : null,
                 suffixIcon: !widget.isEnabled
                     ? null
                     : state.loading
@@ -381,7 +391,7 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                             ? GestureDetector(
                                 onTap: () =>
                                     state.removeItem(state.selectedItem!),
-                                child: Icon(Icons.close_rounded,
+                                child: Icon(LucideIcons.x400,
                                     size: widget.isCompact
                                         ? theme.iconSizeCompact
                                         : 18,
@@ -389,10 +399,10 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                                         .danger
                                         .withValues(alpha: 0.8)),
                               )
-                            : HugeIcon(
-                                icon: state.isOverlayOpen
-                                    ? HugeIcons.strokeRoundedArrowUp01
-                                    : HugeIcons.strokeRoundedArrowDown01,
+                            : Icon(
+                                state.isOverlayOpen
+                                    ? LucideIcons.chevronUp400
+                                    : LucideIcons.chevronDown400,
                                 color: CLTheme.of(context).secondaryText,
                                 size: theme.iconSizeCompact,
                               ),
