@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:genai_components/cl_theme.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
+import 'package:genai_components/widgets/buttons/cl_icon_button.widget.dart';
 import 'cl_destination.dart';
 import 'cl_shell_config.dart';
 import 'cl_nav_list.widget.dart';
@@ -157,11 +158,14 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               padding: const EdgeInsets.all(Sizes.gapLg),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.menu, color: theme.primaryText, size: 20),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  CLIconButton(
+                    onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                    iconData: Icons.menu,
+                    backgroundColor: theme.muted,
+                    iconColor: theme.primaryText,
+                    size: theme.buttonHeightDefault,
+                    iconSize: Sizes.iconSizeDefault,
+                    tooltip: 'Menu',
                   ),
                   const SizedBox(width: Sizes.gapSm),
                   Expanded(child: widget.header),
