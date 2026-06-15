@@ -356,7 +356,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
               color: model._isSelected
                   ? _effectiveTablePrimary(context).withValues(alpha: 0.06)
                   : Colors.transparent,
-              padding: const EdgeInsets.all(Sizes.padding),
+              padding: const EdgeInsets.all(Sizes.gapLg),
               child: Row(
                 children: [
                   if (selectionMode && widget.rowsSelectable) ...[
