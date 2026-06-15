@@ -17,16 +17,19 @@ class CLDestination {
   /// Figli → gruppo espandibile in sidebar/drawer. Vuoto = foglia.
   final List<CLDestination> children;
 
-  /// Bottom bar: priorità decrescente per scegliere le voci principali.
+  /// Bottom bar: valore più alto = scelto prima tra le voci principali.
   final int priority;
 
   final bool isVisible;
 
   /// Label di sezione (non tappabile): rende un'intestazione collassabile
   /// con i `children` come voci sotto. Equivale a `onlyShowLabel`.
+  /// Nota: una sezione senza figli ha sia `hasChildren` sia `isLeaf` false
+  /// (categoria a sé, non una foglia).
   final bool isSectionHeader;
 
-  /// Tinta opzionale del modulo (riservata a usi futuri dal consumer).
+  /// Tinta opzionale del modulo. Consumata dall'adapter app (es. admin mappa
+  /// `ModuleRoute.color` → `tint` per i moduli colorati).
   final Color? tint;
 
   const CLDestination({
@@ -42,7 +45,7 @@ class CLDestination {
   });
 
   bool get hasChildren => children.isNotEmpty;
-  bool get isLeaf => children.isEmpty && !isSectionHeader;
+  bool get isLeaf => !hasChildren && !isSectionHeader;
 
   /// True se `key` corrisponde a questa destinazione o a un suo discendente.
   /// Usato per evidenziare/espandere gruppi quando un figlio è attivo.
