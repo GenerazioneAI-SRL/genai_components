@@ -488,6 +488,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             .map((e) => st._items[e.value])
                             .toList();
                         final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
+                        final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+                        final isAllSelected = st._items.isNotEmpty &&
+                            st._items.every((it) => st.selectedRows.containsKey(idGetter(it)));
                         toolbarContent = Container(
                           key: const ValueKey('toolbar_visible'),
                           padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
@@ -499,6 +502,29 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                           ),
                           child: Row(
                             children: [
+                              if (!isDesktop) ...[
+                                Transform.scale(
+                                  scale: 0.85,
+                                  child: Checkbox(
+                                    value: isAllSelected ? true : null,
+                                    tristate: true,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                    activeColor: tablePrimary,
+                                    checkColor: Colors.white,
+                                    side: BorderSide(color: clTheme.borderColor, width: 1),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (_) {
+                                      if (isAllSelected) {
+                                        st.clearAllSelections();
+                                      } else {
+                                        st.selectAllRows();
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: Sizes.small),
+                              ],
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
@@ -519,21 +545,22 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                 ...actionWidgets,
                               ],
                               const Spacer(),
-                              TextButton(
-                                onPressed: () => st.clearAllSelections(),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  'Deseleziona tutto',
-                                  style: clTheme.bodyLabel.copyWith(
-                                    color: clTheme.secondaryText,
-                                    fontSize: 12,
+                              if (isDesktop)
+                                TextButton(
+                                  onPressed: () => st.clearAllSelections(),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'Deseleziona tutto',
+                                    style: clTheme.bodyLabel.copyWith(
+                                      color: clTheme.secondaryText,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                         );
