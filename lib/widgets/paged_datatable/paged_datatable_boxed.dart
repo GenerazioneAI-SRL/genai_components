@@ -399,20 +399,14 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
                   ),
                   if (actions.isNotEmpty) ...[
                     const SizedBox(width: Sizes.small),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(theme.radiusControl),
-                        onTap: () => _showActionsSheet(context, actions, model),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: theme.muted,
-                            borderRadius: BorderRadius.circular(theme.radiusControl),
-                          ),
-                          child: Icon(Icons.more_vert_rounded, size: 18, color: theme.secondaryText),
-                        ),
-                      ),
+                    CLIconButton(
+                      onTap: () => _showActionsSheet(context, actions, model),
+                      iconData: Icons.more_vert_rounded,
+                      backgroundColor: theme.muted,
+                      iconColor: theme.primaryText,
+                      size: Sizes.buttonHeightDefault,
+                      iconSize: Sizes.iconSizeDefault,
+                      tooltip: 'Azioni',
                     ),
                   ],
                 ],
