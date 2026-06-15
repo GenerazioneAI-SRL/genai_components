@@ -21,7 +21,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 import 'package:equatable/equatable.dart';
-import 'package:responsive_framework/responsive_framework.dart';
 
 part 'controls.dart';
 
