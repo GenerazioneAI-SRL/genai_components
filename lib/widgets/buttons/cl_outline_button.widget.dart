@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
+import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
 
 class CLOutlineButton extends StatefulWidget {
@@ -211,6 +212,10 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
+    final forceIconOnly = CLCompactActionScope.iconOnlyOf(context) &&
+        (widget.iconData != null || widget.hugeIcon != null) &&
+        widget.width == null;
+    final showText = widget.text.isNotEmpty && !forceIconOnly;
     // Padding orizzontale da token; verticale 0 — minimumSize governa l'altezza.
     final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
     const vPad = 0.0;
@@ -231,7 +236,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
       ),
       child: SizedBox(
       width: widget.width,
-      child: widget.text.isNotEmpty
+      child: showText
           ? OutlinedButton.icon(
               iconAlignment: widget.iconAlignment,
                icon: (widget.iconData != null || widget.hugeIcon != null || loading)
@@ -292,7 +297,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                 }),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(theme.radiusControl),
+                  borderRadius: BorderRadius.circular(forceIconOnly ? btnH / 2 : theme.radiusControl),
                   side: BorderSide(color: theme.cardBorder, width: 1.0),
                 )),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
