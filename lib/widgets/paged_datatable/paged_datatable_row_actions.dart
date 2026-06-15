@@ -40,127 +40,17 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
   }
 
   void _showActionsMenu(BuildContext context) async {
-    final theme = CLTheme.of(context);
-    final RenderBox renderBox = iconKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset position = renderBox.localToGlobal(Offset.zero);
-    final screenHeight = MediaQuery.of(context).size.height;
-    final openUpwards = position.dy + 200 > screenHeight;
-
+    // Popover unificato (CLPopupMenu): stile "Altre azioni" + hairline divider.
     onDialogStateChange(true);
-
-    await showGeneralDialog(
+    await CLPopupMenu.show(
       context: context,
-      barrierColor: kCLPopoverScrim,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      transitionDuration: const Duration(milliseconds: 200),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return child;
-      },
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return Stack(
-          children: [
-            Positioned(
-              right: 50,
-              top: !openUpwards ? position.dy + 40 : null,
-              bottom: openUpwards ? screenHeight - position.dy + 40 - renderBox.size.height : null,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 200, maxWidth: 280),
-                child: CLPopupSurface(
-                  animateUpward: openUpwards,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.65),
-                        decoration: BoxDecoration(
-                          color: theme.primaryBackground,
-                          border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
-                        ),
-                        child: Text(
-                          actionsTitle?.call(model.item) ?? 'Azioni',
-                          style: theme.smallLabel.copyWith(
-                            color: theme.secondaryText,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      ...actions.asMap().entries.map((entry) {
-                        final action = entry.value;
-                        final isLast = entry.key == actions.length - 1;
-                        return _ActionMenuItem(
-                          action: action,
-                          model: model,
-                          isLast: isLast,
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+      anchorKey: iconKey,
+      title: actionsTitle?.call(model.item) ?? 'Azioni',
+      items: actions
+          .map((a) => CLPopupMenuItem(content: a.content, onTap: () => a.onTap(model.item)))
+          .toList(),
     );
-
     onDialogStateChange(false);
-  }
-}
-
-/// Action menu item with hover state
-class _ActionMenuItem<TResultId extends Comparable, TResult extends Object> extends StatefulWidget {
-  final TableAction<TResult> action;
-  final _PagedDataTableRowState<TResultId, TResult> model;
-  final bool isLast;
-
-  const _ActionMenuItem({
-    required this.action,
-    required this.model,
-    required this.isLast,
-  });
-
-  @override
-  State<_ActionMenuItem<TResultId, TResult>> createState() => _ActionMenuItemState<TResultId, TResult>();
-}
-
-class _ActionMenuItemState<TResultId extends Comparable, TResult extends Object>
-    extends State<_ActionMenuItem<TResultId, TResult>> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).pop();
-          widget.action.onTap.call(widget.model.item);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Sizes.padding,
-            vertical: Sizes.padding * 0.6,
-          ),
-          decoration: BoxDecoration(
-            color: _isHovered ? theme.muted : Colors.transparent,
-            border: !widget.isLast
-                ? Border(
-                    bottom: BorderSide(color: theme.borderColor, width: 1),
-                  )
-                : null,
-          ),
-          child: widget.action.content,
-        ),
-      ),
-    );
   }
 }
 

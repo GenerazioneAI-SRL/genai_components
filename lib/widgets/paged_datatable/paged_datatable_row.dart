@@ -298,7 +298,7 @@ class _DataTableCell<TResultId extends Comparable, TResult extends Object> exten
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: CLTheme.of(context).pagePadX, vertical: CLTheme.of(context).pagePadX * 0.75),
+      padding: EdgeInsets.symmetric(horizontal: CLTheme.of(context).gapLg, vertical: CLTheme.of(context).pagePadX * 0.75),
       width: width,
       child: Align(
         alignment: column.isNumeric ? Alignment.centerRight : Alignment.centerLeft,
@@ -351,7 +351,7 @@ class _ExpandedRowContent extends StatelessWidget {
 
 /// Inline action rendered in a row as a `CLIconButton` muted tondo — stesso
 /// linguaggio del pulsante "Cambia azienda" (fill `muted`, icona `primaryText`,
-/// size default, raggio pill). Used when `TableAction.inline == true`.
+/// size compact da `m.inlineButtonSide`, raggio pill). Used when `TableAction.inline == true`.
 /// L'icona usa il colore semantico se dichiarato (`action.color`,
 /// es. `theme.danger` per "Elimina" → icona rossa), altrimenti `primaryText`.
 class _InlineActionButton<TResultId extends Comparable, TResult extends Object> extends StatelessWidget {

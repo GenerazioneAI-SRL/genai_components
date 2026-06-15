@@ -55,7 +55,7 @@ class _ShimmerRows<TKey extends Comparable, TResultId extends Comparable, TResul
                 return Expanded(
                   flex: (factor * 100).round(),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.verticalPadding),
+                    padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.verticalPadding),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: CLShimmer(

@@ -38,7 +38,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
           ),
-          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? clTheme.pagePadX : 0),
+          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? clTheme.gapLg : 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -73,7 +73,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
 
                         // Pulsante filtri (solo se ci sono filtri extra)
                         if (state.filters.entries.where((element) => element.value._filter.isMainFilter == false).isNotEmpty) ...[
-                          SizedBox(width: clTheme.radiusControl),
+                          SizedBox(width: clTheme.gapLg),
                           Builder(
                             builder: (context) {
                               final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
@@ -182,7 +182,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Header custom
-                      if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.pagePadX)],
+                      if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.gapLg)],
 
                       // Download button — gray secondary: fill controlFill, testo primaryText, no bordo
                       if (downloadPage != null) ...[
@@ -198,19 +198,19 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                           },
                           context: context,
                         ),
-                        SizedBox(width: clTheme.pagePadX),
+                        SizedBox(width: clTheme.gapLg),
                       ],
 
                       // Main menus (with horizontal spacing between buttons)
                       if (mainMenus.isNotEmpty)
                         for (var i = 0; i < mainMenus.length; i++) ...[
-                          if (i > 0) SizedBox(width: clTheme.gapMd),
+                          if (i > 0) SizedBox(width: clTheme.gapLg),
                           mainMenus[i],
                         ],
 
                       // Extra menu (icon button default)
                       if (extraMenus.isNotEmpty) ...[
-                        if (mainMenus.isNotEmpty) SizedBox(width: clTheme.gapMd),
+                        if (mainMenus.isNotEmpty) SizedBox(width: clTheme.gapLg),
                         KeyedSubtree(
                           key: buttonExtraMenuKey,
                           child: CLButton(
@@ -334,66 +334,12 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     final theme = CLTheme.of(context);
 
     if (ResponsiveBreakpoints.of(context).isDesktop) {
-      final buttonCtx = buttonExtraMenuKey.currentContext;
-      if (buttonCtx == null) return;
-      final overlayState = Overlay.of(context);
-      final RenderBox button = buttonCtx.findRenderObject() as RenderBox;
-      final RenderBox overlay = overlayState.context.findRenderObject() as RenderBox;
-      final buttonPos = button.localToGlobal(Offset.zero, ancestor: overlay);
-      final buttonSize = button.size;
-      const double menuWidth = 240;
-      final screenSize = overlay.size;
-      double left = buttonPos.dx + buttonSize.width - menuWidth;
-      if (left < 8) left = 8;
-      if (left + menuWidth > screenSize.width - 8) left = screenSize.width - menuWidth - 8;
-      final double top = buttonPos.dy + buttonSize.height + 4;
-
-      OverlayEntry? entry;
-      void close() {
-        entry?.remove();
-        entry = null;
-      }
-
-      entry = OverlayEntry(
-        builder: (ctx) {
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: close,
-                ),
-              ),
-              Positioned(
-                left: left,
-                top: top,
-                width: menuWidth,
-                child: TapRegion(
-                  onTapOutside: (_) => close(),
-                  child: CLPopupSurface(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (var i = 0; i < extraMenus.length; i++)
-                          _ExtraMenuRow(
-                            content: extraMenus[i].content,
-                            onTap: () {
-                              close();
-                              extraMenus[i].onTap();
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+      // Popover unificato (CLPopupMenu): stile "Altre azioni" + hairline divider + token.
+      await CLPopupMenu.show(
+        context: context,
+        anchorKey: buttonExtraMenuKey,
+        items: extraMenus.map((m) => CLPopupMenuItem(content: m.content, onTap: m.onTap)).toList(),
       );
-
-      overlayState.insert(entry!);
     } else {
       await showModalBottomSheet(
         context: context,
@@ -440,33 +386,24 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     GlobalKey buttonKey,
     Offset position,
   ) async {
-    final RenderBox renderBox = buttonKey.currentContext?.findRenderObject() as RenderBox;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final menuWidth = screenWidth / 3;
-    double dx = position.dx;
-    if (dx + menuWidth > screenWidth) {
-      dx = screenWidth - menuWidth - CLTheme.of(context).pagePadX;
-    }
-    final topPos = position.dy + renderBox.size.height + 8;
-    final openUpwards = topPos + 300 > screenHeight;
-
+    // Modal centrale (non più popover ancorato): fade + scale come CLCommandPalette.
     await showGeneralDialog(
       context: context,
-      barrierColor: Colors.black12,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      transitionDuration: const Duration(milliseconds: 100),
-      transitionBuilder: (context, animation, secondaryAnimation, child) => child,
+      transitionDuration: const Duration(milliseconds: 150),
+      transitionBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.97, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          ),
+          child: child,
+        ),
+      ),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return _FiltersDialog<TKey, TResultId, TResult>(
-          left: dx,
-          top: openUpwards ? null : topPos,
-          bottom: openUpwards ? screenHeight - position.dy + 8 : null,
-          width: menuWidth,
-          state: state,
-          openUpward: openUpwards,
-        );
+        return _FiltersDialog<TKey, TResultId, TResult>(state: state);
       },
     );
   }
@@ -521,16 +458,16 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                       items: items,
                       valueToShow: (item) {
                         if (item.values.toList()[0]) {
-                          return "\${item.keys.toList()[0]!.title.toString()} - Discendente";
+                          return "${item.keys.toList()[0]!.title.toString()} - Discendente";
                         } else {
-                          return "\${item.keys.toList()[0]!.title.toString()} - Ascendente";
+                          return "${item.keys.toList()[0]!.title.toString()} - Ascendente";
                         }
                       },
                       itemBuilder: (context, item) {
                         if (item.values.toList()[0]) {
-                          return Text("\${item.keys.toList()[0]!.title.toString()} - Discendente");
+                          return Text("${item.keys.toList()[0]!.title.toString()} - Discendente");
                         } else {
-                          return Text("\${item.keys.toList()[0]!.title.toString()} - Ascendente");
+                          return Text("${item.keys.toList()[0]!.title.toString()} - Ascendente");
                         }
                       },
                       onSelectItem: (item) {
@@ -597,79 +534,72 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
 }
 
 class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
-  final double left;
-  final double? top;
-  final double? bottom;
-  final double width;
   final _PagedDataTableState<TKey, TResultId, TResult> state;
-  final bool openUpward;
 
-  const _FiltersDialog({
-    required this.left,
-    this.top,
-    this.bottom,
-    required this.width,
-    required this.state,
-    this.openUpward = false,
-  });
+  const _FiltersDialog({required this.state});
 
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
+    final maxHeight = MediaQuery.of(context).size.height * 0.8;
 
-    return Stack(
-      children: [
-        Positioned(
-          left: left,
-          top: top,
-          bottom: bottom,
-          width: width,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: CLPopupSurface(
-              animateUpward: openUpward,
-              child: Material(
-                type: MaterialType.transparency,
-                child: Column(
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(theme.pagePadX),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 480, maxHeight: maxHeight),
+          child: CLPopupSurface(
+            animate: false,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Header
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: theme.pagePadX, vertical: theme.pagePadX * 0.65),
-                    decoration: BoxDecoration(
-                      color: theme.primaryBackground,
-                      border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
-                    ),
-                    child: Text(
-                      'Filtra con...',
-                      style: theme.smallLabel,
+                  // Header (fisso): titolo grande + chiudi, sulla superficie
+                  // (niente container colorato, niente divider).
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(theme.pagePadX, theme.pagePadX * 0.65, theme.gapMd, theme.pagePadX * 0.65),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text('Filtra con...', style: theme.heading6)),
+                        CLIconButton(
+                          onTap: () => Navigator.pop(context),
+                          iconData: LucideIcons.x400,
+                          backgroundColor: theme.muted,
+                          iconColor: theme.primaryText,
+                          size: theme.buttonHeightDefault,
+                          iconSize: theme.iconSizeDefault,
+                          tooltip: 'Chiudi',
+                        ),
+                      ],
                     ),
                   ),
-                  // Filters
-                  Padding(
-                    padding: EdgeInsets.all(theme.pagePadX),
-                    child: Form(
-                      key: state.filtersFormKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ...state.filters.entries
-                              .where((element) => element.value._filter.visible && element.value._filter.isMainFilter == false)
-                              .map(
-                                (entry) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
-                                  child: entry.value._filter.buildPicker(context, entry.value),
+                  // Filtri (scrollabili se troppi)
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(theme.pagePadX),
+                      child: Form(
+                        key: state.filtersFormKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ...state.filters.entries
+                                .where((element) => element.value._filter.visible && element.value._filter.isMainFilter == false)
+                                .map(
+                                  (entry) => Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 6),
+                                    child: entry.value._filter.buildPicker(context, entry.value),
+                                  ),
                                 ),
-                              ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  // Footer buttons
+                  // Footer (fisso) — niente divider sopra i bottoni
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: theme.pagePadX, vertical: theme.pagePadX * 0.65),
-                    decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.borderColor, width: 1))),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -698,11 +628,10 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                   ),
                 ],
               ),
-              ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -68,10 +68,9 @@ class _CLMetricCardState extends State<CLMetricCard> {
     final clickable = widget.onTap != null;
 
     // Hover lift via boxShadow growth.
-    final List<BoxShadow> shadow = theme.cardShadow;
 
     final EdgeInsets cardPadding = EdgeInsets.all(
-      widget.compact ? theme.gapLg : theme.gapXl,
+      theme.gapLg,
     );
 
     final card = AnimatedContainer(
@@ -81,7 +80,6 @@ class _CLMetricCardState extends State<CLMetricCard> {
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
         borderRadius: BorderRadius.circular(theme.radiusCard),
-        boxShadow: shadow,
       ),
       child: _buildContent(theme),
     );

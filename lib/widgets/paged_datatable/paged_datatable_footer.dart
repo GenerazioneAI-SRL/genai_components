@@ -1,6 +1,7 @@
 part of 'paged_datatable.dart';
 
-class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
+class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatelessWidget {
   final PagedDataTableThemeData themeData;
 
   const _PagedDataTableFooter({required this.themeData});
@@ -8,12 +9,12 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
   @override
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
-    final hPadding = CLTheme.of(context).pagePadX;
+    final hPadding = CLTheme.of(context).gapLg;
 
     return Consumer<_PagedDataTableState<TKey, TResultId, TResult>>(
-      builder: (context, state, child) {
+      builder: (context, state, _) {
         Widget child = Container(
-          padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: hPadding * 0.65),
+          padding: EdgeInsets.all(hPadding),
           decoration: BoxDecoration(
             color: themeData.headerBackgroundColor ?? CLTheme.of(context).primaryBackground,
             border: Border(top: BorderSide(color: CLTheme.of(context).borderColor, width: 1)),
@@ -43,10 +44,14 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Righe per pagina:', style: t.smallLabel.copyWith(color: t.secondaryText, fontSize: 12)),
-            const SizedBox(width: 10),
-            _PageSizeControls(pageSizes: pageSizes, currentPageSize: state._pageSize, onChanged: (size) => state.setPageSize(size), theme: t),
-            SizedBox(width: CLTheme.of(context).pagePadX),
+            Text('Righe per pagina:', style: t.smallLabel.copyWith(color: t.secondaryText)),
+            SizedBox(width: t.gapLg),
+            _PageSizeControls(
+                pageSizes: pageSizes,
+                currentPageSize: state._pageSize,
+                onChanged: (size) => state.setPageSize(size),
+                theme: t),
+            SizedBox(width: t.gapLg),
             Container(
               height: t.buttonHeightCompact,
               alignment: Alignment.center,
@@ -59,7 +64,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                 duration: const Duration(milliseconds: 200),
                 child: Text(
                   state.totalElement > 0
-                      ? '${state.rangeStart}–${state.rangeEnd} di ${state.totalElement}'
+                      ? '${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
                       : '0 risultati',
                   key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
                   style: t.smallLabel.copyWith(
@@ -96,8 +101,12 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Righe:', style: t.smallLabel.copyWith(color: t.secondaryText, fontSize: 11)),
-                const SizedBox(width: 6),
-                _PageSizeControls(pageSizes: pageSizes, currentPageSize: state._pageSize, onChanged: (size) => state.setPageSize(size), theme: t),
+                SizedBox(width: t.gapIconText),
+                _PageSizeControls(
+                    pageSizes: pageSizes,
+                    currentPageSize: state._pageSize,
+                    onChanged: (size) => state.setPageSize(size),
+                    theme: t),
               ],
             ),
             Container(
@@ -133,7 +142,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _PageSizeControls extends StatelessWidget {
-  const _PageSizeControls({required this.pageSizes, required this.currentPageSize, required this.onChanged, required this.theme});
+  const _PageSizeControls(
+      {required this.pageSizes, required this.currentPageSize, required this.onChanged, required this.theme});
 
   final List<int> pageSizes;
   final int currentPageSize;
@@ -214,9 +224,7 @@ class _PageSizeSegmentState extends State<_PageSizeSegment> {
             '${widget.size}',
             style: t.smallLabel.copyWith(
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected
-                  ? t.primaryText
-                  : (_hovered ? t.primaryText : t.secondaryText),
+              color: selected ? t.primaryText : (_hovered ? t.primaryText : t.secondaryText),
             ),
           ),
         ),
@@ -229,7 +237,8 @@ class _PageSizeSegmentState extends State<_PageSizeSegment> {
 // PAGINATION CONTROLS
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _PaginationControls<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
+class _PaginationControls<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatelessWidget {
   const _PaginationControls({required this.state, required this.theme});
 
   final _PagedDataTableState<TKey, TResultId, TResult> state;
@@ -254,13 +263,16 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
         children: [
           // ── Prev ───────────────────────────────────────────────
           _PaginationButton(
-            onTap: canPrev ? () {
-              HapticFeedback.lightImpact();
-              state.previousPage();
-            } : null,
+            onTap: canPrev
+                ? () {
+                    HapticFeedback.lightImpact();
+                    state.previousPage();
+                  }
+                : null,
             enabled: canPrev,
             theme: t,
-            child: Icon(LucideIcons.chevronLeft, color: canPrev ? t.primaryText : t.mutedForeground, size: t.iconSizeCompact),
+            child: Icon(LucideIcons.chevronLeft,
+                color: canPrev ? t.primaryText : t.mutedForeground, size: t.iconSizeCompact),
           ),
           SizedBox(width: t.gapXs),
 
@@ -285,7 +297,7 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
               child: Text(
                 '${state.currentPage + 1}',
                 key: ValueKey<int>(state.currentPage),
-                style: t.smallLabel.copyWith(fontWeight: FontWeight.w600, color: t.secondaryText),
+                style: t.smallLabel.copyWith(fontWeight: FontWeight.w600, color: t.primaryText),
               ),
             ),
           ),
@@ -293,13 +305,16 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
 
           // ── Next ────────────────────────────────────────────────
           _PaginationButton(
-            onTap: canNext ? () {
-              HapticFeedback.lightImpact();
-              state.nextPage();
-            } : null,
+            onTap: canNext
+                ? () {
+                    HapticFeedback.lightImpact();
+                    state.nextPage();
+                  }
+                : null,
             enabled: canNext,
             theme: t,
-            child: Icon(LucideIcons.chevronRight, color: canNext ? t.primaryText : t.mutedForeground, size: t.iconSizeCompact),
+            child: Icon(LucideIcons.chevronRight,
+                color: canNext ? t.primaryText : t.mutedForeground, size: t.iconSizeCompact),
           ),
         ],
       ),

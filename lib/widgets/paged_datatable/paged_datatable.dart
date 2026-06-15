@@ -8,6 +8,7 @@ import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_icon_button.widget.dart';
 import '../cl_popup_surface.widget.dart';
+import '../cl_popup_menu.widget.dart';
 import '../cl_shimmer.widget.dart';
 import '../cl_text_field.widget.dart';
 import '../cl_container.widget.dart';
@@ -98,7 +99,7 @@ class PagedDataTableRowMetrics {
   final double searchPrefixIconSize; // search-field prefix icon size (shared with the filter bar)
 
   // Theme-derived (sourced from the SAME CLTheme getters the widgets use).
-  final double pagePadX; // theme.pagePadX
+  final double pagePadX; // table horizontal content inset (theme.gapLg)
   final double gap; // theme.gapMd — gap BETWEEN inline buttons
   final double popupButtonSlot; // SizedBox around the 3-dot _ActionButton
   final double popupRightGap; // trailing gap right of the popup button
@@ -113,10 +114,10 @@ class PagedDataTableRowMetrics {
       expandSlot: 24.0,
       searchPrefixLeftPad: t.gapMd,
       searchPrefixIconSize: 18.0,
-      pagePadX: t.pagePadX,
+      pagePadX: t.gapLg, // table horizontal content inset = Lg (16)
       gap: t.gapMd,
       popupButtonSlot: 40.0,
-      popupRightGap: t.pagePadX,
+      popupRightGap: t.gapLg, // trailing inset == left content inset
       popupLeftGapWithInline: t.gapSm,
       inlineButtonSide: t.buttonHeightCompact, // 32 — the value CLIconButton renders
     );
@@ -704,9 +705,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                           children: [
                             if (titleHeader != null) titleHeader,
                             Expanded(child: child),
-                            SizedBox(height: Sizes.padding),
+                            const SizedBox(height: Sizes.padding),
                             footerSection,
-                            !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
+                            !isInSnippet ? const SizedBox(height: Sizes.padding) : const SizedBox.shrink(),
                           ],
                         )
                       : SingleChildScrollView(
@@ -715,9 +716,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             children: [
                               if (titleHeader != null) titleHeader,
                               child,
-                              SizedBox(height: Sizes.padding),
+                              const SizedBox(height: Sizes.padding),
                               footerSection,
-                              !isInSnippet ? SizedBox(height: Sizes.padding) : SizedBox.shrink(),
+                              !isInSnippet ? const SizedBox(height: Sizes.padding) : const SizedBox.shrink(),
                             ],
                           ),
                         ),

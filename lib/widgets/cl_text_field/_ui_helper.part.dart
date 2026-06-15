@@ -95,9 +95,11 @@ class _TextFieldUiHelper extends _Helper {
           : w.onChanged,
       inputFormatters:
           isInline ? [DateMaskFormatter(w.dateFieldType!)] : (w.inputFormatters ?? _defaultInputFormatters()),
-      // In compact la line-height 1.6 di bodyText (≈22px) supera il box testo
-      // da 18px: height 1.0 riporta la riga a 14px e centra il testo.
-      style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: w.isCompact ? 1.0 : null),
+      // line-height 1.0 (sempre): la 1.6 di bodyText (~22px) supera il box testo
+      // e sfasa testo/hint verso l'alto nel Container ad altezza fissa. height 1.0
+      // riporta la riga al solo glyph e textAlignVertical.center la centra
+      // (stesso trattamento del campo ricerca custom).
+      style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
       // Full InputDecoration with border.none + isDense + symmetric vertical
       // padding tuned to center text in the 40px Container.
       decoration: InputDecoration(
@@ -108,9 +110,9 @@ class _TextFieldUiHelper extends _Helper {
         errorBorder: InputBorder.none,
         focusedErrorBorder: InputBorder.none,
         disabledBorder: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(vertical: w.isCompact ? 6 : 12),
+        contentPadding: EdgeInsets.symmetric(vertical: w.isCompact ? theme.gapSm * 0.75 : theme.gapMd),
         hintText: hintText,
-        hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: w.isCompact ? 1.0 : null),
+        hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: 1.0),
       ),
       validator: _combineValidators(_effectiveValidators),
     );
@@ -138,13 +140,13 @@ class _TextFieldUiHelper extends _Helper {
         children: [
           if (hasPrefix)
             Padding(
-              padding: const EdgeInsets.only(left: 12, right: 8),
+              padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
               child: w.prefixIcon,
             )
           else
-            const SizedBox(width: 12),
+            SizedBox(width: theme.gapMd),
           Expanded(child: innerField),
-          if (suffix != null) suffix else const SizedBox(width: 12),
+          if (suffix != null) suffix else SizedBox(width: theme.gapMd),
         ],
       ),
     );
@@ -211,12 +213,12 @@ class _TextFieldUiHelper extends _Helper {
       // pad(10+10) ≈ 36 ≤ CLSizes.inputHeight (40). InputDecorator centers the
       // content vertically inside the SizedBox(40) outer wrap → exact 40px slot
       // matching CLButton.primary.
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      contentPadding: EdgeInsets.symmetric(horizontal: theme.gapMd, vertical: 10), // v:10 = tuning (no token) per centrare in inputHeight
       labelText: w.isTextArea ? labelOrHint : null,
       hintText: useHintForLabel ? (w.dateFieldType?.hint ?? labelOrHint) : w.dateFieldType?.hint,
       hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
       prefixIcon: w.prefixIcon != null
-          ? Padding(padding: const EdgeInsets.only(left: 12, right: 8), child: w.prefixIcon)
+          ? Padding(padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm), child: w.prefixIcon)
           : null,
       prefixIconConstraints:
           w.prefixIconConstraints ?? (w.prefixIcon != null ? const BoxConstraints(minWidth: 0, minHeight: 0) : null),

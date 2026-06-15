@@ -84,7 +84,7 @@ class TextTableFilter extends TableFilter<String> {
       // checkbox si centra (vedi PagedDataTableRowMetrics.searchIconCenterX).
       final m = PagedDataTableRowMetrics.of(context);
       return Container(
-        height: theme.inputHeightCompact,
+        height: theme.inputHeight,
         decoration: BoxDecoration(
           color: _tableSearchFill(context),
           borderRadius: BorderRadius.circular(theme.radiusControl),
@@ -125,7 +125,7 @@ class TextTableFilter extends TableFilter<String> {
     }
 
     return CLTextField(
-      fillColor: theme.controlFill,
+      fillColor: theme.secondaryBackground,
       controller: _controller!,
       focusNode: _focusNode,
       labelText: "Filtra per $title",
@@ -134,7 +134,6 @@ class TextTableFilter extends TableFilter<String> {
         color: theme.secondaryText,
         size: 18,
       ),
-      prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 0),
       onChanged: (value) async => onFieldChanged(value),
     );
   }

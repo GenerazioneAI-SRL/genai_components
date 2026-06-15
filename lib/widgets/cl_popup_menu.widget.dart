@@ -127,7 +127,7 @@ class CLPopupMenu extends StatefulWidget {
 
     await showGeneralDialog(
       context: context,
-      barrierColor: kCLPopoverScrim,
+      barrierColor: Colors.transparent, // popover ancorato: nessuno scurire lo sfondo
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       transitionDuration: const Duration(milliseconds: 180),
@@ -174,20 +174,20 @@ class CLPopupMenu extends StatefulWidget {
                                 ),
                               ),
                         ),
-                      // Items
-                      Padding(
-                        padding: const EdgeInsets.all(Sizes.sm),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: items.asMap().entries.map((entry) {
-                            final item = entry.value;
-                            final isLast = entry.key == items.length - 1;
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: isLast ? 0 : Sizes.sm * 0.5),
-                              child: _CLPopupMenuItemWidget(item: item),
-                            );
-                          }).toList(),
-                        ),
+                      // Items — righe alte come un button default; divider
+                      // full-width (border-bottom) tra una opzione e l'altra.
+                      // stretch: le righe occupano tutta la larghezza → hover e
+                      // divider full-width (senza stretch si restringevano al testo).
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (int i = 0; i < items.length; i++)
+                            _CLPopupMenuItemWidget(
+                              item: items[i],
+                              isLast: i == items.length - 1,
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -232,43 +232,33 @@ class _CLPopupMenuState extends State<CLPopupMenu> {
 /// Allineamento orizzontale del popup rispetto all'anchor.
 enum CLPopupAlignment { start, end }
 
-/// Singola voce del popup con hover state — stile card consistente con il resto della UI.
-class _CLPopupMenuItemWidget extends StatefulWidget {
+/// Singola voce: alta come un button default, hover nativo InkWell (Material
+/// fornito da CLPopupSurface), divider full-width come border-bottom.
+class _CLPopupMenuItemWidget extends StatelessWidget {
   final CLPopupMenuItem item;
+  final bool isLast;
 
-  const _CLPopupMenuItemWidget({required this.item});
-
-  @override
-  State<_CLPopupMenuItemWidget> createState() => _CLPopupMenuItemWidgetState();
-}
-
-class _CLPopupMenuItemWidgetState extends State<_CLPopupMenuItemWidget> {
-  bool _isHovered = false;
+  const _CLPopupMenuItemWidget({required this.item, required this.isLast});
 
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
+    return SizedBox(
+      height: theme.buttonHeightDefault,
+      child: InkWell(
         onTap: () {
           Navigator.of(context).pop();
-          widget.item.onTap();
+          item.onTap();
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding * 0.75, vertical: Sizes.padding * 0.6),
-          decoration: BoxDecoration(
-            color: _isHovered ? theme.primary.withValues(alpha: 0.07) : theme.primaryBackground,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius),
-            border: Border.all(
-              color: _isHovered ? theme.primary.withValues(alpha: 0.20) : theme.borderColor,
-            ),
-          ),
-          child: widget.item.content,
+        hoverColor: theme.muted,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
+          alignment: Alignment.centerLeft,
+          decoration: isLast
+              ? null
+              : BoxDecoration(border: Border(bottom: BorderSide(color: theme.borderColor, width: 1))),
+          child: item.content,
         ),
       ),
     );
