@@ -167,7 +167,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                     iconSize: Sizes.iconSizeDefault,
                     tooltip: 'Menu',
                   ),
-                  const SizedBox(width: Sizes.gapSm),
+                  const SizedBox(width: Sizes.gapLg),
                   Expanded(child: widget.header),
                 ],
               ),
