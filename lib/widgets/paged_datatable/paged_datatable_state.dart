@@ -81,6 +81,10 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   bool _initialized = false;
   bool _disposed = false;
 
+  /// Mobile: true quando l'utente ha attivato la selezione (long-press su una card).
+  /// Mostra i checkbox su tutte le card; il tap diventa toggle invece di onItemTap.
+  bool mobileSelectionMode = false;
+
   @override
   void notifyListeners() {
     if (_disposed) return;
@@ -280,6 +284,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
     selectedRows.remove(itemId);
     _rowsState[itemIndex].selected = false;
+    if (selectedRows.isEmpty) mobileSelectionMode = false;
     _rowsSelectionChange++;
     notifyListeners();
   }
@@ -312,7 +317,15 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     }
     // Svuota la mappa globale delle selezioni (cross-page)
     selectedRows.clear();
+    mobileSelectionMode = false;
     _rowsSelectionChange++;
+    notifyListeners();
+  }
+
+  /// Mobile: attiva la modalità selezione (long-press su una card).
+  void enterMobileSelectionMode() {
+    if (mobileSelectionMode) return;
+    mobileSelectionMode = true;
     notifyListeners();
   }
 
