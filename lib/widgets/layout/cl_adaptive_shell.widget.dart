@@ -38,7 +38,7 @@ class CLAdaptiveShell extends StatefulWidget {
   final Widget? navHeader;
   final Widget? navFooter;
   final Widget? trailing;   // pannello AI desktop (full-height)
-  final Widget? endDrawer;  // AI drawer mobile
+  final Widget? endDrawer;  // AI drawer: solo tier drawer/bottom-bar; ignorato su desktop
   final CLShellConfig config;
 
   @override
