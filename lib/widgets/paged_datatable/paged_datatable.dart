@@ -7,6 +7,7 @@ import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_icon_button.widget.dart';
+import '../buttons/cl_compact_action_scope.dart';
 import '../cl_popup_surface.widget.dart';
 import '../cl_popup_menu.widget.dart';
 import '../cl_shimmer.widget.dart';

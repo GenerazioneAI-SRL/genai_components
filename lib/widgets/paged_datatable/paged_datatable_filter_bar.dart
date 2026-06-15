@@ -34,7 +34,9 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         // Filtri extra attivi (non main) per i chip
         final activeExtraFilters = state.filters.entries.where((e) => !e.value._filter.isMainFilter && e.value.hasValue).toList();
 
-        Widget child = Container(
+        Widget child = CLCompactActionScope(
+          iconOnly: _isTableCompact(context),
+          child: Container(
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
           ),
@@ -266,6 +268,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                 ),
               ],
             ],
+          ),
           ),
         );
         if (theme.headerBackgroundColor != null) {
