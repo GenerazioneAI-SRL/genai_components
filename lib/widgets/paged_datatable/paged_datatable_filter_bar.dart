@@ -308,6 +308,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     } else {
       await showModalBottomSheet(
         context: context,
+        useRootNavigator: true,
         backgroundColor: theme.secondaryBackground,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(theme.radiusModal)),
@@ -376,6 +377,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   Future<void> _showFilterOverlayMobile(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state) async {
     await showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (context) => _FiltersDialogBoxed<TKey, TResultId, TResult>(rect: RelativeRect.fromLTRB(10, 0, 0, 0), state: state),
     );

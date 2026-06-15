@@ -423,6 +423,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
