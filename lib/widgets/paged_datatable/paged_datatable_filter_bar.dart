@@ -53,10 +53,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                         // Campo di ricerca (larghezza preferita 25% viewport, shrink se manca spazio)
                         if (state.filters.isNotEmpty &&
                             state.filters.entries.where((element) => element.value._filter.isMainFilter == true).isNotEmpty)
-                          Flexible(
-                            child: SizedBox(
-                              width: MediaQuery.of(context).size.width / 4,
-                              child: state.filters.entries.where((element) => element.value._filter.isMainFilter == true).map((entry) {
+                          Builder(
+                            builder: (context) {
+                              final isDesktopSearch = ResponsiveBreakpoints.of(context).isDesktop;
+                              final field = state.filters.entries.where((element) => element.value._filter.isMainFilter == true).map((entry) {
                                 TextTableFilter mainFilter = entry.value._filter as TextTableFilter;
                                 mainFilter.onChange = (String value) {
                                   entry.value.value = value;
@@ -67,8 +67,16 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                   }
                                 };
                                 return mainFilter.buildPicker(context, entry.value);
-                              }).first,
-                            ),
+                              }).first;
+                              return isDesktopSearch
+                                  ? Flexible(
+                                      child: SizedBox(
+                                        width: MediaQuery.of(context).size.width / 4,
+                                        child: field,
+                                      ),
+                                    )
+                                  : Expanded(child: field);
+                            },
                           ),
 
                         // Pulsante filtri (solo se ci sono filtri extra)
@@ -90,86 +98,48 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                 }
                               }
 
-                              if (isDesktop) {
-                                // Desktop: CLOutlineButton con testo + icona + badge
-                                return Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    KeyedSubtree(
-                                      key: buttonKey,
-                                      child: CLButton(
-                                        text: "Filtri",
-                                        iconAlignment: IconAlignment.start,
-                                        iconData: LucideIcons.slidersHorizontal,
-                                        backgroundColor: _tableButtonFill(context),
-                                        iconColor: CLTheme.of(context).primaryText,
-                                        textStyle: CLTheme.of(context).bodyText.copyWith(
-                                          color: CLTheme.of(context).primaryText,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        onTap: isDisabled ? () {} : onTap,
-                                        context: context,
-                                      ),
-                                    ),
-                                    if (activeCount > 0)
-                                      Positioned(
-                                        top: -4,
-                                        right: -4,
-                                        child: Container(
-                                          width: 18,
-                                          height: 18,
-                                          decoration: BoxDecoration(
-                                            color: _effectiveTablePrimary(context),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1.5),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '$activeCount',
-                                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                );
-                              } else {
-                                // Mobile: solo icona con badge
-                                return Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    IconButton(
-                                      key: buttonKey,
-                                      icon: Icon(
-                                        LucideIcons.slidersHorizontal,
+                              // Sempre CLButton (desktop e mobile)
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  KeyedSubtree(
+                                    key: buttonKey,
+                                    child: CLButton(
+                                      text: "Filtri",
+                                      iconAlignment: IconAlignment.start,
+                                      iconData: LucideIcons.slidersHorizontal,
+                                      backgroundColor: _tableButtonFill(context),
+                                      iconColor: CLTheme.of(context).primaryText,
+                                      textStyle: CLTheme.of(context).bodyText.copyWith(
                                         color: CLTheme.of(context).primaryText,
-                                        size: clTheme.gapXl,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                      onPressed: isDisabled ? null : onTap,
+                                      onTap: isDisabled ? () {} : onTap,
+                                      context: context,
                                     ),
-                                    if (activeCount > 0)
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: Container(
-                                          width: 16,
-                                          height: 16,
-                                          decoration: BoxDecoration(
-                                            color: _effectiveTablePrimary(context),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '$activeCount',
-                                              style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
-                                            ),
+                                  ),
+                                  if (activeCount > 0)
+                                    Positioned(
+                                      top: -4,
+                                      right: -4,
+                                      child: Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: BoxDecoration(
+                                          color: _effectiveTablePrimary(context),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1.5),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '$activeCount',
+                                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
                                           ),
                                         ),
                                       ),
-                                  ],
-                                );
-                              }
+                                    ),
+                                ],
+                              );
                             },
                           ),
                         ],
@@ -232,42 +202,6 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                         ),
                       ],
 
-                      // Checkbox (solo mobile)
-                      if (rowsSelectable && !ResponsiveBreakpoints.of(context).isDesktop)
-                        Transform.translate(
-                          offset: Offset(6, 0),
-                          child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
-                            selector: (context, model) => model._rowsSelectionChange,
-                            builder: (context, value, _) {
-                              return HookBuilder(
-                                builder: (context) {
-                                  final isAllSelected =
-                                      state._items.isNotEmpty && state._items.every((item) => state.selectedRows.containsKey(idGetter(item)));
-                                  final hasCurrentPageSelection = state._items.any((item) => state.selectedRows.containsKey(idGetter(item)));
-                                  return Checkbox(
-                                    value: isAllSelected ? true : (hasCurrentPageSelection ? null : false),
-                                    tristate: true,
-                                    hoverColor: Colors.transparent,
-                                    overlayColor: WidgetStateProperty.all<Color>(Colors.transparent),
-                                    activeColor: CLTheme.of(context).secondary,
-                                    onChanged: (newValue) {
-                                      switch (newValue) {
-                                        case true:
-                                          state.selectAllRows();
-                                          break;
-                                        case false:
-                                        case null:
-                                          // Clear globale: deseleziona anche pagine precedenti
-                                          state.clearAllSelections();
-                                          break;
-                                      }
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
                     ],
                   ),
                 ],
