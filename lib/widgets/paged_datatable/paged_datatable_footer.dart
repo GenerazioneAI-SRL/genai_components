@@ -8,7 +8,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
+    final isMobile = _isTableCompact(context);
     final hPadding = CLTheme.of(context).gapLg;
 
     return Consumer<_PagedDataTableState<TKey, TResultId, TResult>>(
