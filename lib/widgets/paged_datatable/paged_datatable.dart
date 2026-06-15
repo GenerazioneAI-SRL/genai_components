@@ -467,6 +467,100 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               fillHeight,
             );
             if (fillHeight) boxedSection = Expanded(child: boxedSection);
+
+            // Toolbar selezione condivisa tra desktop e mobile (vuota se nessun selectionActionsBuilder).
+            final Widget selectionToolbar = selectionActionsBuilder == null
+                ? const SizedBox.shrink()
+                : Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
+                    selector: (context, model) => model._rowsSelectionChange,
+                    builder: (context, _, __) {
+                      final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
+                      final selectedCount = st.selectedRows.length;
+                      final clTheme = CLTheme.of(context);
+                      final tablePrimary = _effectiveTablePrimary(context);
+
+                      Widget toolbarContent;
+                      if (selectedCount == 0) {
+                        toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
+                      } else {
+                        final selectedItems = st.selectedRows.entries
+                            .where((e) => e.value < st._items.length)
+                            .map((e) => st._items[e.value])
+                            .toList();
+                        final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
+                        toolbarContent = Container(
+                          key: const ValueKey('toolbar_visible'),
+                          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: tablePrimary.withValues(alpha: 0.06),
+                            border: Border(
+                              bottom: BorderSide(color: tablePrimary.withValues(alpha: 0.15), width: 1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: tablePrimary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                                  style: clTheme.bodyLabel.copyWith(
+                                    color: tablePrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              if (actionWidgets.isNotEmpty) ...[
+                                const SizedBox(width: Sizes.padding),
+                                ...actionWidgets,
+                              ],
+                              const Spacer(),
+                              TextButton(
+                                onPressed: () => st.clearAllSelections(),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Deseleziona tutto',
+                                  style: clTheme.bodyLabel.copyWith(
+                                    color: clTheme.secondaryText,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) => SizeTransition(
+                          sizeFactor: animation,
+                          axisAlignment: -1,
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, -0.3),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                              child: child,
+                            ),
+                          ),
+                        ),
+                        child: toolbarContent,
+                      );
+                    },
+                  );
             return ResponsiveBreakpoints.of(context).isDesktop
                 ? Container(
                     decoration: BoxDecoration(
@@ -495,100 +589,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         ],
 
                         /* SELECTION TOOLBAR */
-                        if (selectionActionsBuilder != null)
-                          Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
-                            selector: (context, model) => model._rowsSelectionChange,
-                            builder: (context, _, __) {
-                              final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
-                              final selectedCount = st.selectedRows.length;
-                              final clTheme = CLTheme.of(context);
-                              final tablePrimary = _effectiveTablePrimary(context);
-
-                              Widget toolbarContent;
-                              if (selectedCount == 0) {
-                                toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
-                              } else {
-                                final selectedItems = st.selectedRows.entries
-                                    .where((e) => e.value < st._items.length)
-                                    .map((e) => st._items[e.value])
-                                    .toList();
-                                final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
-                                toolbarContent = Container(
-                                  key: const ValueKey('toolbar_visible'),
-                                  padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: tablePrimary.withValues(alpha: 0.06),
-                                    border: Border(
-                                      bottom: BorderSide(color: tablePrimary.withValues(alpha: 0.15), width: 1),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Badge "X selezionati"
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: tablePrimary.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
-                                          style: clTheme.bodyLabel.copyWith(
-                                            color: tablePrimary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                      // Azioni custom
-                                      if (actionWidgets.isNotEmpty) ...[
-                                        const SizedBox(width: Sizes.padding),
-                                        ...actionWidgets,
-                                      ],
-                                      const Spacer(),
-                                      // Deseleziona tutto
-                                      TextButton(
-                                        onPressed: () => st.clearAllSelections(),
-                                        style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        child: Text(
-                                          'Deseleziona tutto',
-                                          style: clTheme.bodyLabel.copyWith(
-                                            color: clTheme.secondaryText,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-
-                              return AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeInCubic,
-                                transitionBuilder: (child, animation) => SizeTransition(
-                                  sizeFactor: animation,
-                                  axisAlignment: -1,
-                                  child: FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0, -0.3),
-                                        end: Offset.zero,
-                                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                                      child: child,
-                                    ),
-                                  ),
-                                ),
-                                child: toolbarContent,
-                              );
-                            },
-                          ),
+                        selectionToolbar,
 
                         /* HEADER ROW */
                         _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
@@ -628,6 +629,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         ),
                         const SizedBox(height: Sizes.small),
                       ],
+                      selectionToolbar,
                       boxedSection,
                     ],
                   );
