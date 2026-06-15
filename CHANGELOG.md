@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.2.5
+
+- **Widgets:** Updated 14 components
+- **Core:** Updated Genai Components
+
+
 ## 5.2.4
 
 - **Widgets:** Updated CLCommand, CLDropdown, Dropdown State

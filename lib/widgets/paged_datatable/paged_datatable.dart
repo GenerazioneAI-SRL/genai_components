@@ -7,6 +7,7 @@ import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_icon_button.widget.dart';
+import '../buttons/cl_compact_action_scope.dart';
 import '../cl_popup_surface.widget.dart';
 import '../cl_popup_menu.widget.dart';
 import '../cl_shimmer.widget.dart';
@@ -21,7 +22,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 import 'package:equatable/equatable.dart';
-import 'package:responsive_framework/responsive_framework.dart';
 
 part 'controls.dart';
 
@@ -152,6 +152,13 @@ class PagedDataTableRowMetrics {
     return 0.0;
   }
 }
+
+/// Soglia (px) sotto cui la tabella usa la vista a card (telefono).
+/// Tablet e desktop (>= soglia) usano la tabella classica.
+const double _kTableCardBreakpoint = 600.0;
+
+/// True su telefono (larghezza < soglia): la tabella mostra le card.
+bool _isTableCompact(BuildContext context) => MediaQuery.sizeOf(context).width < _kTableCardBreakpoint;
 
 /// Restituisce il colore primario effettivo per gli elementi della tabella:
 /// usa `PagedDataTableTheme.buttonsColor` se valorizzato (override via
@@ -467,7 +474,128 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               fillHeight,
             );
             if (fillHeight) boxedSection = Expanded(child: boxedSection);
-            return ResponsiveBreakpoints.of(context).isDesktop
+
+            // Toolbar selezione condivisa tra desktop e mobile (vuota se nessun selectionActionsBuilder).
+            final Widget selectionToolbar = selectionActionsBuilder == null
+                ? const SizedBox.shrink()
+                : Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
+                    selector: (context, model) => model._rowsSelectionChange,
+                    builder: (context, _, __) {
+                      final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
+                      final selectedCount = st.selectedRows.length;
+                      final clTheme = CLTheme.of(context);
+                      final tablePrimary = _effectiveTablePrimary(context);
+
+                      Widget toolbarContent;
+                      if (selectedCount == 0) {
+                        toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
+                      } else {
+                        final selectedItems = st.selectedRows.entries
+                            .where((e) => e.value < st._items.length)
+                            .map((e) => st._items[e.value])
+                            .toList();
+                        final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
+                        final isDesktop = !_isTableCompact(context);
+                        final isAllSelected = st._items.isNotEmpty &&
+                            st._items.every((it) => st.selectedRows.containsKey(idGetter(it)));
+                        toolbarContent = Container(
+                          key: const ValueKey('toolbar_visible'),
+                          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: tablePrimary.withValues(alpha: 0.06),
+                            border: Border(
+                              bottom: BorderSide(color: tablePrimary.withValues(alpha: 0.15), width: 1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              if (!isDesktop) ...[
+                                Transform.scale(
+                                  scale: 0.85,
+                                  child: Checkbox(
+                                    value: isAllSelected ? true : null,
+                                    tristate: true,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                    activeColor: tablePrimary,
+                                    checkColor: Colors.white,
+                                    side: BorderSide(color: clTheme.borderColor, width: 1),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (_) {
+                                      if (isAllSelected) {
+                                        st.clearAllSelections();
+                                      } else {
+                                        st.selectAllRows();
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: Sizes.small),
+                              ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: tablePrimary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                                  style: clTheme.bodyLabel.copyWith(
+                                    color: tablePrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              if (actionWidgets.isNotEmpty) ...[
+                                const SizedBox(width: Sizes.padding),
+                                ...actionWidgets,
+                              ],
+                              const Spacer(),
+                              if (isDesktop)
+                                TextButton(
+                                  onPressed: () => st.clearAllSelections(),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'Deseleziona tutto',
+                                    style: clTheme.bodyLabel.copyWith(
+                                      color: clTheme.secondaryText,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) => SizeTransition(
+                          sizeFactor: animation,
+                          axisAlignment: -1,
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, -0.3),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                              child: child,
+                            ),
+                          ),
+                        ),
+                        child: toolbarContent,
+                      );
+                    },
+                  );
+            return !_isTableCompact(context)
                 ? Container(
                     decoration: BoxDecoration(
                       color: CLTheme.of(context).secondaryBackground,
@@ -495,100 +623,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         ],
 
                         /* SELECTION TOOLBAR */
-                        if (selectionActionsBuilder != null)
-                          Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
-                            selector: (context, model) => model._rowsSelectionChange,
-                            builder: (context, _, __) {
-                              final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
-                              final selectedCount = st.selectedRows.length;
-                              final clTheme = CLTheme.of(context);
-                              final tablePrimary = _effectiveTablePrimary(context);
-
-                              Widget toolbarContent;
-                              if (selectedCount == 0) {
-                                toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
-                              } else {
-                                final selectedItems = st.selectedRows.entries
-                                    .where((e) => e.value < st._items.length)
-                                    .map((e) => st._items[e.value])
-                                    .toList();
-                                final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
-                                toolbarContent = Container(
-                                  key: const ValueKey('toolbar_visible'),
-                                  padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: tablePrimary.withValues(alpha: 0.06),
-                                    border: Border(
-                                      bottom: BorderSide(color: tablePrimary.withValues(alpha: 0.15), width: 1),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Badge "X selezionati"
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: tablePrimary.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
-                                          style: clTheme.bodyLabel.copyWith(
-                                            color: tablePrimary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                      // Azioni custom
-                                      if (actionWidgets.isNotEmpty) ...[
-                                        const SizedBox(width: Sizes.padding),
-                                        ...actionWidgets,
-                                      ],
-                                      const Spacer(),
-                                      // Deseleziona tutto
-                                      TextButton(
-                                        onPressed: () => st.clearAllSelections(),
-                                        style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        child: Text(
-                                          'Deseleziona tutto',
-                                          style: clTheme.bodyLabel.copyWith(
-                                            color: clTheme.secondaryText,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-
-                              return AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeInCubic,
-                                transitionBuilder: (child, animation) => SizeTransition(
-                                  sizeFactor: animation,
-                                  axisAlignment: -1,
-                                  child: FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0, -0.3),
-                                        end: Offset.zero,
-                                      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                                      child: child,
-                                    ),
-                                  ),
-                                ),
-                                child: toolbarContent,
-                              );
-                            },
-                          ),
+                        selectionToolbar,
 
                         /* HEADER ROW */
                         _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
@@ -612,7 +647,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(Sizes.padding),
+                            padding: const EdgeInsets.all(Sizes.gapLg),
                             child: _PagedDataTableFilterTab<TKey, TResultId, TResult>(
                               mainMenus,
                               extraMenus,
@@ -628,6 +663,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         ),
                         const SizedBox(height: Sizes.small),
                       ],
+                      selectionToolbar,
                       boxedSection,
                     ],
                   );
@@ -665,7 +701,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 borderRadius: BorderRadius.circular(Sizes.radiusCard),
               ),
               clipBehavior: Clip.antiAlias,
-              child: ResponsiveBreakpoints.of(context).isDesktop
+              child: !_isTableCompact(context)
                   // In fillHeight niente scroll esterno: titolo, filter bar,
                   // header e footer fissi, scorrono solo le righe (Expanded).
                   ? fillHeight

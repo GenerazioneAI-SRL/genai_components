@@ -9,6 +9,7 @@ export 'layout/constants/sizes.constant.dart';
 
 // Buttons
 export 'widgets/buttons/cl_button.widget.dart';
+export 'widgets/buttons/cl_compact_action_scope.dart';
 export 'widgets/buttons/cl_icon_button.widget.dart';
 export 'widgets/buttons/cl_outline_button.widget.dart';
 export 'widgets/buttons/cl_ghost_button.widget.dart';
@@ -22,9 +23,14 @@ export 'widgets/cl_card.widget.dart';
 export 'widgets/cl_container.widget.dart';
 export 'widgets/cl_input_group.widget.dart';
 export 'widgets/cl_popup_surface.widget.dart';
+export 'widgets/layout/cl_adaptive_shell.widget.dart';
+export 'widgets/layout/cl_bottom_bar.widget.dart';
+export 'widgets/layout/cl_destination.dart';
+export 'widgets/layout/cl_nav_list.widget.dart';
 export 'widgets/layout/cl_page_container.widget.dart';
-export 'widgets/layout/cl_responsive_stack.widget.dart';
 export 'widgets/layout/cl_responsive_grid_shadcn.widget.dart';
+export 'widgets/layout/cl_responsive_stack.widget.dart';
+export 'widgets/layout/cl_shell_config.dart';
 export 'widgets/cl_divider.widget.dart';
 export 'widgets/cl_separator.widget.dart';
 export 'widgets/cl_section_card.widget.dart';

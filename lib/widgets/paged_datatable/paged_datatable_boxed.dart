@@ -139,13 +139,15 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
       return fillHeight ? Center(child: error) : error;
     }
 
-    return ListView.builder(
+    return ListView.separated(
       // In fillHeight la lista scorre da sola nello spazio assegnato.
       physics: fillHeight ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
       primary: false,
       padding: EdgeInsets.zero,
       itemCount: state._rowsState.length,
       shrinkWrap: !fillHeight,
+      separatorBuilder: (context, _) =>
+          Divider(height: 1, thickness: 1, color: CLTheme.of(context).borderColor),
       itemBuilder: (context, index) => ChangeNotifierProvider<_PagedDataTableRowState<TResultId, TResult>>.value(
         value: state._rowsState[index],
         child: Consumer<_PagedDataTableRowState<TResultId, TResult>>(
@@ -297,162 +299,122 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
     final model = widget.model;
     final state = widget.state;
     final actions = widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
-    final mainColumn = state.columns.isNotEmpty ? state.columns.first : null;
-    final otherColumns = state.columns.length > 1 ? state.columns.sublist(1) : <BaseTableColumn<TResult>>[];
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: () {
-        HapticFeedback.selectionClick();
-        widget.onItemTap?.call(model.item);
-      },
-      child: AnimatedScale(
-        scale: _isPressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOutCubic,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          margin: EdgeInsets.only(
-            top: widget.index == 0 ? 0 : Sizes.small * 0.5,
-            bottom: Sizes.small * 0.5,
-          ),
-          decoration: BoxDecoration(
-            color: model._isSelected
-                ? _effectiveTablePrimary(context).withValues(alpha: 0.06)
-                : theme.secondaryBackground,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius),
-            border: Border.all(
+    // Ruoli mobile: titolo = colonna isMain (fallback: prima colonna); sottotitolo = colonna isSubtitle.
+    final cols = state.columns;
+    BaseTableColumn<TResult>? titleColumn;
+    for (final c in cols) {
+      if (c.isMain == true) {
+        titleColumn = c;
+        break;
+      }
+    }
+    titleColumn ??= cols.isNotEmpty ? cols.first : null;
+    BaseTableColumn<TResult>? subtitleColumn;
+    for (final c in cols) {
+      if (c.isSubtitle) {
+        subtitleColumn = c;
+        break;
+      }
+    }
+
+    return Selector<_PagedDataTableState<TKey, TResultId, TResult>, bool>(
+      selector: (_, m) => m.mobileSelectionMode,
+      builder: (context, selectionMode, _) {
+        return GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onLongPress: widget.rowsSelectable
+              ? () {
+                  if (!selectionMode) {
+                    HapticFeedback.mediumImpact();
+                    state.enterMobileSelectionMode();
+                    state.selectRow(model.itemId);
+                  }
+                }
+              : null,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            if (selectionMode && widget.rowsSelectable) {
+              if (model._isSelected) {
+                state.unselectRow(model.itemId);
+              } else {
+                state.selectRow(model.itemId);
+              }
+            } else {
+              widget.onItemTap?.call(model.item);
+            }
+          },
+          child: AnimatedScale(
+            scale: _isPressed ? 0.97 : 1.0,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOutCubic,
               color: model._isSelected
-                  ? _effectiveTablePrimary(context).withValues(alpha: 0.5)
-                  : theme.borderColor,
-              width: 1,
+                  ? _effectiveTablePrimary(context).withValues(alpha: 0.06)
+                  : Colors.transparent,
+              padding: const EdgeInsets.all(Sizes.gapLg),
+              child: Row(
+                children: [
+                  if (selectionMode && widget.rowsSelectable) ...[
+                    Transform.scale(
+                      scale: 0.85,
+                      child: Checkbox(
+                        value: model._isSelected,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        activeColor: _effectiveTablePrimary(context),
+                        checkColor: Colors.white,
+                        side: BorderSide(color: theme.borderColor, width: 1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        onChanged: (value) {
+                          if (value == true) {
+                            state.selectRow(model.itemId);
+                          } else {
+                            state.unselectRow(model.itemId);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: Sizes.small),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (titleColumn != null) titleColumn.buildCell(model.item, model.index),
+                        if (subtitleColumn != null) ...[
+                          const SizedBox(height: 2),
+                          DefaultTextStyle(
+                            style: theme.bodyLabel.copyWith(color: theme.secondaryText, fontSize: 12),
+                            child: subtitleColumn.buildCell(model.item, model.index),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (actions.isNotEmpty) ...[
+                    const SizedBox(width: Sizes.small),
+                    CLIconButton(
+                      onTap: () => _showActionsSheet(context, actions, model),
+                      iconData: Icons.more_vert_rounded,
+                      backgroundColor: theme.muted,
+                      iconColor: theme.primaryText,
+                      size: Sizes.buttonHeightDefault,
+                      iconSize: Sizes.iconSizeDefault,
+                      tooltip: 'Azioni',
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header con colonna principale e azioni
-              Container(
-                padding: const EdgeInsets.all(Sizes.padding),
-                decoration: BoxDecoration(
-                  border: otherColumns.isNotEmpty
-                      ? Border(bottom: BorderSide(color: theme.borderColor, width: 1))
-                      : null,
-                ),
-                child: Row(
-                  children: [
-                    // Checkbox se selezionabile
-                    if (widget.rowsSelectable) ...[
-                      Transform.scale(
-                        scale: 0.85,
-                        child: Checkbox(
-                          value: model._isSelected,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                          activeColor: _effectiveTablePrimary(context),
-                          checkColor: Colors.white,
-                          side: BorderSide(color: theme.borderColor, width: 1),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                          onChanged: (value) {
-                            if (value == true) {
-                              state.selectRow(model.itemId);
-                            } else {
-                              state.unselectRow(model.itemId);
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: Sizes.small),
-                    ],
-
-                    // Colonna principale
-                    Expanded(
-                      child: mainColumn != null
-                          ? mainColumn.buildCell(model.item, model.index)
-                          : const SizedBox.shrink(),
-                    ),
-
-                    // Pulsante azioni
-                    if (actions.isNotEmpty)
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(theme.radiusControl),
-                          onTap: () => _showActionsSheet(context, actions, model),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.muted,
-                              borderRadius: BorderRadius.circular(theme.radiusControl),
-                            ),
-                            child: Icon(Icons.more_vert_rounded, size: 18, color: theme.secondaryText),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Altre colonne
-              if (otherColumns.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(Sizes.padding, Sizes.small, Sizes.padding, Sizes.padding),
-                  child: Column(
-                    children: otherColumns.asMap().entries.map((entry) {
-                      final column = entry.value;
-                      final isLast = entry.key == otherColumns.length - 1;
-                      final cell = column.buildCell(model.item, model.index);
-
-                      return Container(
-                        padding: EdgeInsets.only(bottom: isLast ? 0 : Sizes.small * 0.75),
-                        margin: EdgeInsets.only(bottom: isLast ? 0 : Sizes.small * 0.75),
-                        decoration: !isLast ? BoxDecoration(
-                          border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
-                        ) : null,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Label
-                            SizedBox(
-                              width: 100,
-                              child: DefaultTextStyle(
-                                style: theme.smallLabel.copyWith(
-                                  color: theme.secondaryText.withValues(alpha: 0.8),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                child: column.title,
-                              ),
-                            ),
-                            const SizedBox(width: Sizes.small),
-                            // Value
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: cell is Text
-                                    ? Text(
-                                        cell.data ?? '',
-                                        style: cell.style ?? theme.bodyLabel.copyWith(fontWeight: FontWeight.w500),
-                                        textAlign: TextAlign.end,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      )
-                                    : cell,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -461,6 +423,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(

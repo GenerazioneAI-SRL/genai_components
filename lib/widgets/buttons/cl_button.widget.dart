@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
+import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
 
 // ── Costanti micro-interazione ──────────────────────────────────────
@@ -483,6 +484,11 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
+    final forceIconOnly = CLCompactActionScope.iconOnlyOf(context) &&
+        (widget.iconData != null || widget.hugeIcon != null) &&
+        !widget.fullWidth &&
+        widget.width == null;
+    final showText = widget.text.isNotEmpty && !forceIconOnly;
     final isLoading = widget.loading ?? loading;
     final isInteractive = widget.enabled && !isLoading;
 
@@ -503,7 +509,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     // Altezze fisse da design tokens: 32 compact, 40 default. Niente +/- mobile.
     final minHeight = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final iconOnlySide = minHeight;
-    final radius = widget.borderRadius ?? theme.radiusControl;
+    final radius = forceIconOnly ? iconOnlySide / 2 : (widget.borderRadius ?? theme.radiusControl);
 
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
     Widget buildIconSlot(double size) {
@@ -538,7 +544,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final iconTextGap = theme.gapSm;
 
     Widget content;
-    if (widget.text.isNotEmpty) {
+    if (showText) {
       // Label con fade durante loading per comunicare stato "in corso".
       final labelWidget = AnimatedOpacity(
         opacity: isLoading ? 0.7 : 1.0,
@@ -572,7 +578,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     }
 
     // ── Superficie animata (bg + padding insieme: niente gap trasparente) ─
-    final BoxConstraints constraints = widget.text.isNotEmpty
+    final BoxConstraints constraints = showText
         ? BoxConstraints(minHeight: minHeight, minWidth: isMobile ? 0 : 64)
         : BoxConstraints(minWidth: iconOnlySide, minHeight: iconOnlySide);
 
@@ -604,7 +610,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
           child: AnimatedContainer(
             duration: _hoverDuration,
             curve: Curves.easeOut,
-            padding: widget.text.isNotEmpty ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
+            padding: showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
             constraints: constraints,
             decoration: BoxDecoration(
               color: currentBg,

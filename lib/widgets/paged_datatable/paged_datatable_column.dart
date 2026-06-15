@@ -9,6 +9,9 @@ abstract class BaseTableColumn<TType extends Object> {
   final double? sizeFactor;
   final bool? isMain;
 
+  /// Mobile: se true, questa colonna fa da sottotitolo nella card. Default false.
+  final bool isSubtitle;
+
   const BaseTableColumn(
       {required this.id,
       required this.title,
@@ -16,7 +19,8 @@ abstract class BaseTableColumn<TType extends Object> {
       required this.sortable,
       required this.isNumeric,
       required this.sizeFactor,
-      required this.isMain});
+      required this.isMain,
+      this.isSubtitle = false});
 
   Widget buildCell(TType item, int rowIndex);
 }
@@ -40,14 +44,15 @@ abstract class EditableTableColumn<TType extends Object, TValue extends Object> 
       required super.sortable,
       required super.isNumeric,
       required super.sizeFactor,
-      required super.isMain});
+      required super.isMain,
+      super.isSubtitle = false});
 }
 
 /// Defines a simple [BaseTableColumn] that renders a cell based on [cellBuilder]
 class TableColumn<TType extends Object> extends BaseTableColumn<TType> {
   final Widget Function(TType) cellBuilder;
 
-  const TableColumn({required super.title, required this.cellBuilder, super.sizeFactor = .1, super.isNumeric = false, super.sortable = false, super.id, super.isMain = false})
+  const TableColumn({required super.title, required this.cellBuilder, super.sizeFactor = .1, super.isNumeric = false, super.sortable = false, super.id, super.isMain = false, super.isSubtitle = false})
       : assert(!sortable || id != null, "sortable columns must define an id"),
         super(titleBuilder: null);
 

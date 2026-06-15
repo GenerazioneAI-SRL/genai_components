@@ -8,7 +8,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
+    final isMobile = _isTableCompact(context);
     final hPadding = CLTheme.of(context).gapLg;
 
     return Consumer<_PagedDataTableState<TKey, TResultId, TResult>>(
@@ -87,51 +87,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 
   Widget _buildMobileFooter(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state) {
     final t = CLTheme.of(context);
-    final pageSizes = themeData.configuration.pageSizes ?? [5, 25, 50, 100];
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ── Riga 1: page size + totale ────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Righe:', style: t.smallLabel.copyWith(color: t.secondaryText, fontSize: 11)),
-                SizedBox(width: t.gapIconText),
-                _PageSizeControls(
-                    pageSizes: pageSizes,
-                    currentPageSize: state._pageSize,
-                    onChanged: (size) => state.setPageSize(size),
-                    theme: t),
-              ],
-            ),
-            Container(
-              height: t.buttonHeightCompact,
-              alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: t.gapSm),
-              decoration: BoxDecoration(
-                color: t.muted,
-                borderRadius: BorderRadius.circular(t.radiusPill),
-              ),
-              child: Text(
-                state.totalElement > 0
-                    ? '${state.rangeStart}–${state.rangeEnd} di ${state.totalElement}'
-                    : '0 risultati',
-                style: t.smallLabel.copyWith(fontWeight: FontWeight.w500, color: t.secondaryText),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        // ── Riga 2: paginazione centrata ──────────────────────────
-        Center(
-          child: _PaginationControls(state: state, theme: t),
-        ),
-      ],
+    return Center(
+      child: _PaginationControls(state: state, theme: t),
     );
   }
 }
