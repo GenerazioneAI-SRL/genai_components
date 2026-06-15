@@ -8,6 +8,10 @@ import 'cl_bottom_bar.widget.dart';
 
 /// Shell adattivo a slot. Sceglie sidebar/drawer/bottom-bar per larghezza.
 /// Trasparente alle logiche app: riceve dati + slot, non conosce router/AI/auth.
+///
+/// Nota: sul tier desktop (sidebar) NON crea uno `Scaffold`. Se `body`/`trailing`
+/// usano SnackBar/`showModalBottomSheet`, l'app deve garantire uno `Scaffold`
+/// antenato. Sui tier drawer/bottom-bar lo `Scaffold` è fornito dallo shell.
 class CLAdaptiveShell extends StatefulWidget {
   const CLAdaptiveShell({
     super.key,
@@ -101,7 +105,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               children: [
                 Container(
                   color: theme.secondaryBackground,
-                  padding: const EdgeInsets.symmetric(vertical: Sizes.gapLg, horizontal: Sizes.gapLg),
+                  padding: const EdgeInsets.all(Sizes.gapLg),
                   child: widget.header,
                 ),
                 Expanded(child: widget.body),
