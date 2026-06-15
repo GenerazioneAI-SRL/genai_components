@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/layout/constants/sizes.constant.dart';
+import 'cl_destination.dart';
+import 'cl_shell_config.dart';
+import 'cl_nav_list.widget.dart';
+import 'cl_bottom_bar.widget.dart';
+
+/// Shell adattivo a slot. Sceglie sidebar/drawer/bottom-bar per larghezza.
+/// Trasparente alle logiche app: riceve dati + slot, non conosce router/AI/auth.
+class CLAdaptiveShell extends StatefulWidget {
+  const CLAdaptiveShell({
+    super.key,
+    required this.destinations,
+    required this.selectedKey,
+    required this.onSelect,
+    required this.header,
+    required this.body,
+    this.navHeader,
+    this.navFooter,
+    this.trailing,
+    this.endDrawer,
+    this.config = const CLShellConfig(),
+  });
+
+  final List<CLDestination> destinations;
+  final String? selectedKey;
+  final ValueChanged<CLDestination> onSelect;
+
+  /// Contenuto top bar (logo/titolo + search + AI). Lo shell antepone l'hamburger
+  /// su drawer/bottom-bar; NON includerlo qui.
+  final Widget header;
+  final Widget body;
+  final Widget? navHeader;
+  final Widget? navFooter;
+  final Widget? trailing;   // pannello AI desktop (full-height)
+  final Widget? endDrawer;  // AI drawer mobile
+  final CLShellConfig config;
+
+  @override
+  State<CLAdaptiveShell> createState() => _CLAdaptiveShellState();
+}
+
+class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mode = resolveCLNavMode(constraints.maxWidth, widget.config);
+        switch (mode) {
+          case CLNavMode.sidebar:
+            return _buildSidebar(context);
+          case CLNavMode.drawer:
+            return _buildScaffold(context, withBottomBar: false);
+          case CLNavMode.bottomBar:
+            return _buildScaffold(context, withBottomBar: true);
+        }
+      },
+    );
+  }
+
+  Widget _navPanel(CLTheme theme, {required bool isCompact}) {
+    return Container(
+      color: theme.secondaryBackground,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.navHeader != null) widget.navHeader!,
+          if (widget.navHeader != null)
+            Divider(height: 1, thickness: 1, color: theme.borderColor),
+          Expanded(
+            child: CLNavList(
+              destinations: widget.destinations,
+              selectedKey: widget.selectedKey,
+              onSelect: widget.onSelect,
+              isCompact: isCompact,
+            ),
+          ),
+          if (widget.navFooter != null)
+            Divider(height: 1, thickness: 1, color: theme.borderColor),
+          if (widget.navFooter != null) widget.navFooter!,
+        ],
+      ),
+    );
+  }
+
+  // ── Desktop ──────────────────────────────────────────────────────────────
+  Widget _buildSidebar(BuildContext context) {
+    final theme = CLTheme.of(context);
+    return ColoredBox(
+      color: theme.primaryBackground,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: widget.config.sidebarWidth, child: _navPanel(theme, isCompact: false)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  color: theme.secondaryBackground,
+                  padding: const EdgeInsets.symmetric(vertical: Sizes.gapLg, horizontal: Sizes.gapLg),
+                  child: widget.header,
+                ),
+                Expanded(child: widget.body),
+              ],
+            ),
+          ),
+          if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
+        ],
+      ),
+    );
+  }
+
+  // ── Tablet (drawer) / Mobile (drawer + bottom bar) ─────────────────────────
+  Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
+    final theme = CLTheme.of(context);
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: theme.primaryBackground,
+      drawer: Drawer(
+        width: drawerWidth,
+        backgroundColor: theme.secondaryBackground,
+        shape: const RoundedRectangleBorder(),
+        child: SafeArea(child: _navPanel(theme, isCompact: true)),
+      ),
+      endDrawer: widget.endDrawer,
+      endDrawerEnableOpenDragGesture: false,
+      bottomNavigationBar: withBottomBar
+          ? CLBottomBar(
+              destinations: widget.destinations,
+              selectedKey: widget.selectedKey,
+              onSelect: widget.onSelect,
+              maxItems: widget.config.maxBottomBarItems,
+            )
+          : null,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Container(
+              color: theme.secondaryBackground,
+              padding: const EdgeInsets.symmetric(vertical: Sizes.gapSm, horizontal: Sizes.gapMd),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.menu, color: theme.primaryText, size: 20),
+                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  ),
+                  const SizedBox(width: Sizes.gapSm),
+                  Expanded(child: widget.header),
+                ],
+              ),
+            ),
+            Expanded(child: widget.body),
+          ],
+        ),
+      ),
+    );
+  }
+}
