@@ -156,7 +156,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           children: [
             Container(
               color: theme.secondaryBackground,
-              padding: const EdgeInsets.symmetric(vertical: Sizes.gapSm, horizontal: Sizes.gapMd),
+              padding: const EdgeInsets.symmetric(vertical: Sizes.gapLg, horizontal: Sizes.gapMd),
               child: Row(
                 children: [
                   IconButton(
