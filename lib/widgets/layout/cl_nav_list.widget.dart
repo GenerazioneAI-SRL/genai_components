@@ -3,6 +3,13 @@ import 'package:genai_components/cl_theme.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'cl_destination.dart';
 
+/// Larghezza del rail verticale dei gruppi; il nudge di mezzo pixel lo centra.
+const double _kRailWidth = 1.5;
+
+/// Indentazione delle voci foglia sotto un gruppo: allineate appena oltre il
+/// rail (centro icona parent + mezzo rail + un gap).
+const double _kGroupIndent = Sizes.gapMd + Sizes.iconSizeDefault / 2 + _kRailWidth / 2 + Sizes.gapLg;
+
 /// Lista navigazione condivisa da sidebar (desktop) e drawer (tablet/mobile).
 /// Scrollabile, rende l'albero `CLDestination` con gruppi/sezioni espandibili.
 class CLNavList extends StatelessWidget {
@@ -192,7 +199,7 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
     final theme = CLTheme.of(context);
     final h = Sizes.buttonHeightLarge;
     final box = Sizes.buttonHeightDefault;
-    const double boxLeftMargin = Sizes.gapMd + Sizes.iconSizeDefault / 2 + 0.75 + Sizes.gapLg;
+    const double boxLeftMargin = _kGroupIndent;
 
     return RepaintBoundary(
       child: MouseRegion(
@@ -281,8 +288,20 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   void _toggle() {
-    setState(() => _expanded = !_expanded);
-    _expanded ? _rotationCtrl.forward() : _rotationCtrl.reverse();
+    final opening = !_expanded;
+    setState(() => _expanded = opening);
+    opening ? _rotationCtrl.forward() : _rotationCtrl.reverse();
+  }
+
+  @override
+  void didUpdateWidget(_CLNavGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Navigazione esterna (deep-link/command palette) verso un figlio di un
+    // gruppo collassato → espandi così la voce attiva resta visibile.
+    if (_isSelected && !_expanded) {
+      _expanded = true;
+      _rotationCtrl.forward();
+    }
   }
 
   List<Widget> _renderChildren() {
@@ -397,10 +416,10 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                   child: Stack(
                     children: [
                       Positioned(
-                        left: Sizes.gapMd + Sizes.iconSizeDefault / 2 - 0.75,
+                        left: Sizes.gapMd + Sizes.iconSizeDefault / 2 - _kRailWidth / 2,
                         top: 0,
                         bottom: 0,
-                        child: Container(width: 1.5, color: theme.borderColor),
+                        child: Container(width: _kRailWidth, color: theme.borderColor),
                       ),
                       Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: _renderChildren()),
                     ],
@@ -415,6 +434,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   Widget _buildNested(CLTheme theme) {
     final h = Sizes.buttonHeightLarge;
     final box = Sizes.buttonHeightDefault;
+    // 38 ≈ _kGroupIndent arrotondato (indent 1° livello); poi +16 per livello.
     final nestedPadding = widget.depth == 1 ? 38.0 : 16.0;
 
     return Padding(
@@ -523,8 +543,9 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
   }
 
   void _toggle() {
-    setState(() => _expanded = !_expanded);
-    _expanded ? _rotationCtrl.forward() : _rotationCtrl.reverse();
+    final opening = !_expanded;
+    setState(() => _expanded = opening);
+    opening ? _rotationCtrl.forward() : _rotationCtrl.reverse();
   }
 
   @override
