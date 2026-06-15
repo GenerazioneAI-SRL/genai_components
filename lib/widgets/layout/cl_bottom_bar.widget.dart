@@ -82,7 +82,7 @@ class _BottomItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final color = selected ? theme.primary : theme.secondaryText;
-    final icon = selected ? (destination.selectedIcon ?? destination.icon) : destination.icon;
+    final iconWidget = destination.buildIcon(color, 22);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -90,7 +90,7 @@ class _BottomItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (icon != null) Icon(icon, size: 22, color: color),
+          if (iconWidget != null) iconWidget,
           const SizedBox(height: 2),
           Text(
             destination.label,

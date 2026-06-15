@@ -109,7 +109,10 @@ class _CLNavTileState extends State<_CLNavTile> {
     final theme = CLTheme.of(context);
     final h = Sizes.buttonHeightLarge;
     final box = Sizes.buttonHeightDefault;
-    final icon = widget.selected ? (widget.destination.selectedIcon ?? widget.destination.icon) : widget.destination.icon;
+    final iconWidget = widget.destination.buildIcon(
+      widget.selected ? theme.primary : theme.primaryText,
+      Sizes.iconSizeDefault,
+    );
 
     return RepaintBoundary(
       child: MouseRegion(
@@ -144,15 +147,7 @@ class _CLNavTileState extends State<_CLNavTile> {
                     children: [
                       SizedBox(
                         width: Sizes.iconSizeDefault,
-                        child: icon != null
-                            ? Center(
-                                child: Icon(
-                                  icon,
-                                  size: Sizes.iconSizeDefault,
-                                  color: widget.selected ? theme.primary : theme.primaryText,
-                                ),
-                              )
-                            : null,
+                        child: iconWidget != null ? Center(child: iconWidget) : null,
                       ),
                       const SizedBox(width: Sizes.gapMd),
                       Expanded(
@@ -336,7 +331,10 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   Widget _buildTopLevel(CLTheme theme) {
     final h = Sizes.buttonHeightLarge;
     final box = Sizes.buttonHeightDefault;
-    final icon = widget.destination.icon;
+    final iconWidget = widget.destination.buildIcon(
+      _isSelected ? theme.primary : theme.primaryText,
+      Sizes.iconSizeDefault,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -370,13 +368,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                       children: [
                         SizedBox(
                           width: Sizes.iconSizeDefault,
-                          child: Center(
-                            child: icon != null
-                                ? Icon(icon,
-                                    size: Sizes.iconSizeDefault,
-                                    color: _isSelected ? theme.primary : theme.primaryText)
-                                : const SizedBox.shrink(),
-                          ),
+                          child: Center(child: iconWidget ?? const SizedBox.shrink()),
                         ),
                         const SizedBox(width: Sizes.gapMd),
                         Expanded(

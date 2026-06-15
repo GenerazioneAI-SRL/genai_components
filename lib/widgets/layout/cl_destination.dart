@@ -9,10 +9,13 @@ class CLDestination {
   final String key;
   final String label;
 
-  /// Icona come `IconData` (compatibile sia con Lucide sia con HugeIcons,
-  /// che espongono costanti `IconData`). Resa con `Icon(icon)`.
+  /// Icona come `IconData` (es. Lucide, Material). Resa con `Icon(icon)`.
   final IconData? icon;
-  final IconData? selectedIcon;
+
+  /// Builder icona avanzato, per icone che NON sono `IconData` (es. HugeIcon,
+  /// SVG). Riceve colore+dimensione e ritorna il widget icona; ha precedenza
+  /// su `icon`. L'adapter app lo usa per delegare a `route.buildIcon`.
+  final Widget? Function(Color color, double size)? iconBuilder;
 
   /// Figli → gruppo espandibile in sidebar/drawer. Vuoto = foglia.
   final List<CLDestination> children;
@@ -36,7 +39,7 @@ class CLDestination {
     required this.key,
     required this.label,
     this.icon,
-    this.selectedIcon,
+    this.iconBuilder,
     this.children = const [],
     this.priority = 0,
     this.isVisible = true,
@@ -46,6 +49,14 @@ class CLDestination {
 
   bool get hasChildren => children.isNotEmpty;
   bool get isLeaf => !hasChildren && !isSectionHeader;
+
+  /// Costruisce l'icona col colore/size dati: `iconBuilder` se presente,
+  /// altrimenti `Icon(icon)`, altrimenti null.
+  Widget? buildIcon(Color color, double size) {
+    if (iconBuilder != null) return iconBuilder!(color, size);
+    if (icon != null) return Icon(icon, color: color, size: size);
+    return null;
+  }
 
   /// True se `key` corrisponde a questa destinazione o a un suo discendente.
   /// Usato per evidenziare/espandere gruppi quando un figlio è attivo.
