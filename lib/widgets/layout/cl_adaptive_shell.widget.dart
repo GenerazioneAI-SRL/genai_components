@@ -37,8 +37,8 @@ class CLAdaptiveShell extends StatefulWidget {
   final Widget body;
   final Widget? navHeader;
   final Widget? navFooter;
-  final Widget? trailing;   // pannello AI desktop (full-height)
-  final Widget? endDrawer;  // AI drawer: solo tier drawer/bottom-bar; ignorato su desktop
+  final Widget? trailing; // pannello AI desktop (full-height)
+  final Widget? endDrawer; // AI drawer: solo tier drawer/bottom-bar; ignorato su desktop
   final CLShellConfig config;
 
   @override
@@ -80,8 +80,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (widget.navHeader != null) widget.navHeader!,
-          if (widget.navHeader != null)
-            Divider(height: 1, thickness: 1, color: theme.borderColor),
+          if (widget.navHeader != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
           Expanded(
             child: CLNavList(
               destinations: widget.destinations,
@@ -90,8 +89,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               isCompact: isCompact,
             ),
           ),
-          if (widget.navFooter != null)
-            Divider(height: 1, thickness: 1, color: theme.borderColor),
+          if (widget.navFooter != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
           if (widget.navFooter != null) widget.navFooter!,
         ],
       ),
@@ -156,7 +154,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           children: [
             Container(
               color: theme.secondaryBackground,
-              padding: const EdgeInsets.symmetric(vertical: Sizes.gapLg, horizontal: Sizes.gapMd),
+              padding: const EdgeInsets.all(Sizes.gapLg),
               child: Row(
                 children: [
                   IconButton(
