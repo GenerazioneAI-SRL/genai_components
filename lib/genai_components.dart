@@ -9,6 +9,7 @@ export 'layout/constants/sizes.constant.dart';
 
 // Buttons
 export 'widgets/buttons/cl_button.widget.dart';
+export 'widgets/buttons/cl_compact_action_scope.dart';
 export 'widgets/buttons/cl_icon_button.widget.dart';
 export 'widgets/buttons/cl_outline_button.widget.dart';
 export 'widgets/buttons/cl_ghost_button.widget.dart';
