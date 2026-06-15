@@ -34,9 +34,16 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         // Filtri extra attivi (non main) per i chip
         final activeExtraFilters = state.filters.entries.where((e) => !e.value._filter.isMainFilter && e.value.hasValue).toList();
 
-        Widget child = CLCompactActionScope(
-          iconOnly: _isTableCompact(context),
-          child: Container(
+        Widget child = LayoutBuilder(
+          builder: (context, constraints) {
+            // Larghezza finita anche se misurata in un contesto unbounded
+            // (es. overlay/offstage): evita il crash di Expanded nella ricerca.
+            final maxW = constraints.maxWidth.isFinite ? constraints.maxWidth : MediaQuery.sizeOf(context).width;
+            return ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxW),
+              child: CLCompactActionScope(
+                iconOnly: _isTableCompact(context),
+                child: Container(
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
           ),
@@ -270,6 +277,9 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
             ],
           ),
           ),
+              ),
+            );
+          },
         );
         if (theme.headerBackgroundColor != null) {
           child = DecoratedBox(decoration: BoxDecoration(color: theme.headerBackgroundColor), child: child);
