@@ -38,7 +38,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
           ),
-          padding: EdgeInsets.all(ResponsiveBreakpoints.of(context).isDesktop ? clTheme.gapLg : 0),
+          padding: EdgeInsets.all(_isTableCompact(context) ? 0 : clTheme.gapLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -55,7 +55,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                             state.filters.entries.where((element) => element.value._filter.isMainFilter == true).isNotEmpty)
                           Builder(
                             builder: (context) {
-                              final isDesktopSearch = ResponsiveBreakpoints.of(context).isDesktop;
+                              final isDesktopSearch = !_isTableCompact(context);
                               final field = state.filters.entries.where((element) => element.value._filter.isMainFilter == true).map((entry) {
                                 TextTableFilter mainFilter = entry.value._filter as TextTableFilter;
                                 mainFilter.onChange = (String value) {
@@ -84,7 +84,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                           SizedBox(width: clTheme.gapLg),
                           Builder(
                             builder: (context) {
-                              final isDesktop = ResponsiveBreakpoints.of(context).isDesktop;
+                              final isDesktop = !_isTableCompact(context);
                               final activeCount = state.filters.values.where((f) => f.hasValue && !f._filter.isMainFilter).length;
                               final isDisabled = state.tableState == _TableState.loading;
 
@@ -98,25 +98,34 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                 }
                               }
 
-                              // Sempre CLButton (desktop e mobile)
                               return Stack(
                                 clipBehavior: Clip.none,
                                 children: [
                                   KeyedSubtree(
                                     key: buttonKey,
-                                    child: CLButton(
-                                      text: "Filtri",
-                                      iconAlignment: IconAlignment.start,
-                                      iconData: LucideIcons.slidersHorizontal,
-                                      backgroundColor: _tableButtonFill(context),
-                                      iconColor: CLTheme.of(context).primaryText,
-                                      textStyle: CLTheme.of(context).bodyText.copyWith(
-                                        color: CLTheme.of(context).primaryText,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      onTap: isDisabled ? () {} : onTap,
-                                      context: context,
-                                    ),
+                                    child: _isTableCompact(context)
+                                        ? CLIconButton(
+                                            onTap: isDisabled ? () {} : onTap,
+                                            iconData: LucideIcons.slidersHorizontal,
+                                            backgroundColor: _tableButtonFill(context),
+                                            iconColor: CLTheme.of(context).primaryText,
+                                            size: Sizes.buttonHeightDefault,
+                                            iconSize: Sizes.iconSizeDefault,
+                                            tooltip: 'Filtri',
+                                          )
+                                        : CLButton(
+                                            text: "Filtri",
+                                            iconAlignment: IconAlignment.start,
+                                            iconData: LucideIcons.slidersHorizontal,
+                                            backgroundColor: _tableButtonFill(context),
+                                            iconColor: CLTheme.of(context).primaryText,
+                                            textStyle: CLTheme.of(context).bodyText.copyWith(
+                                              color: CLTheme.of(context).primaryText,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            onTap: isDisabled ? () {} : onTap,
+                                            context: context,
+                                          ),
                                   ),
                                   if (activeCount > 0)
                                     Positioned(
@@ -183,22 +192,34 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                         if (mainMenus.isNotEmpty) SizedBox(width: clTheme.gapLg),
                         KeyedSubtree(
                           key: buttonExtraMenuKey,
-                          child: CLButton(
-                            text: 'Altre azioni',
-                            iconData: LucideIcons.ellipsisVertical400,
-                            iconAlignment: IconAlignment.start,
-                            backgroundColor: _tableButtonFill(context),
-                            iconColor: clTheme.primaryText,
-                            textStyle: clTheme.bodyText.copyWith(
-                              color: clTheme.primaryText,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            tooltip: 'Altre azioni',
-                            onTap: () async {
-                              _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
-                            },
-                            context: context,
-                          ),
+                          child: _isTableCompact(context)
+                              ? CLIconButton(
+                                  onTap: () async {
+                                    _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
+                                  },
+                                  iconData: LucideIcons.ellipsisVertical400,
+                                  backgroundColor: _tableButtonFill(context),
+                                  iconColor: clTheme.primaryText,
+                                  size: Sizes.buttonHeightDefault,
+                                  iconSize: Sizes.iconSizeDefault,
+                                  tooltip: 'Altre azioni',
+                                )
+                              : CLButton(
+                                  text: 'Altre azioni',
+                                  iconData: LucideIcons.ellipsisVertical400,
+                                  iconAlignment: IconAlignment.start,
+                                  backgroundColor: _tableButtonFill(context),
+                                  iconColor: clTheme.primaryText,
+                                  textStyle: clTheme.bodyText.copyWith(
+                                    color: clTheme.primaryText,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  tooltip: 'Altre azioni',
+                                  onTap: () async {
+                                    _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
+                                  },
+                                  context: context,
+                                ),
                         ),
                       ],
 
@@ -267,7 +288,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   Future<void> _showExtraMenuOverlay(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state, GlobalKey buttonExtraMenuKey) async {
     final theme = CLTheme.of(context);
 
-    if (ResponsiveBreakpoints.of(context).isDesktop) {
+    if (!_isTableCompact(context)) {
       // Popover unificato (CLPopupMenu): stile "Altre azioni" + hairline divider + token.
       await CLPopupMenu.show(
         context: context,
