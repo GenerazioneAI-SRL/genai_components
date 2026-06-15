@@ -48,6 +48,14 @@ class CLAdaptiveShell extends StatefulWidget {
 class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  /// Selezione: chiude prima il drawer (se aperto su tablet/mobile), poi delega
+  /// all'app. Su desktop `_scaffoldKey` non è montato → no-op.
+  void _onSelect(CLDestination d) {
+    final st = _scaffoldKey.currentState;
+    if (st?.isDrawerOpen ?? false) st!.closeDrawer();
+    widget.onSelect(d);
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -78,7 +86,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             child: CLNavList(
               destinations: widget.destinations,
               selectedKey: widget.selectedKey,
-              onSelect: widget.onSelect,
+              onSelect: _onSelect,
               isCompact: isCompact,
             ),
           ),
@@ -138,7 +146,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           ? CLBottomBar(
               destinations: widget.destinations,
               selectedKey: widget.selectedKey,
-              onSelect: widget.onSelect,
+              onSelect: _onSelect,
               maxItems: widget.config.maxBottomBarItems,
             )
           : null,
