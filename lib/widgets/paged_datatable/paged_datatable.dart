@@ -646,7 +646,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(Sizes.padding),
+                            padding: const EdgeInsets.all(Sizes.gapLg),
                             child: _PagedDataTableFilterTab<TKey, TResultId, TResult>(
                               mainMenus,
                               extraMenus,

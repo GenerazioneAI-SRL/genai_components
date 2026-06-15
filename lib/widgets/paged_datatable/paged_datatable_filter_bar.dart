@@ -55,7 +55,6 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                             state.filters.entries.where((element) => element.value._filter.isMainFilter == true).isNotEmpty)
                           Builder(
                             builder: (context) {
-                              final isDesktopSearch = !_isTableCompact(context);
                               final field = state.filters.entries.where((element) => element.value._filter.isMainFilter == true).map((entry) {
                                 TextTableFilter mainFilter = entry.value._filter as TextTableFilter;
                                 mainFilter.onChange = (String value) {
@@ -68,14 +67,8 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                 };
                                 return mainFilter.buildPicker(context, entry.value);
                               }).first;
-                              return isDesktopSearch
-                                  ? Flexible(
-                                      child: SizedBox(
-                                        width: MediaQuery.of(context).size.width / 4,
-                                        child: field,
-                                      ),
-                                    )
-                                  : Expanded(child: field);
+                              // Ricerca sempre full-width (tutti i breakpoint).
+                              return Expanded(child: field);
                             },
                           ),
 
@@ -155,6 +148,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                       ],
                     ),
                   ),
+
+                  // Gap Lg tra cluster ricerca/filtri e azioni a destra (es. Altre azioni)
+                  if (header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
+                    SizedBox(width: clTheme.gapLg),
 
                   // === DESTRA: Azioni ===
                   Row(
