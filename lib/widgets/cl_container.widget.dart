@@ -103,7 +103,7 @@ class _CLContainerState extends State<CLContainer> {
                       ? Colors.transparent
                       : widget.titleBackgroundColor != null
                           ? widget.titleBackgroundColor!.withValues(alpha: 0.08)
-                          : theme.primaryBackground,
+                          : theme.secondaryBackground,
                   border: (widget.customHeader == null && !widget.plainHeader)
                       ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1))
                       : null,
