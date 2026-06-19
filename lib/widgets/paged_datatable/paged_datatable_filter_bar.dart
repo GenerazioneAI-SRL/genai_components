@@ -90,13 +90,13 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                               final activeCount = state.filters.values.where((f) => f.hasValue && !f._filter.isMainFilter).length;
                               final isDisabled = state.tableState == _TableState.loading;
 
-                              void onTap() {
+                              void onTap() async {
                                 if (isDesktop) {
                                   final RenderBox renderBox = buttonKey.currentContext!.findRenderObject() as RenderBox;
                                   final position = renderBox.localToGlobal(Offset.zero);
-                                  _showFilterOverlayDesktopFromPosition(context, state, buttonKey, position);
+                                  await _showFilterOverlayDesktopFromPosition(context, state, buttonKey, position);
                                 } else {
-                                  _showFilterOverlayMobile(context, state);
+                                  await _showFilterOverlayMobile(context, state);
                                 }
                               }
 

@@ -445,18 +445,31 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
   late final WidgetStatesController _statesController;
   bool _wasPressed = false;
 
+  // Modalità di highlight del focus (touch vs tastiera/direzionale). Il focus
+  // ring va mostrato SOLO per focus da tastiera (traversal): dopo un tap che
+  // apre/chiude un overlay il focus torna al bottone e, senza questo filtro,
+  // il ring resterebbe disegnato anche se l'utente non usa la tastiera.
+  FocusHighlightMode _highlightMode = FocusManager.instance.highlightMode;
+
   @override
   void initState() {
     super.initState();
     _statesController = WidgetStatesController();
     _statesController.addListener(_onStatesChanged);
+    FocusManager.instance.addHighlightModeListener(_onHighlightModeChanged);
   }
 
   @override
   void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_onHighlightModeChanged);
     _statesController.removeListener(_onStatesChanged);
     _statesController.dispose();
     super.dispose();
+  }
+
+  void _onHighlightModeChanged(FocusHighlightMode mode) {
+    if (!mounted || mode == _highlightMode) return;
+    setState(() => _highlightMode = mode);
   }
 
   void _onStatesChanged() {
@@ -615,7 +628,9 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
             decoration: BoxDecoration(
               color: currentBg,
               borderRadius: BorderRadius.circular(radius),
-              border: isFocused ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2) : widget.border,
+              border: (isFocused && _highlightMode == FocusHighlightMode.traditional)
+                  ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2)
+                  : widget.border,
               // Ombra attenuata su press per dare profondità coerente con lo scale-down.
               boxShadow: (widget.boxShadow != null && !isPressed) ? widget.boxShadow : null,
             ),
