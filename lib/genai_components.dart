@@ -31,6 +31,7 @@ export 'widgets/layout/cl_page_container.widget.dart';
 export 'widgets/layout/cl_responsive_grid_shadcn.widget.dart';
 export 'widgets/layout/cl_responsive_stack.widget.dart';
 export 'widgets/layout/cl_shell_config.dart';
+export 'widgets/layout/cl_shell_slots.dart';
 export 'widgets/cl_divider.widget.dart';
 export 'widgets/cl_separator.widget.dart';
 export 'widgets/cl_section_card.widget.dart';
