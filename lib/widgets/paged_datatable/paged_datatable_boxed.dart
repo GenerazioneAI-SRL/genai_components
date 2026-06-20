@@ -67,9 +67,10 @@ class _PagedDataTableBoxed<
                     : 'content_${state._rowsChange}'),
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            opacity: (state.tableState == _TableState.loading && !infiniteScroll)
-                ? 0.5
-                : 1,
+            opacity:
+                (state.tableState == _TableState.loading && !infiniteScroll)
+                    ? 0.5
+                    : 1,
             child: DefaultTextStyle(
                 overflow: TextOverflow.ellipsis,
                 style: theme.rowsTextStyle,
@@ -174,7 +175,9 @@ class _PagedDataTableBoxed<
     }
 
     final rowCount = state._rowsState.length;
-    final showLoader = infiniteScroll && state.hasNextPage;
+    // In infinite scroll una voce in coda: loader se c'è altro, messaggio di
+    // fine lista altrimenti.
+    final showTail = infiniteScroll && rowCount > 0;
     final list = ListView.separated(
       // In fillHeight la lista scorre da sola nello spazio assegnato.
       physics: fillHeight
@@ -182,14 +185,16 @@ class _PagedDataTableBoxed<
           : const NeverScrollableScrollPhysics(),
       primary: false,
       padding: EdgeInsets.zero,
-      itemCount: rowCount + (showLoader ? 1 : 0),
+      itemCount: rowCount + (showTail ? 1 : 0),
       shrinkWrap: !fillHeight,
-      separatorBuilder: (context, index) => index >= rowCount - 1
-          ? const SizedBox.shrink() // niente divider sopra il loader in coda
-          : Divider(
-              height: 1, thickness: 1, color: CLTheme.of(context).borderColor),
+      separatorBuilder: (context, index) => Divider(
+          height: 1, thickness: 1, color: CLTheme.of(context).borderColor),
       itemBuilder: (context, index) {
-        if (index >= rowCount) return const _InfiniteScrollLoader();
+        if (index >= rowCount) {
+          return state.hasNextPage
+              ? const _InfiniteScrollLoader()
+              : const _InfiniteScrollEnd();
+        }
         return ChangeNotifierProvider<
             _PagedDataTableRowState<TResultId, TResult>>.value(
           value: state._rowsState[index],
@@ -217,7 +222,10 @@ class _PagedDataTableBoxed<
         );
       },
     );
-    return infiniteScroll
+    // Trigger interno solo se la lista possiede lo scroll (fillHeight). In
+    // page-scroll (infiniteScroll senza fillHeight) è la pagina a chiamare
+    // controller.loadNextPage; qui solo righe + loader.
+    return (infiniteScroll && fillHeight)
         ? _InfiniteScrollListener(state: state, child: list)
         : list;
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 /// Slot generici che una pagina pubblica verso lo shell. Lo shell li RICOLLOCA
@@ -214,7 +215,32 @@ class ShellSlotsController extends ChangeNotifier {
     _pageActions = const [];
     _contextControls = const [];
     _contextOverflow = null;
-    notifyListeners();
+    _notifySafely();
+  }
+
+  /// Notifica i listener in modo sicuro rispetto alla fase del frame. Quando
+  /// `clearPage()` viene chiamato dal `dispose()` di una pagina, il framework è
+  /// in fase di build/unmount (tree locked): notificare in sincrono fa esplodere
+  /// l'`AnimatedBuilder` dello shell con "setState() called when widget tree was
+  /// locked". In quel caso si difende il notify al post-frame.
+  void _notifySafely() {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!_disposed) notifyListeners();
+      });
+    } else {
+      notifyListeners();
+    }
+  }
+
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
 

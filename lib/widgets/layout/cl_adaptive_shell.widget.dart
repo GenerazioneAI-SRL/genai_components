@@ -45,8 +45,7 @@ class CLAdaptiveShell extends StatefulWidget {
   final Widget? navHeader;
   final Widget? navFooter;
   final Widget? trailing; // pannello AI desktop (full-height)
-  final Widget?
-      endDrawer; // AI drawer: solo tier drawer/bottom-bar; ignorato su desktop
+  final Widget? endDrawer; // AI drawer: solo tier drawer/bottom-bar; ignorato su desktop
   final CLShellConfig config;
 
   /// Controller dei slot. Se `null`, lo shell ne crea uno proprio. Passarlo
@@ -63,38 +62,22 @@ class CLAdaptiveShell extends StatefulWidget {
   State<CLAdaptiveShell> createState() => _CLAdaptiveShellState();
 }
 
-class _CLAdaptiveShellState extends State<CLAdaptiveShell>
-    with SingleTickerProviderStateMixin {
+class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  /// Id del pannello reveal aperto nell'area contestuale mobile (filtri / altre
-  /// azioni). `null` = nessun pannello, mostra le righe di controlli. Si auto-
-  /// richiude quando la pagina non espone più quel reveal (cambio rotta).
+  /// Pannello reveal aperto nell'area contestuale mobile: filtri / ordina /
+  /// altre azioni. `null` = righe di controlli. Cambio contenuto = snap (nessuna
+  /// animazione di transizione).
   String? _panelId;
-
-  /// Contenuto mostrato nella PRIMA metà della transizione (quello uscente).
-  /// A metà esatta si passa a [_panelId]: un solo contenuto montato per volta,
-  /// così il container NON si allarga finché il vecchio è ancora visibile
-  /// (l'altezza cambia a opacità 0).
-  String? _fromId;
-  // 400ms = fade-out (0–0.25) · morph altezza invisibile (0.25–0.75) · fade-in
-  // (0.75–1). La finestra centrale (200ms) combacia con la durata dell'AnimatedSize.
-  late final AnimationController _panelAnim = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 400),
-    value: 1, // idle = mostra _panelId a piena opacità
-  );
 
   /// Slot pubblicati dalle pagine discendenti (back/breadcrumbs/azioni/contesto).
   /// Lo shell ascolta questo controller e ricolloca i contenuti per breakpoint.
   /// Usa quello passato da [CLAdaptiveShell.slotsController] o ne crea uno proprio.
   ShellSlotsController? _ownController;
-  ShellSlotsController get _slots =>
-      widget.slotsController ?? (_ownController ??= ShellSlotsController());
+  ShellSlotsController get _slots => widget.slotsController ?? (_ownController ??= ShellSlotsController());
 
   @override
   void dispose() {
-    _panelAnim.dispose();
     _ownController?.dispose();
     super.dispose();
   }
@@ -138,8 +121,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (widget.navHeader != null) widget.navHeader!,
-          if (widget.navHeader != null)
-            Divider(height: 1, thickness: 1, color: theme.borderColor),
+          if (widget.navHeader != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
           Expanded(
             child: CLNavList(
               destinations: widget.destinations,
@@ -148,8 +130,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
               isCompact: isCompact,
             ),
           ),
-          if (widget.navFooter != null)
-            Divider(height: 1, thickness: 1, color: theme.borderColor),
+          if (widget.navFooter != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
           if (widget.navFooter != null) widget.navFooter!,
         ],
       ),
@@ -200,8 +181,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
                           // Tablet/mobile: solo il titolo (pagina corrente), niente breadcrumbs.
                           ? Text(
                               s.breadcrumbs.last.label,
-                              style: theme.heading6
-                                  .copyWith(fontWeight: FontWeight.w700),
+                              style: theme.heading6.copyWith(fontWeight: FontWeight.w700),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             )
@@ -216,8 +196,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
                 _actionButton(context, theme, s.pageActions[i]),
               ],
             Expanded(
-              child:
-                  Align(alignment: Alignment.centerRight, child: widget.header),
+              child: Align(alignment: Alignment.centerRight, child: widget.header),
             ),
           ],
         );
@@ -239,15 +218,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
         ),
       );
       children.add(
-        (c.onTap != null && !isLast)
-            ? GestureDetector(onTap: c.onTap, child: label)
-            : label,
+        (c.onTap != null && !isLast) ? GestureDetector(onTap: c.onTap, child: label) : label,
       );
       if (!isLast) {
         children.add(Padding(
           padding: EdgeInsets.symmetric(horizontal: theme.gapSm),
-          child: Icon(Icons.chevron_right,
-              size: Sizes.iconSizeDefault, color: theme.secondaryText),
+          child: Icon(Icons.chevron_right, size: Sizes.iconSizeDefault, color: theme.secondaryText),
         ));
       }
     }
@@ -284,63 +260,31 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
   /// posto compare il pannello inline. Vuota → collassa.
   Widget _mobileContextArea(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_slots, _panelAnim]),
+      animation: _slots,
       builder: (context, _) {
         final s = _slots.slots;
-        final hasUpper = s.contextControls.isNotEmpty;
-        final hasLower = s.back != null ||
-            s.pageActions.isNotEmpty ||
-            s.contextOverflow != null;
-        if (!hasUpper && !hasLower) return const SizedBox.shrink();
+        // Cambio contenuto = snap istantaneo (nessuna transizione).
+        if (!_hasContent(s)) return const SizedBox.shrink();
         final theme = CLTheme.of(context);
-
-        // Fade-through sequenziato, UN SOLO contenuto montato per volta. Tre fasi:
-        //  [0, 0.25]   → uscente (_fromId) fade out, altezza = vecchia (ferma);
-        //  [0.25,0.75] → si passa al nuovo (_panelId) a opacità 0 e l'AnimatedSize
-        //                morpha l'altezza vecchia→nuova MENTRE è invisibile;
-        //  [0.75, 1]   → nuovo fade in, altezza già assestata.
-        // Così l'altezza si anima (no snap) ma il morph non si vede (opacità 0) →
-        // niente "cresce mentre il vecchio sfuma" né derive verticali. Solo fade.
-        final t = _panelAnim.value;
-        final showingNew = t >= 0.25;
-        final shownId = showingNew ? _panelId : _fromId;
-        final double opacity;
-        if (t < 0.25) {
-          opacity = (0.25 - t) / 0.25; // 1→0
-        } else if (t > 0.75) {
-          opacity = (t - 0.75) / 0.25; // 0→1
-        } else {
-          opacity = 0; // gap invisibile = morph altezza
-        }
-
         return Container(
           decoration: BoxDecoration(
             // Chrome shell (toolbar contestuale mobile) = L0.
             color: theme.primaryBackground,
             border: Border(top: BorderSide(color: theme.borderColor)),
           ),
-          padding: EdgeInsets.symmetric(
-              horizontal: theme.gapLg, vertical: theme.gapSm),
-          child: ClipRect(
-            child: AnimatedSize(
-              duration: theme.durationBase,
-              curve: theme.easingStandard,
-              alignment: Alignment.topCenter,
-              child: Opacity(
-                opacity: opacity,
-                child: _areaContent(context, s, theme, shownId),
-              ),
-            ),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapSm),
+          child: _areaContent(context, s, theme, _panelId),
         );
       },
     );
   }
 
+  bool _hasContent(ShellSlots s) =>
+      s.contextControls.isNotEmpty || s.back != null || s.pageActions.isNotEmpty || s.contextOverflow != null;
+
   /// Contenuto dell'area per un dato pannello: `null`/id-non-trovato → le due
   /// righe di controlli; altrimenti il pannello reveal corrispondente.
-  Widget _areaContent(
-      BuildContext context, ShellSlots s, CLTheme theme, String? id) {
+  Widget _areaContent(BuildContext context, ShellSlots s, CLTheme theme, String? id) {
     if (id != null) {
       final reveal = _revealById(s, id);
       if (reveal != null) return _panelView(context, theme, reveal);
@@ -351,8 +295,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
   /// Le due righe: [sort/ricerca/filtri] sopra, [back/azione/altre azioni] sotto.
   Widget _rowsContent(BuildContext context, ShellSlots s, CLTheme theme) {
     final hasUpper = s.contextControls.isNotEmpty;
-    final hasLower =
-        s.back != null || s.pageActions.isNotEmpty || s.contextOverflow != null;
+    final hasLower = s.back != null || s.pageActions.isNotEmpty || s.contextOverflow != null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -386,17 +329,13 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
               Expanded(
                 // Azione primaria singola → CLButton full-width nativo (riempie
                 // lo slot tra back e ⋮). Altrimenti FittedBox scaleDown anti-overflow.
-                child: (s.pageActions.length == 1 &&
-                        s.pageActions.first.isPrimary &&
-                        s.pageActions.first.label != null)
+                child: (s.pageActions.length == 1 && s.pageActions.first.isPrimary && s.pageActions.first.label != null)
                     ? CLButton.primary(
                         text: s.pageActions.first.label!,
                         icon: s.pageActions.first.icon,
                         iconAlignment: IconAlignment.start,
                         fullWidth: true,
-                        onTap: s.pageActions.first.enabled
-                            ? (s.pageActions.first.onTap ?? () {})
-                            : () {},
+                        onTap: s.pageActions.first.enabled ? (s.pageActions.first.onTap ?? () {}) : () {},
                         context: context,
                       )
                     : FittedBox(
@@ -432,23 +371,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
     return null;
   }
 
-  /// Apre/chiude il pannello [id] con transizione: salva il contenuto uscente
-  /// in [_fromId] e fa ripartire l'animazione da 0.
-  void _togglePanel(String id) {
-    setState(() {
-      _fromId = _panelId;
-      _panelId = (_panelId == id) ? null : id;
-    });
-    _panelAnim.forward(from: 0);
-  }
+  /// Apre/chiude il pannello [id] (snap, nessuna transizione).
+  void _togglePanel(String id) => setState(() => _panelId = _panelId == id ? null : id);
 
   void _closePanel() {
     if (_panelId == null) return;
-    setState(() {
-      _fromId = _panelId;
-      _panelId = null;
-    });
-    _panelAnim.forward(from: 0);
+    setState(() => _panelId = null);
   }
 
   /// Header (chiudi + titolo) + contenuto inline del reveal, con altezza max e
@@ -471,15 +399,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
               tooltip: 'Chiudi',
             ),
             SizedBox(width: theme.gapMd),
-            Expanded(
-                child: Text(r.title,
-                    style: theme.heading6, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(r.title, style: theme.heading6, overflow: TextOverflow.ellipsis)),
           ],
         ),
         SizedBox(height: theme.gapSm),
         ConstrainedBox(
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.45),
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.45),
           child: SingleChildScrollView(child: r.panelBuilder(context, close)),
         ),
       ],
@@ -488,14 +413,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
 
   /// Bottone reveal (filtri / altre azioni): toggle del pannello inline.
   /// Evidenziato quando aperto; badge opzionale (es. filtri attivi).
-  Widget _revealButton(
-      BuildContext context, CLTheme theme, ShellRevealControl r) {
+  Widget _revealButton(BuildContext context, CLTheme theme, ShellRevealControl r) {
     final active = _panelId == r.id;
     final btn = CLIconButton(
       onTap: () => _togglePanel(r.id),
       iconData: r.icon,
-      backgroundColor:
-          active ? theme.primary.withValues(alpha: 0.12) : theme.controlFill,
+      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.controlFill,
       iconColor: active ? theme.primary : theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -520,10 +443,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
             child: Center(
               child: Text(
                 '${r.badgeCount}',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700),
+                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -533,8 +453,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
   }
 
   /// Rende un controllo contestuale generico (bottone / ricerca / custom / reveal).
-  Widget _contextControl(
-      BuildContext context, CLTheme theme, ShellContextControl c) {
+  Widget _contextControl(BuildContext context, CLTheme theme, ShellContextControl c) {
     if (c.action != null) return _actionButton(context, theme, c.action!);
     if (c.reveal != null) return _revealButton(context, theme, c.reveal!);
     if (c.custom != null) return c.custom!.builder(context);
@@ -553,8 +472,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
             isDense: true,
             hintText: search.hint,
             hintStyle: theme.bodyText.copyWith(color: theme.secondaryText),
-            prefixIcon: Icon(Icons.search,
-                size: Sizes.iconSizeDefault, color: theme.secondaryText),
+            prefixIcon: Icon(Icons.search, size: Sizes.iconSizeDefault, color: theme.secondaryText),
             filled: true,
             fillColor: theme.tertiaryBackground,
             contentPadding: EdgeInsets.symmetric(horizontal: theme.gapMd),
@@ -577,9 +495,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-              width: widget.config.sidebarWidth,
-              child: _navPanel(theme, isCompact: false)),
+          SizedBox(width: widget.config.sidebarWidth, child: _navPanel(theme, isCompact: false)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -588,8 +504,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
                   // Header = L0 + bordo inferiore (delimita dal content page bg).
                   decoration: BoxDecoration(
                     color: theme.primaryBackground,
-                    border:
-                        Border(bottom: BorderSide(color: theme.borderColor)),
+                    border: Border(bottom: BorderSide(color: theme.borderColor)),
                   ),
                   padding: const EdgeInsets.all(Sizes.gapLg),
                   child: _composedHeader(context, mode: CLNavMode.sidebar),
@@ -598,9 +513,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
               ],
             ),
           ),
-          if (widget.trailing != null)
-            SizedBox(
-                width: widget.config.trailingWidth, child: widget.trailing!),
+          if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
         ],
       ),
     );
@@ -612,8 +525,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
   /// menu completo.
   Widget _buildRail(BuildContext context) {
     final theme = CLTheme.of(context);
-    final drawerWidth =
-        MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
     return Scaffold(
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
@@ -647,8 +559,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
                   // Header = L0 + bordo inferiore.
                   decoration: BoxDecoration(
                     color: theme.primaryBackground,
-                    border:
-                        Border(bottom: BorderSide(color: theme.borderColor)),
+                    border: Border(bottom: BorderSide(color: theme.borderColor)),
                   ),
                   padding: const EdgeInsets.all(Sizes.gapLg),
                   child: _composedHeader(context, mode: CLNavMode.rail),
@@ -657,9 +568,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
               ],
             ),
           ),
-          if (widget.trailing != null)
-            SizedBox(
-                width: widget.config.trailingWidth, child: widget.trailing!),
+          if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
         ],
       ),
     );
@@ -668,8 +577,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
   // ── Mobile (drawer + bottom bar) ───────────────────────────────────────────
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = CLTheme.of(context);
-    final drawerWidth =
-        MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -711,22 +619,28 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell>
                 border: Border(bottom: BorderSide(color: theme.borderColor)),
               ),
               padding: const EdgeInsets.all(Sizes.gapLg),
-              child: Row(
-                children: [
-                  CLIconButton(
-                    onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                    iconData: Icons.menu,
-                    backgroundColor: theme.muted,
-                    iconColor: theme.primaryText,
-                    size: theme.buttonHeightDefault,
-                    iconSize: Sizes.iconSizeDefault,
-                    tooltip: 'Menu',
-                  ),
-                  const SizedBox(width: Sizes.gapLg),
-                  Expanded(
-                      child:
-                          _composedHeader(context, mode: CLNavMode.bottomBar)),
-                ],
+              // Altezza pinnata ai controlli: senza questo il titolo (heading6,
+              // line-height alto) gonfia la Row oltre buttonHeightDefault e
+              // l'hit-box del hamburger (ElevatedButton centrato in una riga
+              // sovradimensionata) si dimezza. Pin → hit == visibile.
+              child: SizedBox(
+                height: theme.buttonHeightDefault,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CLIconButton(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      iconData: Icons.menu,
+                      backgroundColor: theme.muted,
+                      iconColor: theme.primaryText,
+                      size: theme.buttonHeightDefault,
+                      iconSize: Sizes.iconSizeDefault,
+                      tooltip: 'Menu',
+                    ),
+                    const SizedBox(width: Sizes.gapLg),
+                    Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
+                  ],
+                ),
               ),
             ),
             Expanded(child: _scopedBody()),

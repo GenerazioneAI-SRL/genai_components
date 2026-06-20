@@ -840,29 +840,50 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
   // campo inline della tabella non viene costruito (host → SizedBox.shrink),
   // quindi non c'è conflitto col `_controller` interno del TextTableFilter.
   final TextEditingController _searchController = TextEditingController();
+  // Rotta che contiene la tabella: l'host pubblica nello shell SOLO quando questa
+  // rotta è corrente. Quando una rotta figlia la copre (es. dettaglio) ci
+  // de-pubblichiamo, altrimenti ricerca/filtri/ordina della lista restano nel
+  // bottom mobile del dettaglio.
+  ModalRoute<dynamic>? _route;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _shell = CLShellScope.maybeOf(context);
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      _route?.secondaryAnimation?.removeListener(_onRouteChanged);
+      _route = route;
+      // secondaryAnimation avanza quando una rotta viene spinta sopra questa →
+      // ricostruisci per rivalutare isCurrent (de-pubblica al push, ripubblica al pop).
+      _route?.secondaryAnimation?.addListener(_onRouteChanged);
+    }
+  }
+
+  void _onRouteChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Pulisce i controlli pubblicati, differito a post-frame (dispose/route change
+  /// avvengono ad albero LOCKED → no notify sincrono) e con guard per identità
+  /// (niente clobber se un'altra pagina ha già ripubblicato).
+  void _clearPublished() {
+    if (!_published) return;
+    _published = false;
+    final shell = _shell;
+    final mine = _lastPublished;
+    if (shell == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (identical(shell.slots.contextControls, mine)) {
+        shell.setContextControls(const []);
+      }
+    });
   }
 
   @override
   void dispose() {
-    // NON notificare in modo sincrono qui: dispose avviene durante l'unmount
-    // (albero LOCKED) e `setContextControls` → `notifyListeners` farebbe
-    // markNeedsBuild sui listener (CLShellScope/AnimatedBuilder) → crash
-    // "setState called when widget tree was locked". Differisci a post-frame.
-    final shell = _shell;
-    final mine = _lastPublished;
-    if (_published && shell != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Pulisci solo se nessuno ha ripubblicato nel frattempo.
-        if (identical(shell.slots.contextControls, mine)) {
-          shell.setContextControls(const []);
-        }
-      });
-    }
+    _route?.secondaryAnimation?.removeListener(_onRouteChanged);
+    _clearPublished();
     _searchController.dispose();
     super.dispose();
   }
@@ -871,16 +892,18 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
   Widget build(BuildContext context) {
     final shell = _shell;
     final compact = _isTableCompact(context);
+    final isCurrent = _route?.isCurrent ?? true;
 
     if (shell == null || !compact) {
       // Path invariato: render inline. Se prima avevamo pubblicato, pulisci.
-      if (_published) {
-        _published = false;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _shell?.setContextControls(const []);
-        });
-      }
+      _clearPublished();
       return widget.child;
+    }
+    if (!isCurrent) {
+      // Rotta coperta da un figlio (es. dettaglio): de-pubblica e collassa
+      // (la barra è comunque hoisted/offscreen).
+      _clearPublished();
+      return const SizedBox.shrink();
     }
 
     // Mobile + shell: pubblica i controlli GRANULARI (ordina/filtri · ricerca)

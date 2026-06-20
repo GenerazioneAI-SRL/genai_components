@@ -86,9 +86,10 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
                     : 'content_${state._rowsChange}'),
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            opacity: (state.tableState == _TableState.loading && !infiniteScroll)
-                ? 0.5
-                : 1,
+            opacity:
+                (state.tableState == _TableState.loading && !infiniteScroll)
+                    ? 0.5
+                    : 1,
             child: DefaultTextStyle(
                 overflow: TextOverflow.ellipsis,
                 style: theme.rowsTextStyle,
@@ -119,7 +120,9 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
     }
 
     final rowCount = state._rowsState.length;
-    final showLoader = infiniteScroll && state.hasNextPage;
+    // In infinite scroll una voce in coda: loader se c'è altro, messaggio di
+    // fine lista altrimenti.
+    final showTail = infiniteScroll && rowCount > 0;
     final list = ListView.separated(
       // In fillHeight la lista scorre da sola nello spazio assegnato.
       physics: fillHeight
@@ -127,15 +130,17 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
           : const NeverScrollableScrollPhysics(),
       primary: false,
       padding: EdgeInsets.zero,
-      separatorBuilder: (_, index) => index >= rowCount - 1
-          ? const SizedBox.shrink() // niente divider sopra il loader in coda
-          : theme.dividerColor == null
-              ? Divider(height: 0, color: clTheme.borderColor, thickness: 1)
-              : const SizedBox.shrink(),
-      itemCount: rowCount + (showLoader ? 1 : 0),
+      separatorBuilder: (_, index) => theme.dividerColor == null
+          ? Divider(height: 0, color: clTheme.borderColor, thickness: 1)
+          : const SizedBox.shrink(),
+      itemCount: rowCount + (showTail ? 1 : 0),
       shrinkWrap: !fillHeight,
       itemBuilder: (context, index) {
-        if (index >= rowCount) return const _InfiniteScrollLoader();
+        if (index >= rowCount) {
+          return state.hasNextPage
+              ? const _InfiniteScrollLoader()
+              : const _InfiniteScrollEnd();
+        }
         return ChangeNotifierProvider<
             _PagedDataTableRowState<TResultId, TResult>>.value(
           value: state._rowsState[index],
@@ -159,7 +164,10 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
         );
       },
     );
-    return infiniteScroll
+    // Trigger interno solo se la lista possiede lo scroll (fillHeight). In
+    // page-scroll (infiniteScroll senza fillHeight) è la pagina a chiamare
+    // controller.loadNextPage; qui renderizziamo solo righe + loader.
+    return (infiniteScroll && fillHeight)
         ? _InfiniteScrollListener(state: state, child: list)
         : list;
   }
@@ -182,6 +190,27 @@ class _InfiniteScrollLoader extends StatelessWidget {
             color: _effectiveTablePrimary(context),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Messaggio di fine lista (infinite scroll, nessun'altra pagina).
+class _InfiniteScrollEnd extends StatelessWidget {
+  const _InfiniteScrollEnd();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    // Stessa impronta di una riga (padding card), testo centrato: occupa lo
+    // spazio di una riga aggiuntiva, niente vuoto extra sotto.
+    return Container(
+      constraints: const BoxConstraints(minHeight: 52),
+      padding: const EdgeInsets.all(Sizes.gapLg),
+      alignment: Alignment.center,
+      child: Text(
+        'Non ci sono altri risultati',
+        style: theme.smallLabel.copyWith(color: theme.secondaryText),
       ),
     );
   }

@@ -448,9 +448,11 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 (rowsSelectable ? checkboxAreaWidth : 0) -
                 (hasAnyActions ? actionsColumnWidth : 0);
             state.availableWidth = width;
-            // L'infinite scroll richiede che la lista possieda lo scroll: stesso
-            // trattamento di fillHeight (Expanded + physics scrollabili).
-            final ownScroll = fillHeight || infiniteScroll;
+            // Solo fillHeight fa possedere lo scroll alla lista (Expanded +
+            // physics scrollabili). Con infiniteScroll ma SENZA fillHeight la lista
+            // resta shrinkWrap: è la PAGINA a scrollare e a guidare il load-more
+            // (controller.loadNextPage). La tabella renderizza solo righe + loader.
+            final ownScroll = fillHeight;
             // Sezione righe desktop: in fillHeight occupa lo spazio rimanente
             // e scorre da sola (header/filter bar restano fissi sopra).
             Widget rowsSection = _PagedDataTableRows<TKey, TResultId, TResult>(
@@ -749,9 +751,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               ),
               clipBehavior: Clip.antiAlias,
               child: !_isTableCompact(context)
-                  // In fillHeight/infiniteScroll niente scroll esterno: titolo,
-                  // filter bar, header e footer fissi, scorrono solo le righe.
-                  ? (fillHeight || infiniteScroll)
+                  // Solo fillHeight: niente scroll esterno, scorrono solo le righe.
+                  // (infiniteScroll senza fillHeight → la pagina scrolla la tabella).
+                  ? fillHeight
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -782,7 +784,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             ],
                           ),
                         )
-                  : (fillHeight || infiniteScroll)
+                  : fillHeight
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -803,9 +805,14 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             children: [
                               if (titleHeader != null) titleHeader,
                               child,
-                              const SizedBox(height: Sizes.padding),
-                              footerSection,
-                              !isInSnippet ? const SizedBox(height: Sizes.padding) : const SizedBox.shrink(),
+                              // Padding/footer solo se il footer è mostrato: in
+                              // infinite scroll (footer nascosto) niente spazio
+                              // morto sotto il messaggio di fine lista.
+                              if (footerShown) ...[
+                                const SizedBox(height: Sizes.padding),
+                                footerSection,
+                                if (!isInSnippet) const SizedBox(height: Sizes.padding),
+                              ],
                             ],
                           ),
                         ),
