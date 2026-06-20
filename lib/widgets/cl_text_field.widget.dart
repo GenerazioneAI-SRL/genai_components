@@ -60,6 +60,12 @@ class CLTextField extends StatefulWidget {
   /// Se `true`, altezza 32px e padding ridotti (token `inputHeightCompact`).
   final bool isCompact;
 
+  /// Stile "recess" L2 (Foundation): fill grigio `tertiaryBackground` incassato,
+  /// nessun bordo a riposo, solo ring al focus. Per campi ricerca dentro
+  /// toolbar/tabella. In un form i campi restano bianchi+bordo (default `false`).
+  /// NB: Flutter non ha inset-shadow nativa → l'incasso è dato dal tono più scuro.
+  final bool recessed;
+
   const CLTextField({
     super.key,
     required this.controller,
@@ -94,6 +100,7 @@ class CLTextField extends StatefulWidget {
     this.dateFieldType,
     this.capitalize = false,
     this.isCompact = false,
+    this.recessed = false,
   });
 
   @override
@@ -586,6 +593,31 @@ class CLTextField extends StatefulWidget {
         validators: validators,
         initValue: initValue,
         isCompact: isCompact,
+      );
+
+  /// Campo ricerca stile Foundation: recess L2 (fill grigio incassato), icona
+  /// search, pill arrotondata. Per toolbar di tabelle/liste — NON per i form.
+  factory CLTextField.search({
+    Key? key,
+    required TextEditingController controller,
+    String labelText = 'Cerca',
+    FocusNode? focusNode,
+    Future Function(String value)? onChanged,
+    bool isEnabled = true,
+    bool isCompact = false,
+    bool isRounded = true,
+  }) =>
+      CLTextField(
+        key: key,
+        controller: controller,
+        labelText: labelText,
+        focusNode: focusNode,
+        onChanged: onChanged,
+        isEnabled: isEnabled,
+        isCompact: isCompact,
+        isRounded: isRounded,
+        recessed: true,
+        prefixIcon: const Icon(Icons.search, size: 16, color: Colors.grey),
       );
 }
 

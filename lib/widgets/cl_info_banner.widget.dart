@@ -5,7 +5,7 @@ import '../cl_theme.dart';
 /// CLInfoBanner — banner esplicativo contestuale con icona, testo e azione opzionale.
 ///
 /// Linguaggio Skillera Refined Editorial: tinta soft (alpha ~0.06), bordo tonale
-/// 1px + accent stripe a sinistra, IconBadge semantico, tipografia Satoshi/Inter,
+/// 1px + accent stripe a sinistra, IconBadge semantico, tipografia Inter,
 /// dismiss opzionale, action link primario, ingresso con fade+slide (180ms).
 /// Inline — niente elevazione: spetta a card/dialog.
 class CLInfoBanner extends StatefulWidget {

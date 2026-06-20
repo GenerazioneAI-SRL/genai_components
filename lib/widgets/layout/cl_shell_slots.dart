@@ -73,25 +73,64 @@ class ShellCustom {
   final String? id;
 }
 
+/// Controllo che, su mobile, NON apre un overlay esterno ma RIVELA il proprio
+/// contenuto inline nell'area contestuale (le righe di controlli collassano e
+/// al loro posto compare [panelBuilder]). Toggle: ritap chiude. Lo shell tiene
+/// lo stato di apertura (per [id]); il `close` passato chiude il pannello.
+@immutable
+class ShellRevealControl {
+  const ShellRevealControl({
+    required this.id,
+    required this.icon,
+    required this.title,
+    required this.panelBuilder,
+    this.tooltip,
+    this.badgeCount,
+  });
+
+  /// Identità stabile del pannello: lo shell la usa per sapere quale è aperto e
+  /// per richiuderlo da solo quando la pagina cambia i propri controlli.
+  final String id;
+  final IconData icon;
+
+  /// Titolo mostrato nell'header del pannello inline.
+  final String title;
+
+  /// Contenuto inline. `close` richiude il pannello (es. dopo "Applica").
+  final Widget Function(BuildContext context, VoidCallback close) panelBuilder;
+  final String? tooltip;
+
+  /// Badge numerico opzionale sul bottone (es. filtri attivi).
+  final int? badgeCount;
+}
+
 /// Controllo contestuale legato al controller della pagina. Union GENERICA:
-/// bottone / ricerca / custom. Su desktop+tablet la pagina tiene i propri
-/// controlli inline; lo shell usa questi solo dove il design li ricolloca
+/// bottone / ricerca / custom / reveal. Su desktop+tablet la pagina tiene i
+/// propri controlli inline; lo shell usa questi solo dove il design li ricolloca
 /// (riga alta del bottom mobile).
 @immutable
 class ShellContextControl {
   const ShellContextControl.action(ShellAction this.action)
       : search = null,
-        custom = null;
+        custom = null,
+        reveal = null;
   const ShellContextControl.search(ShellSearch this.search)
       : action = null,
-        custom = null;
+        custom = null,
+        reveal = null;
   const ShellContextControl.custom(ShellCustom this.custom)
       : action = null,
-        search = null;
+        search = null,
+        reveal = null;
+  const ShellContextControl.reveal(ShellRevealControl this.reveal)
+      : action = null,
+        search = null,
+        custom = null;
 
   final ShellAction? action;
   final ShellSearch? search;
   final ShellCustom? custom;
+  final ShellRevealControl? reveal;
 }
 
 /// Insieme degli slot pubblicati da una pagina.
@@ -102,6 +141,7 @@ class ShellSlots {
     this.breadcrumbs = const [],
     this.pageActions = const [],
     this.contextControls = const [],
+    this.contextOverflow,
   });
 
   final ShellBack? back;
@@ -109,11 +149,17 @@ class ShellSlots {
   final List<ShellAction> pageActions;
   final List<ShellContextControl> contextControls;
 
+  /// "Altre azioni" della pagina/tabella, in coda alla riga bassa del bottom
+  /// mobile (a destra, dopo back + pageActions). Reveal: tap → lista inline.
+  /// `null` se la pagina non espone un overflow.
+  final ShellRevealControl? contextOverflow;
+
   bool get isEmpty =>
       back == null &&
       breadcrumbs.isEmpty &&
       pageActions.isEmpty &&
-      contextControls.isEmpty;
+      contextControls.isEmpty &&
+      contextOverflow == null;
 
   static const ShellSlots empty = ShellSlots();
 }
@@ -130,12 +176,14 @@ class ShellSlotsController extends ChangeNotifier {
   List<ShellCrumb> _breadcrumbs = const [];
   List<ShellAction> _pageActions = const [];
   List<ShellContextControl> _contextControls = const [];
+  ShellRevealControl? _contextOverflow;
 
   ShellSlots get slots => ShellSlots(
         back: _back,
         breadcrumbs: _breadcrumbs,
         pageActions: _pageActions,
         contextControls: _contextControls,
+        contextOverflow: _contextOverflow,
       );
 
   /// Canale navigazione (centrale). Aggiorna back + breadcrumbs.
@@ -154,8 +202,9 @@ class ShellSlotsController extends ChangeNotifier {
   /// Canale page — controlli contestuali (pubblicati da chi li possiede, es. la
   /// tabella). Separato da [setPageActions] così i due publisher non si
   /// sovrascrivono a vicenda.
-  void setContextControls(List<ShellContextControl> controls) {
+  void setContextControls(List<ShellContextControl> controls, {ShellRevealControl? overflow}) {
     _contextControls = controls;
+    _contextOverflow = overflow;
     notifyListeners();
   }
 
@@ -164,6 +213,7 @@ class ShellSlotsController extends ChangeNotifier {
   void clearPage() {
     _pageActions = const [];
     _contextControls = const [];
+    _contextOverflow = null;
     notifyListeners();
   }
 }

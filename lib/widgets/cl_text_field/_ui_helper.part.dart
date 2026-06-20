@@ -124,16 +124,22 @@ class _TextFieldUiHelper extends _Helper {
       duration: const Duration(milliseconds: 120),
       height: inputH,
       decoration: BoxDecoration(
+        // recessed (L2): fill grigio `tertiaryBackground`, nessun bordo a riposo.
+        // L'incasso è dato dal tono più scuro (Flutter non ha inset-shadow
+        // nativa). Ring focus mantenuto per a11y. Default: bianco L1 + bordo.
         color: w.isEnabled
-            ? (w.fillColor ?? theme.secondaryBackground)
-            : (w.fillColor ?? theme.secondaryBackground).withValues(alpha: 0.6),
+            ? (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
+            : (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
+                .withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(w.isRounded ? inputH / 2 : theme.radiusControl),
-        border: Border.all(
-          color: s.isFocusedRef
-              ? theme.primary
-              : (w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)),
-          width: 1,
-        ),
+        border: w.recessed
+            ? null
+            : Border.all(
+                color: s.isFocusedRef
+                    ? theme.primary
+                    : (w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)),
+                width: 1,
+              ),
         boxShadow: s.isFocusedRef ? [BoxShadow(color: theme.primary, spreadRadius: 1, blurRadius: 0)] : null,
       ),
       child: Row(

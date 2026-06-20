@@ -52,7 +52,11 @@ class CLNavRail extends StatelessWidget {
     final theme = CLTheme.of(context);
     return Container(
       width: width,
-      color: theme.secondaryBackground,
+      // Rail (menu) = L0 + bordo destro.
+      decoration: BoxDecoration(
+        color: theme.primaryBackground,
+        border: Border(right: BorderSide(color: theme.borderColor)),
+      ),
       child: SafeArea(
         right: false,
         child: Column(

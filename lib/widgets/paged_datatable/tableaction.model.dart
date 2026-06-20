@@ -24,8 +24,12 @@ class TableAction<T extends Object> {
   final IconData? icon;
 
   /// Inline button tonal color (used when [inline] is true). Defaults to
-  /// `theme.primary`.
+  /// `theme.primary`. Tinta icona/testo (es. `theme.danger` per "Elimina").
   final Color? color;
+
+  /// Sfondo del tile nello swipe-reveal mobile. `null` → grigio (`theme.muted`).
+  /// Es. `theme.danger.withValues(alpha: 0.12)` per un Elimina rosso trasparente.
+  final Color? backgroundColor;
 
   TableAction({
     required this.content,
@@ -34,6 +38,7 @@ class TableAction<T extends Object> {
     this.label,
     this.icon,
     this.color,
+    this.backgroundColor,
   }) : _onTapInternal = ((item) => onTap(item as T));
 
   void onTap(Object item) => _onTapInternal(item);

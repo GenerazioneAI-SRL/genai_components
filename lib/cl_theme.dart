@@ -107,6 +107,33 @@ abstract class CLTheme {
 
   List<BoxShadow> get cardShadow;
 
+  /// Ombra leggera per card statiche (Foundation L1 raised): sottile, quasi
+  /// hairline. Da preferire su superfici NON transitorie. [cardShadow] resta
+  /// (più marcata) per retrocompat dei consumer esistenti.
+  List<BoxShadow> get cardShadowSoft;
+
+  /// Ombra marcata per superfici transitorie: popover, menu, dropdown, sheet.
+  List<BoxShadow> get popoverShadow;
+
+  // ═══════════════════════════════════════════════════════════
+  // MOTION — durate ed easing canonici. Concreti (uguali in light/dark:
+  // l'animazione non cambia col tema). Easing = Material standard
+  // ≈ cubic-bezier(.4, 0, .2, 1), già esposto da Flutter come
+  // Curves.fastOutSlowIn (lo stesso identico Cubic).
+  // ═══════════════════════════════════════════════════════════
+
+  /// 150ms — hover/press di bottoni e controlli.
+  Duration get durationFast => const Duration(milliseconds: 150);
+
+  /// 200ms — toggle, tab, cambi di stato.
+  Duration get durationBase => const Duration(milliseconds: 200);
+
+  /// 300ms — popover, sheet, elevazione.
+  Duration get durationSlow => const Duration(milliseconds: 300);
+
+  /// cubic-bezier(.4, 0, .2, 1) — easing standard del DS.
+  Curve get easingStandard => Curves.fastOutSlowIn;
+
   // --------- Design token dimensionali ----------
   // Default = valori storici di CLSizes. Override nel tema di progetto per
   // personalizzare spaziature/radii senza toccare la libreria.
@@ -296,6 +323,20 @@ const _kDarkCardShadow = <BoxShadow>[
   BoxShadow(color: Color(0x4C000000), blurRadius: 8, offset: Offset(0, 2)),
 ];
 
+// Card statiche (Foundation L1): sottile. Popover/menu: marcata, spread negativo.
+const _kLightCardShadowSoft = <BoxShadow>[
+  BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 1)),
+];
+const _kLightPopoverShadow = <BoxShadow>[
+  BoxShadow(color: Color(0x38000000), blurRadius: 28, spreadRadius: -6, offset: Offset(0, 12)),
+];
+const _kDarkCardShadowSoft = <BoxShadow>[
+  BoxShadow(color: Color(0x80000000), blurRadius: 6, offset: Offset(0, 2)),
+];
+const _kDarkPopoverShadow = <BoxShadow>[
+  BoxShadow(color: Color(0xB3000000), blurRadius: 34, spreadRadius: -6, offset: Offset(0, 16)),
+];
+
 class LightModeTheme extends CLTheme {
   const LightModeTheme({
     super.primary = const Color(0xFF0C8EC7),
@@ -324,6 +365,12 @@ class LightModeTheme extends CLTheme {
 
   @override
   List<BoxShadow> get cardShadow => _kLightCardShadow;
+
+  @override
+  List<BoxShadow> get cardShadowSoft => _kLightCardShadowSoft;
+
+  @override
+  List<BoxShadow> get popoverShadow => _kLightPopoverShadow;
 }
 
 class DarkModeTheme extends CLTheme {
@@ -354,6 +401,12 @@ class DarkModeTheme extends CLTheme {
 
   @override
   List<BoxShadow> get cardShadow => _kDarkCardShadow;
+
+  @override
+  List<BoxShadow> get cardShadowSoft => _kDarkCardShadowSoft;
+
+  @override
+  List<BoxShadow> get popoverShadow => _kDarkPopoverShadow;
 }
 
 /// --- Typography ----------------------------------------------------------
@@ -391,7 +444,11 @@ class ThemeTypography extends Typography {
 
   final CLTheme theme;
   static const _bodyFamily = 'Inter';
-  static const _displayFamily = 'Satoshi';
+
+  /// Cifre tabulari: ogni cifra stessa larghezza → colonne numeriche allineate
+  /// e nessun jitter agli update (tabelle dati: ore, importi, date). Applicato
+  /// ai soli stili "dato" (body/small/label/tablehead), non agli heading.
+  static const _tnum = [FontFeature.tabularFigures()];
 
   /// Body/UI text helper (Inter — variable font locale con asse opsz)
   TextStyle _text(
@@ -402,6 +459,7 @@ class ThemeTypography extends Typography {
     FontStyle? fontStyle,
     TextDecoration? decoration,
     double? lineHeight,
+    List<FontFeature>? fontFeatures,
   }) {
     return TextStyle(
       fontFamily: _bodyFamily,
@@ -414,44 +472,27 @@ class ThemeTypography extends Typography {
       fontStyle: fontStyle,
       decoration: decoration,
       height: lineHeight,
+      fontFeatures: fontFeatures,
     );
   }
 
-  /// Display/heading text helper (Satoshi — font locale)
-  TextStyle _display(
-    double size, {
-    FontWeight? weight,
-    Color? color,
-    double? letterSpacing,
-    double? lineHeight,
-  }) {
-    return TextStyle(
-      fontFamily: _displayFamily,
-      color: color ?? theme.primaryText,
-      fontSize: size,
-      letterSpacing: letterSpacing ?? 0,
-      fontWeight: weight,
-      height: lineHeight,
-    );
-  }
+  // ── Headings — Inter (Foundation: un solo carattere) ────────────────────
 
-  // ── Headings — tutti Satoshi per scala visiva coerente ──────────────────
-
-  /// H1: hero titles, page intro — Satoshi Bold 32px
+  /// H1: hero titles, page intro — Inter Bold 32px (Foundation: -0.6 / lh 1.1)
   @override
-  TextStyle get heading1 => _display(32, weight: FontWeight.w700, letterSpacing: -1.0, lineHeight: 1.15);
+  TextStyle get heading1 => _text(32, weight: FontWeight.w700, letterSpacing: -0.6, lineHeight: 1.1);
 
-  /// H2: sezioni principali — Satoshi SemiBold 24px
+  /// H2: sezioni principali — Inter SemiBold 24px
   @override
-  TextStyle get heading2 => _display(24, weight: FontWeight.w600, letterSpacing: -0.5, lineHeight: 1.2);
+  TextStyle get heading2 => _text(24, weight: FontWeight.w600, letterSpacing: -0.5, lineHeight: 1.2);
 
-  /// H3: sottosezioni — Satoshi SemiBold 20px
+  /// H3: sottosezioni — Inter SemiBold 20px
   @override
-  TextStyle get heading3 => _display(20, weight: FontWeight.w600, letterSpacing: -0.25, lineHeight: 1.25);
+  TextStyle get heading3 => _text(20, weight: FontWeight.w600, letterSpacing: -0.25, lineHeight: 1.25);
 
-  /// H4: card headers, dialog titles — Satoshi Medium 17px
+  /// H4: card headers, dialog titles — Inter Medium 17px
   @override
-  TextStyle get heading4 => _display(17, weight: FontWeight.w500, letterSpacing: -0.15, lineHeight: 1.3);
+  TextStyle get heading4 => _text(17, weight: FontWeight.w500, letterSpacing: -0.15, lineHeight: 1.3);
 
   /// H5: etichette di sezione — Inter Medium 14px
   @override
@@ -463,9 +504,9 @@ class ThemeTypography extends Typography {
 
   // ── Body / UI ────────────────────────────────────────────────────────────
 
-  /// Titolo UI (pulsanti, tab, menu item) — Inter Medium 15px
+  /// Titolo UI (pulsanti, tab, menu item) — Inter Medium 15px (Foundation: no tracking)
   @override
-  TextStyle get title => _text(15, weight: FontWeight.w500, letterSpacing: -0.05, lineHeight: 1.4);
+  TextStyle get title => _text(15, weight: FontWeight.w500, lineHeight: 1.4);
 
   /// Sottotitolo descrittivo — Inter Regular 14px
   @override
@@ -473,20 +514,21 @@ class ThemeTypography extends Typography {
 
   /// Corpo testo principale — Inter Regular 14px, interlinea aperta
   @override
-  TextStyle get bodyText => _text(14, weight: FontWeight.w400, lineHeight: 1.6);
+  TextStyle get bodyText => _text(14, weight: FontWeight.w400, lineHeight: 1.6, fontFeatures: _tnum);
 
   /// Testo piccolo — Inter Regular 12px
   @override
-  TextStyle get smallText => _text(12, weight: FontWeight.w400, lineHeight: 1.5);
+  TextStyle get smallText => _text(12, weight: FontWeight.w400, lineHeight: 1.5, fontFeatures: _tnum);
 
   /// Label UI secondaria — Inter Regular 13px, colore secondario
   @override
-  TextStyle get bodyLabel => _text(13, weight: FontWeight.w400, color: theme.secondaryText, lineHeight: 1.5);
+  TextStyle get bodyLabel =>
+      _text(13, weight: FontWeight.w400, color: theme.secondaryText, lineHeight: 1.5, fontFeatures: _tnum);
 
   /// Intestazione colonna tabella — Inter Medium 11px, spaziatura lettere positiva
   @override
-  TextStyle get bodyLabelTableHead =>
-      _text(11, weight: FontWeight.w500, color: theme.secondaryText, letterSpacing: 0.3, lineHeight: 1.4);
+  TextStyle get bodyLabelTableHead => _text(11,
+      weight: FontWeight.w500, color: theme.secondaryText, letterSpacing: 0.3, lineHeight: 1.4, fontFeatures: _tnum);
 
   /// Label piccola — Inter Regular 12px, colore secondario
   @override

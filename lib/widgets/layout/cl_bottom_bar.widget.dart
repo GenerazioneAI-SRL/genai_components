@@ -35,7 +35,8 @@ class CLBottomBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.secondaryBackground,
+        // Bottom bar (menu mobile) = L0.
+        color: theme.primaryBackground,
         border: Border(top: BorderSide(color: theme.borderColor)),
       ),
       child: SafeArea(

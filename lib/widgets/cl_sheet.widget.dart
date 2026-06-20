@@ -65,7 +65,7 @@ class _CLSheetWidget extends StatelessWidget {
             color: theme.secondaryBackground,
             borderRadius: radius,
             border: Border.all(color: theme.cardBorder),
-            boxShadow: theme.cardShadow,
+            boxShadow: theme.popoverShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

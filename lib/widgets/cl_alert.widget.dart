@@ -5,7 +5,7 @@ import 'excerpt_text.widget.dart';
 
 /// Skillera Refined Editorial alert.
 ///
-/// Soft semantic tints, IconBadge, Satoshi heading + Inter body, subtle
+/// Soft semantic tints, IconBadge, Inter heading + body, subtle
 /// fade+slide entry, hover lift on dismissible variants. Public API
 /// (constructors / factories / fields) is preserved from the previous
 /// revision: only internal build/style is upgraded.

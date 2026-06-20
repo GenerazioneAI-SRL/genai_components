@@ -51,7 +51,7 @@ class ConfirmationDialog extends StatelessWidget {
                   color: cl.secondaryBackground,
                   borderRadius: BorderRadius.circular(cl.radiusModal),
                   border: Border.all(color: cl.cardBorder, width: 1),
-                  boxShadow: cl.cardShadow,
+                  boxShadow: cl.popoverShadow,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(

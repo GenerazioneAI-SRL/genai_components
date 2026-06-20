@@ -22,7 +22,7 @@ class CLContainer extends StatefulWidget {
     this.actionWidget,
     this.onActionTap,
     this.glassmorphism = true,
-    this.showBorder = true,
+    this.showBorder = false,
     this.titleBackgroundColor,
     this.titleIcon,
     this.plainHeader = false,
@@ -68,8 +68,12 @@ class _CLContainerState extends State<CLContainer> {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final hasTitle = widget.title != null || widget.titleWidget != null;
+    // Dark: cardShadowSoft è invisibile su near-black → la card si delinea con un
+    // bordo hairline. Light: ci pensa l'ombra (default Foundation, niente bordo).
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final useBorder = widget.showBorder || (widget.showShadow && isDark);
     final br = widget.borderRadius ?? BorderRadius.circular(Sizes.borderRadius);
-    final borderWidth = widget.showBorder ? 1.0 : 0.0;
+    final borderWidth = useBorder ? 1.0 : 0.0;
     final innerBr = BorderRadius.only(
       topLeft: Radius.circular((br.topLeft.x - borderWidth).clamp(0.0, double.infinity)),
       topRight: Radius.circular((br.topRight.x - borderWidth).clamp(0.0, double.infinity)),
@@ -83,10 +87,12 @@ class _CLContainerState extends State<CLContainer> {
       margin: widget.contentMargin ?? EdgeInsets.zero,
       constraints: widget.constraints,
       decoration: BoxDecoration(
-        border: widget.showBorder ? Border.all(color: CLTheme.of(context).cardBorder, width: 1.0) : null,
+        border: useBorder ? Border.all(color: theme.cardBorder, width: 1.0) : null,
         color: widget.backgroundColor ?? theme.secondaryBackground,
         borderRadius: br,
-        boxShadow: widget.showShadow ? CLTheme.of(context).cardShadow : null,
+        // Default Foundation: ombra soft (card statica L1), nessun bordo. Il
+        // bordo torna opt-in via `showBorder: true`.
+        boxShadow: widget.showShadow ? theme.cardShadowSoft : null,
       ),
       child: ClipRRect(
         borderRadius: innerBr,

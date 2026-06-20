@@ -293,7 +293,14 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           child = DefaultTextStyle(style: theme.filtersHeaderTextStyle!, child: child);
         }
         return hoistToShell
-            ? _FilterBarShellHost<TKey, TResultId, TResult>(state: state, child: child)
+            ? _FilterBarShellHost<TKey, TResultId, TResult>(
+                state: state,
+                hasExtraFilters:
+                    state.filters.entries.any((e) => e.value._filter.isMainFilter == false),
+                hasSortableColumns: state.columns.any((c) => c.sortable == true),
+                extraMenus: extraMenus,
+                child: child,
+              )
             : child;
       },
     );
@@ -645,6 +652,157 @@ class _ExtraMenuRowState extends State<_ExtraMenuRow> {
   }
 }
 
+/// Contenuto inline del pannello "Filtri" rivelato nell'area contestuale dello
+/// shell (mobile): SOLO i filtri extra + Ripristina/Applica. SENZA chrome modale
+/// (`onClose` richiude il pannello inline). Applica preserva l'ordinamento
+/// corrente (applyFilters senza columnId non tocca il sort). Scroll/altezza-max
+/// li fornisce il contenitore dello shell. L'ordinamento sta nel pannello
+/// dedicato [_InlineSortPanel].
+class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatelessWidget {
+  const _InlineFiltersPanel({required this.state, required this.onClose});
+
+  final _PagedDataTableState<TKey, TResultId, TResult> state;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final filterEntries = state.filters.entries
+        .where((e) => e.value._filter.isMainFilter == false && e.value._filter.visible)
+        .toList();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Form(
+          key: state.filtersFormKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final entry in filterEntries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: entry.value._filter.buildPicker(context, entry.value),
+                ),
+            ],
+          ),
+        ),
+        SizedBox(height: theme.gapMd),
+        Row(
+          children: [
+            CLButton(
+              backgroundColor: theme.muted,
+              textStyle: theme.bodyText.copyWith(color: theme.primaryText),
+              iconAlignment: IconAlignment.start,
+              text: 'Ripristina',
+              onTap: () {
+                state.resetFilterSort();
+                onClose();
+              },
+              context: context,
+            ),
+            const Spacer(),
+            CLButton.primary(
+              text: 'Applica',
+              onTap: () {
+                state.filtersFormKey.currentState?.save();
+                state.applyFilters();
+                onClose();
+              },
+              context: context,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Contenuto inline del pannello "Ordina": dropdown delle colonne sortable
+/// (asc/desc) + Rimuovi/Applica. Feature aggiuntiva oltre al sort sulle
+/// intestazioni di colonna. Applica preserva i filtri attivi (applyFilters con
+/// columnId imposta solo il sort).
+class _InlineSortPanel<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatefulWidget {
+  const _InlineSortPanel({required this.state, required this.onClose});
+
+  final _PagedDataTableState<TKey, TResultId, TResult> state;
+  final VoidCallback onClose;
+
+  @override
+  State<_InlineSortPanel<TKey, TResultId, TResult>> createState() =>
+      _InlineSortPanelState<TKey, TResultId, TResult>();
+}
+
+class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends State<_InlineSortPanel<TKey, TResultId, TResult>> {
+  BaseTableColumn<TResult>? selectedColumn;
+  bool descending = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final state = widget.state;
+
+    final sortItems = <Map<BaseTableColumn<TResult>?, bool>>[];
+    for (final column in state.columns.where((c) => c.sortable == true)) {
+      sortItems.add({column: true});
+      sortItems.add({column: false});
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CLDropdown<Map<BaseTableColumn<TResult>?, bool>>.singleSync(
+          hint: 'Ordina per',
+          items: sortItems,
+          valueToShow: (item) => item.values.first
+              ? '${item.keys.first!.title} - Discendente'
+              : '${item.keys.first!.title} - Ascendente',
+          itemBuilder: (context, item) => Text(item.values.first
+              ? '${item.keys.first!.title} - Discendente'
+              : '${item.keys.first!.title} - Ascendente'),
+          onSelectItem: (item) {
+            if (item != null) {
+              selectedColumn = item.keys.first;
+              descending = item.values.first;
+              return item.keys.first?.id == state._sortModel?._columnId;
+            }
+          },
+        ),
+        SizedBox(height: theme.gapMd),
+        Row(
+          children: [
+            CLButton(
+              backgroundColor: theme.muted,
+              textStyle: theme.bodyText.copyWith(color: theme.primaryText),
+              iconAlignment: IconAlignment.start,
+              text: 'Rimuovi',
+              onTap: () {
+                state.removeSort();
+                widget.onClose();
+              },
+              context: context,
+            ),
+            const Spacer(),
+            CLButton.primary(
+              text: 'Applica',
+              onTap: () {
+                state.applyFilters(columnId: selectedColumn?.id, descending: descending);
+                widget.onClose();
+              },
+              context: context,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 /// Host opt-in: su mobile (compact) e con un [CLShellScope] antenato, pubblica
 /// la filter bar nell'area contestuale dello shell invece di renderla inline.
 /// Ri-fornisce i provider della tabella (state + theme + style) così la barra
@@ -652,10 +810,19 @@ class _ExtraMenuRowState extends State<_ExtraMenuRow> {
 /// render inline invariato.
 class _FilterBarShellHost<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
     extends StatefulWidget {
-  const _FilterBarShellHost({required this.state, required this.child});
+  const _FilterBarShellHost({
+    required this.state,
+    required this.child,
+    required this.hasExtraFilters,
+    required this.hasSortableColumns,
+    required this.extraMenus,
+  });
 
   final _PagedDataTableState<TKey, TResultId, TResult> state;
   final Widget child;
+  final bool hasExtraFilters;
+  final bool hasSortableColumns;
+  final List<TableExtraMenu> extraMenus;
 
   @override
   State<_FilterBarShellHost<TKey, TResultId, TResult>> createState() =>
@@ -666,6 +833,13 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
     extends State<_FilterBarShellHost<TKey, TResultId, TResult>> {
   ShellSlotsController? _shell;
   bool _published = false;
+  // Ultima lista pubblicata: serve a pulire senza clobberare i controlli che
+  // un'altra pagina potrebbe aver già ripubblicato (guard per identità).
+  List<ShellContextControl>? _lastPublished;
+  // Controller proprio del campo ricerca pubblicato nello shell. Su mobile il
+  // campo inline della tabella non viene costruito (host → SizedBox.shrink),
+  // quindi non c'è conflitto col `_controller` interno del TextTableFilter.
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void didChangeDependencies() {
@@ -675,7 +849,21 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
 
   @override
   void dispose() {
-    if (_published) _shell?.setContextControls(const []);
+    // NON notificare in modo sincrono qui: dispose avviene durante l'unmount
+    // (albero LOCKED) e `setContextControls` → `notifyListeners` farebbe
+    // markNeedsBuild sui listener (CLShellScope/AnimatedBuilder) → crash
+    // "setState called when widget tree was locked". Differisci a post-frame.
+    final shell = _shell;
+    final mine = _lastPublished;
+    if (_published && shell != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Pulisci solo se nessuno ha ripubblicato nel frattempo.
+        if (identical(shell.slots.contextControls, mine)) {
+          shell.setContextControls(const []);
+        }
+      });
+    }
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -695,30 +883,97 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
       return widget.child;
     }
 
-    // Mobile + shell: pubblica la barra (con i provider ri-forniti) e collassa
-    // il render inline.
-    final themeData = PagedDataTableTheme.of(context);
-    final style = CLTableStyle.maybeOf(context);
+    // Mobile + shell: pubblica i controlli GRANULARI (ordina/filtri · ricerca)
+    // sulla riga alta e "altre azioni" in coda alla riga bassa. I bottoni
+    // ordina/filtri/altre-azioni sono REVEAL: il tap rivela il contenuto inline
+    // nell'area (lo shell collassa le righe e mostra il pannello). Niente più
+    // overlay modali né la barra desktop intera (causava overflow a piena larghezza).
     final state = widget.state;
-    final barChild = widget.child;
+    final controls = <ShellContextControl>[];
+
+    // Riga 1: ordina · ricerca · filtri. Ordina e filtri sono pannelli DISTINTI
+    // (reveal inline). "Ordina" = entry-point aggiuntivo oltre al sort sulle
+    // intestazioni di colonna.
+    if (widget.hasSortableColumns) {
+      controls.add(ShellContextControl.reveal(ShellRevealControl(
+        id: 'table-sort',
+        icon: LucideIcons.arrowDownNarrowWide400,
+        title: 'Ordina',
+        tooltip: 'Ordina',
+        panelBuilder: (ctx, close) => _InlineSortPanel<TKey, TResultId, TResult>(
+          state: state,
+          onClose: close,
+        ),
+      )));
+    }
+
+    final mainMatches =
+        state.filters.entries.where((e) => e.value._filter.isMainFilter == true);
+    if (mainMatches.isNotEmpty) {
+      final entry = mainMatches.first;
+      final filter = entry.value._filter;
+      final current = (entry.value.value ?? '').toString();
+      // Allinea il controller solo a variazioni ESTERNE (es. reset filtri):
+      // durante la digitazione testo == value, quindi nessun reset del cursore.
+      if (_searchController.text != current) _searchController.text = current;
+      controls.add(ShellContextControl.search(ShellSearch(
+        controller: _searchController,
+        hint: filter.title.toString(),
+        onChanged: (value) {
+          entry.value.value = value;
+          if (value.isEmpty) {
+            state.removeFilter(filter.id);
+          } else {
+            state.applyFilters();
+          }
+        },
+      )));
+    }
+
+    if (widget.hasExtraFilters) {
+      final activeCount = state.filters.values
+          .where((f) => f.hasValue && !f._filter.isMainFilter)
+          .length;
+      controls.add(ShellContextControl.reveal(ShellRevealControl(
+        id: 'table-filters',
+        icon: LucideIcons.slidersHorizontal,
+        title: 'Filtri',
+        tooltip: 'Filtri',
+        badgeCount: activeCount,
+        panelBuilder: (ctx, close) => _InlineFiltersPanel<TKey, TResultId, TResult>(
+          state: state,
+          onClose: close,
+        ),
+      )));
+    }
+
+    final overflow = widget.extraMenus.isNotEmpty
+        ? ShellRevealControl(
+            id: 'table-extra-menu',
+            icon: LucideIcons.ellipsisVertical400,
+            title: 'Altre azioni',
+            tooltip: 'Altre azioni',
+            panelBuilder: (ctx, close) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final m in widget.extraMenus)
+                  _ExtraMenuRow(
+                    content: m.content,
+                    onTap: () {
+                      close();
+                      m.onTap();
+                    },
+                  ),
+              ],
+            ),
+          )
+        : null;
+
+    _lastPublished = controls;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      shell.setContextControls([
-        ShellContextControl.custom(
-          ShellCustom(
-            (ctx) => _CLTableStyleScope(
-              style: style,
-              child: PagedDataTableTheme(
-                data: themeData,
-                child: ChangeNotifierProvider<_PagedDataTableState<TKey, TResultId, TResult>>.value(
-                  value: state,
-                  child: barChild,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ]);
+      shell.setContextControls(controls, overflow: overflow);
     });
     _published = true;
     return const SizedBox.shrink();

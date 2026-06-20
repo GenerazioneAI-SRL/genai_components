@@ -191,7 +191,8 @@ class _CLTableStyleScope extends InheritedWidget {
   bool updateShouldNotify(_CLTableStyleScope old) => old.style != style;
 }
 
-Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).muted;
+// Search tabella = recess L2 (tertiaryBackground): incassato, distinto dalla card L1.
+Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).tertiaryBackground;
 Color _tableHeaderBg(BuildContext c) => CLTableStyle.maybeOf(c)?.headerBackground ?? CLTheme.of(c).secondaryBackground;
 Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).muted;
 Color _tableBorder(BuildContext c) => CLTableStyle.maybeOf(c)?.border ?? CLTheme.of(c).borderColor;
@@ -319,6 +320,13 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// contenuto e scorre col parent.
   final bool fillHeight;
 
+  /// Se true abilita l'infinite scroll: la lista possiede lo scroll (come
+  /// [fillHeight]) e carica la pagina successiva quando ci si avvicina al fondo
+  /// (`nextPage(isInfiniteScroll: true)` → append), con loader in coda e footer
+  /// di paginazione nascosto. Il parent DEVE dare un'altezza bounded alla tabella
+  /// (es. `Expanded`). Opt-in su tutti i breakpoint.
+  final bool infiniteScroll;
+
   const PagedDataTable({
     this.downloadPage,
     this.downloadButtonText,
@@ -348,7 +356,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.isFilterBarVisible = true,
     this.isInSnippet = false,
     this.actionsTitle,
-    this.showBorder = true,
+    // Foundation: card tabella = L1 + ombra soft, NO border di default (opt-in).
+    this.showBorder = false,
     this.showTopBorder = true,
     this.showFooter = true,
     this.isFilterBarRounded = true,
@@ -363,6 +372,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.titleBackgroundColor,
     this.primaryColor,
     this.fillHeight = false,
+    this.infiniteScroll = false,
     this.style,
     super.key,
   });
@@ -438,6 +448,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                 (rowsSelectable ? checkboxAreaWidth : 0) -
                 (hasAnyActions ? actionsColumnWidth : 0);
             state.availableWidth = width;
+            // L'infinite scroll richiede che la lista possieda lo scroll: stesso
+            // trattamento di fillHeight (Expanded + physics scrollabili).
+            final ownScroll = fillHeight || infiniteScroll;
             // Sezione righe desktop: in fillHeight occupa lo spazio rimanente
             // e scorre da sola (header/filter bar restano fissi sopra).
             Widget rowsSection = _PagedDataTableRows<TKey, TResultId, TResult>(
@@ -459,11 +472,12 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               showShimmerLoading,
               expandedRowBuilder,
               onRowExpanded,
-              fillHeight,
+              ownScroll,
               hasExpandIcon,
               hasAnyActions ? actionsColumnWidth : 0.0,
+              infiniteScroll,
             );
-            if (fillHeight) rowsSection = Expanded(child: rowsSection);
+            if (ownScroll) rowsSection = Expanded(child: rowsSection);
             // Sezione card mobile: stesso trattamento.
             Widget boxedSection = _PagedDataTableBoxed<TKey, TResultId, TResult>(
               rowsSelectable,
@@ -480,9 +494,10 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               actionsTitle,
               tableActions,
               actionsBuilder,
-              fillHeight,
+              ownScroll,
+              infiniteScroll,
             );
-            if (fillHeight) boxedSection = Expanded(child: boxedSection);
+            if (ownScroll) boxedSection = Expanded(child: boxedSection);
 
             // Toolbar selezione condivisa tra desktop e mobile (vuota se nessun selectionActionsBuilder).
             final Widget selectionToolbar = selectionActionsBuilder == null
@@ -645,35 +660,47 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                   )
                 : Column(
                     children: [
+                      // Filter bar mobile. Il tab DEVE essere costruito anche quando
+                      // hoisted (è lui a pubblicare ricerca/filtri/sort nello shell),
+                      // ma in quel caso NON deve occupare spazio inline: host → shrink,
+                      // niente Container/padding → niente spazio morto in cima.
                       if (localTheme.configuration.filterBarVisibile &&
                           (header != null ||
                               mainMenus.isNotEmpty ||
                               extraMenus.isNotEmpty ||
-                              state.filters.isNotEmpty)) ...[
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: CLTheme.of(context).secondaryBackground,
-                            borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(Sizes.gapLg),
-                            child: _PagedDataTableFilterTab<TKey, TResultId, TResult>(
-                              mainMenus,
-                              extraMenus,
-                              header,
-                              rowsSelectable,
-                              idGetter,
-                              downloadPage,
-                              downloadButtonText,
-                              downloadButtonIcon,
-                              isFilterBarRounded,
-                              hoistFilterBarToShell,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: Sizes.small),
-                      ],
+                              state.filters.isNotEmpty))
+                        Builder(builder: (context) {
+                          final tab = _PagedDataTableFilterTab<TKey, TResultId, TResult>(
+                            mainMenus,
+                            extraMenus,
+                            header,
+                            rowsSelectable,
+                            idGetter,
+                            downloadPage,
+                            downloadButtonText,
+                            downloadButtonIcon,
+                            isFilterBarRounded,
+                            hoistFilterBarToShell,
+                          );
+                          if (hoistFilterBarToShell) return tab;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: CLTheme.of(context).secondaryBackground,
+                                  borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(Sizes.gapLg),
+                                  child: tab,
+                                ),
+                              ),
+                              const SizedBox(height: Sizes.small),
+                            ],
+                          );
+                        }),
                       selectionToolbar,
                       boxedSection,
                     ],
@@ -687,7 +714,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
         // Footer paginazione, condiviso tra le due modalità di layout.
         // Stessa superficie della tabella, separato da hairline superiore.
-        final Widget footerSection = localTheme.configuration.footer.footerVisible && showFooter
+        final bool footerShown = localTheme.configuration.footer.footerVisible && showFooter && !infiniteScroll;
+        final Widget footerSection = footerShown
             // Border top fornito dal solo _PagedDataTableFooter: il wrapper non lo
             // ridisegna, altrimenti doppio hairline sopra la paginazione.
             ? SizedBox(
@@ -701,21 +729,29 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
           child: PagedDataTableTheme(
           data: effectiveTheme,
           child: Container(
+            // Foundation: card L1 = secondaryBackground + ombra soft (cardShadowSoft),
+            // border opt-in (default off). CLContainer NON è usabile qui: il suo
+            // Column(min)+Flexible romperebbe il layout fillHeight/Expanded/scroll
+            // della tabella → stessa surface allineata a mano agli stessi token.
             decoration: BoxDecoration(
+              color: CLTheme.of(context).secondaryBackground,
               borderRadius: BorderRadius.circular(Sizes.radiusCard),
+              boxShadow: CLTheme.of(context).cardShadowSoft,
             ),
             child: Material(
-              type: MaterialType.card,
-              color: CLTheme.of(context).secondaryBackground,
+              type: MaterialType.transparency,
               shape: RoundedRectangleBorder(
-                side: showBorder ? BorderSide(color: CLTheme.of(context).borderColor, width: 1) : BorderSide.none,
+                // Dark: ombra invisibile → bordo hairline per delineare la card.
+                side: (showBorder || Theme.of(context).brightness == Brightness.dark)
+                    ? BorderSide(color: CLTheme.of(context).borderColor, width: 1)
+                    : BorderSide.none,
                 borderRadius: BorderRadius.circular(Sizes.radiusCard),
               ),
               clipBehavior: Clip.antiAlias,
               child: !_isTableCompact(context)
-                  // In fillHeight niente scroll esterno: titolo, filter bar,
-                  // header e footer fissi, scorrono solo le righe (Expanded).
-                  ? fillHeight
+                  // In fillHeight/infiniteScroll niente scroll esterno: titolo,
+                  // filter bar, header e footer fissi, scorrono solo le righe.
+                  ? (fillHeight || infiniteScroll)
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -746,15 +782,19 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             ],
                           ),
                         )
-                  : fillHeight
+                  : (fillHeight || infiniteScroll)
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (titleHeader != null) titleHeader,
                             Expanded(child: child),
-                            const SizedBox(height: Sizes.padding),
-                            footerSection,
-                            !isInSnippet ? const SizedBox(height: Sizes.padding) : const SizedBox.shrink(),
+                            // Padding solo se il footer è mostrato: senza footer
+                            // (infinite scroll) niente spazio morto in fondo.
+                            if (footerShown) ...[
+                              const SizedBox(height: Sizes.padding),
+                              footerSection,
+                              if (!isInSnippet) const SizedBox(height: Sizes.padding),
+                            ],
                           ],
                         )
                       : SingleChildScrollView(

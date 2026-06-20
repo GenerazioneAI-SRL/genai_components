@@ -129,7 +129,7 @@ class CLErrorPage extends StatelessWidget {
                             vertical: cl.gapMd,
                           ),
                           decoration: BoxDecoration(
-                            color: cl.muted,
+                            color: cl.tertiaryBackground,
                             borderRadius: BorderRadius.circular(cl.radiusControl),
                             border: Border.all(color: cl.borderColor, width: 1),
                           ),

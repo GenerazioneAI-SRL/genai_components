@@ -1,6 +1,9 @@
 part of 'paged_datatable.dart';
 
-class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
+class _PagedDataTableBoxed<
+    TKey extends Comparable,
+    TResultId extends Comparable,
+    TResult extends Object> extends StatelessWidget {
   final WidgetBuilder? noItemsFoundBuilder;
   final ErrorBuilder? errorBuilder;
   final double width;
@@ -15,6 +18,10 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
   /// Se true le card scorrono da sole nello spazio (bounded) assegnato.
   final bool fillHeight;
 
+  /// Infinite scroll: carica la pagina successiva avvicinandosi al fondo +
+  /// loader in coda.
+  final bool infiniteScroll;
+
   const _PagedDataTableBoxed(
     this.rowsSelectable,
     this.onItemTap,
@@ -27,6 +34,7 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
     this.tableActions,
     this.actionsBuilder,
     this.fillHeight,
+    this.infiniteScroll,
   );
 
   @override
@@ -36,22 +44,36 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
     return Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
       selector: (context, model) => model._rowsChange,
       builder: (context, _, child) {
-        var state = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
+        var state =
+            context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
 
         // Shimmer loading for mobile
-        if (state.tableState == _TableState.loading && state._rowsState.isEmpty) {
+        if (state.tableState == _TableState.loading &&
+            state._rowsState.isEmpty) {
           return _buildMobileShimmer(context);
         }
 
+        // Infinite scroll: l'append tiene lo stato `loading` → niente dim né
+        // fade-swap dell'intera lista (key stabile, opacità piena); il feedback
+        // è solo il loader in coda.
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           switchInCurve: Curves.easeOutCubic,
           child: AnimatedOpacity(
-            key: ValueKey(state.tableState == _TableState.loading ? 'loading' : 'content_${state._rowsChange}'),
+            key: ValueKey(infiniteScroll
+                ? 'content'
+                : state.tableState == _TableState.loading
+                    ? 'loading'
+                    : 'content_${state._rowsChange}'),
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            opacity: state.tableState == _TableState.loading ? 0.5 : 1,
-            child: DefaultTextStyle(overflow: TextOverflow.ellipsis, style: theme.rowsTextStyle, child: _build(context, state, theme)),
+            opacity: (state.tableState == _TableState.loading && !infiniteScroll)
+                ? 0.5
+                : 1,
+            child: DefaultTextStyle(
+                overflow: TextOverflow.ellipsis,
+                style: theme.rowsTextStyle,
+                child: _build(context, state, theme)),
           ),
         );
       },
@@ -83,7 +105,8 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
               Container(
                 padding: const EdgeInsets.all(Sizes.padding),
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
+                  border: Border(
+                      bottom: BorderSide(color: theme.borderColor, width: 1)),
                 ),
                 child: Row(
                   children: [
@@ -106,16 +129,21 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
               Padding(
                 padding: const EdgeInsets.all(Sizes.padding),
                 child: Column(
-                  children: List.generate(2, (i) => Padding(
-                    padding: EdgeInsets.only(bottom: i == 1 ? 0 : Sizes.small),
-                    child: Row(
-                      children: [
-                        CLShimmer(width: 80, height: 10, borderRadius: 4),
-                        const Spacer(),
-                        CLShimmer(width: 100, height: 10, borderRadius: 4),
-                      ],
-                    ),
-                  )),
+                  children: List.generate(
+                      2,
+                      (i) => Padding(
+                            padding: EdgeInsets.only(
+                                bottom: i == 1 ? 0 : Sizes.small),
+                            child: Row(
+                              children: [
+                                CLShimmer(
+                                    width: 80, height: 10, borderRadius: 4),
+                                const Spacer(),
+                                CLShimmer(
+                                    width: 100, height: 10, borderRadius: 4),
+                              ],
+                            ),
+                          )),
                 ),
               ),
             ],
@@ -125,52 +153,73 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
     );
   }
 
-  Widget _build(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state, PagedDataTableThemeData theme) {
+  Widget _build(
+      BuildContext context,
+      _PagedDataTableState<TKey, TResultId, TResult> state,
+      PagedDataTableThemeData theme) {
     final clTheme = CLTheme.of(context);
 
-    if (state._rowsState.isEmpty && state.tableState == _TableState.displaying) {
-      final empty = noItemsFoundBuilder?.call(context) ?? _buildEmptyState(context, clTheme);
+    if (state._rowsState.isEmpty &&
+        state.tableState == _TableState.displaying) {
+      final empty = noItemsFoundBuilder?.call(context) ??
+          _buildEmptyState(context, clTheme);
       // In fillHeight lo stato vuoto si centra nello spazio disponibile.
       return fillHeight ? Center(child: empty) : empty;
     }
 
     if (state.tableState == _TableState.error) {
-      final error = errorBuilder?.call(state.currentError!) ?? _buildErrorState(context, clTheme, state.currentError);
+      final error = errorBuilder?.call(state.currentError!) ??
+          _buildErrorState(context, clTheme, state.currentError);
       return fillHeight ? Center(child: error) : error;
     }
 
-    return ListView.separated(
+    final rowCount = state._rowsState.length;
+    final showLoader = infiniteScroll && state.hasNextPage;
+    final list = ListView.separated(
       // In fillHeight la lista scorre da sola nello spazio assegnato.
-      physics: fillHeight ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+      physics: fillHeight
+          ? const ClampingScrollPhysics()
+          : const NeverScrollableScrollPhysics(),
       primary: false,
       padding: EdgeInsets.zero,
-      itemCount: state._rowsState.length,
+      itemCount: rowCount + (showLoader ? 1 : 0),
       shrinkWrap: !fillHeight,
-      separatorBuilder: (context, _) =>
-          Divider(height: 1, thickness: 1, color: CLTheme.of(context).borderColor),
-      itemBuilder: (context, index) => ChangeNotifierProvider<_PagedDataTableRowState<TResultId, TResult>>.value(
-        value: state._rowsState[index],
-        child: Consumer<_PagedDataTableRowState<TResultId, TResult>>(
-          builder: (context, model, child) {
-            if (customRowBuilder.shouldUse(context, model.item)) {
-              return SizedBox(height: theme.configuration.rowHeight, child: customRowBuilder.builder(context, model.item));
-            }
-            return _MobileCard<TKey, TResultId, TResult>(
-              model: model,
-              state: state,
-              index: index,
-              rowsSelectable: rowsSelectable,
-              onItemTap: onItemTap,
-              actionsTitle: actionsTitle,
-              tableActions: tableActions,
-              actionsBuilder: actionsBuilder,
-              isInSnippet: isInSnippet,
-              width: width,
-            );
-          },
-        ),
-      ),
+      separatorBuilder: (context, index) => index >= rowCount - 1
+          ? const SizedBox.shrink() // niente divider sopra il loader in coda
+          : Divider(
+              height: 1, thickness: 1, color: CLTheme.of(context).borderColor),
+      itemBuilder: (context, index) {
+        if (index >= rowCount) return const _InfiniteScrollLoader();
+        return ChangeNotifierProvider<
+            _PagedDataTableRowState<TResultId, TResult>>.value(
+          value: state._rowsState[index],
+          child: Consumer<_PagedDataTableRowState<TResultId, TResult>>(
+            builder: (context, model, child) {
+              if (customRowBuilder.shouldUse(context, model.item)) {
+                return SizedBox(
+                    height: theme.configuration.rowHeight,
+                    child: customRowBuilder.builder(context, model.item));
+              }
+              return _MobileCard<TKey, TResultId, TResult>(
+                model: model,
+                state: state,
+                index: index,
+                rowsSelectable: rowsSelectable,
+                onItemTap: onItemTap,
+                actionsTitle: actionsTitle,
+                tableActions: tableActions,
+                actionsBuilder: actionsBuilder,
+                isInSnippet: isInSnippet,
+                width: width,
+              );
+            },
+          ),
+        );
+      },
     );
+    return infiniteScroll
+        ? _InfiniteScrollListener(state: state, child: list)
+        : list;
   }
 
   Widget _buildEmptyState(BuildContext context, CLTheme theme) {
@@ -188,7 +237,8 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: Sizes.padding * 3, horizontal: Sizes.padding),
+        padding: const EdgeInsets.symmetric(
+            vertical: Sizes.padding * 3, horizontal: Sizes.padding),
         decoration: BoxDecoration(
           color: theme.secondaryBackground,
           borderRadius: BorderRadius.circular(Sizes.borderRadius),
@@ -204,12 +254,19 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
                 color: _effectiveTablePrimary(context).withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(Sizes.borderRadius + 2),
               ),
-              child: Icon(Icons.search_off_rounded, size: 26, color: _effectiveTablePrimary(context).withValues(alpha: 0.5)),
+              child: Icon(Icons.search_off_rounded,
+                  size: 26,
+                  color:
+                      _effectiveTablePrimary(context).withValues(alpha: 0.5)),
             ),
             const SizedBox(height: Sizes.padding),
-            Text('Nessun elemento trovato', style: theme.bodyText.copyWith(fontWeight: FontWeight.w600, color: theme.secondaryText)),
+            Text('Nessun elemento trovato',
+                style: theme.bodyText.copyWith(
+                    fontWeight: FontWeight.w600, color: theme.secondaryText)),
             const SizedBox(height: Sizes.small * 0.5),
-            Text('Prova a modificare i filtri', style: theme.smallLabel.copyWith(color: theme.secondaryText.withValues(alpha: 0.6))),
+            Text('Prova a modificare i filtri',
+                style: theme.smallLabel.copyWith(
+                    color: theme.secondaryText.withValues(alpha: 0.6))),
           ],
         ),
       ),
@@ -231,7 +288,8 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: Sizes.padding * 2, horizontal: Sizes.padding),
+        padding: const EdgeInsets.symmetric(
+            vertical: Sizes.padding * 2, horizontal: Sizes.padding),
         decoration: BoxDecoration(
           color: theme.secondaryBackground,
           borderRadius: BorderRadius.circular(Sizes.borderRadius),
@@ -247,12 +305,17 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
                 color: theme.danger.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(Sizes.borderRadius),
               ),
-              child: Icon(Icons.error_outline_rounded, size: 24, color: theme.danger.withValues(alpha: 0.8)),
+              child: Icon(Icons.error_outline_rounded,
+                  size: 24, color: theme.danger.withValues(alpha: 0.8)),
             ),
             const SizedBox(height: Sizes.padding),
-            Text('Errore di caricamento', style: theme.bodyText.copyWith(fontWeight: FontWeight.w600)),
+            Text('Errore di caricamento',
+                style: theme.bodyText.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: Sizes.small * 0.5),
-            Text(error?.toString() ?? 'Errore sconosciuto', style: theme.smallLabel.copyWith(color: theme.secondaryText.withValues(alpha: 0.7)), textAlign: TextAlign.center),
+            Text(error?.toString() ?? 'Errore sconosciuto',
+                style: theme.smallLabel.copyWith(
+                    color: theme.secondaryText.withValues(alpha: 0.7)),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -260,7 +323,8 @@ class _PagedDataTableBoxed<TKey extends Comparable, TResultId extends Comparable
   }
 }
 
-class _MobileCard<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatefulWidget {
+class _MobileCard<TKey extends Comparable, TResultId extends Comparable,
+    TResult extends Object> extends StatefulWidget {
   final _PagedDataTableRowState<TResultId, TResult> model;
   final _PagedDataTableState<TKey, TResultId, TResult> state;
   final int index;
@@ -286,10 +350,12 @@ class _MobileCard<TKey extends Comparable, TResultId extends Comparable, TResult
   });
 
   @override
-  State<_MobileCard<TKey, TResultId, TResult>> createState() => _MobileCardState<TKey, TResultId, TResult>();
+  State<_MobileCard<TKey, TResultId, TResult>> createState() =>
+      _MobileCardState<TKey, TResultId, TResult>();
 }
 
-class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
+        TResult extends Object>
     extends State<_MobileCard<TKey, TResultId, TResult>> {
   bool _isPressed = false;
 
@@ -298,7 +364,8 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
     final theme = CLTheme.of(context);
     final model = widget.model;
     final state = widget.state;
-    final actions = widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
+    final actions =
+        widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
 
     // Ruoli mobile: titolo = colonna isMain (fallback: prima colonna); sottotitolo = colonna isSubtitle.
     final cols = state.columns;
@@ -321,104 +388,132 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
     return Selector<_PagedDataTableState<TKey, TResultId, TResult>, bool>(
       selector: (_, m) => m.mobileSelectionMode,
       builder: (context, selectionMode, _) {
+        // Mobile: le azioni inline (es. Modifica/Elimina) si rivelano con lo
+        // swipe a sinistra (_SwipeActionsReveal); le non-inline restano nel ⋮.
+        final inlineActions = actions.where((a) => a.inline).toList();
+        final menuActions = actions.where((a) => !a.inline).toList();
+
+        void handleTap() {
+          HapticFeedback.selectionClick();
+          if (selectionMode && widget.rowsSelectable) {
+            if (model._isSelected) {
+              state.unselectRow(model.itemId);
+            } else {
+              state.selectRow(model.itemId);
+            }
+          } else {
+            widget.onItemTap?.call(model.item);
+          }
+        }
+
+        final VoidCallback? handleLongPress = widget.rowsSelectable
+            ? () {
+                if (!selectionMode) {
+                  HapticFeedback.mediumImpact();
+                  state.enterMobileSelectionMode();
+                  state.selectRow(model.itemId);
+                }
+              }
+            : null;
+
+        final inner = AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+          color: model._isSelected
+              ? _effectiveTablePrimary(context).withValues(alpha: 0.06)
+              : Colors.transparent,
+          padding: const EdgeInsets.all(Sizes.gapLg),
+          child: Row(
+            children: [
+              if (selectionMode && widget.rowsSelectable) ...[
+                Transform.scale(
+                  scale: 0.85,
+                  child: Checkbox(
+                    value: model._isSelected,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    activeColor: _effectiveTablePrimary(context),
+                    checkColor: Colors.white,
+                    side: BorderSide(color: theme.borderColor, width: 1),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4)),
+                    onChanged: (value) {
+                      if (value == true) {
+                        state.selectRow(model.itemId);
+                      } else {
+                        state.unselectRow(model.itemId);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: Sizes.small),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (titleColumn != null)
+                      titleColumn.buildCell(model.item, model.index),
+                    if (subtitleColumn != null) ...[
+                      const SizedBox(height: 2),
+                      DefaultTextStyle(
+                        style: theme.bodyLabel
+                            .copyWith(color: theme.secondaryText, fontSize: 12),
+                        child:
+                            subtitleColumn.buildCell(model.item, model.index),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (menuActions.isNotEmpty) ...[
+                const SizedBox(width: Sizes.small),
+                CLIconButton(
+                  onTap: () => _showActionsSheet(context, menuActions, model),
+                  iconData: Icons.more_vert_rounded,
+                  backgroundColor: theme.muted,
+                  iconColor: theme.primaryText,
+                  size: Sizes.buttonHeightDefault,
+                  iconSize: Sizes.iconSizeDefault,
+                  tooltip: 'Azioni',
+                ),
+              ],
+            ],
+          ),
+        );
+
+        // In selection mode lo swipe è disattivato (la riga gestisce il check).
+        if (inlineActions.isNotEmpty && !selectionMode) {
+          return _SwipeActionsReveal<TResultId, TResult>(
+            actions: inlineActions,
+            model: model,
+            onTap: handleTap,
+            onLongPress: handleLongPress,
+            child: inner,
+          );
+        }
         return GestureDetector(
           onTapDown: (_) => setState(() => _isPressed = true),
           onTapUp: (_) => setState(() => _isPressed = false),
           onTapCancel: () => setState(() => _isPressed = false),
-          onLongPress: widget.rowsSelectable
-              ? () {
-                  if (!selectionMode) {
-                    HapticFeedback.mediumImpact();
-                    state.enterMobileSelectionMode();
-                    state.selectRow(model.itemId);
-                  }
-                }
-              : null,
-          onTap: () {
-            HapticFeedback.selectionClick();
-            if (selectionMode && widget.rowsSelectable) {
-              if (model._isSelected) {
-                state.unselectRow(model.itemId);
-              } else {
-                state.selectRow(model.itemId);
-              }
-            } else {
-              widget.onItemTap?.call(model.item);
-            }
-          },
+          onLongPress: handleLongPress,
+          onTap: handleTap,
           child: AnimatedScale(
             scale: _isPressed ? 0.97 : 1.0,
             duration: const Duration(milliseconds: 100),
             curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOutCubic,
-              color: model._isSelected
-                  ? _effectiveTablePrimary(context).withValues(alpha: 0.06)
-                  : Colors.transparent,
-              padding: const EdgeInsets.all(Sizes.gapLg),
-              child: Row(
-                children: [
-                  if (selectionMode && widget.rowsSelectable) ...[
-                    Transform.scale(
-                      scale: 0.85,
-                      child: Checkbox(
-                        value: model._isSelected,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                        activeColor: _effectiveTablePrimary(context),
-                        checkColor: Colors.white,
-                        side: BorderSide(color: theme.borderColor, width: 1),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                        onChanged: (value) {
-                          if (value == true) {
-                            state.selectRow(model.itemId);
-                          } else {
-                            state.unselectRow(model.itemId);
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: Sizes.small),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (titleColumn != null) titleColumn.buildCell(model.item, model.index),
-                        if (subtitleColumn != null) ...[
-                          const SizedBox(height: 2),
-                          DefaultTextStyle(
-                            style: theme.bodyLabel.copyWith(color: theme.secondaryText, fontSize: 12),
-                            child: subtitleColumn.buildCell(model.item, model.index),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (actions.isNotEmpty) ...[
-                    const SizedBox(width: Sizes.small),
-                    CLIconButton(
-                      onTap: () => _showActionsSheet(context, actions, model),
-                      iconData: Icons.more_vert_rounded,
-                      backgroundColor: theme.muted,
-                      iconColor: theme.primaryText,
-                      size: Sizes.buttonHeightDefault,
-                      iconSize: Sizes.iconSizeDefault,
-                      tooltip: 'Azioni',
-                    ),
-                  ],
-                ],
-              ),
-            ),
+            child: inner,
           ),
         );
       },
     );
   }
 
-  void _showActionsSheet(BuildContext context, List<TableAction<TResult>> actions, _PagedDataTableRowState<TResultId, TResult> model) {
+  void _showActionsSheet(
+      BuildContext context,
+      List<TableAction<TResult>> actions,
+      _PagedDataTableRowState<TResultId, TResult> model) {
     final theme = CLTheme.of(context);
 
     showModalBottomSheet(
@@ -452,16 +547,19 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
 
               // Header
               Container(
-                padding: const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding * 0.75, Sizes.padding, Sizes.padding * 0.75),
+                padding: const EdgeInsets.fromLTRB(Sizes.padding,
+                    Sizes.padding * 0.75, Sizes.padding, Sizes.padding * 0.75),
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
+                  border: Border(
+                      bottom: BorderSide(color: theme.borderColor, width: 1)),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         widget.actionsTitle?.call(model.item) ?? 'Azioni',
-                        style: theme.bodyText.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.bodyText
+                            .copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
                     GestureDetector(
@@ -472,7 +570,8 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
                           color: theme.secondaryText.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.close_rounded, size: 16, color: theme.secondaryText),
+                        child: Icon(Icons.close_rounded,
+                            size: 16, color: theme.secondaryText),
                       ),
                     ),
                   ],
@@ -481,18 +580,21 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable, TR
 
               // Actions list
               ...actions.map((action) => InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                  action.onTap.call(model.item);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.padding * 0.75),
-                  child: action.content,
-                ),
-              )),
+                    onTap: () {
+                      Navigator.pop(context);
+                      action.onTap.call(model.item);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: Sizes.padding,
+                          vertical: Sizes.padding * 0.75),
+                      child: action.content,
+                    ),
+                  )),
 
               // Safe area bottom
-              SizedBox(height: MediaQuery.of(context).padding.bottom + Sizes.small),
+              SizedBox(
+                  height: MediaQuery.of(context).padding.bottom + Sizes.small),
             ],
           ),
         );

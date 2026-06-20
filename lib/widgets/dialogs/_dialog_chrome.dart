@@ -45,7 +45,7 @@ class DialogShell extends StatelessWidget {
                   color: cl.secondaryBackground,
                   borderRadius: BorderRadius.circular(cl.radiusModal),
                   border: Border.all(color: cl.cardBorder, width: 1),
-                  boxShadow: cl.cardShadow,
+                  boxShadow: cl.popoverShadow,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: child,
@@ -58,7 +58,7 @@ class DialogShell extends StatelessWidget {
   }
 }
 
-/// Header section with a Satoshi title, optional subtitle, and a discreet
+/// Header section with an Inter title, optional subtitle, and a discreet
 /// close affordance via [onClose].
 class DialogHeader extends StatelessWidget {
   final String title;
