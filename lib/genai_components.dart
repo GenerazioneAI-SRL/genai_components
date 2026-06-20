@@ -27,6 +27,7 @@ export 'widgets/layout/cl_adaptive_shell.widget.dart';
 export 'widgets/layout/cl_bottom_bar.widget.dart';
 export 'widgets/layout/cl_destination.dart';
 export 'widgets/layout/cl_nav_list.widget.dart';
+export 'widgets/layout/cl_nav_rail.widget.dart';
 export 'widgets/layout/cl_page_container.widget.dart';
 export 'widgets/layout/cl_responsive_grid_shadcn.widget.dart';
 export 'widgets/layout/cl_responsive_stack.widget.dart';

@@ -12,22 +12,28 @@ import 'package:flutter/widgets.dart';
 @immutable
 class ShellAction {
   const ShellAction({
-    required this.icon,
+    this.icon,
     this.label,
-    required this.onTap,
+    this.onTap,
     this.tooltip,
     this.isPrimary = false,
     this.enabled = true,
+    this.builder,
   });
 
-  final IconData icon;
+  final IconData? icon;
   final String? label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final String? tooltip;
 
   /// Azione primaria (es. "+ Aggiungi") → resa come pulsante con testo.
   final bool isPrimary;
   final bool enabled;
+
+  /// Escape hatch: se presente, lo shell rende questo widget invece del bottone
+  /// generico. Serve a preservare azioni con logica propria (es.
+  /// `PageAction.toWidget` con conferme/colori) senza che lo shell le conosca.
+  final WidgetBuilder? builder;
 }
 
 /// Voce di breadcrumb. `onTap == null` → voce corrente (non navigabile).
@@ -112,21 +118,52 @@ class ShellSlots {
   static const ShellSlots empty = ShellSlots();
 }
 
-/// Stato dei slot. La pagina chiama [setSlots] (in `didChangeDependencies` o
-/// post-frame) e [clear] in `dispose`. Lo shell ascolta e ricostruisce header /
-/// bottom. È un `ChangeNotifier` puro: zero dipendenza dall'app.
+/// Stato dei slot, su DUE canali indipendenti che lo shell unisce:
+///  - canale **nav** (back + breadcrumbs): pubblicato in modo centrale (un
+///    bridge che legge lo stato di navigazione), non dalle singole pagine.
+///  - canale **page** (pageActions + contextControls): pubblicato dalla pagina
+///    corrente in `initState`/post-frame, ripulito in `dispose`.
+/// Due canali separati = nessun overwrite tra publisher diversi.
+/// `ChangeNotifier` puro: zero dipendenza dall'app.
 class ShellSlotsController extends ChangeNotifier {
-  ShellSlots _slots = ShellSlots.empty;
-  ShellSlots get slots => _slots;
+  ShellBack? _back;
+  List<ShellCrumb> _breadcrumbs = const [];
+  List<ShellAction> _pageActions = const [];
+  List<ShellContextControl> _contextControls = const [];
 
-  void setSlots(ShellSlots slots) {
-    _slots = slots;
+  ShellSlots get slots => ShellSlots(
+        back: _back,
+        breadcrumbs: _breadcrumbs,
+        pageActions: _pageActions,
+        contextControls: _contextControls,
+      );
+
+  /// Canale navigazione (centrale). Aggiorna back + breadcrumbs.
+  void setNav({ShellBack? back, List<ShellCrumb> breadcrumbs = const []}) {
+    _back = back;
+    _breadcrumbs = breadcrumbs;
     notifyListeners();
   }
 
-  void clear() {
-    if (_slots.isEmpty) return;
-    _slots = ShellSlots.empty;
+  /// Canale page — azioni primarie della pagina (pubblicate dalla pagina).
+  void setPageActions(List<ShellAction> pageActions) {
+    _pageActions = pageActions;
+    notifyListeners();
+  }
+
+  /// Canale page — controlli contestuali (pubblicati da chi li possiede, es. la
+  /// tabella). Separato da [setPageActions] così i due publisher non si
+  /// sovrascrivono a vicenda.
+  void setContextControls(List<ShellContextControl> controls) {
+    _contextControls = controls;
+    notifyListeners();
+  }
+
+  /// Azzera l'intero canale page (azioni + controlli). Da chiamare al cambio
+  /// rotta / dispose pagina.
+  void clearPage() {
+    _pageActions = const [];
+    _contextControls = const [];
     notifyListeners();
   }
 }

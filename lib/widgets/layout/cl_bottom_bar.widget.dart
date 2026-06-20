@@ -2,46 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:genai_components/cl_theme.dart';
 import 'cl_destination.dart';
 
-/// Bottom bar mobile: mostra le foglie principali (per `priority`).
-/// L'overflow + il menu completo vivono nel drawer (hamburger), niente "Altro".
+/// Bottom bar mobile: mostra le prime `maxItems` voci top-level (per `priority`)
+/// e, se ce ne sono altre, una voce "Altro" che apre il drawer (menu completo).
+/// Tap su foglia → `onSelect`; su gruppo/sezione → `onOpenGroup` (drawer).
 class CLBottomBar extends StatelessWidget {
   const CLBottomBar({
     super.key,
     required this.destinations,
     required this.selectedKey,
     required this.onSelect,
+    required this.onOpenGroup,
+    required this.onOverflow,
     required this.maxItems,
+    this.overflowLabel = 'Altro',
   });
 
   final List<CLDestination> destinations;
   final String? selectedKey;
   final ValueChanged<CLDestination> onSelect;
+  final ValueChanged<CLDestination> onOpenGroup;
+  final VoidCallback onOverflow;
   final int maxItems;
-
-  /// Appiattisce l'albero a sole foglie visibili.
-  static List<CLDestination> _leaves(List<CLDestination> roots) {
-    final out = <CLDestination>[];
-    void walk(CLDestination d) {
-      if (!d.isVisible) return;
-      if (d.isLeaf) {
-        out.add(d);
-      } else {
-        for (final c in d.children) {
-          walk(c);
-        }
-      }
-    }
-    for (final d in roots) {
-      walk(d);
-    }
-    return out;
-  }
+  final String overflowLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final leaves = _leaves(destinations)..sort((a, b) => b.priority.compareTo(a.priority));
-    final items = leaves.take(maxItems).toList();
+    final tops = destinations.where((d) => d.isVisible).toList()..sort((a, b) => b.priority.compareTo(a.priority));
+    final overflow = tops.length > maxItems;
+    final visibleCount = overflow ? maxItems - 1 : tops.length;
+    final items = tops.take(visibleCount).toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -58,9 +48,19 @@ class CLBottomBar extends StatelessWidget {
               for (final d in items)
                 Expanded(
                   child: _BottomItem(
-                    destination: d,
-                    selected: d.key == selectedKey,
-                    onTap: () => onSelect(d),
+                    icon: (c) => d.buildIcon(c, 22),
+                    label: d.label,
+                    selected: d.key == selectedKey || d.containsKey(selectedKey),
+                    onTap: () => d.isLeaf ? onSelect(d) : onOpenGroup(d),
+                  ),
+                ),
+              if (overflow)
+                Expanded(
+                  child: _BottomItem(
+                    icon: (c) => Icon(Icons.more_horiz, color: c, size: 22),
+                    label: overflowLabel,
+                    selected: false,
+                    onTap: onOverflow,
                   ),
                 ),
             ],
@@ -72,9 +72,10 @@ class CLBottomBar extends StatelessWidget {
 }
 
 class _BottomItem extends StatelessWidget {
-  const _BottomItem({required this.destination, required this.selected, required this.onTap});
+  const _BottomItem({required this.icon, required this.label, required this.selected, required this.onTap});
 
-  final CLDestination destination;
+  final Widget? Function(Color color) icon;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
 
@@ -82,7 +83,7 @@ class _BottomItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final color = selected ? theme.primary : theme.secondaryText;
-    final iconWidget = destination.buildIcon(color, 22);
+    final iconWidget = icon(color);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -93,7 +94,7 @@ class _BottomItem extends StatelessWidget {
           if (iconWidget != null) iconWidget,
           const SizedBox(height: 2),
           Text(
-            destination.label,
+            label,
             style: theme.smallText.copyWith(
               color: color,
               fontWeight: selected ? FontWeight.w600 : FontWeight.normal,

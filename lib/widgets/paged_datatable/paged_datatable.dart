@@ -8,6 +8,7 @@ import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_icon_button.widget.dart';
 import '../buttons/cl_compact_action_scope.dart';
+import '../layout/cl_shell_slots.dart';
 import '../cl_popup_surface.widget.dart';
 import '../cl_popup_menu.widget.dart';
 import '../cl_shimmer.widget.dart';
@@ -285,6 +286,13 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   final IconData? downloadButtonIcon;
   final Future Function({Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})? downloadPage;
   final bool isFilterBarRounded;
+
+  /// Opt-in: su mobile (compact) e con un `CLShellScope` antenato, la filter bar
+  /// non si renderizza inline ma pubblica i suoi controlli nell'area contestuale
+  /// dello shell (riga alta sopra la bottom bar). Default false → comportamento
+  /// invariato per ogni tabella esistente (zero blast radius).
+  final bool hoistFilterBarToShell;
+
   final bool showShimmerLoading;
 
   /// Titolo opzionale mostrato nell'header della tabella (stessa grafica di CLContainer).
@@ -344,6 +352,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.showTopBorder = true,
     this.showFooter = true,
     this.isFilterBarRounded = true,
+    this.hoistFilterBarToShell = false,
     this.showShimmerLoading = true,
     this.expandedRowBuilder,
     this.onRowExpanded,
@@ -619,6 +628,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             downloadButtonText,
                             downloadButtonIcon,
                             isFilterBarRounded,
+                            hoistFilterBarToShell,
                           ),
                         ],
 
@@ -658,6 +668,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                               downloadButtonText,
                               downloadButtonIcon,
                               isFilterBarRounded,
+                              hoistFilterBarToShell,
                             ),
                           ),
                         ),

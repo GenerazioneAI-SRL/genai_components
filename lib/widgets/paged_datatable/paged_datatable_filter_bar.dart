@@ -10,6 +10,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   final String? downloadButtonText;
   final IconData? downloadButtonIcon;
   final bool isFilterBarRounded;
+  final bool hoistToShell;
 
   const _PagedDataTableFilterTab(
     this.mainMenus,
@@ -21,6 +22,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     this.downloadButtonText,
     this.downloadButtonIcon,
     this.isFilterBarRounded,
+    this.hoistToShell,
   );
 
   @override
@@ -290,7 +292,9 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         if (theme.filtersHeaderTextStyle != null) {
           child = DefaultTextStyle(style: theme.filtersHeaderTextStyle!, child: child);
         }
-        return child;
+        return hoistToShell
+            ? _FilterBarShellHost<TKey, TResultId, TResult>(state: state, child: child)
+            : child;
       },
     );
   }
@@ -638,5 +642,85 @@ class _ExtraMenuRowState extends State<_ExtraMenuRow> {
         ),
       ),
     );
+  }
+}
+
+/// Host opt-in: su mobile (compact) e con un [CLShellScope] antenato, pubblica
+/// la filter bar nell'area contestuale dello shell invece di renderla inline.
+/// Ri-fornisce i provider della tabella (state + theme + style) così la barra
+/// costruita SOPRA la tabella (nello shell) trova le sue dipendenze. Altrove →
+/// render inline invariato.
+class _FilterBarShellHost<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatefulWidget {
+  const _FilterBarShellHost({required this.state, required this.child});
+
+  final _PagedDataTableState<TKey, TResultId, TResult> state;
+  final Widget child;
+
+  @override
+  State<_FilterBarShellHost<TKey, TResultId, TResult>> createState() =>
+      _FilterBarShellHostState<TKey, TResultId, TResult>();
+}
+
+class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends State<_FilterBarShellHost<TKey, TResultId, TResult>> {
+  ShellSlotsController? _shell;
+  bool _published = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _shell = CLShellScope.maybeOf(context);
+  }
+
+  @override
+  void dispose() {
+    if (_published) _shell?.setContextControls(const []);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shell = _shell;
+    final compact = _isTableCompact(context);
+
+    if (shell == null || !compact) {
+      // Path invariato: render inline. Se prima avevamo pubblicato, pulisci.
+      if (_published) {
+        _published = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _shell?.setContextControls(const []);
+        });
+      }
+      return widget.child;
+    }
+
+    // Mobile + shell: pubblica la barra (con i provider ri-forniti) e collassa
+    // il render inline.
+    final themeData = PagedDataTableTheme.of(context);
+    final style = CLTableStyle.maybeOf(context);
+    final state = widget.state;
+    final barChild = widget.child;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      shell.setContextControls([
+        ShellContextControl.custom(
+          ShellCustom(
+            (ctx) => _CLTableStyleScope(
+              style: style,
+              child: PagedDataTableTheme(
+                data: themeData,
+                child: ChangeNotifierProvider<_PagedDataTableState<TKey, TResultId, TResult>>.value(
+                  value: state,
+                  child: barChild,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]);
+    });
+    _published = true;
+    return const SizedBox.shrink();
   }
 }
