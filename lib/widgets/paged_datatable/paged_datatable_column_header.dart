@@ -7,8 +7,10 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
   final bool hasActions;
   final bool hasExpandIcon;
   final double actionsColumnWidth;
+  final bool selectAllInHeader;
 
-  const _PagedDataTableHeaderRow(this.rowsSelectable, this.width, this.idGetter, this.hasActions, this.hasExpandIcon, this.actionsColumnWidth);
+  const _PagedDataTableHeaderRow(this.rowsSelectable, this.width, this.idGetter, this.hasActions, this.hasExpandIcon, this.actionsColumnWidth,
+      this.selectAllInHeader);
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +48,14 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                       ),
 
                     // Checkbox header - slot centered on the search-field prefix-icon center.
-                    if (rowsSelectable)
+                    // selectAllInHeader=false: mantieni lo slot (allineamento colonne
+                    // con le righe che hanno checkbox) ma niente checkbox select-all.
+                    if (rowsSelectable && !selectAllInHeader)
+                      Padding(
+                        padding: EdgeInsets.only(left: m.checkboxLeftPad),
+                        child: SizedBox(width: m.checkboxSlot),
+                      ),
+                    if (rowsSelectable && selectAllInHeader)
                       Padding(
                         padding: EdgeInsets.only(left: m.checkboxLeftPad),
                         child: SizedBox(

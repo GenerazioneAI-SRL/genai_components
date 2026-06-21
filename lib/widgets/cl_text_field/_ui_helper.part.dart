@@ -257,7 +257,7 @@ class _TextFieldUiHelper extends _Helper {
     }
     if (w.onColorPicked != null) {
       // Swatch 20px in compact (gapXl): 24px lascerebbe solo 4px di aria nel box da 32.
-      final double swatchSide = w.isCompact ? theme.gapXl : 24;
+      final double swatchSide = w.isCompact ? theme.gapXl : Sizes.iconSizeLarge;
       return Padding(
         padding: const EdgeInsets.only(right: 10),
         child: Container(

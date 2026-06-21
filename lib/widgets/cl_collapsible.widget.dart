@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 /// Sezione espandibile/collassabile con animazione. Alternativa più semplice
 /// a `CustomExpansionTile` con stile coerente al tema.
@@ -86,7 +87,7 @@ class _CLCollapsibleState extends State<CLCollapsible> {
                       curve: Curves.easeInOutCubic,
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        size: theme.iconSizeCompact + 2,
+                        size: Sizes.iconSizeDefault,
                         color: theme.mutedForeground,
                       ),
                     ),

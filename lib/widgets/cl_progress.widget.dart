@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 enum CLProgressVariant { primary, success, warning, danger }
 
@@ -27,7 +28,7 @@ class CLProgress extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(9999),
+      borderRadius: BorderRadius.circular(Sizes.radiusPill),
       child: LinearProgressIndicator(
         value: value.clamp(0.0, 1.0),
         minHeight: height,

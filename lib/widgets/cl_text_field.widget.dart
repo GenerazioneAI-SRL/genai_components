@@ -641,7 +641,7 @@ class CLTextFieldState extends State<CLTextField> {
   late final _TextFieldFileHelper _fileHelper;
   late final _TextFieldUiHelper _uiHelper;
 
-  static const double kIconSize = 16.0;
+  static const double kIconSize = Sizes.iconSizeCompact;
 
   bool get shouldShowRequired {
     if (widget.isRequired) return true;

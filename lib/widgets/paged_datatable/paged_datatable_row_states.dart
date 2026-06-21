@@ -45,7 +45,7 @@ class _ShimmerRows<TKey extends Comparable, TResultId extends Comparable, TResul
                     width: m.checkboxSlot,
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: CLShimmer(width: 18, height: 18, borderRadius: 4),
+                      child: CLShimmer(width: 18, height: 18, borderRadius: Sizes.radiusChip),
                     ),
                   ),
                 ),
@@ -105,14 +105,14 @@ class _EmptyState extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: _effectiveTablePrimary(context).withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(Sizes.borderRadius + 4),
-                border: Border.all(color: _effectiveTablePrimary(context).withValues(alpha: 0.1)),
+                color: _effectiveTablePrimary(context).withValues(alpha: theme.opacitySubtle),
+                borderRadius: BorderRadius.circular(Sizes.radiusCard),
+                border: Border.all(color: _effectiveTablePrimary(context).withValues(alpha: theme.opacitySoft)),
               ),
               child: Icon(
                 Icons.search_off_rounded,
                 size: 28,
-                color: _effectiveTablePrimary(context).withValues(alpha: 0.5),
+                color: _effectiveTablePrimary(context).withValues(alpha: theme.opacityDisabled),
               ),
             ),
             const SizedBox(height: Sizes.padding),
@@ -120,7 +120,7 @@ class _EmptyState extends StatelessWidget {
               'Nessun elemento trovato',
               style: theme.bodyText.copyWith(
                 fontWeight: FontWeight.w600,
-                color: theme.secondaryText,
+                color: theme.primaryText,
               ),
             ),
             const SizedBox(height: Sizes.small * 0.5),
@@ -169,7 +169,7 @@ class _ErrorState extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: theme.danger.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(Sizes.borderRadius + 2),
+                borderRadius: BorderRadius.circular(Sizes.radiusCard),
                 border: Border.all(color: theme.danger.withValues(alpha: 0.15)),
               ),
               child: Icon(

@@ -191,10 +191,13 @@ class _CLTableStyleScope extends InheritedWidget {
   bool updateShouldNotify(_CLTableStyleScope old) => old.style != style;
 }
 
-// Search tabella = recess L2 (tertiaryBackground): incassato, distinto dalla card L1.
+// Search tabella = recess L2 (tertiaryBackground): input incassato, ruolo a sé
+// (standard 4-livelli). Bottoni toolbar = controlFill (fill controlli neutri su L1):
+// erano `muted` (più caldo) → incoerenti con gli icon button shell. Ruoli diversi
+// → grigi diversi legittimi. Override per-tabella via CLTableStyle.
 Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).tertiaryBackground;
 Color _tableHeaderBg(BuildContext c) => CLTableStyle.maybeOf(c)?.headerBackground ?? CLTheme.of(c).secondaryBackground;
-Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).muted;
+Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).controlFill;
 Color _tableBorder(BuildContext c) => CLTableStyle.maybeOf(c)?.border ?? CLTheme.of(c).borderColor;
 
 /// A paginated DataTable that allows page caching and filtering
@@ -275,6 +278,11 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)?
       selectionActionsBuilder;
 
+  /// Mostra il checkbox "seleziona tutti" nell'header. Default true. Se false
+  /// resta lo slot (allineamento) ma niente select-all: la selezione avviene
+  /// solo per-riga. Le checkbox di riga restano sempre attive con [rowsSelectable].
+  final bool selectAllInHeader;
+
   final List<int>? pageSizes;
   final int? initialPageSize;
   final bool isFooterVisible;
@@ -347,6 +355,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.errorBuilder,
     this.noItemsFoundBuilder,
     this.rowsSelectable = true,
+    this.selectAllInHeader = true,
     this.customRowBuilder,
     this.refreshListener,
     this.onItemTap,
@@ -528,7 +537,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                           key: const ValueKey('toolbar_visible'),
                           padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
                           decoration: BoxDecoration(
-                            color: tablePrimary.withValues(alpha: 0.06),
+                            color: tablePrimary.withValues(alpha: clTheme.opacitySubtle),
                             border: Border(
                               bottom: BorderSide(color: tablePrimary.withValues(alpha: 0.15), width: 1),
                             ),
@@ -582,7 +591,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                 TextButton(
                                   onPressed: () => st.clearAllSelections(),
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: EdgeInsets.symmetric(horizontal: clTheme.gapMd, vertical: clTheme.gapIconText),
                                     minimumSize: Size.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
@@ -634,6 +643,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             (header != null ||
                                 mainMenus.isNotEmpty ||
                                 extraMenus.isNotEmpty ||
+                                selectionActionsBuilder != null ||
                                 state.filters.isNotEmpty)) ...[
                           _PagedDataTableFilterTab<TKey, TResultId, TResult>(
                             mainMenus,
@@ -646,15 +656,16 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             downloadButtonIcon,
                             isFilterBarRounded,
                             hoistFilterBarToShell,
+                            selectionActionsBuilder,
                           ),
                         ],
 
-                        /* SELECTION TOOLBAR */
-                        selectionToolbar,
+                        // Desktop: le azioni bulk vivono nella toolbar (filter tab),
+                        // niente barra di selezione separata.
 
                         /* HEADER ROW */
                         _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
-                            rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth),
+                            rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth, selectAllInHeader),
                         /* ITEMS */
                         rowsSection,
                       ],
@@ -683,6 +694,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             downloadButtonIcon,
                             isFilterBarRounded,
                             hoistFilterBarToShell,
+                            // Mobile: builder non usato dal tab (azioni bulk restano
+                            // nella toolbar di selezione separata sotto). Passo null.
+                            null,
                           );
                           if (hoistFilterBarToShell) return tab;
                           return Column(
@@ -692,7 +706,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: CLTheme.of(context).secondaryBackground,
-                                  borderRadius: BorderRadius.all(Radius.circular(Sizes.borderRadius)),
+                                  borderRadius: BorderRadius.all(Radius.circular(Sizes.radiusCard)),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(Sizes.gapLg),
@@ -852,7 +866,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         Flexible(
                           child: Text(
                             title!,
-                            style: theme.bodyText.override(fontWeight: FontWeight.w600),
+                            style: theme.heading4,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

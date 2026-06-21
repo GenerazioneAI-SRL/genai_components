@@ -61,7 +61,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                 borderRadius: BorderRadius.circular(t.radiusPill),
               ),
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
+                duration: t.durationBase,
                 child: Text(
                   state.totalElement > 0
                       ? '${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
@@ -240,7 +240,7 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
             padding: EdgeInsets.symmetric(horizontal: t.gapMd),
             alignment: Alignment.center,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+              duration: t.durationBase,
               transitionBuilder: (child, animation) => FadeTransition(
                 opacity: animation,
                 child: SlideTransition(

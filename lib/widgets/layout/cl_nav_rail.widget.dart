@@ -108,8 +108,9 @@ class _RailItem extends StatelessWidget {
     final theme = CLTheme.of(context);
     final d = destination;
     final selected = d.key == selectedKey || d.containsKey(selectedKey);
-    final accent = d.tint ?? theme.primary;
-    final fg = selected ? accent : theme.secondaryText;
+    // Selezionato: bolla grigia neutra + icona primary (coerente con la leaf
+    // della sidebar). Non selezionato: icona secondaryText, niente sfondo.
+    final fg = selected ? theme.primary : theme.secondaryText;
 
     final icon = d.buildIcon(fg, Sizes.iconSizeDefault) ??
         Text(
@@ -119,20 +120,17 @@ class _RailItem extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: theme.gapSm / 2),
-      child: Tooltip(
-        message: d.label,
-        child: Material(
-          color: selected ? accent.withValues(alpha: 0.12) : Colors.transparent,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => d.isLeaf ? onSelect(d) : onOpenGroup(d),
-            child: SizedBox(
-              height: theme.buttonHeightDefault,
-              width: theme.buttonHeightDefault,
-              child: Center(child: icon),
-            ),
+      child: Material(
+        color: selected ? theme.secondaryText.withValues(alpha: 0.12) : Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => d.isLeaf ? onSelect(d) : onOpenGroup(d),
+          child: SizedBox(
+            height: theme.buttonHeightDefault,
+            width: theme.buttonHeightDefault,
+            child: Center(child: icon),
           ),
         ),
       ),

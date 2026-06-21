@@ -519,7 +519,7 @@ class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: Sizes.gapSm),
         Expanded(
           child: CLTextField.date(
             controller: _endController!,

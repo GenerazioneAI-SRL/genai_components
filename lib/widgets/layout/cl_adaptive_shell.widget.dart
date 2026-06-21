@@ -32,9 +32,14 @@ class CLAdaptiveShell extends StatefulWidget {
     this.slotsController,
     this.railHeader,
     this.railFooter,
+    this.bottomDestinations,
   });
 
   final List<CLDestination> destinations;
+
+  /// Voci dedicate alla bottom bar (mobile). Se `null` usa [destinations]. Serve a
+  /// curare un set diverso dal menu completo (es. solo le 4 scorciatoie chiave).
+  final List<CLDestination>? bottomDestinations;
   final String? selectedKey;
   final ValueChanged<CLDestination> onSelect;
 
@@ -69,6 +74,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// altre azioni. `null` = righe di controlli. Cambio contenuto = snap (nessuna
   /// animazione di transizione).
   String? _panelId;
+
+  /// Gruppo da espandere nel drawer quando viene aperto da un tap su gruppo del
+  /// rail. Azzerato alla chiusura del drawer → l'apertura da avatar parte pulita
+  /// (espande solo il gruppo della rotta corrente).
+  String? _drawerExpandKey;
 
   /// Slot pubblicati dalle pagine discendenti (back/breadcrumbs/azioni/contesto).
   /// Lo shell ascolta questo controller e ricolloca i contenuti per breakpoint.
@@ -110,7 +120,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
-  Widget _navPanel(CLTheme theme, {required bool isCompact}) {
+  Widget _navPanel(CLTheme theme, {required bool isCompact, String? forceExpandedKey}) {
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro (delimita dal content page bg).
       decoration: BoxDecoration(
@@ -128,6 +138,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               selectedKey: widget.selectedKey,
               onSelect: _onSelect,
               isCompact: isCompact,
+              forceExpandedKey: forceExpandedKey,
             ),
           ),
           if (widget.navFooter != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
@@ -177,15 +188,26 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   ],
                   if (s.breadcrumbs.isNotEmpty)
                     Flexible(
-                      child: mode != CLNavMode.sidebar
-                          // Tablet/mobile: solo il titolo (pagina corrente), niente breadcrumbs.
-                          ? Text(
-                              s.breadcrumbs.last.label,
-                              style: theme.heading6.copyWith(fontWeight: FontWeight.w700),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            )
-                          : _breadcrumbs(theme, s.breadcrumbs),
+                      child: Builder(
+                        builder: (context) {
+                          // Titolo (pagina corrente = ultimo crumb).
+                          final titleOnly = Text(
+                            s.breadcrumbs.last.label,
+                            style: theme.heading4,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          );
+                          // Tablet/mobile: sempre solo titolo.
+                          if (mode != CLNavMode.sidebar) return titleOnly;
+                          // Desktop ma barra stretta: solo titolo invece del path
+                          // completo (libera spazio per il cluster di destra).
+                          return LayoutBuilder(
+                            builder: (ctx, c) => (c.maxWidth.isFinite && c.maxWidth < 360)
+                                ? titleOnly
+                                : _breadcrumbs(theme, s.breadcrumbs),
+                          );
+                        },
+                      ),
                     ),
                 ],
               ),
@@ -312,50 +334,72 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           if (hasLower) SizedBox(height: theme.gapSm),
         ],
         if (hasLower)
-          Row(
-            children: [
-              if (s.back != null) ...[
-                CLIconButton(
-                  onTap: s.back!.onTap,
-                  iconData: Icons.arrow_back,
-                  backgroundColor: theme.controlFill,
-                  iconColor: theme.primaryText,
-                  size: theme.buttonHeightDefault,
-                  iconSize: Sizes.iconSizeDefault,
-                  tooltip: s.back!.tooltip ?? 'Indietro',
-                ),
-                SizedBox(width: theme.gapMd),
-              ],
-              Expanded(
-                // Azione primaria singola → CLButton full-width nativo (riempie
-                // lo slot tra back e ⋮). Altrimenti FittedBox scaleDown anti-overflow.
-                child: (s.pageActions.length == 1 && s.pageActions.first.isPrimary && s.pageActions.first.label != null)
-                    ? CLButton.primary(
-                        text: s.pageActions.first.label!,
-                        icon: s.pageActions.first.icon,
-                        iconAlignment: IconAlignment.start,
-                        fullWidth: true,
-                        onTap: s.pageActions.first.enabled ? (s.pageActions.first.onTap ?? () {}) : () {},
-                        context: context,
-                      )
-                    : FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (var i = 0; i < s.pageActions.length; i++) ...[
-                              if (i > 0) SizedBox(width: theme.gapMd),
-                              _actionButton(context, theme, s.pageActions[i]),
-                            ],
-                          ],
-                        ),
-                      ),
-              ),
-              if (s.contextOverflow != null) ...[
-                SizedBox(width: theme.gapMd),
-                _revealButton(context, theme, s.contextOverflow!),
-              ],
-            ],
+          Builder(
+            builder: (context) {
+              // Azione primaria (full-width) + secondarie come icone trailing.
+              // Il primario riempie lo slot tra back e le icone; le altre azioni
+              // (es. "Altre azioni" ⋮) restano compatte a destra. Senza primario →
+              // FittedBox scaleDown di tutte (anti-overflow).
+              ShellAction? primary;
+              final others = <ShellAction>[];
+              for (final a in s.pageActions) {
+                if (primary == null && a.isPrimary && a.label != null) {
+                  primary = a;
+                } else {
+                  others.add(a);
+                }
+              }
+              return Row(
+                children: [
+                  if (s.back != null) ...[
+                    CLIconButton(
+                      onTap: s.back!.onTap,
+                      iconData: Icons.arrow_back,
+                      backgroundColor: theme.controlFill,
+                      iconColor: theme.primaryText,
+                      size: theme.buttonHeightDefault,
+                      iconSize: Sizes.iconSizeDefault,
+                      tooltip: s.back!.tooltip ?? 'Indietro',
+                    ),
+                    SizedBox(width: theme.gapMd),
+                  ],
+                  Expanded(
+                    child: primary != null
+                        ? CLButton.primary(
+                            text: primary.label!,
+                            icon: primary.icon,
+                            iconAlignment: IconAlignment.start,
+                            fullWidth: true,
+                            borderRadius: theme.radiusPill,
+                            onTap: primary.enabled ? (primary.onTap ?? () {}) : () {},
+                            context: context,
+                          )
+                        : FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (var i = 0; i < s.pageActions.length; i++) ...[
+                                  if (i > 0) SizedBox(width: theme.gapMd),
+                                  _actionButton(context, theme, s.pageActions[i]),
+                                ],
+                              ],
+                            ),
+                          ),
+                  ),
+                  // Azioni secondarie a destra del primario (solo se c'è un primario).
+                  if (primary != null)
+                    for (final a in others) ...[
+                      SizedBox(width: theme.gapMd),
+                      _actionButton(context, theme, a),
+                    ],
+                  if (s.contextOverflow != null) ...[
+                    SizedBox(width: theme.gapMd),
+                    _revealButton(context, theme, s.contextOverflow!),
+                  ],
+                ],
+              );
+            },
           ),
       ],
     );
@@ -399,7 +443,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               tooltip: 'Chiudi',
             ),
             SizedBox(width: theme.gapMd),
-            Expanded(child: Text(r.title, style: theme.heading6, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(r.title, style: theme.heading5, overflow: TextOverflow.ellipsis)),
           ],
         ),
         SizedBox(height: theme.gapSm),
@@ -477,7 +521,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             fillColor: theme.tertiaryBackground,
             contentPadding: EdgeInsets.symmetric(horizontal: theme.gapMd),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(theme.radiusControl),
+              borderRadius: BorderRadius.circular(theme.radiusPill),
               borderSide: BorderSide.none,
             ),
           ),
@@ -530,12 +574,16 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
       backgroundColor: theme.background,
+      // Drawer chiuso → azzera il gruppo forzato (apertura da avatar parte pulita).
+      onDrawerChanged: (open) {
+        if (!open && _drawerExpandKey != null) setState(() => _drawerExpandKey = null);
+      },
       drawer: Drawer(
         width: drawerWidth,
         // Menu drawer = L0.
         backgroundColor: theme.primaryBackground,
         shape: const RoundedRectangleBorder(),
-        child: SafeArea(child: _navPanel(theme, isCompact: true)),
+        child: SafeArea(child: _navPanel(theme, isCompact: true, forceExpandedKey: _drawerExpandKey)),
       ),
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
@@ -546,7 +594,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             destinations: widget.destinations,
             selectedKey: widget.selectedKey,
             onSelect: _onSelect,
-            onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+            // Tap su gruppo del rail → apri il drawer GIÀ espanso su quel gruppo.
+            onOpenGroup: (d) {
+              setState(() => _drawerExpandKey = d.key);
+              _scaffoldKey.currentState?.openDrawer();
+            },
             header: widget.railHeader,
             footer: widget.railFooter,
             width: widget.config.railWidth,
@@ -599,7 +651,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           _mobileContextArea(context),
           if (withBottomBar)
             CLBottomBar(
-              destinations: widget.destinations,
+              destinations: widget.bottomDestinations ?? widget.destinations,
               selectedKey: widget.selectedKey,
               onSelect: _onSelect,
               onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
@@ -631,7 +683,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                     CLIconButton(
                       onTap: () => _scaffoldKey.currentState?.openDrawer(),
                       iconData: Icons.menu,
-                      backgroundColor: theme.muted,
+                      backgroundColor: theme.controlFill,
                       iconColor: theme.primaryText,
                       size: theme.buttonHeightDefault,
                       iconSize: Sizes.iconSizeDefault,

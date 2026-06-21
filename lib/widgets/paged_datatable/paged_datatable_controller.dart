@@ -39,6 +39,11 @@ class PagedDataTableController<TKey extends Comparable,
   /// True mentre è in corso un fetch.
   bool get isLoading => _state.tableState == _TableState.loading;
 
+  /// Notifica a ogni cambio di stato della tabella (fetch start/end, append,
+  /// filtro, selezione). Utile all'esterno per reagire ai reload (es. auto-fill
+  /// infinite scroll dopo una ricerca, quando la pagina non si ricostruisce).
+  Listenable get changes => _state;
+
   /// Carica la pagina successiva in APPEND (infinite scroll guidato dall'esterno,
   /// es. la pagina che possiede lo scroll). No-op se non c'è next page o è già in
   /// caricamento → safe da chiamare a ogni evento di scroll.

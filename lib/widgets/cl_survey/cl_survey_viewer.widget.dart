@@ -96,7 +96,7 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
       padding: const EdgeInsets.all(Sizes.padding * 2),
       decoration: BoxDecoration(
         color: CLTheme.of(context).primaryBackground,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(
           color: CLTheme.of(context).borderColor,
           width: 1,
@@ -109,7 +109,7 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
           Container(
             padding: const EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
-              color: CLTheme.of(context).secondaryText.withValues(alpha: 0.1),
+              color: CLTheme.of(context).secondaryText.withValues(alpha: CLTheme.of(context).opacitySoft),
               shape: BoxShape.circle,
             ),
             child: HugeIcon(
@@ -121,17 +121,12 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
           const SizedBox(height: Sizes.padding),
           Text(
             "Nessuna domanda disponibile",
-            style: CLTheme.of(context).bodyText.copyWith(
-              color: CLTheme.of(context).secondaryText,
-              fontWeight: FontWeight.w500,
-            ),
+            style: CLTheme.of(context).heading5,
           ),
           const SizedBox(height: Sizes.padding / 2),
           Text(
             "Il questionario non contiene domande",
-            style: CLTheme.of(context).bodyLabel.copyWith(
-              fontSize: 12,
-            ),
+            style: CLTheme.of(context).smallText,
           ),
         ],
       ),
@@ -149,15 +144,15 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
               vertical: Sizes.padding / 2,
             ),
             decoration: BoxDecoration(
-              color: CLTheme.of(context).primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
+              color: CLTheme.of(context).primary.withValues(alpha: CLTheme.of(context).opacitySoft),
+              borderRadius: BorderRadius.circular(Sizes.radiusPill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 HugeIcon(
                   icon: HugeIcons.strokeRoundedHelpCircle,
-                  size: Sizes.medium,
+                  size: Sizes.iconSizeCompact,
                   color: CLTheme.of(context).primary,
                 ),
                 const SizedBox(width: Sizes.padding / 2),

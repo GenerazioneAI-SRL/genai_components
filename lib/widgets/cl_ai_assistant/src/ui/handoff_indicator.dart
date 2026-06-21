@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:genai_components/genai_components.dart';
 
 import '../core/ai_assistant_controller.dart';
 
@@ -181,7 +182,7 @@ class _HandoffIndicatorState extends State<HandoffIndicator>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: Sizes.gapSm),
                     // Cancel (red circle) — stops agent and closes overlay.
                     _CircleIconButton(
                       icon: Icons.close_rounded,
@@ -249,7 +250,7 @@ class _HandoffIndicatorState extends State<HandoffIndicator>
                 top: i * 10.0,
                 child: Icon(
                   Icons.keyboard_arrow_down_rounded,
-                  size: 20,
+                  size: Sizes.iconSizeDefault,
                   color: _green.withValues(alpha: alpha),
                 ),
               );

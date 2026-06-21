@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 /// CLCheckbox — checkbox stilizzata come nella PagedDataTable.
 ///
@@ -36,7 +37,7 @@ class CLCheckbox extends StatelessWidget {
             width: states.contains(WidgetState.selected) ? 0 : 1,
           ),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusChip)),
         onChanged: onChanged,
       ),
     );

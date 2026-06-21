@@ -78,13 +78,15 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     if (isSelected) {
       return (
         rowColor: primary.withValues(alpha: 0.08),
-        leftBorderColor: primary,
+        // Niente barra verticale: solo tint di sfondo (anche su selezione).
+        leftBorderColor: Colors.transparent,
       );
     }
     if (_isHovered) {
       return (
         rowColor: theme.primaryText.withValues(alpha: 0.025),
-        leftBorderColor: primary,
+        // Solo tint di sfondo su hover: niente barra verticale (resta su selezione).
+        leftBorderColor: Colors.transparent,
       );
     }
     return (
@@ -129,7 +131,8 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
             rowVisual: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutCubic,
-              constraints: const BoxConstraints(minHeight: 52),
+              constraints: const BoxConstraints(
+                  minHeight: Sizes.buttonHeightLarge + Sizes.gapXs),
               width: double.infinity,
               decoration: BoxDecoration(
                 color: deco.rowColor,
@@ -277,7 +280,7 @@ class _ExpandIcon extends StatelessWidget {
             curve: Curves.easeOutCubic,
             child: Icon(
               Icons.chevron_right_rounded,
-              size: 18,
+              size: theme.iconSizeCompact,
               color: isExpanded
                   ? _effectiveTablePrimary(context)
                   : theme.secondaryText.withValues(alpha: 0.6),
@@ -370,7 +373,7 @@ class _ExpandedRowContent extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: theme.primaryBackground.withValues(alpha: 0.5),
+        color: theme.primaryBackground.withValues(alpha: theme.opacityDisabled),
         border: Border(
           left: BorderSide(
               color: _effectiveTablePrimary(context).withValues(alpha: 0.4),
@@ -386,8 +389,8 @@ class _ExpandedRowContent extends StatelessWidget {
               padding: EdgeInsets.all(theme.pagePadX),
               child: Center(
                 child: SizedBox(
-                  width: 24,
-                  height: 24,
+                  width: Sizes.iconSizeLarge,
+                  height: Sizes.iconSizeLarge,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: _effectiveTablePrimary(context),
@@ -573,9 +576,9 @@ class _SwipeActionsRevealState<TResultId extends Comparable,
           children: [
             Icon(a.icon, size: theme.iconSizeDefault, color: fg),
             if (a.label != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: Sizes.gapXs),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: Sizes.gapXs),
                 child: Text(
                   a.label!,
                   maxLines: 1,

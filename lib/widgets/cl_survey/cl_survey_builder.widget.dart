@@ -162,11 +162,12 @@ class QuestionEditorState extends State<QuestionEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: Sizes.padding),
       decoration: BoxDecoration(
         color: CLTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(color: CLTheme.of(context).borderColor),
       ),
       child: Column(
@@ -177,32 +178,32 @@ class QuestionEditorState extends State<QuestionEditor> {
             padding: const EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
               color: CLTheme.of(context).primaryBackground,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius)),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.radiusCard), topRight: Radius.circular(Sizes.radiusCard)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: CLTheme.of(context).primary.withAlpha(26), borderRadius: BorderRadius.circular(20)),
+                  padding: EdgeInsets.symmetric(horizontal: Sizes.gapMd, vertical: theme.gapIconText),
+                  decoration: BoxDecoration(color: theme.primary.withValues(alpha: theme.opacitySoft), borderRadius: BorderRadius.circular(Sizes.radiusPill)),
                   child: Text(widget.title, style: CLTheme.of(context).bodyText.override(color: CLTheme.of(context).primary, fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: Sizes.padding / 2),
                 if (selectedType.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: CLTheme.of(context).secondary.withAlpha(26), borderRadius: BorderRadius.circular(20)),
+                    padding: EdgeInsets.symmetric(horizontal: Sizes.gapMd, vertical: theme.gapIconText),
+                    decoration: BoxDecoration(color: theme.secondary.withValues(alpha: theme.opacitySoft), borderRadius: BorderRadius.circular(Sizes.radiusPill)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        HugeIcon(icon: _getIconForType(selectedType), size: 16, color: CLTheme.of(context).secondary),
-                        const SizedBox(width: 4),
+                        HugeIcon(icon: _getIconForType(selectedType), size: Sizes.iconSizeCompact, color: CLTheme.of(context).secondary),
+                        SizedBox(width: Sizes.gapXs),
                         Text(selectedType, style: CLTheme.of(context).bodyLabel.override(color: CLTheme.of(context).secondary, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
                 const Spacer(),
                 IconButton(
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 20, color: Colors.red),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: Sizes.iconSizeDefault, color: CLTheme.of(context).danger),
                   onPressed: widget.onDelete,
                   tooltip: "Elimina domanda",
                 ),
@@ -322,7 +323,7 @@ class QuestionEditorState extends State<QuestionEditor> {
                   },
                   borderRadius: BorderRadius.circular(Sizes.borderRadius / 2),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: EdgeInsets.symmetric(vertical: Sizes.gapXs),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -341,7 +342,7 @@ class QuestionEditorState extends State<QuestionEditor> {
                           side: BorderSide(color: CLTheme.of(context).borderColor, width: 1),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: Sizes.gapSm),
                         Text("Domanda obbligatoria", style: CLTheme.of(context).bodyText),
                       ],
                     ),
@@ -353,7 +354,7 @@ class QuestionEditorState extends State<QuestionEditor> {
                   const SizedBox(height: Sizes.padding),
                   Row(
                     children: [
-                      HugeIcon(icon: HugeIcons.strokeRoundedMenuSquare, size: 18, color: CLTheme.of(context).secondaryText),
+                      HugeIcon(icon: HugeIcons.strokeRoundedMenuSquare, size: Sizes.iconSizeCompact, color: CLTheme.of(context).secondaryText),
                       const SizedBox(width: Sizes.padding / 2),
                       Text("Opzioni di risposta", style: CLTheme.of(context).bodyText.override(fontWeight: FontWeight.w600)),
                     ],
@@ -427,7 +428,7 @@ class QuestionEditorState extends State<QuestionEditor> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 18, color: CLTheme.of(context).primary),
+                            HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: Sizes.iconSizeCompact, color: CLTheme.of(context).primary),
                             const SizedBox(width: Sizes.padding / 2),
                             Text(
                               "Aggiungi opzione",
@@ -511,6 +512,7 @@ class OptionEditorState extends State<OptionEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     List<Question> nestedQuestions = widget.option.nested ?? [];
     return Container(
       padding: const EdgeInsets.all(Sizes.padding),
@@ -547,13 +549,13 @@ class OptionEditorState extends State<OptionEditor> {
               const SizedBox(width: Sizes.padding / 2),
               if (nestedQuestions.isEmpty)
                 IconButton(
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 20, color: CLTheme.of(context).primary),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: Sizes.iconSizeDefault, color: CLTheme.of(context).primary),
                   onPressed: widget.onAddSubQuestion,
                   tooltip: "Aggiungi domanda subordinata",
                 ),
               if (widget.onDeleteOption != null)
                 IconButton(
-                  icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 20, color: Colors.red),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: Sizes.iconSizeDefault, color: CLTheme.of(context).danger),
                   onPressed: widget.onDeleteOption,
                   tooltip: "Elimina opzione",
                 ),
@@ -583,9 +585,9 @@ class OptionEditorState extends State<OptionEditor> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
                   collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
                   leading: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: CLTheme.of(context).secondary.withAlpha(26), borderRadius: BorderRadius.circular(6)),
-                    child: HugeIcon(icon: HugeIcons.strokeRoundedHierarchySquare08, size: 18, color: CLTheme.of(context).secondary),
+                    padding: EdgeInsets.all(theme.gapIconText),
+                    decoration: BoxDecoration(color: theme.secondary.withValues(alpha: theme.opacitySoft), borderRadius: BorderRadius.circular(Sizes.radiusChip)),
+                    child: HugeIcon(icon: HugeIcons.strokeRoundedHierarchySquare08, size: Sizes.iconSizeCompact, color: CLTheme.of(context).secondary),
                   ),
                   title: Text("Domande subordinate (${nestedQuestions.length})", style: CLTheme.of(context).bodyText.override(fontWeight: FontWeight.w600)),
                   children: [
@@ -622,7 +624,7 @@ class OptionEditorState extends State<OptionEditor> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 18, color: CLTheme.of(context).primary),
+                            HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: Sizes.iconSizeCompact, color: CLTheme.of(context).primary),
                             const SizedBox(width: Sizes.padding / 2),
                             Text(
                               "Aggiungi domanda subordinata",

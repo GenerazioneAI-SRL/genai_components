@@ -62,7 +62,7 @@ class CLErrorPage extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [
               cl.background,
-              Color.alphaBlend(cl.danger.withValues(alpha: 0.04), cl.background),
+              Color.alphaBlend(cl.danger.withValues(alpha: cl.opacityFaint), cl.background),
             ],
           ),
         ),
@@ -193,6 +193,7 @@ class _ErrorBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = CLTheme.of(context);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.6, end: 1.0),
       duration: const Duration(milliseconds: 480),
@@ -203,7 +204,7 @@ class _ErrorBadge extends StatelessWidget {
         height: 72,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color.withValues(alpha: 0.10),
+          color: color.withValues(alpha: cl.opacitySoft),
           border: Border.all(color: color.withValues(alpha: 0.25), width: 1.5),
         ),
         child: Icon(Icons.priority_high_rounded, size: 36, color: color),
@@ -238,7 +239,7 @@ class _PrimaryButtonState extends State<_PrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final cl = CLTheme.of(context);
-    final hoverBg = Color.alphaBlend(Colors.black.withValues(alpha: _hover ? 0.10 : 0), widget.background);
+    final hoverBg = Color.alphaBlend(Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0), widget.background);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),

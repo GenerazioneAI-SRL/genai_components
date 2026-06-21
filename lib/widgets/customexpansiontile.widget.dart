@@ -66,7 +66,7 @@ class _CLExpansionTileState extends State<CLExpansionTile> {
                   children: [
                     // Freccia espandibile
                     AnimatedRotation(
-                      duration: Duration(milliseconds: 150),
+                      duration: CLTheme.of(context).durationFast,
                       turns:
                           isExpanded ? 0.25 : 0, // Ruota di 90° quando espanso
                       child: HugeIcon(
@@ -75,7 +75,7 @@ class _CLExpansionTileState extends State<CLExpansionTile> {
                             widget.isSelected
                                 ? CLTheme.of(context).primary
                                 : CLTheme.of(context).primaryText,
-                        size: 20,
+                        size: Sizes.iconSizeDefault,
                       ),
                     ),
                     SizedBox(width: Sizes.padding / 2),
@@ -94,7 +94,7 @@ class _CLExpansionTileState extends State<CLExpansionTile> {
                                     widget.title ?? "Senza Nome",
                                     style:
                                         widget.titleTextStyle ??
-                                        CLTheme.of(context).bodyLabel.copyWith(
+                                        CLTheme.of(context).title.copyWith(
                                           color:
                                               widget.isSelected
                                                   ? CLTheme.of(context).primary
@@ -115,7 +115,7 @@ class _CLExpansionTileState extends State<CLExpansionTile> {
                                 widget.title ?? "Senza Nome",
                                 style:
                                     widget.titleTextStyle ??
-                                    CLTheme.of(context).bodyLabel.copyWith(
+                                    CLTheme.of(context).title.copyWith(
                                       color:
                                           widget.isSelected
                                               ? CLTheme.of(context).primary

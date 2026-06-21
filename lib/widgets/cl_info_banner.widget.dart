@@ -43,8 +43,8 @@ class _CLInfoBannerState extends State<CLInfoBanner> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final c = widget.color ?? theme.info;
 
-    final tintAlpha = isDark ? 0.10 : 0.06;
-    final borderAlpha = isDark ? 0.28 : 0.20;
+    final tintAlpha = isDark ? theme.opacitySoft : theme.opacitySubtle;
+    final borderAlpha = isDark ? theme.opacityStrong : theme.opacityMedium;
     final iconBgAlpha = isDark ? 0.18 : 0.10;
 
     return TweenAnimationBuilder<double>(

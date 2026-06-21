@@ -260,9 +260,10 @@ class _CLActionTextState extends State<CLActionText> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final fontSize = isMobile ? 13.0 : 14.0;
-    final iconSz = isMobile ? Sizes.small : Sizes.medium;
+    final iconSz = isMobile ? Sizes.iconSizeCompact : Sizes.iconSizeDefault;
     final activeColor = isHovering ? (widget.hoverColor ?? widget.color) : widget.color;
     final hasIcon = widget.iconData != null || widget.hugeIcon != null || loading;
 
@@ -275,7 +276,7 @@ class _CLActionTextState extends State<CLActionText> {
           onTap: _handleTap,
           behavior: HitTestBehavior.opaque,
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: isMobile ? 4 : 2),
+            padding: EdgeInsets.symmetric(vertical: isMobile ? Sizes.gapXs : 2),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -286,7 +287,7 @@ class _CLActionTextState extends State<CLActionText> {
                   widget.hugeIcon!
                 else if (widget.iconData != null)
                   Icon(widget.iconData, color: activeColor, size: iconSz),
-                if (hasIcon) SizedBox(width: isMobile ? 4 : 6),
+                if (hasIcon) SizedBox(width: isMobile ? Sizes.gapXs : theme.gapIconText),
                 Flexible(
                   child: Text(
                     widget.text,

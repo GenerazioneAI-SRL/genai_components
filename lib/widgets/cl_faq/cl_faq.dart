@@ -69,7 +69,7 @@ class _CLFaqWidgetState extends State<CLFaqWidget> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       title: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(bottom: Sizes.gapSm),
                         child: Text(
                           widget.faqCategories[index].title,
                           style: CLTheme.of(context).title,
@@ -101,11 +101,11 @@ class _CLFaqWidgetState extends State<CLFaqWidget> {
                       });
                     }
                   },
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: Sizes.large, color: CLTheme.of(context).primary),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: Sizes.iconSizeDefault, color: CLTheme.of(context).primary),
                 ),
                 title: Text(
                   selectedFaqCategory!.title,
-                  style: CLTheme.of(context).heading6,
+                  style: CLTheme.of(context).heading4,
                 )),
             Expanded(
               child: ListView.separated(

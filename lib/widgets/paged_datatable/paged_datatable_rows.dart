@@ -75,7 +75,7 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
         // fade-swap dell'intera lista (key stabile, opacità piena); il feedback
         // è solo il loader in coda.
         return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
+          duration: CLTheme.of(context).durationBase,
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           child: AnimatedOpacity(
@@ -84,11 +84,11 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
                 : state.tableState == _TableState.loading
                     ? 'loading'
                     : 'content_${state._rowsChange}'),
-            duration: const Duration(milliseconds: 200),
+            duration: CLTheme.of(context).durationBase,
             curve: Curves.easeOut,
             opacity:
                 (state.tableState == _TableState.loading && !infiniteScroll)
-                    ? 0.5
+                    ? CLTheme.of(context).opacityDisabled
                     : 1,
             child: DefaultTextStyle(
                 overflow: TextOverflow.ellipsis,

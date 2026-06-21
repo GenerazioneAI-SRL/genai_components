@@ -65,7 +65,7 @@ class _SurveyState extends State<SurveyWidget> {
                   ),
                 ],
               ),
-              if (widget.onSave != null) SizedBox(height: Sizes.padding),
+              if (widget.onSave != null) SizedBox(height: Sizes.gapXl),
               if (widget.onSave != null)
                 CLButton.primary(
                   text: widget.saveText ?? "Salva",

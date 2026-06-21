@@ -25,7 +25,7 @@ class _ChatMessages extends StatelessWidget {
 
         return ListView.builder(
           controller: scrollController,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: Sizes.gapMd),
           itemCount: msgs.length + (controller.isProcessing ? 1 : 0),
           itemBuilder: (_, i) {
             if (i == msgs.length) {
@@ -83,7 +83,7 @@ class _EmptyState extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: Sizes.gapXl),
             Text(
               controller.config.assistantName,
               style: const TextStyle(
@@ -93,7 +93,7 @@ class _EmptyState extends StatelessWidget {
                 letterSpacing: 0.3,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Sizes.gapSm),
             const Text(
               'Chiedimi informazioni su presenze, turni,\nanomalìe o naviga nelle sezioni.',
               textAlign: TextAlign.center,
@@ -135,7 +135,10 @@ class _TypingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: Sizes.gapLg,
+        vertical: CLTheme.of(context).gapIconText,
+      ),
       child: Row(
         children: [
           _miniAvatar(),
@@ -323,11 +326,11 @@ class _SuggestionCard extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 color: _accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Sizes.radiusSurface),
               ),
               child: Icon(icon, size: 18, color: _accentAlt),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: Sizes.gapMd),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

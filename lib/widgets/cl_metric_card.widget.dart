@@ -113,7 +113,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
             if (clickable) ...[
               const Spacer(),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(theme.gapIconText),
                 decoration: BoxDecoration(
                   color: widget.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,

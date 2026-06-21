@@ -250,15 +250,14 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
       child: button,
     );
 
-    if (widget.tooltip != null && widget.tooltip!.isNotEmpty) {
-      button = Tooltip(message: widget.tooltip!, child: button);
-    }
-
-    if (widget.semanticLabel != null && widget.semanticLabel!.isNotEmpty) {
+    // Niente Tooltip automatico (scelta di prodotto: si aggiunge a mano dove serve).
+    // `tooltip` resta come fallback per la label di accessibilità.
+    final a11yLabel = widget.semanticLabel ?? widget.tooltip;
+    if (a11yLabel != null && a11yLabel.isNotEmpty) {
       button = Semantics(
         button: true,
         enabled: isInteractive,
-        label: widget.semanticLabel,
+        label: a11yLabel,
         child: ExcludeSemantics(child: button),
       );
     }

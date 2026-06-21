@@ -105,6 +105,11 @@ abstract class CLTheme {
   final Color cardBorder; // Card and panel border
   final Color controlFill; // Fill controlli neutri su superficie (es. icon button su L1)
 
+  /// Accento viola decorativo (categorie/CTA secondari NON semantici — es. badge
+  /// CERT, bottoni "Aggiungi" di contesto). Non è success/warning/danger/info:
+  /// è una tinta brand-adiacente. Light violet-600, override dark violet-400.
+  Color get accentPurple => const Color(0xFF7C3AED);
+
   List<BoxShadow> get cardShadow;
 
   /// Ombra leggera per card statiche (Foundation L1 raised): sottile, quasi
@@ -341,26 +346,28 @@ class LightModeTheme extends CLTheme {
   const LightModeTheme({
     super.primary = const Color(0xFF0C8EC7),
     super.secondary = const Color(0xFF0A7AAD),
-    super.alternate = const Color(0xFFE8EBF0),
+    // Rampa neutra quasi-neutra (filo di freddo, Apple-like): accent-agnostica,
+    // niente beige caldo né blu marcato. Blu brand #0C8EC7 invariato.
+    super.alternate = const Color(0xFFECEEF0),
     super.primaryText = const Color(0xF2000000),
-    super.secondaryText = const Color(0xFF615D59),
-    super.primaryBackground = const Color(0xFFFDFDFC),
+    super.secondaryText = const Color(0xFF5D6066),
+    super.primaryBackground = const Color(0xFFFBFBFC),
     super.secondaryBackground = const Color(0xFFFFFFFF),
-    super.tertiaryBackground = const Color(0xFFECEBE9),
+    super.tertiaryBackground = const Color(0xFFE9EBED),
     super.success = const Color(0xFF16A34A),
     super.warning = const Color(0xFFD97706),
     super.danger = const Color(0xFFDC2626),
     super.info = const Color(0xFF0C8EC7),
     super.borderColor = const Color(0x1A000000),
-    super.background = const Color(0xFFF6F5F4),
-    super.fillColor = const Color(0xFFF6F5F4),
-    super.muted = const Color(0xFFF2F1EF),
-    super.mutedForeground = const Color(0xFFA39E98),
-    super.accent = const Color(0xFFF2F1EF),
+    super.background = const Color(0xFFF4F5F6),
+    super.fillColor = const Color(0xFFF4F5F6),
+    super.muted = const Color(0xFFF1F2F4),
+    super.mutedForeground = const Color(0xFF9CA0A6),
+    super.accent = const Color(0xFFF1F2F4),
     super.accentForeground = const Color(0xFF31302E),
     super.ring = const Color(0xFF097FE8),
     super.cardBorder = const Color(0x1A000000),
-    super.controlFill = const Color(0xFFEEF1F5),
+    super.controlFill = const Color(0xFFECEEF0),
   });
 
   @override
@@ -377,27 +384,32 @@ class DarkModeTheme extends CLTheme {
   const DarkModeTheme({
     super.primary = const Color(0xFF3BA8D8),
     super.secondary = const Color(0xFF0C8EC7),
-    super.alternate = const Color(0xFF2A2A34),
+    // Rampa neutra quasi-neutra (filo di freddo, Apple-like): niente blu marcato
+    // (#2A2A34) né caldo. Superfici grigio-neutro a livelli. Blu brand invariato.
+    super.alternate = const Color(0xFF2E2F33),
     super.primaryText = const Color(0xFFE8E8EC),
-    super.secondaryText = const Color(0xFF8B8FA0),
-    super.primaryBackground = const Color(0xFF1A1A18),
-    super.secondaryBackground = const Color(0xFF242421),
-    super.tertiaryBackground = const Color(0xFF2E2E2A),
+    super.secondaryText = const Color(0xFF8B8F98),
+    super.primaryBackground = const Color(0xFF1A1B1E),
+    super.secondaryBackground = const Color(0xFF232427),
+    super.tertiaryBackground = const Color(0xFF2C2D31),
     super.success = const Color(0xFF4ADE80),
     super.warning = const Color(0xFFFBBF24),
     super.danger = const Color(0xFFF87171),
     super.info = const Color(0xFF3BA8D8),
-    super.borderColor = const Color(0xFF2A2A34),
-    super.background = const Color(0xFF121218),
-    super.fillColor = const Color(0xFF1E1E26),
-    super.muted = const Color(0xFF27272A),
-    super.mutedForeground = const Color(0xFFA1A1AA),
-    super.accent = const Color(0xFF27272A),
+    super.borderColor = const Color(0xFF313338),
+    super.background = const Color(0xFF131417),
+    super.fillColor = const Color(0xFF1E1F22),
+    super.muted = const Color(0xFF27282B),
+    super.mutedForeground = const Color(0xFF9A9DA4),
+    super.accent = const Color(0xFF27282B),
     super.accentForeground = const Color(0xFFFAFAFA),
     super.ring = const Color(0xFF3BA8D8),
-    super.cardBorder = const Color(0xFF27272A),
-    super.controlFill = const Color(0xFF2A2A34),
+    super.cardBorder = const Color(0xFF2A2B2F),
+    super.controlFill = const Color(0xFF2E2F33),
   });
+
+  @override
+  Color get accentPurple => const Color(0xFFA78BFA);
 
   @override
   List<BoxShadow> get cardShadow => _kDarkCardShadow;

@@ -72,7 +72,8 @@ class _CLContainerState extends State<CLContainer> {
     // bordo hairline. Light: ci pensa l'ombra (default Foundation, niente bordo).
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final useBorder = widget.showBorder || (widget.showShadow && isDark);
-    final br = widget.borderRadius ?? BorderRadius.circular(Sizes.borderRadius);
+    // Card L1: raggio card (radiusCard), non radiusControl. Override esplicito via borderRadius.
+    final br = widget.borderRadius ?? BorderRadius.circular(Sizes.radiusCard);
     final borderWidth = useBorder ? 1.0 : 0.0;
     final innerBr = BorderRadius.only(
       topLeft: Radius.circular((br.topLeft.x - borderWidth).clamp(0.0, double.infinity)),

@@ -12,6 +12,11 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   final bool isFilterBarRounded;
   final bool hoistToShell;
 
+  /// Azioni bulk: rese nel cluster destro della toolbar (desktop), SEMPRE
+  /// visibili e grigiate quando 0 righe selezionate. Vedi paged_datatable.dart.
+  final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)?
+      selectionActionsBuilder;
+
   const _PagedDataTableFilterTab(
     this.mainMenus,
     this.extraMenus,
@@ -23,6 +28,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     this.downloadButtonIcon,
     this.isFilterBarRounded,
     this.hoistToShell,
+    this.selectionActionsBuilder,
   );
 
   @override
@@ -35,6 +41,21 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         final GlobalKey buttonExtraMenuKey = state.extraMenuButtonKey;
         // Filtri extra attivi (non main) per i chip
         final activeExtraFilters = state.filters.entries.where((e) => !e.value._filter.isMainFilter && e.value.hasValue).toList();
+
+        // Azioni bulk (desktop): sempre rese, grigiate se 0 selezionati. Su
+        // compact resta la toolbar di selezione separata (vedi paged_datatable.dart).
+        final isDesktopBar = !_isTableCompact(context);
+        final selCount = state.selectedRows.length;
+        final selItems = selectionActionsBuilder == null || !isDesktopBar
+            ? <TResult>[]
+            : state.selectedRows.entries
+                .where((e) => e.value < state._items.length)
+                .map((e) => state._items[e.value])
+                .toList();
+        final selActions = selectionActionsBuilder == null || !isDesktopBar
+            ? const <Widget>[]
+            : selectionActionsBuilder!(context, selCount, selItems);
+        final showSelectionBlock = selActions.isNotEmpty;
 
         Widget child = LayoutBuilder(
           builder: (context, constraints) {
@@ -78,8 +99,16 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                 };
                                 return mainFilter.buildPicker(context, entry.value);
                               }).first;
-                              // Ricerca sempre full-width (tutti i breakpoint).
-                              return Expanded(child: field);
+                              // Ricerca con larghezza massima contenuta (no full-width):
+                              // lascia spazio tra search/Filtri e azioni a destra.
+                              // Flexible: si restringe sotto 460 su viewport stretti
+                              // (ConstrainedBox da solo non flexa → overflow).
+                              return Flexible(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 460),
+                                  child: field,
+                                ),
+                              );
                             },
                           ),
 
@@ -161,13 +190,53 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                   ),
 
                   // Gap Lg tra cluster ricerca/filtri e azioni a destra (es. Altre azioni)
-                  if (header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
+                  if (showSelectionBlock || header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
                     SizedBox(width: clTheme.gapLg),
 
                   // === DESTRA: Azioni ===
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Azioni bulk selezione: contatore "N selezionato" (solo se >0)
+                      // + bottoni grigiati/disabilitati quando 0 selezionati.
+                      if (showSelectionBlock) ...[
+                        if (selCount > 0) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _effectiveTablePrimary(context).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(clTheme.radiusControl),
+                            ),
+                            child: Text(
+                              '$selCount selezionat${selCount == 1 ? 'o' : 'i'}',
+                              style: clTheme.bodyLabel.copyWith(
+                                color: _effectiveTablePrimary(context),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: clTheme.gapMd),
+                        ],
+                        Opacity(
+                          opacity: selCount == 0 ? 0.4 : 1,
+                          child: IgnorePointer(
+                            ignoring: selCount == 0,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (var i = 0; i < selActions.length; i++) ...[
+                                  if (i > 0) SizedBox(width: clTheme.gapMd),
+                                  selActions[i],
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
+                          SizedBox(width: clTheme.gapLg),
+                      ],
+
                       // Header custom
                       if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.gapLg)],
 
@@ -237,10 +306,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
               ),
               // === CHIP FILTRI ATTIVI (sotto la barra principale) ===
               if (activeExtraFilters.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                SizedBox(height: clTheme.gapSm),
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
+                  spacing: clTheme.gapIconText,
+                  runSpacing: clTheme.gapXs,
                   children: activeExtraFilters.map((entry) {
                     final filter = entry.value._filter;
                     final label = (filter as dynamic).chipFormatter(entry.value.value) as String;
@@ -262,7 +331,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: clTheme.gapXs),
                           GestureDetector(
                             onTap: () => state.removeFilter(entry.key),
                             child: MouseRegion(
@@ -484,7 +553,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                 CLButton(
                   textStyle: CLTheme.of(context).bodyText.copyWith(color: CLTheme.of(context).primaryText),
                   iconAlignment: IconAlignment.start,
-                  backgroundColor: CLTheme.of(context).muted,
+                  backgroundColor: CLTheme.of(context).controlFill,
                   text: "Ripristina",
                   onTap: () {
                     Navigator.pop(context);
@@ -540,11 +609,11 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                     padding: EdgeInsets.fromLTRB(theme.pagePadX, theme.pagePadX * 0.65, theme.gapMd, theme.pagePadX * 0.65),
                     child: Row(
                       children: [
-                        Expanded(child: Text('Filtra con...', style: theme.heading6)),
+                        Expanded(child: Text('Filtra con...', style: theme.heading4)),
                         CLIconButton(
                           onTap: () => Navigator.pop(context),
                           iconData: LucideIcons.x400,
-                          backgroundColor: theme.muted,
+                          backgroundColor: theme.controlFill,
                           iconColor: theme.primaryText,
                           size: theme.buttonHeightDefault,
                           iconSize: theme.iconSizeDefault,
@@ -693,7 +762,7 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
         Row(
           children: [
             CLButton(
-              backgroundColor: theme.muted,
+              backgroundColor: theme.controlFill,
               textStyle: theme.bodyText.copyWith(color: theme.primaryText),
               iconAlignment: IconAlignment.start,
               text: 'Ripristina',
@@ -777,7 +846,7 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
         Row(
           children: [
             CLButton(
-              backgroundColor: theme.muted,
+              backgroundColor: theme.controlFill,
               textStyle: theme.bodyText.copyWith(color: theme.primaryText),
               iconAlignment: IconAlignment.start,
               text: 'Rimuovi',

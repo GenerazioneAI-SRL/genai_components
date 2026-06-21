@@ -65,11 +65,11 @@ class _PagedDataTableBoxed<
                 : state.tableState == _TableState.loading
                     ? 'loading'
                     : 'content_${state._rowsChange}'),
-            duration: const Duration(milliseconds: 200),
+            duration: CLTheme.of(context).durationBase,
             curve: Curves.easeOut,
             opacity:
                 (state.tableState == _TableState.loading && !infiniteScroll)
-                    ? 0.5
+                    ? CLTheme.of(context).opacityDisabled
                     : 1,
             child: DefaultTextStyle(
                 overflow: TextOverflow.ellipsis,
@@ -96,7 +96,7 @@ class _PagedDataTableBoxed<
           ),
           decoration: BoxDecoration(
             color: theme.secondaryBackground,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius),
+            borderRadius: BorderRadius.circular(Sizes.radiusCard),
             border: Border.all(color: theme.borderColor, width: 1),
           ),
           child: Column(
@@ -249,7 +249,7 @@ class _PagedDataTableBoxed<
             vertical: Sizes.padding * 3, horizontal: Sizes.padding),
         decoration: BoxDecoration(
           color: theme.secondaryBackground,
-          borderRadius: BorderRadius.circular(Sizes.borderRadius),
+          borderRadius: BorderRadius.circular(Sizes.radiusCard),
           border: Border.all(color: theme.borderColor, width: 1),
         ),
         child: Column(
@@ -259,13 +259,14 @@ class _PagedDataTableBoxed<
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: _effectiveTablePrimary(context).withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(Sizes.borderRadius + 2),
+                color: _effectiveTablePrimary(context)
+                    .withValues(alpha: theme.opacitySubtle),
+                borderRadius: BorderRadius.circular(Sizes.radiusSurface),
               ),
               child: Icon(Icons.search_off_rounded,
                   size: 26,
-                  color:
-                      _effectiveTablePrimary(context).withValues(alpha: 0.5)),
+                  color: _effectiveTablePrimary(context)
+                      .withValues(alpha: theme.opacityDisabled)),
             ),
             const SizedBox(height: Sizes.padding),
             Text('Nessun elemento trovato',
@@ -300,7 +301,7 @@ class _PagedDataTableBoxed<
             vertical: Sizes.padding * 2, horizontal: Sizes.padding),
         decoration: BoxDecoration(
           color: theme.secondaryBackground,
-          borderRadius: BorderRadius.circular(Sizes.borderRadius),
+          borderRadius: BorderRadius.circular(Sizes.radiusCard),
           border: Border.all(color: theme.borderColor, width: 1),
         ),
         child: Column(
@@ -480,7 +481,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                 CLIconButton(
                   onTap: () => _showActionsSheet(context, menuActions, model),
                   iconData: Icons.more_vert_rounded,
-                  backgroundColor: theme.muted,
+                  backgroundColor: theme.controlFill,
                   iconColor: theme.primaryText,
                   size: Sizes.buttonHeightDefault,
                   iconSize: Sizes.iconSizeDefault,
@@ -533,7 +534,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
           margin: const EdgeInsets.all(Sizes.padding),
           decoration: BoxDecoration(
             color: theme.secondaryBackground,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius + 4),
+            borderRadius: BorderRadius.circular(Sizes.radiusModal),
             border: Border.all(color: theme.borderColor, width: 1),
           ),
           child: Column(
@@ -547,7 +548,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: theme.secondaryText.withValues(alpha: 0.2),
+                    color: theme.secondaryText.withValues(alpha: theme.opacityMedium),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -576,10 +577,10 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: theme.secondaryText.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(Sizes.radiusControl),
                         ),
                         child: Icon(Icons.close_rounded,
-                            size: 16, color: theme.secondaryText),
+                            size: Sizes.iconSizeCompact, color: theme.secondaryText),
                       ),
                     ),
                   ],

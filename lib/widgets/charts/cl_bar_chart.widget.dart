@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../cl_theme.dart';
+import '../../layout/constants/sizes.constant.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -106,7 +107,7 @@ class _CLBarChartState<T> extends State<CLBarChart<T>> {
         final narrow = constraints.maxWidth < widget.rotateThreshold;
 
         return Padding(
-          padding: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.only(top: Sizes.gapLg),
           child: BarChart(
             BarChartData(
               minY: widget.minY ?? 0,
@@ -116,7 +117,7 @@ class _CLBarChartState<T> extends State<CLBarChart<T>> {
                 drawHorizontalLine: widget.showGrid,
                 horizontalInterval: widget.leftAxisInterval,
                 getDrawingHorizontalLine: (_) => FlLine(
-                  color: theme.borderColor.withValues(alpha: 0.5),
+                  color: theme.borderColor.withValues(alpha: theme.opacityDisabled),
                   strokeWidth: 0.8,
                 ),
               ),
@@ -138,7 +139,7 @@ class _CLBarChartState<T> extends State<CLBarChart<T>> {
                       ),
                     );
                   },
-                  getTooltipColor: (_) => isDark ? const Color(0xFF2D2D3A) : Colors.white,
+                  getTooltipColor: (_) => theme.secondaryBackground,
                 ),
               ),
               barGroups: List.generate(widget.data.length, (i) {
@@ -150,7 +151,7 @@ class _CLBarChartState<T> extends State<CLBarChart<T>> {
                       toY: value,
                       color: color,
                       width: widget.barWidth,
-                      borderRadius: widget.borderRadius ?? BorderRadius.circular(4),
+                      borderRadius: widget.borderRadius ?? BorderRadius.circular(Sizes.radiusChip),
                     ),
                   ],
                 );
@@ -165,7 +166,7 @@ class _CLBarChartState<T> extends State<CLBarChart<T>> {
                     interval: widget.leftAxisInterval,
                     getTitlesWidget: widget.leftTitleBuilder ??
                         (value, meta) => Padding(
-                              padding: const EdgeInsets.only(right: 6),
+                              padding: EdgeInsets.only(right: theme.gapIconText),
                               child: Text(
                                 _formatNumber(value),
                                 style: theme.smallLabel,
@@ -185,7 +186,7 @@ class _CLBarChartState<T> extends State<CLBarChart<T>> {
                           if (idx < 0 || idx >= widget.data.length) return const SizedBox.shrink();
                           final label = widget.xValueMapper(widget.data[idx], idx);
                           return Padding(
-                            padding: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.only(top: Sizes.gapSm),
                             child: Transform.rotate(
                               angle: (widget.rotateLabels && narrow) ? (-45 * (pi / 180)) : 0,
                               child: Text(label, style: theme.smallLabel),

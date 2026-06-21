@@ -12,7 +12,7 @@ class CLRoleBadge extends StatelessWidget {
   final double iconSize;
   final bool showBorder;
 
-  const CLRoleBadge({super.key, required this.label, required this.color, required this.icon, this.iconSize = 18, this.showBorder = true});
+  const CLRoleBadge({super.key, required this.label, required this.color, required this.icon, this.iconSize = Sizes.iconSizeCompact, this.showBorder = true});
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +22,8 @@ class CLRoleBadge extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: Sizes.padding / 2, vertical: Sizes.padding / 4),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(Sizes.borderRadius),
+            color: color.withValues(alpha: CLTheme.of(context).opacitySoft),
+            borderRadius: BorderRadius.circular(Sizes.radiusChip),
             border: showBorder ? Border.all(color: color.withValues(alpha: 0.3), width: 1) : null,
           ),
           child: Row(
@@ -34,7 +34,7 @@ class CLRoleBadge extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: CLTheme.of(context).bodyText.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13),
+                  style: CLTheme.of(context).smallLabel.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -55,13 +55,13 @@ class CLRoleIcon extends StatelessWidget {
   final double radius;
   final double iconSize;
 
-  const CLRoleIcon({super.key, required this.tooltip, required this.color, required this.icon, this.radius = 16, this.iconSize = 18});
+  const CLRoleIcon({super.key, required this.tooltip, required this.color, required this.icon, this.radius = 16, this.iconSize = Sizes.iconSizeCompact});
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: CircleAvatar(radius: radius, backgroundColor: color.withValues(alpha: 0.2), child: HugeIcon(icon: icon, color: color, size: iconSize)),
+      child: CircleAvatar(radius: radius, backgroundColor: color.withValues(alpha: CLTheme.of(context).opacityMedium), child: HugeIcon(icon: icon, color: color, size: iconSize)),
     );
   }
 }

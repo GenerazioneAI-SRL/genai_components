@@ -27,6 +27,7 @@ class _ChatInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
@@ -53,7 +54,7 @@ class _ChatInputBar extends StatelessWidget {
                       size: 14,
                       color: _red.withValues(alpha: 0.7),
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: theme.gapIconText),
                     Expanded(
                       child: Text(
                         partial,
@@ -88,7 +89,7 @@ class _ChatInputBar extends StatelessWidget {
                                 : controller.toggleVoiceInput,
                       ),
                 ),
-              const SizedBox(width: 6),
+              SizedBox(width: theme.gapIconText),
               Expanded(
                 child: _InputField(
                   controller: controller,
@@ -98,7 +99,7 @@ class _ChatInputBar extends StatelessWidget {
                   onSend: onSend,
                 ),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: theme.gapIconText),
               ListenableBuilder(
                 listenable: controller,
                 builder: (_, __) {
@@ -245,7 +246,7 @@ class _SendButton extends StatelessWidget {
         ),
         child: const Icon(
           Icons.arrow_upward_rounded,
-          size: 20,
+          size: Sizes.iconSizeDefault,
           color: Colors.white,
         ),
       ),
@@ -282,7 +283,7 @@ class _StopButton extends StatelessWidget {
         ),
         child: const Icon(
           Icons.stop_rounded,
-          size: 20,
+          size: Sizes.iconSizeDefault,
           color: _red,
         ),
       ),
@@ -311,7 +312,7 @@ class _CircleBtn extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          size: 20,
+          size: Sizes.iconSizeDefault,
           color: onTap == null ? color.withValues(alpha: 0.3) : color,
         ),
       ),

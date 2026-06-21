@@ -187,7 +187,7 @@ class IconBadge extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color.withValues(alpha: 0.10),
+          color: color.withValues(alpha: CLTheme.of(context).opacitySoft),
           border: Border.all(color: color.withValues(alpha: 0.22), width: 1.5),
         ),
         child: Icon(icon, size: iconSize, color: color),
@@ -243,7 +243,7 @@ class _CLDialogButtonState extends State<CLDialogButton> {
         background = disabled
             ? cl.muted
             : Color.alphaBlend(
-                Colors.black.withValues(alpha: _hover ? 0.10 : 0),
+                Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0),
                 cl.primary,
               );
         foreground = disabled ? cl.mutedForeground : Colors.white;
@@ -252,7 +252,7 @@ class _CLDialogButtonState extends State<CLDialogButton> {
         background = disabled
             ? cl.muted
             : Color.alphaBlend(
-                Colors.black.withValues(alpha: _hover ? 0.10 : 0),
+                Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0),
                 cl.danger,
               );
         foreground = disabled ? cl.mutedForeground : Colors.white;
@@ -342,8 +342,8 @@ class _DialogCloseButtonState extends State<DialogCloseButton> {
         onTap: widget.onPressed,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
-          width: 32,
-          height: 32,
+          width: cl.buttonHeightCompact,
+          height: cl.buttonHeightCompact,
           decoration: BoxDecoration(
             color: _hover ? cl.muted : Colors.transparent,
             shape: BoxShape.circle,

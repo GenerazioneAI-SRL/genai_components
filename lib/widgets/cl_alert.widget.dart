@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 import 'excerpt_text.widget.dart';
 
 /// Skillera Refined Editorial alert.
@@ -11,7 +12,14 @@ import 'excerpt_text.widget.dart';
 /// revision: only internal build/style is upgraded.
 class CLAlert extends StatelessWidget {
   const CLAlert._(this.alertTitle, this.alertText,
-      {super.key, this.icon, this.iconAlignment, this.decoration, this.foregroundColor, this.onClose, this.downloadPercentageStream, this.radiusToken});
+      {super.key,
+      this.icon,
+      this.iconAlignment,
+      this.decoration,
+      this.foregroundColor,
+      this.onClose,
+      this.downloadPercentageStream,
+      this.radiusToken});
 
   final String alertTitle;
   final String alertText;
@@ -73,7 +81,7 @@ class CLAlert extends StatelessWidget {
               width: 1,
             ),
           ),
-          radiusToken: _controlRadius,
+          radiusToken: _cardRadius,
           foregroundColor: backgroundColor ?? const Color(0xFF0C8EC7),
           onClose: onClose,
         );
@@ -131,13 +139,12 @@ class CLAlert extends StatelessWidget {
               width: 1,
             ),
           ),
-          radiusToken: _controlRadius,
+          radiusToken: _cardRadius,
           foregroundColor: backgroundColor ?? const Color(0xFF0C8EC7),
           onClose: onClose,
         );
 
   static double _cardRadius(CLTheme theme) => theme.radiusCard;
-  static double _controlRadius(CLTheme theme) => theme.radiusControl;
 
   @override
   Widget build(BuildContext context) {
@@ -202,8 +209,7 @@ class _AlertBodyState extends State<_AlertBody> {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final tone = widget.foregroundColor ?? theme.primary;
-    final isSolid = (widget.decoration?.color != null) &&
-        (widget.decoration!.color!.a > 0.5);
+    final isSolid = (widget.decoration?.color != null) && (widget.decoration!.color!.a > 0.5);
 
     // Solid variant uses light foreground; tinted variants render copy in
     // primaryText (legible on 10% tinted bg).
@@ -233,18 +239,14 @@ class _AlertBodyState extends State<_AlertBody> {
     // bleeds through the 10% tint).
     final baseDeco = widget.decoration ?? const BoxDecoration();
     final tintedColor = baseDeco.color ?? Colors.transparent;
-    final opaqueColor = tintedColor.a >= 1.0
-        ? tintedColor
-        : Color.alphaBlend(tintedColor, theme.secondaryBackground);
+    final opaqueColor = tintedColor.a >= 1.0 ? tintedColor : Color.alphaBlend(tintedColor, theme.secondaryBackground);
 
     Widget container = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       decoration: baseDeco.copyWith(
         color: opaqueColor,
-        borderRadius: widget.radiusToken != null
-            ? BorderRadius.circular(widget.radiusToken!(theme))
-            : null,
+        borderRadius: widget.radiusToken != null ? BorderRadius.circular(widget.radiusToken!(theme)) : null,
         boxShadow: shadow,
       ),
       padding: EdgeInsets.symmetric(
@@ -340,7 +342,7 @@ class _IconBadge extends StatelessWidget {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.10),
+        color: tone.withValues(alpha: CLTheme.of(context).opacitySoft),
         shape: BoxShape.circle,
         border: Border.all(color: tone.withValues(alpha: 0.22), width: 1.5),
       ),
@@ -367,9 +369,8 @@ class _CloseButtonState extends State<_CloseButton> {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = widget.isSolid
-        ? Colors.white
-        : (_hover ? widget.theme.primaryText : widget.theme.mutedForeground);
+    final iconColor =
+        widget.isSolid ? Colors.white : (_hover ? widget.theme.primaryText : widget.theme.mutedForeground);
     final bg = widget.isSolid
         ? Colors.white.withValues(alpha: _hover ? 0.18 : 0.10)
         : widget.theme.muted.withValues(alpha: _hover ? 1.0 : 0.6);
@@ -390,7 +391,7 @@ class _CloseButtonState extends State<_CloseButton> {
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          child: Icon(Icons.close_rounded, size: 16, color: iconColor),
+          child: Icon(Icons.close_rounded, size: Sizes.iconSizeCompact, color: iconColor),
         ),
       ),
     );
@@ -418,7 +419,7 @@ class _DownloadBadge extends StatelessWidget {
           if (!snapshot.hasData) {
             return Container(
               decoration: BoxDecoration(
-                color: tone.withValues(alpha: 0.10),
+                color: tone.withValues(alpha: theme.opacitySoft),
                 shape: BoxShape.circle,
                 border: Border.all(color: tone.withValues(alpha: 0.22), width: 1.5),
               ),
@@ -433,7 +434,7 @@ class _DownloadBadge extends StatelessWidget {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: tone.withValues(alpha: 0.10),
+                  color: tone.withValues(alpha: theme.opacitySoft),
                   shape: BoxShape.circle,
                 ),
               ),

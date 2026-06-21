@@ -416,7 +416,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                                     if (index >= items.length) {
                                       return const Padding(
                                         padding:
-                                            EdgeInsets.symmetric(vertical: 12),
+                                            EdgeInsets.symmetric(vertical: CLSizes.gapMd),
                                         child: Center(
                                             child: SizedBox(
                                                 width: 18,

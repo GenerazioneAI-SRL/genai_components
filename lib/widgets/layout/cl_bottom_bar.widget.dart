@@ -33,6 +33,10 @@ class CLBottomBar extends StatelessWidget {
     final visibleCount = overflow ? maxItems - 1 : tops.length;
     final items = tops.take(visibleCount).toList();
 
+    // Spaziature da token: icona = iconSizeDefault + gapXs (24); altezza barra =
+    // bottone + gapLg + gapSm. Gap icona/label e padding interno in _BottomItem.
+    final iconSize = theme.iconSizeDefault + theme.gapXs;
+
     return Container(
       decoration: BoxDecoration(
         // Bottom bar (menu mobile) = L0.
@@ -42,14 +46,14 @@ class CLBottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 58,
+          height: theme.buttonHeightDefault + theme.gapLg + theme.gapSm,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               for (final d in items)
                 Expanded(
                   child: _BottomItem(
-                    icon: (c) => d.buildIcon(c, 22),
+                    icon: (c) => d.buildIcon(c, iconSize),
                     label: d.label,
                     selected: d.key == selectedKey || d.containsKey(selectedKey),
                     onTap: () => d.isLeaf ? onSelect(d) : onOpenGroup(d),
@@ -58,7 +62,7 @@ class CLBottomBar extends StatelessWidget {
               if (overflow)
                 Expanded(
                   child: _BottomItem(
-                    icon: (c) => Icon(Icons.more_horiz, color: c, size: 22),
+                    icon: (c) => Icon(Icons.more_horiz, color: c, size: iconSize),
                     label: overflowLabel,
                     selected: false,
                     onTap: onOverflow,
@@ -89,21 +93,24 @@ class _BottomItem extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (iconWidget != null) iconWidget,
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: theme.smallText.copyWith(
-              color: color,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: theme.gapXs),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (iconWidget != null) iconWidget,
+            SizedBox(height: theme.gapXs),
+            Text(
+              label,
+              style: theme.smallText.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
