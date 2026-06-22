@@ -212,6 +212,9 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
             children: [
               Flexible(
                 child: DefaultTextStyle(
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  softWrap: false,
                   style: theme.smallLabel.copyWith(
                     fontWeight: widget.isSorted ? FontWeight.w700 : FontWeight.w600,
                     color: widget.isSorted ? _effectiveTablePrimary(context) : theme.secondaryText,

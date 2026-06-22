@@ -740,22 +740,18 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             selectionActionsBuilder,
                           );
                           if (hoistFilterBarToShell) return tab;
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: CLTheme.of(context).secondaryBackground,
-                                  borderRadius: BorderRadius.all(Radius.circular(Sizes.radiusCard)),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(Sizes.gapLg),
-                                  child: tab,
-                                ),
-                              ),
-                              const SizedBox(height: Sizes.small),
-                            ],
+                          // Niente SizedBox sotto: il gap verso il container row lo dà
+                          // già il suo margine top Lg → solo Lg attorno al container.
+                          return Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: CLTheme.of(context).secondaryBackground,
+                              borderRadius: BorderRadius.all(Radius.circular(Sizes.radiusCard)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(Sizes.gapLg),
+                              child: tab,
+                            ),
                           );
                         }),
                       // Hoisted: la toolbar selezione vive nel bottom shell

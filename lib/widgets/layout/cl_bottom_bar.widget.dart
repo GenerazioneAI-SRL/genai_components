@@ -16,6 +16,7 @@ class CLBottomBar extends StatelessWidget {
     required this.maxItems,
     this.overflowLabel = 'Altro',
     this.topBorder = true,
+    this.floating = false,
   });
 
   final List<CLDestination> destinations;
@@ -30,6 +31,10 @@ class CLBottomBar extends StatelessWidget {
   /// l'area contestuale (continuano come un unico blocco, niente divider).
   final bool topBorder;
 
+  /// Bolla frosted: bg/bordo/SafeArea li gestisce il contenitore esterno (shell).
+  /// La barra rende solo il contenuto trasparente → il blur sotto resta visibile.
+  final bool floating;
+
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
@@ -38,9 +43,9 @@ class CLBottomBar extends StatelessWidget {
     final visibleCount = overflow ? maxItems - 1 : tops.length;
     final items = tops.take(visibleCount).toList();
 
-    // Spaziature da token: icona = iconSizeDefault + gapXs (24); altezza barra =
-    // bottone + gapLg + gapSm. Gap icona/label e padding interno in _BottomItem.
-    final iconSize = theme.iconSizeDefault + theme.gapXs;
+    // Icona = iconSizeDefault (token, 20). Altezza barra = bottone + gapLg + gapSm.
+    // Gap icona/label e padding interno in _BottomItem.
+    final iconSize = theme.iconSizeDefault;
 
     final content = Padding(
       // Inset Lg. Top a 0 quando sopra c'è l'area contestuale (il suo bottom
@@ -71,6 +76,9 @@ class CLBottomBar extends StatelessWidget {
         ),
       );
 
+    // Floating: nessun bg/bordo/SafeArea propri → li dà la bolla frosted dello shell.
+    if (floating) return content;
+
     return Container(
       // Bottom bar (menu mobile) = L0.
       decoration: BoxDecoration(
@@ -93,8 +101,8 @@ class _BottomItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final color = selected ? theme.primary : theme.secondaryText;
-    final iconWidget = icon(color);
+    // Icone e testi sempre neri (primaryText); la selezione resta nel peso (w600).
+    final iconWidget = icon(theme.primaryText);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -109,7 +117,7 @@ class _BottomItem extends StatelessWidget {
             Text(
               label,
               style: theme.smallText.copyWith(
-                color: color,
+                color: theme.primaryText,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
               maxLines: 1,

@@ -115,7 +115,8 @@ class _CLNavTileState extends State<_CLNavTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     final iconWidget = widget.destination.buildIcon(
       widget.selected ? theme.primary : theme.primaryText,
@@ -162,6 +163,7 @@ class _CLNavTileState extends State<_CLNavTile> {
                         child: Text(
                           widget.destination.label,
                           style: theme.title.copyWith(
+                            fontSize: theme.bodyText.fontSize,
                             color: widget.selected ? theme.primary : theme.primaryText,
                             fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
                           ),
@@ -200,7 +202,8 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     const double boxLeftMargin = _kGroupIndent;
 
@@ -231,6 +234,7 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
                 child: Text(
                   widget.destination.label,
                   style: theme.title.copyWith(
+                    fontSize: theme.bodyText.fontSize,
                     color: widget.selected ? theme.primary : theme.primaryText,
                     fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
                   ),
@@ -349,7 +353,8 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   Widget _buildTopLevel(CLTheme theme) {
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     final iconWidget = widget.destination.buildIcon(
       _isSelected ? theme.primary : theme.primaryText,
@@ -395,6 +400,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                           child: Text(
                             widget.destination.label,
                             style: theme.title.copyWith(
+                              fontSize: theme.bodyText.fontSize,
                               color: _isSelected ? theme.primary : theme.primaryText,
                               fontWeight: _isSelected ? FontWeight.w500 : FontWeight.normal,
                             ),
@@ -444,7 +450,8 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   Widget _buildNested(CLTheme theme) {
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     // 38 ≈ _kGroupIndent arrotondato (indent 1° livello); poi +16 per livello.
     final nestedPadding = widget.depth == 1 ? 38.0 : Sizes.gapLg;
@@ -489,7 +496,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                             style: theme.title.copyWith(
                               color: _isSelected ? theme.primary : theme.primaryText,
                               fontWeight: _isSelected ? FontWeight.w600 : FontWeight.w500,
-                              fontSize: widget.isCompact ? theme.bodyText.fontSize : theme.title.fontSize,
+                              fontSize: theme.bodyText.fontSize,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -584,7 +591,7 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
                   Expanded(
                     child: Text(
                       t,
-                      style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, fontSize: theme.bodyText.fontSize),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -592,7 +599,7 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
                   RotationTransition(
                     turns: Tween(begin: 0.0, end: 0.25)
                         .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
-                    child: Icon(Icons.chevron_right, size: 13, color: theme.secondaryText),
+                    child: Icon(Icons.chevron_right, size: 15, color: theme.secondaryText),
                   ),
                 ],
               ),

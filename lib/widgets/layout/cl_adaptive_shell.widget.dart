@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:genai_components/cl_theme.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'package:genai_components/widgets/buttons/cl_icon_button.widget.dart';
@@ -24,6 +25,7 @@ class CLAdaptiveShell extends StatefulWidget {
     required this.onSelect,
     required this.header,
     required this.body,
+    this.headerLeading,
     this.navHeader,
     this.navFooter,
     this.trailing,
@@ -46,6 +48,10 @@ class CLAdaptiveShell extends StatefulWidget {
   /// Contenuto top bar (logo/titolo + search + AI). Lo shell antepone l'hamburger
   /// su drawer/bottom-bar; NON includerlo qui.
   final Widget header;
+
+  /// Widget leading dell'header (es. logo), primo elemento del cluster — a sinistra
+  /// del back. `null` = assente.
+  final Widget? headerLeading;
   final Widget body;
   final Widget? navHeader;
   final Widget? navFooter;
@@ -120,13 +126,16 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
-  Widget _navPanel(CLTheme theme, {required bool isCompact, String? forceExpandedKey}) {
+  Widget _navPanel(CLTheme theme, {required bool isCompact, String? forceExpandedKey, bool frosted = false}) {
     return Container(
-      // Menu = L0 (primaryBackground) + bordo destro (delimita dal content page bg).
-      decoration: BoxDecoration(
-        color: theme.primaryBackground,
-        border: Border(right: BorderSide(color: theme.borderColor)),
-      ),
+      // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
+      // bordo li dà la card esterna → qui trasparente.
+      decoration: frosted
+          ? null
+          : BoxDecoration(
+              color: theme.primaryBackground,
+              border: Border(right: BorderSide(color: theme.borderColor)),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -163,63 +172,66 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         // nell'header (qui solo titolo + G3).
         final bottomBar = mode == CLNavMode.bottomBar;
 
-        // [back] · [breadcrumbs (desktop) / titolo (tablet+mobile)] · [pageActions] · [G3].
-        final hasNav = s.back != null || s.breadcrumbs.isNotEmpty;
-        if (!hasNav && s.pageActions.isEmpty) return widget.header;
-        // Due zone Expanded simmetriche → pageActions centrate. Sinistra: back +
-        // breadcrumbs (allineati a sx). Destra: G3 (ricerca+AI) allineato a destra
-        // (niente gap residuo in coda).
+        // Due gruppi con space-between in mezzo: leading [back · breadcrumbs] a
+        // sinistra, trailing [pageActions · G3 ricerca/AI] a destra. Lo Spacer tra i
+        // due si accorcia restringendo la finestra.
+        final leading = <Widget>[];
+        // Logo (leading) a sinistra del back.
+        if (widget.headerLeading != null) leading.add(widget.headerLeading!);
+        if (s.back != null && !bottomBar) {
+          leading.add(CLIconButton(
+            onTap: s.back!.onTap,
+            iconData: Icons.chevron_left,
+            backgroundColor: theme.secondaryBackground,
+            boxShadow: theme.cardShadowSoft,
+            iconColor: theme.primaryText,
+            size: theme.buttonHeightDefault,
+            iconSize: Sizes.iconSizeDefault,
+            tooltip: s.back!.tooltip ?? 'Indietro',
+          ));
+        }
+        if (s.breadcrumbs.isNotEmpty) {
+          if (mode != CLNavMode.sidebar) {
+            // Tablet/mobile: solo titolo (ultimo crumb), Flexible → ellissi su
+            // header stretto (niente overflow).
+            leading.add(Flexible(
+              child: Text(
+                s.breadcrumbs.last.label,
+                style: theme.heading4,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ));
+          } else {
+            // Desktop: path completo intrinseco.
+            leading.add(_breadcrumbs(theme, s.breadcrumbs));
+          }
+        }
+
+        final trailing = <Widget>[];
+        if (!bottomBar) {
+          for (final a in s.pageActions) {
+            trailing.add(_actionButton(context, theme, a));
+          }
+        }
+        // G3 (ricerca + AI + profilo): sempre presente.
+        trailing.add(widget.header);
+
+        // Intercala Lg dentro ciascun gruppo.
+        List<Widget> joined(List<Widget> ws) {
+          final out = <Widget>[];
+          for (var i = 0; i < ws.length; i++) {
+            if (i > 0) out.add(SizedBox(width: theme.gapLg));
+            out.add(ws[i]);
+          }
+          return out;
+        }
+
         return Row(
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  if (s.back != null && !bottomBar) ...[
-                    CLIconButton(
-                      onTap: s.back!.onTap,
-                      iconData: Icons.arrow_back,
-                      backgroundColor: theme.controlFill,
-                      iconColor: theme.primaryText,
-                      size: theme.buttonHeightDefault,
-                      iconSize: Sizes.iconSizeDefault,
-                      tooltip: s.back!.tooltip ?? 'Indietro',
-                    ),
-                    SizedBox(width: theme.gapMd),
-                  ],
-                  if (s.breadcrumbs.isNotEmpty)
-                    Flexible(
-                      child: Builder(
-                        builder: (context) {
-                          // Titolo (pagina corrente = ultimo crumb).
-                          final titleOnly = Text(
-                            s.breadcrumbs.last.label,
-                            style: theme.heading4,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          );
-                          // Tablet/mobile: sempre solo titolo.
-                          if (mode != CLNavMode.sidebar) return titleOnly;
-                          // Desktop ma barra stretta: solo titolo invece del path
-                          // completo (libera spazio per il cluster di destra).
-                          return LayoutBuilder(
-                            builder: (ctx, c) => (c.maxWidth.isFinite && c.maxWidth < 360)
-                                ? titleOnly
-                                : _breadcrumbs(theme, s.breadcrumbs),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (!bottomBar)
-              for (var i = 0; i < s.pageActions.length; i++) ...[
-                if (i > 0) SizedBox(width: theme.gapMd),
-                _actionButton(context, theme, s.pageActions[i]),
-              ],
-            Expanded(
-              child: Align(alignment: Alignment.centerRight, child: widget.header),
-            ),
+            ...joined(leading),
+            const Spacer(),
+            ...joined(trailing),
           ],
         );
       },
@@ -267,7 +279,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return CLIconButton(
       onTap: onTap,
       iconData: a.icon ?? Icons.circle,
-      backgroundColor: theme.controlFill,
+      backgroundColor: theme.secondaryBackground,
+      boxShadow: theme.cardShadowSoft,
       iconColor: theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -280,7 +293,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// pagina, se pubblicati), in basso back + page actions + altre azioni. Se un
   /// reveal (filtri / altre azioni) è aperto, le righe collassano e al loro
   /// posto compare il pannello inline. Vuota → collassa.
-  Widget _mobileContextArea(BuildContext context) {
+  Widget _mobileContextArea(BuildContext context, {bool frosted = false}) {
     return AnimatedBuilder(
       animation: _slots,
       builder: (context, _) {
@@ -289,11 +302,14 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         if (!_hasContent(s)) return const SizedBox.shrink();
         final theme = CLTheme.of(context);
         return Container(
-          decoration: BoxDecoration(
-            // Chrome shell (toolbar contestuale mobile) = L0.
-            color: theme.primaryBackground,
-            border: Border(top: BorderSide(color: theme.borderColor)),
-          ),
+          // Frosted: bg/bordo li dà la bolla esterna → qui solo padding.
+          decoration: frosted
+              ? null
+              : BoxDecoration(
+                  // Chrome shell (toolbar contestuale mobile) = L0.
+                  color: theme.primaryBackground,
+                  border: Border(top: BorderSide(color: theme.borderColor)),
+                ),
           padding: EdgeInsets.all(theme.gapLg),
           child: _areaContent(context, s, theme, _panelId),
         );
@@ -361,8 +377,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   if (s.back != null) ...[
                     CLIconButton(
                       onTap: s.back!.onTap,
-                      iconData: Icons.arrow_back,
-                      backgroundColor: theme.controlFill,
+                      iconData: Icons.chevron_left,
+                      backgroundColor: theme.secondaryBackground,
+                      boxShadow: theme.cardShadowSoft,
                       iconColor: theme.primaryText,
                       size: theme.buttonHeightDefault,
                       iconSize: Sizes.iconSizeDefault,
@@ -443,7 +460,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             CLIconButton(
               onTap: close,
               iconData: Icons.arrow_back,
-              backgroundColor: theme.controlFill,
+              backgroundColor: theme.secondaryBackground,
+              boxShadow: theme.cardShadowSoft,
               iconColor: theme.primaryText,
               size: theme.buttonHeightDefault,
               iconSize: Sizes.iconSizeDefault,
@@ -469,7 +487,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     final btn = CLIconButton(
       onTap: () => _togglePanel(r.id),
       iconData: r.icon,
-      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.controlFill,
+      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.secondaryBackground,
+      boxShadow: active ? null : theme.cardShadowSoft,
       iconColor: active ? theme.primary : theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -509,62 +528,93 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     if (c.reveal != null) return _revealButton(context, theme, c.reveal!);
     if (c.custom != null) return c.custom!.builder(context);
     final search = c.search!;
+    // Stessa resa della search desktop della tabella (paged_datatable_filter,
+    // isMainFilter): recess tertiaryBackground, pill, icona Lucide primaryText con
+    // left-pad esplicito, TextField collapsed con tipografia di sistema.
     return Expanded(
-      child: SizedBox(
-        height: theme.buttonHeightDefault,
-        child: TextField(
-          controller: search.controller,
-          onChanged: search.onChanged,
-          // Tipografia di sistema: input + hint usano i token del tema (Inter),
-          // non il default Material.
-          style: theme.bodyText.copyWith(color: theme.primaryText),
-          cursorColor: theme.primary,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: search.hint,
-            hintStyle: theme.bodyText.copyWith(color: theme.secondaryText),
-            prefixIcon: Icon(Icons.search, size: Sizes.iconSizeDefault, color: theme.secondaryText),
-            filled: true,
-            fillColor: theme.tertiaryBackground,
-            contentPadding: EdgeInsets.symmetric(horizontal: theme.gapMd),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(theme.radiusPill),
-              borderSide: BorderSide.none,
+      child: Container(
+        height: theme.inputHeight,
+        decoration: BoxDecoration(
+          color: theme.tertiaryBackground,
+          borderRadius: BorderRadius.circular(theme.radiusPill),
+        ),
+        child: Row(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
+              child: Icon(LucideIcons.search, color: theme.primaryText, size: Sizes.iconSizeDefault),
             ),
-          ),
+            Expanded(
+              child: TextField(
+                controller: search.controller,
+                onChanged: search.onChanged,
+                maxLines: 1,
+                style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0, color: theme.primaryText),
+                cursorColor: theme.primary,
+                decoration: InputDecoration(
+                  isDense: true,
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: search.hint,
+                  hintStyle: theme.bodyText.copyWith(color: theme.secondaryText, height: 1.0),
+                ),
+              ),
+            ),
+            SizedBox(width: theme.gapMd),
+          ],
         ),
       ),
     );
   }
 
+  /// Card bianca (bolla menu desktop): secondaryBackground, angoli card, ombra soft,
+  /// clip.
+  Widget _sideCard(BuildContext context, {required Widget child}) {
+    final theme = CLTheme.of(context);
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: theme.secondaryBackground,
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
+        boxShadow: theme.cardShadowSoft,
+      ),
+      child: child,
+    );
+  }
+
   // ── Desktop ──────────────────────────────────────────────────────────────
+  /// Header frosted full-width in alto (tutto lo schermo); sotto, in Row: menu (in
+  /// bolla) · shell · assistente.
   Widget _buildSidebar(BuildContext context) {
     final theme = CLTheme.of(context);
     return ColoredBox(
-      // Shell content = page bg (#F6F5F4); menu/header dipingono L0 sopra.
-      color: theme.background,
-      child: Row(
+      // Shell content bg = primaryBackground (uguale a header/footer strip).
+      color: theme.primaryBackground,
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: widget.config.sidebarWidth, child: _navPanel(theme, isCompact: false)),
+          _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.sidebar)),
           Expanded(
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  // Header = L0 + bordo inferiore (delimita dal content page bg).
-                  decoration: BoxDecoration(
-                    color: theme.primaryBackground,
-                    border: Border(bottom: BorderSide(color: theme.borderColor)),
+                // Menu in bolla (card bianca + margine). Lato shell: margine 0 (il
+                // gap Lg lo dà già il padding della pagina) → evita 2·Lg.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, 0, Sizes.gapLg),
+                  child: SizedBox(
+                    width: widget.config.sidebarWidth,
+                    child: _sideCard(context, child: _navPanel(theme, isCompact: false, frosted: true)),
                   ),
-                  padding: const EdgeInsets.all(Sizes.gapLg),
-                  child: _composedHeader(context, mode: CLNavMode.sidebar),
                 ),
                 Expanded(child: _scopedBody()),
+                if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
               ],
             ),
           ),
-          if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
         ],
       ),
     );
@@ -580,7 +630,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return Scaffold(
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
-      backgroundColor: theme.background,
+      backgroundColor: theme.primaryBackground,
       // Drawer chiuso → azzera il gruppo forzato (apertura da avatar parte pulita).
       onDrawerChanged: (open) {
         if (!open && _drawerExpandKey != null) setState(() => _drawerExpandKey = null);
@@ -594,46 +644,41 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       ),
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
-      body: Row(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CLNavRail(
-            destinations: widget.destinations,
-            selectedKey: widget.selectedKey,
-            onSelect: _onSelect,
-            // Tap su gruppo del rail → apri il drawer GIÀ espanso su quel gruppo.
-            onOpenGroup: (d) {
-              setState(() => _drawerExpandKey = d.key);
-              _scaffoldKey.currentState?.openDrawer();
-            },
-            header: widget.railHeader,
-            footer: widget.railFooter,
-            width: widget.config.railWidth,
-          ),
+          _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.rail)),
           Expanded(
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  // Header = L0 + bordo inferiore.
-                  decoration: BoxDecoration(
-                    color: theme.primaryBackground,
-                    border: Border(bottom: BorderSide(color: theme.borderColor)),
-                  ),
-                  padding: const EdgeInsets.all(Sizes.gapLg),
-                  child: _composedHeader(context, mode: CLNavMode.rail),
+                CLNavRail(
+                  destinations: widget.destinations,
+                  selectedKey: widget.selectedKey,
+                  onSelect: _onSelect,
+                  // Tap su gruppo del rail → apri il drawer GIÀ espanso su quel gruppo.
+                  onOpenGroup: (d) {
+                    setState(() => _drawerExpandKey = d.key);
+                    _scaffoldKey.currentState?.openDrawer();
+                  },
+                  header: widget.railHeader,
+                  footer: widget.railFooter,
+                  width: widget.config.railWidth,
                 ),
                 Expanded(child: _scopedBody()),
+                if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
               ],
             ),
           ),
-          if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
         ],
       ),
     );
   }
 
   // ── Mobile (drawer + bottom bar) ───────────────────────────────────────────
+  /// Shell mobile: Column → header (striscia frosted) in alto, body in mezzo, barra
+  /// contestuale/nav (bolla frosted) in basso. Niente stack/full-bleed: il body sta
+  /// in flusso tra le barre → le pagine non devono insettare il contenuto.
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = CLTheme.of(context);
     final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
@@ -641,7 +686,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return Scaffold(
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
-      backgroundColor: theme.background,
+      backgroundColor: theme.primaryBackground,
       drawer: Drawer(
         width: drawerWidth,
         // Menu drawer = L0.
@@ -651,68 +696,103 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       ),
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
-      bottomNavigationBar: AnimatedBuilder(
-        animation: _slots,
-        builder: (context, _) {
-          // Nav da sola (niente area contestuale sopra) → top border; altrimenti
-          // continua col toolbar contestuale senza divider.
-          final hasContext = _hasContent(_slots.slots);
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Riga(e) contestuali sopra la tab bar: azioni/back (+ controlli tabella).
-              _mobileContextArea(context),
-              if (withBottomBar)
-                CLBottomBar(
-                  destinations: widget.bottomDestinations ?? widget.destinations,
-                  selectedKey: widget.selectedKey,
-                  onSelect: _onSelect,
-                  onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
-                  onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
-                  maxItems: widget.config.maxBottomBarItems,
-                  topBorder: !hasContext,
-                ),
-            ],
-          );
-        },
+      body: Column(
+        children: [
+          _mobileHeaderStrip(context, theme),
+          Expanded(child: _scopedBody()),
+          _mobileBottomStrip(context, theme, withBottomBar: withBottomBar),
+        ],
       ),
-      body: SafeArea(
+    );
+  }
+
+  /// Striscia header full-width (no bolla, no margine): sfondo primaryBackground
+  /// solido, SafeArea top + padding Lg. Condivisa dai 3 viewport: il [child] cambia
+  /// (mobile: hamburger+header; desktop/rail: header).
+  Widget _headerStrip(BuildContext context, CLTheme theme, {required Widget child}) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: theme.primaryBackground),
+      child: SafeArea(
         bottom: false,
-        child: Column(
+        child: Padding(padding: const EdgeInsets.all(Sizes.gapLg), child: child),
+      ),
+    );
+  }
+
+  /// Header mobile: striscia frosted con hamburger + header composto (titolo/
+  /// ricerca/AI). Hamburger su secondaryBackground + ombra soft così "galleggia"
+  /// sulla striscia (come la global search e il bottone AI).
+  Widget _mobileHeaderStrip(BuildContext context, CLTheme theme) {
+    return _headerStrip(
+      context,
+      theme,
+      // Altezza pinnata ai controlli: il titolo (heading6, line-height alto)
+      // gonfierebbe la Row oltre buttonHeightDefault dimezzando l'hit-box del
+      // hamburger. Pin → hit == visibile.
+      child: SizedBox(
+        height: theme.buttonHeightDefault,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              // Header = L0 + bordo inferiore.
-              decoration: BoxDecoration(
-                color: theme.primaryBackground,
-                border: Border(bottom: BorderSide(color: theme.borderColor)),
-              ),
-              padding: const EdgeInsets.all(Sizes.gapLg),
-              // Altezza pinnata ai controlli: senza questo il titolo (heading6,
-              // line-height alto) gonfia la Row oltre buttonHeightDefault e
-              // l'hit-box del hamburger (ElevatedButton centrato in una riga
-              // sovradimensionata) si dimezza. Pin → hit == visibile.
-              child: SizedBox(
-                height: theme.buttonHeightDefault,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    CLIconButton(
-                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                      iconData: Icons.menu,
-                      backgroundColor: theme.controlFill,
-                      iconColor: theme.primaryText,
-                      size: theme.buttonHeightDefault,
-                      iconSize: Sizes.iconSizeDefault,
-                      tooltip: 'Menu',
-                    ),
-                    const SizedBox(width: Sizes.gapLg),
-                    Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
-                  ],
-                ),
-              ),
+            CLIconButton(
+              onTap: () => _scaffoldKey.currentState?.openDrawer(),
+              iconData: Icons.menu,
+              backgroundColor: theme.secondaryBackground,
+              boxShadow: theme.cardShadowSoft,
+              iconColor: theme.primaryText,
+              size: theme.buttonHeightDefault,
+              iconSize: Sizes.iconSizeDefault,
+              tooltip: 'Menu',
             ),
-            Expanded(child: _scopedBody()),
+            const SizedBox(width: Sizes.gapLg),
+            Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Strip bassa full-width (no bolla, no margine): area contestuale (azioni/back +
+  /// controlli tabella) + nav. Sfondo primaryBackground solido (come header strip).
+  /// SafeArea bottom per l'home indicator.
+  Widget _mobileBottomStrip(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: theme.primaryBackground),
+      child: SafeArea(
+        top: false,
+        child: AnimatedBuilder(
+          animation: _slots,
+          builder: (context, _) {
+            // Con azioni sopra → divider (indent Lg) le separa dalla nav; nav da
+            // sola → niente divider. La nav tiene sempre top padding Lg
+            // (`topBorder: true`) → respiro sotto il divider e quando è da sola.
+            final hasContext = _hasContent(_slots.slots);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _mobileContextArea(context, frosted: true),
+                if (hasContext && withBottomBar)
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: Sizes.gapLg,
+                    endIndent: Sizes.gapLg,
+                    color: theme.borderColor,
+                  ),
+                if (withBottomBar)
+                  CLBottomBar(
+                    destinations: widget.bottomDestinations ?? widget.destinations,
+                    selectedKey: widget.selectedKey,
+                    onSelect: _onSelect,
+                    onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+                    onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
+                    maxItems: widget.config.maxBottomBarItems,
+                    topBorder: true,
+                    floating: true,
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
