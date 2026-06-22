@@ -54,7 +54,6 @@ class RepeatableFieldConfig {
     priceRequired: true,
     showInfoBox: true,
     infoBoxText: 'I prodotti inclusi compongono un PACCHETTO. Il prezzo finale sarà CALCOLATO AUTOMATICAMENTE dalla somma dei loro prezzi. Puoi personalizzare il prezzo di ogni prodotto.',
-    infoBoxColor: Color(0xFFFFF3E0),
     infoBoxIcon: Icons.warning_amber_rounded,
     showTotalBox: true,
     totalBoxLabel: 'Prezzo Totale Calcolato:',
@@ -234,7 +233,10 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
               bottom: Sizes.padding,
             ),
             decoration: BoxDecoration(
-              color: widget.config.infoBoxColor ?? CLTheme.of(context).info.withValues(alpha: CLTheme.of(context).opacitySoft),
+              color: widget.config.infoBoxColor ??
+                  (widget.config.infoBoxIcon == Icons.warning_amber_rounded
+                      ? CLTheme.of(context).warning.withValues(alpha: CLTheme.of(context).opacitySoft)
+                      : CLTheme.of(context).info.withValues(alpha: CLTheme.of(context).opacitySoft)),
               borderRadius: BorderRadius.circular(Sizes.borderRadius),
               border: Border.all(
                 color: widget.config.infoBoxIcon == Icons.warning_amber_rounded
@@ -258,8 +260,8 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
                     style: TextStyle(
                       fontSize: 13,
                       color: widget.config.infoBoxIcon == Icons.warning_amber_rounded
-                          ? Colors.orange.shade900
-                          : Colors.blue.shade900,
+                          ? CLTheme.of(context).warning
+                          : CLTheme.of(context).info,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -418,7 +420,7 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade900,
+                    color: CLTheme.of(context).success,
                   ),
                 ),
                 Text(
@@ -426,7 +428,7 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade700,
+                    color: CLTheme.of(context).success,
                   ),
                 ),
               ],
