@@ -294,7 +294,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             color: theme.primaryBackground,
             border: Border(top: BorderSide(color: theme.borderColor)),
           ),
-          padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapMd),
+          padding: EdgeInsets.all(theme.gapLg),
           child: _areaContent(context, s, theme, _panelId),
         );
       },
@@ -302,11 +302,18 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   bool _hasContent(ShellSlots s) =>
-      s.contextControls.isNotEmpty || s.back != null || s.pageActions.isNotEmpty || s.contextOverflow != null;
+      s.selectionBar != null ||
+      s.contextControls.isNotEmpty ||
+      s.back != null ||
+      s.pageActions.isNotEmpty ||
+      s.contextOverflow != null;
 
-  /// Contenuto dell'area per un dato pannello: `null`/id-non-trovato → le due
-  /// righe di controlli; altrimenti il pannello reveal corrispondente.
+  /// Contenuto dell'area per un dato pannello: selezione attiva → SOLO la barra
+  /// bulk (priorità); altrimenti `null`/id-non-trovato → le due righe di
+  /// controlli; altrimenti il pannello reveal corrispondente.
   Widget _areaContent(BuildContext context, ShellSlots s, CLTheme theme, String? id) {
+    // Selezione tabella: la barra bulk sostituisce controlli + pageActions.
+    if (s.selectionBar != null) return s.selectionBar!;
     if (id != null) {
       final reveal = _revealById(s, id);
       if (reveal != null) return _panelView(context, theme, reveal);
@@ -331,7 +338,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               ],
             ],
           ),
-          if (hasLower) SizedBox(height: theme.gapMd),
+          if (hasLower) SizedBox(height: theme.gapLg),
         ],
         if (hasLower)
           Builder(
@@ -644,21 +651,30 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       ),
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Riga(e) contestuali sopra la tab bar: azioni/back (+ controlli tabella).
-          _mobileContextArea(context),
-          if (withBottomBar)
-            CLBottomBar(
-              destinations: widget.bottomDestinations ?? widget.destinations,
-              selectedKey: widget.selectedKey,
-              onSelect: _onSelect,
-              onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
-              onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
-              maxItems: widget.config.maxBottomBarItems,
-            ),
-        ],
+      bottomNavigationBar: AnimatedBuilder(
+        animation: _slots,
+        builder: (context, _) {
+          // Nav da sola (niente area contestuale sopra) → top border; altrimenti
+          // continua col toolbar contestuale senza divider.
+          final hasContext = _hasContent(_slots.slots);
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Riga(e) contestuali sopra la tab bar: azioni/back (+ controlli tabella).
+              _mobileContextArea(context),
+              if (withBottomBar)
+                CLBottomBar(
+                  destinations: widget.bottomDestinations ?? widget.destinations,
+                  selectedKey: widget.selectedKey,
+                  onSelect: _onSelect,
+                  onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+                  onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
+                  maxItems: widget.config.maxBottomBarItems,
+                  topBorder: !hasContext,
+                ),
+            ],
+          );
+        },
       ),
       body: SafeArea(
         bottom: false,

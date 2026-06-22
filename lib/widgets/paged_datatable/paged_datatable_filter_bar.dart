@@ -70,7 +70,11 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
           ),
-          padding: EdgeInsets.all(_isTableCompact(context) ? 0 : clTheme.gapLg),
+          // Niente bottom padding (desktop): il gap verso l'header row lo dà il
+          // padding top dell'header row (gap2Xl), così non si sommano.
+          padding: _isTableCompact(context)
+              ? EdgeInsets.zero
+              : EdgeInsets.fromLTRB(clTheme.gapLg, clTheme.gapLg, clTheme.gapLg, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -156,6 +160,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                               color: CLTheme.of(context).primaryText,
                                               fontWeight: FontWeight.w500,
                                             ),
+                                            borderRadius: Sizes.radiusPill,
                                             onTap: isDisabled ? () {} : onTap,
                                             context: context,
                                           ),
@@ -368,6 +373,8 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                     state.filters.entries.any((e) => e.value._filter.isMainFilter == false),
                 hasSortableColumns: state.columns.any((c) => c.sortable == true),
                 extraMenus: extraMenus,
+                idGetter: idGetter,
+                selectionActionsBuilder: selectionActionsBuilder,
                 child: child,
               )
             : child;
@@ -885,6 +892,8 @@ class _FilterBarShellHost<TKey extends Comparable, TResultId extends Comparable,
     required this.hasExtraFilters,
     required this.hasSortableColumns,
     required this.extraMenus,
+    required this.idGetter,
+    required this.selectionActionsBuilder,
   });
 
   final _PagedDataTableState<TKey, TResultId, TResult> state;
@@ -892,6 +901,12 @@ class _FilterBarShellHost<TKey extends Comparable, TResultId extends Comparable,
   final bool hasExtraFilters;
   final bool hasSortableColumns;
   final List<TableExtraMenu> extraMenus;
+  final ModelIdGetter<TResultId, TResult> idGetter;
+
+  /// Azioni bulk: pubblicate nel bottom shell (selectionBar) quando c'è
+  /// selezione attiva su mobile, al posto di filtri + pageActions.
+  final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)?
+      selectionActionsBuilder;
 
   @override
   State<_FilterBarShellHost<TKey, TResultId, TResult>> createState() =>
@@ -914,6 +929,21 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
   // de-pubblichiamo, altrimenti ricerca/filtri/ordina della lista restano nel
   // bottom mobile del dettaglio.
   ModalRoute<dynamic>? _route;
+
+  @override
+  void initState() {
+    super.initState();
+    // Cambi di selezione → ripubblica la selectionBar. Deferito a post-frame:
+    // il notify dello state può arrivare in fase di build (no setState sincrono).
+    widget.state.addListener(_onSelectionChanged);
+  }
+
+  void _onSelectionChanged() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -942,6 +972,7 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
     final shell = _shell;
     final mine = _lastPublished;
     if (shell == null) return;
+    shell.setSelectionBar(null);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (identical(shell.slots.contextControls, mine)) {
         shell.setContextControls(const []);
@@ -951,6 +982,7 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
 
   @override
   void dispose() {
+    widget.state.removeListener(_onSelectionChanged);
     _route?.secondaryAnimation?.removeListener(_onRouteChanged);
     _clearPublished();
     _searchController.dispose();
@@ -1063,11 +1095,73 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
         : null;
 
     _lastPublished = controls;
+    // Selezione attiva → barra bulk (ha priorità nel bottom shell: sostituisce
+    // controlli + pageActions). Nessuna selezione → null (torna ai filtri).
+    final selBar = _buildSelectionBar(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       shell.setContextControls(controls, overflow: overflow);
+      shell.setSelectionBar(selBar);
     });
     _published = true;
     return const SizedBox.shrink();
+  }
+
+  /// Barra azioni bulk per il bottom shell (mobile): badge conteggio +
+  /// "Deseleziona" sopra, bottoni azione (selectionActionsBuilder) sotto.
+  /// `null` se non c'è selezione o nessun builder.
+  Widget? _buildSelectionBar(BuildContext context) {
+    final builder = widget.selectionActionsBuilder;
+    final state = widget.state;
+    final count = state.selectedRows.length;
+    if (builder == null || count == 0) return null;
+    final selectedItems = state.selectedRows.entries
+        .where((e) => e.value < state._items.length)
+        .map((e) => state._items[e.value])
+        .toList();
+    final actions = builder(context, count, selectedItems);
+    final t = CLTheme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: t.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '$count selezionat${count == 1 ? 'o' : 'i'}',
+                style: t.bodyLabel.copyWith(color: t.primary, fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => state.clearAllSelections(),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: t.gapMd, vertical: t.gapIconText),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text('Deseleziona', style: t.bodyLabel.copyWith(color: t.secondaryText, fontSize: 12)),
+            ),
+          ],
+        ),
+        if (actions.isNotEmpty) ...[
+          SizedBox(height: t.gapLg),
+          Row(
+            children: [
+              for (var i = 0; i < actions.length; i++) ...[
+                if (i > 0) SizedBox(width: t.gapLg),
+                Expanded(child: actions[i]),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
   }
 }

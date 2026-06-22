@@ -188,7 +188,7 @@ class _PagedDataTableBoxed<
       itemCount: rowCount + (showTail ? 1 : 0),
       shrinkWrap: !fillHeight,
       separatorBuilder: (context, index) => Divider(
-          height: 1, thickness: 1, color: CLTheme.of(context).borderColor),
+          height: 1, thickness: 1, color: CLTheme.of(context).secondaryBackground),
       itemBuilder: (context, index) {
         if (index >= rowCount) {
           return state.hasNextPage
@@ -245,13 +245,8 @@ class _PagedDataTableBoxed<
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            vertical: Sizes.padding * 3, horizontal: Sizes.padding),
-        decoration: BoxDecoration(
-          color: theme.secondaryBackground,
-          borderRadius: BorderRadius.circular(Sizes.radiusCard),
-          border: Border.all(color: theme.borderColor, width: 1),
-        ),
+        // Niente card mobile: solo il contenuto, padding Lg attorno.
+        padding: const EdgeInsets.all(Sizes.gapLg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -429,8 +424,10 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOutCubic,
           color: model._isSelected
-              ? _effectiveTablePrimary(context).withValues(alpha: 0.06)
-              : Colors.transparent,
+              // Tint opaco su tertiaryBackground (grigio zebra scuro): resta sopra le righe.
+              ? Color.alphaBlend(_effectiveTablePrimary(context).withValues(alpha: 0.10), theme.tertiaryBackground)
+              // Zebra a 2 grigi: pari controlFill (scuro), dispari primaryBackground (chiaro).
+              : (widget.index % 2 == 0 ? theme.controlFill : theme.primaryBackground),
           padding: const EdgeInsets.all(Sizes.gapLg),
           child: Row(
             children: [

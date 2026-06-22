@@ -131,7 +131,7 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
       primary: false,
       padding: EdgeInsets.zero,
       separatorBuilder: (_, index) => theme.dividerColor == null
-          ? Divider(height: 0, color: clTheme.borderColor, thickness: 1)
+          ? Divider(height: 0, color: clTheme.secondaryBackground, thickness: 1)
           : const SizedBox.shrink(),
       itemCount: rowCount + (showTail ? 1 : 0),
       shrinkWrap: !fillHeight,

@@ -111,7 +111,7 @@ class PagedDataTableRowMetrics {
     final t = CLTheme.of(context);
     return PagedDataTableRowMetrics._(
       leftBorderWidth: 2.5,
-      checkboxSlot: 40.0,
+      checkboxSlot: t.iconSizeDefault, // box stretto sul checkbox; Lg dx lo dà il padding cella
       expandSlot: 24.0,
       searchPrefixLeftPad: t.gapMd,
       searchPrefixIconSize: 18.0,
@@ -130,9 +130,13 @@ class PagedDataTableRowMetrics {
   // the search magnifier with equal space left/right. Before expand: pagePadX
   // visual edge minus border.
   double get searchIconCenterX => pagePadX + searchPrefixLeftPad + searchPrefixIconSize / 2;
-  double get checkboxLeftPad => searchIconCenterX - leftBorderWidth - checkboxSlot / 2;
+  // Lg a sinistra del checkbox dal bordo bolla: pagePadX meno il bordo riga
+  // (che inseta già il contenuto).
+  double get checkboxLeftPad => pagePadX - leftBorderWidth;
+  // Gap a destra del checkbox: Lg qui + Lg del padding cella = 2Lg verso la colonna.
+  double get checkboxRightGap => pagePadX;
   double get expandLeftPad => pagePadX - leftBorderWidth;
-  double get checkboxAreaWidth => checkboxLeftPad + checkboxSlot; // 18.5 + 40 = 58.5
+  double get checkboxAreaWidth => checkboxLeftPad + checkboxSlot + checkboxRightGap;
   double get expandIconAreaWidth => expandLeftPad + expandSlot; // 17.5 + 24 = 41.5
 
   // ── Trailing actions cluster total width, reserve == render ──
@@ -461,8 +465,12 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
         Widget child = LayoutBuilder(
           builder: (context, constraints) {
+            // Bolla righe: ingombro orizzontale = margin Lg per lato (niente bordo).
+            final double rowsBubbleInset = 2 * Sizes.gapLg;
             // Calculate width available for columns only
             var width = constraints.maxWidth -
+                rowsBubbleInset // la bolla restringe la zona righe
+                -
                 m.leftBorderWidth // left border in rows
                 -
                 (hasExpandIcon ? expandIconAreaWidth : 0) -
@@ -500,6 +508,15 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               hasAnyActions ? actionsColumnWidth : 0.0,
               infiniteScroll,
             );
+            // Bolla righe: container arrotondato, niente bordo. Margin SENZA top: il
+            // margin-top si sommerebbe al centering interno della prima riga (= 2Lg).
+            // Clip sul radius → zebra full-bleed rispetta gli angoli tondi.
+            rowsSection = Container(
+              margin: const EdgeInsets.fromLTRB(Sizes.gapLg, 0, Sizes.gapLg, Sizes.gapLg),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.radiusCard)),
+              child: rowsSection,
+            );
             if (ownScroll) rowsSection = Expanded(child: rowsSection);
             // Sezione card mobile: stesso trattamento.
             Widget boxedSection = _PagedDataTableBoxed<TKey, TResultId, TResult>(
@@ -519,6 +536,13 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               actionsBuilder,
               ownScroll,
               infiniteScroll,
+            );
+            // Bolla righe (mobile): stesso container arrotondato, niente bordo.
+            boxedSection = Container(
+              margin: const EdgeInsets.all(Sizes.gapLg),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.radiusCard)),
+              child: boxedSection,
             );
             if (ownScroll) boxedSection = Expanded(child: boxedSection);
 
@@ -675,9 +699,13 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         // Desktop: le azioni bulk vivono nella toolbar (filter tab),
                         // niente barra di selezione separata.
 
-                        /* HEADER ROW */
-                        _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
-                            rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth, selectAllInHeader),
+                        /* HEADER ROW — inset Lg (allineato alla bolla). Top Lg: + il
+                           centering del testo nella riga (44px) ≈ 2Xl visivo dalla toolbar. */
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
+                          child: _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
+                              rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth, selectAllInHeader),
+                        ),
                         /* ITEMS */
                         rowsSection,
                       ],
@@ -706,9 +734,10 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             downloadButtonIcon,
                             isFilterBarRounded,
                             hoistFilterBarToShell,
-                            // Mobile: builder non usato dal tab (azioni bulk restano
-                            // nella toolbar di selezione separata sotto). Passo null.
-                            null,
+                            // Hoisted: il tab passa il builder all'host che pubblica
+                            // la barra bulk nel bottom shell (selectionBar). Il tab
+                            // stesso non la renderizza inline su mobile (isDesktopBar).
+                            selectionActionsBuilder,
                           );
                           if (hoistFilterBarToShell) return tab;
                           return Column(
@@ -729,7 +758,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             ],
                           );
                         }),
-                      selectionToolbar,
+                      // Hoisted: la toolbar selezione vive nel bottom shell
+                      // (selectionBar) → niente toolbar inline (evita doppione).
+                      if (!hoistFilterBarToShell) selectionToolbar,
                       boxedSection,
                     ],
                   );
@@ -821,8 +852,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             // (infinite scroll) niente spazio morto in fondo.
                             if (footerShown) ...[
                               const SizedBox(height: Sizes.padding),
+                              // Sotto: solo il bottom padding Lg del footer (no extra).
                               footerSection,
-                              if (!isInSnippet) const SizedBox(height: Sizes.padding),
                             ],
                           ],
                         )
@@ -837,8 +868,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                               // morto sotto il messaggio di fine lista.
                               if (footerShown) ...[
                                 const SizedBox(height: Sizes.padding),
+                                // Sotto: solo il bottom padding Lg del footer (no extra).
                                 footerSection,
-                                if (!isInSnippet) const SizedBox(height: Sizes.padding),
                               ],
                             ],
                           ),

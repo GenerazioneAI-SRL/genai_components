@@ -143,6 +143,7 @@ class ShellSlots {
     this.pageActions = const [],
     this.contextControls = const [],
     this.contextOverflow,
+    this.selectionBar,
   });
 
   final ShellBack? back;
@@ -155,12 +156,18 @@ class ShellSlots {
   /// `null` se la pagina non espone un overflow.
   final ShellRevealControl? contextOverflow;
 
+  /// Barra azioni bulk (selezione tabella) pubblicata dalla tabella su mobile.
+  /// Quando NON null, il bottom contestuale mostra SOLO questa (sostituisce
+  /// controlli + pageActions): le azioni sulla selezione hanno priorità.
+  final Widget? selectionBar;
+
   bool get isEmpty =>
       back == null &&
       breadcrumbs.isEmpty &&
       pageActions.isEmpty &&
       contextControls.isEmpty &&
-      contextOverflow == null;
+      contextOverflow == null &&
+      selectionBar == null;
 
   static const ShellSlots empty = ShellSlots();
 }
@@ -178,6 +185,7 @@ class ShellSlotsController extends ChangeNotifier {
   List<ShellAction> _pageActions = const [];
   List<ShellContextControl> _contextControls = const [];
   ShellRevealControl? _contextOverflow;
+  Widget? _selectionBar;
 
   ShellSlots get slots => ShellSlots(
         back: _back,
@@ -185,6 +193,7 @@ class ShellSlotsController extends ChangeNotifier {
         pageActions: _pageActions,
         contextControls: _contextControls,
         contextOverflow: _contextOverflow,
+        selectionBar: _selectionBar,
       );
 
   /// Canale navigazione (centrale). Aggiorna back + breadcrumbs.
@@ -209,12 +218,21 @@ class ShellSlotsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Canale page — barra azioni bulk (selezione tabella). `null` = nessuna
+  /// selezione attiva. Quando settata, il bottom mostra solo questa (priorità).
+  void setSelectionBar(Widget? bar) {
+    if (identical(_selectionBar, bar)) return;
+    _selectionBar = bar;
+    _notifySafely();
+  }
+
   /// Azzera l'intero canale page (azioni + controlli). Da chiamare al cambio
   /// rotta / dispose pagina.
   void clearPage() {
     _pageActions = const [];
     _contextControls = const [];
     _contextOverflow = null;
+    _selectionBar = null;
     _notifySafely();
   }
 

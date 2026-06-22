@@ -37,18 +37,9 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
         TResult extends Object>
     extends State<_HoverableRow<TKey, TResultId, TResult>>
     with SingleTickerProviderStateMixin {
-  bool _isHovered = false;
-  bool _isDialogOpen = false;
   bool _isExpanded = false;
   bool _isLoadingExpanded = false;
   bool _isPressed = false;
-
-  void _safeSetState(VoidCallback fn) {
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(fn);
-    });
-  }
 
   Future<void> _handleTap() async {
     HapticFeedback.selectionClick();
@@ -75,22 +66,20 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     Color primary,
     bool isSelected,
   ) {
+    // Tint OPACHI (alphaBlend sul grigio zebra più scuro): la zebra è opaca → un
+    // overlay translucido lerperebbe verso il trasparente (riga slavata); il blend
+    // su tertiaryBackground tiene hover/selezione più scuri di entrambe le righe.
     if (isSelected) {
       return (
-        rowColor: primary.withValues(alpha: 0.08),
+        rowColor: Color.alphaBlend(primary.withValues(alpha: 0.10), theme.tertiaryBackground),
         // Niente barra verticale: solo tint di sfondo (anche su selezione).
         leftBorderColor: Colors.transparent,
       );
     }
-    if (_isHovered) {
-      return (
-        rowColor: theme.primaryText.withValues(alpha: 0.025),
-        // Solo tint di sfondo su hover: niente barra verticale (resta su selezione).
-        leftBorderColor: Colors.transparent,
-      );
-    }
+    // Nessun tint su hover: la riga resta sul colore zebra.
     return (
-      rowColor: Colors.transparent,
+      // Zebra a 2 grigi: pari controlFill (scuro), dispari primaryBackground (chiaro).
+      rowColor: widget.isEven ? theme.controlFill : theme.primaryBackground,
       leftBorderColor: Colors.transparent,
     );
   }
@@ -121,10 +110,6 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
           cursor: widget.onItemTap != null || hasExpandedBuilder
               ? SystemMouseCursors.click
               : SystemMouseCursors.basic,
-          onEnter: (_) => _safeSetState(() => _isHovered = true),
-          onExit: (_) => _safeSetState(() {
-            if (!_isDialogOpen) _isHovered = false;
-          }),
           child: _wrapRow(
             useSwipe: useSwipe,
             inlineActions: inlineActions,
@@ -195,12 +180,7 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
                               actions: actions,
                               model: model,
                               actionsTitle: widget.actionsTitle,
-                              onDialogStateChange: (isOpen) {
-                                setState(() {
-                                  _isDialogOpen = isOpen;
-                                  if (!isOpen) _isHovered = false;
-                                });
-                              },
+                              onDialogStateChange: (isOpen) {},
                             ),
                           ),
                         ),
@@ -305,8 +285,8 @@ class _RowSelectionCell<TKey extends Comparable, TResultId extends Comparable,
   Widget build(BuildContext context) {
     final m = PagedDataTableRowMetrics.of(context);
     return Padding(
-      // Slot centered on the search-field prefix-icon center (see metrics).
-      padding: EdgeInsets.only(left: m.checkboxLeftPad),
+      // Lg a sinistra; Lg a destra (+ Lg padding cella = 2Lg verso la colonna).
+      padding: EdgeInsets.only(left: m.checkboxLeftPad, right: m.checkboxRightGap),
       child: SizedBox(
         width: m.checkboxSlot,
         child: Align(

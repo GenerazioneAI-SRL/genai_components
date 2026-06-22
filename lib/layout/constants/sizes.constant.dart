@@ -147,40 +147,40 @@ class CLSizes {
   // Aggiunti in 4.4.x — additivi, no breaking.
   // ═══════════════════════════════════════════════════════════
 
-  /// 16px — icona compatta (Foundation).
+  /// 14px — icona compatta (Foundation).
   /// Usato per: icone dentro chip/badge, icone in tabelle dense, leading di
   /// liste compatte.
-  static const iconSizeCompact = 16.0;
+  static const iconSizeCompact = 14.0;
 
-  /// 20px — icona standard (Foundation).
+  /// 18px — icona standard (Foundation).
   /// Usato per: icone di bottoni default, icone in header di card, leading
   /// nelle voci di menu.
-  static const iconSizeDefault = 20.0;
+  static const iconSizeDefault = 18.0;
 
-  /// 24px — icona large (Foundation).
+  /// 22px — icona large (Foundation).
   /// Usato per: icone hero, azioni primarie evidenziate, icone in toolbar
   /// principali.
-  static const iconSizeLarge = 24.0;
+  static const iconSizeLarge = 22.0;
 
   /// 32px — bottone compatto (Foundation).
   /// Usato per: `CLButton` size compact, azioni secondarie in toolbar dense,
   /// bottoni inline in tabelle.
   static const buttonHeightCompact = 32.0;
 
-  /// 40px — bottone default (Foundation).
+  /// 36px — bottone default (Foundation).
   /// Usato per: `CLButton` size default, azioni primarie standard di pagina,
   /// bottoni in form.
-  static const buttonHeightDefault = 40.0;
+  static const buttonHeightDefault = 36.0;
 
   /// 48px — bottone large (Foundation).
   /// Usato per: `CLButton` size large, CTA hero, azioni primarie in modali
   /// di onboarding.
   static const buttonHeightLarge = 48.0;
 
-  /// 40px — altezza standard input.
+  /// 36px — altezza standard input.
   /// Usato per: `CLTextField`, `CLDropdown`, `CLDatePicker` — allineata a
   /// `buttonHeightDefault` per row form coerenti.
-  static const inputHeight = 40.0;
+  static const inputHeight = 36.0;
 
   /// 32px — altezza input compatto (Foundation).
   /// Usato per: `CLTextField`/`CLDropdown` con `isCompact: true` — allineata a

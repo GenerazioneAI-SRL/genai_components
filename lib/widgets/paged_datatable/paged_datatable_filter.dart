@@ -87,7 +87,7 @@ class TextTableFilter extends TableFilter<String> {
         height: theme.inputHeight,
         decoration: BoxDecoration(
           color: _tableSearchFill(context),
-          borderRadius: BorderRadius.circular(theme.radiusControl),
+          borderRadius: BorderRadius.circular(theme.radiusPill),
         ),
         child: Row(
           children: [

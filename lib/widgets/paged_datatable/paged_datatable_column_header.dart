@@ -20,11 +20,9 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
     final m = PagedDataTableRowMetrics.of(context);
 
     Widget child = Container(
+      // Niente divider sotto: dall'header row alla bolla resta solo il gap Lg.
       decoration: BoxDecoration(
         color: _tableHeaderBg(context),
-        border: Border(
-          bottom: BorderSide(color: _tableBorder(context), width: 1),
-        ),
       ),
       height: theme.configuration.columnsHeaderHeight,
       child: Stack(
@@ -52,12 +50,12 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                     // con le righe che hanno checkbox) ma niente checkbox select-all.
                     if (rowsSelectable && !selectAllInHeader)
                       Padding(
-                        padding: EdgeInsets.only(left: m.checkboxLeftPad),
+                        padding: EdgeInsets.only(left: m.checkboxLeftPad, right: m.checkboxRightGap),
                         child: SizedBox(width: m.checkboxSlot),
                       ),
                     if (rowsSelectable && selectAllInHeader)
                       Padding(
-                        padding: EdgeInsets.only(left: m.checkboxLeftPad),
+                        padding: EdgeInsets.only(left: m.checkboxLeftPad, right: m.checkboxRightGap),
                         child: SizedBox(
                           width: m.checkboxSlot,
                           child: Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(

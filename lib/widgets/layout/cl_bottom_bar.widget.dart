@@ -15,6 +15,7 @@ class CLBottomBar extends StatelessWidget {
     required this.onOverflow,
     required this.maxItems,
     this.overflowLabel = 'Altro',
+    this.topBorder = true,
   });
 
   final List<CLDestination> destinations;
@@ -24,6 +25,10 @@ class CLBottomBar extends StatelessWidget {
   final VoidCallback onOverflow;
   final int maxItems;
   final String overflowLabel;
+
+  /// Bordo superiore: `true` quando la nav è da sola; `false` quando sopra c'è
+  /// l'area contestuale (continuano come un unico blocco, niente divider).
+  final bool topBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -37,41 +42,42 @@ class CLBottomBar extends StatelessWidget {
     // bottone + gapLg + gapSm. Gap icona/label e padding interno in _BottomItem.
     final iconSize = theme.iconSizeDefault + theme.gapXs;
 
-    return Container(
-      decoration: BoxDecoration(
-        // Bottom bar (menu mobile) = L0.
-        color: theme.primaryBackground,
-        border: Border(top: BorderSide(color: theme.borderColor)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: theme.buttonHeightDefault + theme.gapLg + theme.gapSm,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              for (final d in items)
-                Expanded(
-                  child: _BottomItem(
-                    icon: (c) => d.buildIcon(c, iconSize),
-                    label: d.label,
-                    selected: d.key == selectedKey || d.containsKey(selectedKey),
-                    onTap: () => d.isLeaf ? onSelect(d) : onOpenGroup(d),
-                  ),
-                ),
-              if (overflow)
-                Expanded(
-                  child: _BottomItem(
-                    icon: (c) => Icon(Icons.more_horiz, color: c, size: iconSize),
-                    label: overflowLabel,
-                    selected: false,
-                    onTap: onOverflow,
-                  ),
-                ),
-            ],
-          ),
+    final content = Padding(
+      // Inset Lg. Top a 0 quando sopra c'è l'area contestuale (il suo bottom
+      // padding dà già il gap Lg) → evita doppio Lg; Lg quando la nav è da sola.
+      padding: EdgeInsets.fromLTRB(theme.gapLg, topBorder ? theme.gapLg : 0, theme.gapLg, theme.gapLg),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          for (final d in items)
+            Expanded(
+              child: _BottomItem(
+                icon: (c) => d.buildIcon(c, iconSize),
+                label: d.label,
+                selected: d.key == selectedKey || d.containsKey(selectedKey),
+                onTap: () => d.isLeaf ? onSelect(d) : onOpenGroup(d),
+              ),
+            ),
+          if (overflow)
+            Expanded(
+              child: _BottomItem(
+                icon: (c) => Icon(Icons.more_horiz, color: c, size: iconSize),
+                label: overflowLabel,
+                selected: false,
+                onTap: onOverflow,
+              ),
+            ),
+          ],
         ),
+      );
+
+    return Container(
+      // Bottom bar (menu mobile) = L0.
+      decoration: BoxDecoration(
+        color: theme.primaryBackground,
+        border: topBorder ? Border(top: BorderSide(color: theme.borderColor)) : null,
       ),
+      child: SafeArea(top: false, child: content),
     );
   }
 }

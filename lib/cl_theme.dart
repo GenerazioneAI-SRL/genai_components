@@ -244,23 +244,23 @@ abstract class CLTheme {
   /// 9999px — radius pill.
   double get radiusPill => 9999.0;
 
-  /// 36px — radius delle bolle shell (header/menu/contenuto/AI). Pari a metà
+  /// 34px — radius delle bolle shell (header/menu/contenuto/AI). Pari a metà
   /// dell'altezza della bolla header (≈ buttonHeightDefault + 2·gapLg) così
   /// l'header risulta tondo alle estremità (capsula); le bolle più alte
   /// condividono lo stesso raggio per coerenza visiva.
-  double get radiusBubble => 36.0;
+  double get radiusBubble => 34.0;
 
-  /// 16px — icone compatte (dentro chip, celle tabella).
-  double get iconSizeCompact => 16.0;
+  /// 14px — icone compatte (dentro chip, celle tabella).
+  double get iconSizeCompact => 14.0;
 
-  /// 20px — icone default.
-  double get iconSizeDefault => 20.0;
+  /// 18px — icone default.
+  double get iconSizeDefault => 18.0;
 
-  /// 24px — icone grandi (header, empty state).
-  double get iconSizeLarge => 24.0;
+  /// 22px — icone grandi (header, empty state).
+  double get iconSizeLarge => 22.0;
 
-  /// 40px — altezza bottone default.
-  double get buttonHeightDefault => 40.0;
+  /// 36px — altezza bottone default.
+  double get buttonHeightDefault => 36.0;
 
   /// 32px — altezza bottone compatto (`isCompact: true`).
   double get buttonHeightCompact => 32.0;
@@ -268,8 +268,8 @@ abstract class CLTheme {
   /// 48px — altezza bottone large (CTA hero).
   double get buttonHeightLarge => 48.0;
 
-  /// 40px — altezza standard input (CLTextField, CLDropdown).
-  double get inputHeight => 40.0;
+  /// 36px — altezza standard input (CLTextField, CLDropdown).
+  double get inputHeight => 36.0;
 
   /// 32px — altezza input compatto (`isCompact: true`).
   double get inputHeightCompact => 32.0;
@@ -353,7 +353,7 @@ class LightModeTheme extends CLTheme {
     super.secondaryText = const Color(0xFF5D6066),
     super.primaryBackground = const Color(0xFFFBFBFC),
     super.secondaryBackground = const Color(0xFFFFFFFF),
-    super.tertiaryBackground = const Color(0xFFE9EBED),
+    super.tertiaryBackground = const Color(0xFFECEEF0), // = controlFill (palette a 2 grigi)
     super.success = const Color(0xFF16A34A),
     super.warning = const Color(0xFFD97706),
     super.danger = const Color(0xFFDC2626),
@@ -361,9 +361,9 @@ class LightModeTheme extends CLTheme {
     super.borderColor = const Color(0x1A000000),
     super.background = const Color(0xFFF4F5F6),
     super.fillColor = const Color(0xFFF4F5F6),
-    super.muted = const Color(0xFFF1F2F4),
+    super.muted = const Color(0xFFECEEF0), // = controlFill (palette a 2 grigi)
     super.mutedForeground = const Color(0xFF9CA0A6),
-    super.accent = const Color(0xFFF1F2F4),
+    super.accent = const Color(0xFFECEEF0), // = controlFill
     super.accentForeground = const Color(0xFF31302E),
     super.ring = const Color(0xFF097FE8),
     super.cardBorder = const Color(0x1A000000),
@@ -391,7 +391,7 @@ class DarkModeTheme extends CLTheme {
     super.secondaryText = const Color(0xFF8B8F98),
     super.primaryBackground = const Color(0xFF1A1B1E),
     super.secondaryBackground = const Color(0xFF232427),
-    super.tertiaryBackground = const Color(0xFF2C2D31),
+    super.tertiaryBackground = const Color(0xFF2E2F33), // = controlFill (palette a 2 grigi)
     super.success = const Color(0xFF4ADE80),
     super.warning = const Color(0xFFFBBF24),
     super.danger = const Color(0xFFF87171),
@@ -399,9 +399,9 @@ class DarkModeTheme extends CLTheme {
     super.borderColor = const Color(0xFF313338),
     super.background = const Color(0xFF131417),
     super.fillColor = const Color(0xFF1E1F22),
-    super.muted = const Color(0xFF27282B),
+    super.muted = const Color(0xFF2E2F33), // = controlFill (palette a 2 grigi)
     super.mutedForeground = const Color(0xFF9A9DA4),
-    super.accent = const Color(0xFF27282B),
+    super.accent = const Color(0xFF2E2F33), // = controlFill
     super.accentForeground = const Color(0xFFFAFAFA),
     super.ring = const Color(0xFF3BA8D8),
     super.cardBorder = const Color(0xFF2A2B2F),

@@ -26,7 +26,7 @@ class CLContainer extends StatefulWidget {
     this.titleBackgroundColor,
     this.titleIcon,
     this.plainHeader = false,
-    this.externalTitle = false,
+    this.externalTitle = true,
   });
 
   final Widget child;
@@ -62,7 +62,7 @@ class CLContainer extends StatefulWidget {
 
   /// Titolo FUORI dalla card: [title]/[titleWidget] (+ [titleIcon]/azione)
   /// renderizzati come riga sopra la card, con gap `gapSm` (8) prima della
-  /// superficie. La card non mostra la barra titolo interna. Default `false`.
+  /// superficie. La card non mostra la barra titolo interna. Default `true`.
   final bool externalTitle;
 
   @override
@@ -181,25 +181,23 @@ class _CLContainerState extends State<CLContainer> {
               ? CLGhostButton.primary(text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)
               : null);
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Stretch: la card riempie la cella anche con contenuto corto (titolo-row
+        // è già full-width). Senza, la card si stringe sul child.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Titolo allineato a sinistra al content della card (padding left gapLg).
-          Padding(
-            padding: const EdgeInsets.only(left: Sizes.gapLg),
-            child: Row(
-              children: [
-                if (widget.titleIcon != null) ...[
-                  widget.titleIcon!,
-                  const SizedBox(width: Sizes.gapSm),
-                ],
-                Expanded(
-                  child: widget.titleWidget ??
-                      Text(widget.title!, style: theme.title, overflow: TextOverflow.ellipsis),
-                ),
-                if (action != null) action,
+          // Titolo a filo sinistro (nessun padding left).
+          Row(
+            children: [
+              if (widget.titleIcon != null) ...[
+                widget.titleIcon!,
+                const SizedBox(width: Sizes.gapSm),
               ],
-            ),
+              Expanded(
+                child: widget.titleWidget ?? Text(widget.title!, style: theme.title, overflow: TextOverflow.ellipsis),
+              ),
+              if (action != null) action,
+            ],
           ),
           const SizedBox(height: Sizes.gapSm),
           card,

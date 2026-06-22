@@ -96,7 +96,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 
   Widget _buildMobileFooter(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state) {
     final t = CLTheme.of(context);
-    return Center(
+    return Align(
+      alignment: Alignment.centerRight,
       child: _PaginationControls(state: state, theme: t),
     );
   }
