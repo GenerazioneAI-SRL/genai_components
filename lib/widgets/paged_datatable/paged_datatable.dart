@@ -290,6 +290,10 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   final bool isInSnippet;
   final bool showBorder;
   final bool showTopBorder;
+
+  /// Se true la tabella NON disegna la propria card (sfondo/ombra/bordo/raggio):
+  /// pensata per essere annidata in un CLContainer che fornisce gia' la superficie.
+  final bool embedded;
   final bool showFooter;
   final String? downloadButtonText;
   final IconData? downloadButtonIcon;
@@ -327,6 +331,12 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// scorrono solo le righe. Se false (default) la tabella è alta quanto il
   /// contenuto e scorre col parent.
   final bool fillHeight;
+
+  /// ScrollController della PAGINA, per il caso "scroll della pagina, non della
+  /// tabella" (`infiniteScroll` senza `fillHeight`). Se fornito, la tabella gestisce
+  /// internamente l'auto-fill (carica finché il viewport è pieno) e il load a fine
+  /// scroll: la pagina passa solo il controller, niente plumbing manuale.
+  final ScrollController? pageScrollController;
 
   /// Se true abilita l'infinite scroll: la lista possiede lo scroll (come
   /// [fillHeight]) e carica la pagina successiva quando ci si avvicina al fondo
@@ -368,6 +378,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     // Foundation: card tabella = L1 + ombra soft, NO border di default (opt-in).
     this.showBorder = false,
     this.showTopBorder = true,
+    this.embedded = false,
     this.showFooter = true,
     this.isFilterBarRounded = true,
     this.hoistFilterBarToShell = false,
@@ -382,6 +393,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.primaryColor,
     this.fillHeight = false,
     this.infiniteScroll = false,
+    this.pageScrollController,
     this.style,
     super.key,
   });
@@ -411,7 +423,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         );
 
     final localTheme = effectiveTheme;
-    return ChangeNotifierProvider<_PagedDataTableState<TKey, TResultId, TResult>>(
+    final Widget tableTree = ChangeNotifierProvider<_PagedDataTableState<TKey, TResultId, TResult>>(
       create: (context) => _PagedDataTableState(
         downloadCallback: downloadPage,
         columns: columns,
@@ -746,22 +758,23 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
           data: effectiveTheme,
           child: Container(
             // Foundation: card L1 = secondaryBackground + ombra soft (cardShadowSoft),
-            // border opt-in (default off). CLContainer NON è usabile qui: il suo
-            // Column(min)+Flexible romperebbe il layout fillHeight/Expanded/scroll
-            // della tabella → stessa surface allineata a mano agli stessi token.
-            decoration: BoxDecoration(
-              color: CLTheme.of(context).secondaryBackground,
-              borderRadius: BorderRadius.circular(Sizes.radiusCard),
-              boxShadow: CLTheme.of(context).cardShadowSoft,
-            ),
+            // border opt-in (default off). `embedded` → niente card propria: la
+            // superficie la fornisce un CLContainer esterno.
+            decoration: embedded
+                ? null
+                : BoxDecoration(
+                    color: CLTheme.of(context).secondaryBackground,
+                    borderRadius: BorderRadius.circular(Sizes.radiusCard),
+                    boxShadow: CLTheme.of(context).cardShadowSoft,
+                  ),
             child: Material(
               type: MaterialType.transparency,
               shape: RoundedRectangleBorder(
                 // Dark: ombra invisibile → bordo hairline per delineare la card.
-                side: (showBorder || Theme.of(context).brightness == Brightness.dark)
+                side: (!embedded && (showBorder || Theme.of(context).brightness == Brightness.dark))
                     ? BorderSide(color: CLTheme.of(context).borderColor, width: 1)
                     : BorderSide.none,
-                borderRadius: BorderRadius.circular(Sizes.radiusCard),
+                borderRadius: BorderRadius.circular(embedded ? 0 : Sizes.radiusCard),
               ),
               clipBehavior: Clip.antiAlias,
               child: !_isTableCompact(context)
@@ -836,6 +849,18 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         );
       },
     );
+
+    // Scroll guidato dalla pagina (infiniteScroll senza fillHeight): la tabella
+    // gestisce internamente auto-fill + load a fine scroll col controller della
+    // pagina. Niente plumbing nei consumer.
+    if (infiniteScroll && !fillHeight && pageScrollController != null && controller != null) {
+      return _PageScrollAutoFill<TKey, TResultId, TResult>(
+        scrollController: pageScrollController!,
+        controller: controller!,
+        child: tableTree,
+      );
+    }
+    return tableTree;
   }
 
   Widget? _buildTitleHeader(BuildContext context) {
@@ -878,4 +903,85 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
       ),
     );
   }
+}
+
+/// Incapsula l'infinite-scroll guidato dalla PAGINA (scroll della pagina, non
+/// della tabella): auto-fill se il viewport non è pieno + load a fine scroll.
+/// Aggancia listener allo [scrollController] della pagina e ai cambi tabella; la
+/// pagina passa solo il controller (sostituisce il vecchio plumbing in pagina).
+class _PageScrollAutoFill<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatefulWidget {
+  const _PageScrollAutoFill({
+    required this.scrollController,
+    required this.controller,
+    required this.child,
+  });
+
+  final ScrollController scrollController;
+  final PagedDataTableController<TKey, TResultId, TResult> controller;
+  final Widget child;
+
+  @override
+  State<_PageScrollAutoFill<TKey, TResultId, TResult>> createState() =>
+      _PageScrollAutoFillState<TKey, TResultId, TResult>();
+}
+
+class _PageScrollAutoFillState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends State<_PageScrollAutoFill<TKey, TResultId, TResult>> {
+  bool _autoFilling = false;
+  bool _changesAttached = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onScroll);
+    // I cambi tabella (controller.changes → _state) sono disponibili solo dopo il
+    // primo build della tabella figlia: aggancio post-frame per evitare il late-init.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.controller.changes.addListener(_onTableChange);
+      _changesAttached = true;
+      _maybeAutoFill();
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onScroll);
+    if (_changesAttached) widget.controller.changes.removeListener(_onTableChange);
+    super.dispose();
+  }
+
+  void _onTableChange() => _maybeAutoFill();
+
+  void _onScroll() {
+    if (!widget.scrollController.hasClients) return;
+    final pos = widget.scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 320) widget.controller.loadNextPage();
+  }
+
+  /// Se la prima pagina non riempie il viewport non c'è scroll → il trigger su
+  /// scroll non parte e la rotella in coda gira a vuoto. Carico in loop finché il
+  /// contenuto scrolla o finiscono le pagine.
+  Future<void> _maybeAutoFill() async {
+    if (_autoFilling) return;
+    _autoFilling = true;
+    var guard = 0;
+    try {
+      while (mounted && guard++ < 50) {
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) return;
+        if (!widget.scrollController.hasClients) return;
+        if (widget.controller.isLoading) continue;
+        if (widget.scrollController.position.maxScrollExtent > 0) return;
+        if (!widget.controller.hasNextPage) return;
+        await widget.controller.loadNextPage();
+      }
+    } finally {
+      _autoFilling = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

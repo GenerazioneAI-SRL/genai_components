@@ -41,40 +41,49 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // ── Sinistra: page size + totale ─────────────────────────
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Righe per pagina:', style: t.smallLabel.copyWith(color: t.secondaryText)),
-            SizedBox(width: t.gapLg),
-            _PageSizeControls(
-                pageSizes: pageSizes,
-                currentPageSize: state._pageSize,
-                onChanged: (size) => state.setPageSize(size),
-                theme: t),
-            SizedBox(width: t.gapLg),
-            Container(
-              height: t.buttonHeightCompact,
-              alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: t.gapMd),
-              decoration: BoxDecoration(
-                color: t.muted,
-                borderRadius: BorderRadius.circular(t.radiusPill),
-              ),
-              child: AnimatedSwitcher(
-                duration: t.durationBase,
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
                 child: Text(
-                  state.totalElement > 0
-                      ? '${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
-                      : '0 risultati',
-                  key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
-                  style: t.smallLabel.copyWith(
-                    color: t.secondaryText,
-                    fontWeight: FontWeight.w500,
+                  'Righe per pagina:',
+                  style: t.smallLabel.copyWith(color: t.secondaryText),
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
+              ),
+              SizedBox(width: t.gapLg),
+              _PageSizeControls(
+                  pageSizes: pageSizes,
+                  currentPageSize: state._pageSize,
+                  onChanged: (size) => state.setPageSize(size),
+                  theme: t),
+              SizedBox(width: t.gapLg),
+              Container(
+                height: t.buttonHeightCompact,
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: t.gapMd),
+                decoration: BoxDecoration(
+                  color: t.muted,
+                  borderRadius: BorderRadius.circular(t.radiusPill),
+                ),
+                child: AnimatedSwitcher(
+                  duration: t.durationBase,
+                  child: Text(
+                    state.totalElement > 0
+                        ? '${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
+                        : '0 risultati',
+                    key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
+                    style: t.smallLabel.copyWith(
+                      color: t.secondaryText,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
 
         // ── Destra: paginazione ───────────────────────────────────

@@ -26,6 +26,7 @@ class CLContainer extends StatefulWidget {
     this.titleBackgroundColor,
     this.titleIcon,
     this.plainHeader = false,
+    this.externalTitle = false,
   });
 
   final Widget child;
@@ -59,6 +60,11 @@ class CLContainer extends StatefulWidget {
   /// unica delimitata da bordo/contrasto. Default `false` (header classico).
   final bool plainHeader;
 
+  /// Titolo FUORI dalla card: [title]/[titleWidget] (+ [titleIcon]/azione)
+  /// renderizzati come riga sopra la card, con gap `gapSm` (8) prima della
+  /// superficie. La card non mostra la barra titolo interna. Default `false`.
+  final bool externalTitle;
+
   @override
   State<CLContainer> createState() => _CLContainerState();
 }
@@ -82,7 +88,7 @@ class _CLContainerState extends State<CLContainer> {
       bottomRight: Radius.circular((br.bottomRight.x - borderWidth).clamp(0.0, double.infinity)),
     );
 
-    return Container(
+    final Widget card = Container(
       height: widget.height,
       width: widget.width,
       margin: widget.contentMargin ?? EdgeInsets.zero,
@@ -101,7 +107,7 @@ class _CLContainerState extends State<CLContainer> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hasTitle) ...[
+            if (hasTitle && !widget.externalTitle) ...[
               Container(
                 decoration: BoxDecoration(
                   // plainHeader: nessuna barra grigia né divider — il titolo è
@@ -156,10 +162,50 @@ class _CLContainerState extends State<CLContainer> {
               ),
             ],
             widget.customHeader ?? SizedBox.shrink(),
-            Flexible(child: Padding(padding: widget.contentPadding ?? EdgeInsets.zero, child: widget.child)),
+            Flexible(
+              child: Padding(
+                padding: widget.contentPadding ?? const EdgeInsets.all(Sizes.gapLg),
+                child: widget.child,
+              ),
+            ),
           ],
         ),
       ),
     );
+
+    // Titolo fuori card: riga (icona+titolo+azione) sopra la superficie, gap
+    // gapSm (8) prima della card. La card sopra non ha barra titolo interna.
+    if (hasTitle && widget.externalTitle) {
+      final Widget? action = widget.actionWidget ??
+          (widget.actionTitle != null && widget.onActionTap != null
+              ? CLGhostButton.primary(text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)
+              : null);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Titolo allineato a sinistra al content della card (padding left gapLg).
+          Padding(
+            padding: const EdgeInsets.only(left: Sizes.gapLg),
+            child: Row(
+              children: [
+                if (widget.titleIcon != null) ...[
+                  widget.titleIcon!,
+                  const SizedBox(width: Sizes.gapSm),
+                ],
+                Expanded(
+                  child: widget.titleWidget ??
+                      Text(widget.title!, style: theme.title, overflow: TextOverflow.ellipsis),
+                ),
+                if (action != null) action,
+              ],
+            ),
+          ),
+          const SizedBox(height: Sizes.gapSm),
+          card,
+        ],
+      );
+    }
+    return card;
   }
 }

@@ -294,7 +294,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             color: theme.primaryBackground,
             border: Border(top: BorderSide(color: theme.borderColor)),
           ),
-          padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapSm),
+          padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapMd),
           child: _areaContent(context, s, theme, _panelId),
         );
       },
@@ -326,12 +326,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             children: [
               for (var i = 0; i < s.contextControls.length; i++) ...[
                 // Stesso gap della riga bassa così le due righe si allineano.
-                if (i > 0) SizedBox(width: theme.gapMd),
+                if (i > 0) SizedBox(width: theme.gapLg),
                 _contextControl(context, theme, s.contextControls[i]),
               ],
             ],
           ),
-          if (hasLower) SizedBox(height: theme.gapSm),
+          if (hasLower) SizedBox(height: theme.gapMd),
         ],
         if (hasLower)
           Builder(
@@ -361,7 +361,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                       iconSize: Sizes.iconSizeDefault,
                       tooltip: s.back!.tooltip ?? 'Indietro',
                     ),
-                    SizedBox(width: theme.gapMd),
+                    SizedBox(width: theme.gapLg),
                   ],
                   Expanded(
                     child: primary != null
@@ -380,7 +380,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 for (var i = 0; i < s.pageActions.length; i++) ...[
-                                  if (i > 0) SizedBox(width: theme.gapMd),
+                                  if (i > 0) SizedBox(width: theme.gapLg),
                                   _actionButton(context, theme, s.pageActions[i]),
                                 ],
                               ],
@@ -390,11 +390,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   // Azioni secondarie a destra del primario (solo se c'è un primario).
                   if (primary != null)
                     for (final a in others) ...[
-                      SizedBox(width: theme.gapMd),
+                      SizedBox(width: theme.gapLg),
                       _actionButton(context, theme, a),
                     ],
                   if (s.contextOverflow != null) ...[
-                    SizedBox(width: theme.gapMd),
+                    SizedBox(width: theme.gapLg),
                     _revealButton(context, theme, s.contextOverflow!),
                   ],
                 ],
