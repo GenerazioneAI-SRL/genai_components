@@ -144,11 +144,9 @@ class PagedDataTableRowMetrics {
   // then optionally the popup column. The popup column carries its own right
   // gap; when inline buttons precede it, it also carries a left gap. When there
   // are inline buttons but NO popup, the cluster still needs a trailing gap.
-  double inlineAreaWidth(int inlineCount) =>
-      inlineCount == 0 ? 0.0 : inlineCount * inlineButtonSide + (inlineCount - 1) * gap;
+  double inlineAreaWidth(int inlineCount) => inlineCount == 0 ? 0.0 : inlineCount * inlineButtonSide + (inlineCount - 1) * gap;
 
-  double popupColumnWidth(bool inlinePresent) =>
-      (inlinePresent ? popupLeftGapWithInline : 0.0) + popupButtonSlot + popupRightGap;
+  double popupColumnWidth(bool inlinePresent) => (inlinePresent ? popupLeftGapWithInline : 0.0) + popupButtonSlot + popupRightGap;
 
   double actionsColumnWidth({required int inlineCount, required bool hasPopup}) {
     final inline = inlineAreaWidth(inlineCount);
@@ -169,9 +167,7 @@ bool _isTableCompact(BuildContext context) => MediaQuery.sizeOf(context).width <
 /// usa `PagedDataTableTheme.buttonsColor` se valorizzato (override via
 /// `PagedDataTable(primaryColor: ...)`), altrimenti `CLTheme.primary`.
 Color _effectiveTablePrimary(BuildContext context) {
-  return CLTableStyle.maybeOf(context)?.primary ??
-      PagedDataTableTheme.maybeOf(context)?.buttonsColor ??
-      CLTheme.of(context).primary;
+  return CLTableStyle.maybeOf(context)?.primary ?? PagedDataTableTheme.maybeOf(context)?.buttonsColor ?? CLTheme.of(context).primary;
 }
 
 /// Override colori per-istanza di [PagedDataTable]. Ogni campo null -> token CLTheme.
@@ -184,8 +180,7 @@ class CLTableStyle {
 
   const CLTableStyle({this.primary, this.searchFill, this.headerBackground, this.buttonFill, this.border});
 
-  static CLTableStyle? maybeOf(BuildContext c) =>
-      c.dependOnInheritedWidgetOfExactType<_CLTableStyleScope>()?.style;
+  static CLTableStyle? maybeOf(BuildContext c) => c.dependOnInheritedWidgetOfExactType<_CLTableStyleScope>()?.style;
 }
 
 class _CLTableStyleScope extends InheritedWidget {
@@ -207,11 +202,9 @@ Color _tableBorder(BuildContext c) => CLTableStyle.maybeOf(c)?.border ?? CLTheme
 /// A paginated DataTable that allows page caching and filtering
 /// [TKey] is the type of the page token
 /// [TResult] is the type of data the data table will show.
-class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
-    extends StatelessWidget {
+class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatelessWidget {
   /// The callback that gets executed when a page is fetched.
-  final Future<(List<TResult>, Pagination?)> Function(
-      {int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy}) fetchPage;
+  final Future<(List<TResult>, Pagination?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy}) fetchPage;
 
   /// The initial page to fetch.
   final TKey initialPage;
@@ -279,8 +272,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// Builder opzionale per le azioni nella toolbar di selezione (appare quando almeno una riga è selezionata).
   /// Ritorna solo i widget delle azioni: badge "X selezionati" e "Deseleziona tutto" vengono
   /// gestiti internamente dalla tabella.
-  final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)?
-      selectionActionsBuilder;
+  final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)? selectionActionsBuilder;
 
   /// Mostra il checkbox "seleziona tutti" nell'header. Default true. Se false
   /// resta lo slot (allineamento) ma niente select-all: la selezione avviene
@@ -323,6 +315,11 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 
   /// Colore di sfondo dell'header del titolo (applicato con alpha 0.08).
   final Color? titleBackgroundColor;
+
+  /// Azioni opzionali mostrate nella STESSA riga del titolo, allineate a destra,
+  /// sopra la filter bar/ricerca. L'header del titolo compare anche se è
+  /// valorizzato solo questo (senza [title]/[titleWidget]).
+  final List<Widget> titleActions;
 
   /// Colore primario applicato agli elementi interattivi della tabella
   /// (indicatore di sort, riga selezionata, checkbox, hover, badge filtri,
@@ -394,6 +391,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.titleWidget,
     this.titleIcon,
     this.titleBackgroundColor,
+    this.titleActions = const [],
     this.primaryColor,
     this.fillHeight = false,
     this.infiniteScroll = false,
@@ -561,14 +559,10 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                       if (selectedCount == 0) {
                         toolbarContent = const SizedBox.shrink(key: ValueKey('toolbar_hidden'));
                       } else {
-                        final selectedItems = st.selectedRows.entries
-                            .where((e) => e.value < st._items.length)
-                            .map((e) => st._items[e.value])
-                            .toList();
+                        final selectedItems = st.selectedRows.entries.where((e) => e.value < st._items.length).map((e) => st._items[e.value]).toList();
                         final actionWidgets = selectionActionsBuilder!(context, selectedCount, selectedItems);
                         final isDesktop = !_isTableCompact(context);
-                        final isAllSelected = st._items.isNotEmpty &&
-                            st._items.every((it) => st.selectedRows.containsKey(idGetter(it)));
+                        final isAllSelected = st._items.isNotEmpty && st._items.every((it) => st.selectedRows.containsKey(idGetter(it)));
                         toolbarContent = Container(
                           key: const ValueKey('toolbar_visible'),
                           padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
@@ -718,10 +712,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                       // ma in quel caso NON deve occupare spazio inline: host → shrink,
                       // niente Container/padding → niente spazio morto in cima.
                       if (localTheme.configuration.filterBarVisibile &&
-                          (header != null ||
-                              mainMenus.isNotEmpty ||
-                              extraMenus.isNotEmpty ||
-                              state.filters.isNotEmpty))
+                          (header != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty || state.filters.isNotEmpty))
                         Builder(builder: (context) {
                           final tab = _PagedDataTableFilterTab<TKey, TResultId, TResult>(
                             mainMenus,
@@ -762,8 +753,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                   );
           },
         );
-        assert(effectiveTheme.rowColors != null ? effectiveTheme.rowColors!.length == 2 : true,
-            "rowColors must contain exactly two colors");
+        assert(effectiveTheme.rowColors != null ? effectiveTheme.rowColors!.length == 2 : true, "rowColors must contain exactly two colors");
 
         final titleHeader = _buildTitleHeader(context);
 
@@ -782,97 +772,97 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         return _CLTableStyleScope(
           style: style,
           child: PagedDataTableTheme(
-          data: effectiveTheme,
-          child: Container(
-            // Foundation: card L1 = secondaryBackground + ombra soft (cardShadowSoft),
-            // border opt-in (default off). `embedded` → niente card propria: la
-            // superficie la fornisce un CLContainer esterno.
-            decoration: embedded
-                ? null
-                : BoxDecoration(
-                    color: CLTheme.of(context).secondaryBackground,
-                    borderRadius: BorderRadius.circular(Sizes.radiusCard),
-                    boxShadow: CLTheme.of(context).cardShadowSoft,
-                  ),
-            child: Material(
-              type: MaterialType.transparency,
-              shape: RoundedRectangleBorder(
-                // Dark: ombra invisibile → bordo hairline per delineare la card.
-                side: (!embedded && (showBorder || Theme.of(context).brightness == Brightness.dark))
-                    ? BorderSide(color: CLTheme.of(context).borderColor, width: 1)
-                    : BorderSide.none,
-                borderRadius: BorderRadius.circular(embedded ? 0 : Sizes.radiusCard),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: !_isTableCompact(context)
-                  // Solo fillHeight: niente scroll esterno, scorrono solo le righe.
-                  // (infiniteScroll senza fillHeight → la pagina scrolla la tabella).
-                  ? fillHeight
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (titleHeader != null) titleHeader,
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: CLTheme.of(context).secondaryBackground,
+            data: effectiveTheme,
+            child: Container(
+              // Foundation: card L1 = secondaryBackground + ombra soft (cardShadowSoft),
+              // border opt-in (default off). `embedded` → niente card propria: la
+              // superficie la fornisce un CLContainer esterno.
+              decoration: embedded
+                  ? null
+                  : BoxDecoration(
+                      color: CLTheme.of(context).secondaryBackground,
+                      borderRadius: BorderRadius.circular(Sizes.radiusCard),
+                      boxShadow: CLTheme.of(context).cardShadowSoft,
+                    ),
+              child: Material(
+                type: MaterialType.transparency,
+                shape: RoundedRectangleBorder(
+                  // Dark: ombra invisibile → bordo hairline per delineare la card.
+                  side: (!embedded && (showBorder || Theme.of(context).brightness == Brightness.dark))
+                      ? BorderSide(color: CLTheme.of(context).borderColor, width: 1)
+                      : BorderSide.none,
+                  borderRadius: BorderRadius.circular(embedded ? 0 : Sizes.radiusCard),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: !_isTableCompact(context)
+                    // Solo fillHeight: niente scroll esterno, scorrono solo le righe.
+                    // (infiniteScroll senza fillHeight → la pagina scrolla la tabella).
+                    ? fillHeight
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (titleHeader != null) titleHeader,
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: CLTheme.of(context).secondaryBackground,
+                                  ),
+                                  child: child,
                                 ),
-                                child: child,
                               ),
+                              footerSection,
+                            ],
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (titleHeader != null) titleHeader,
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: CLTheme.of(context).secondaryBackground,
+                                  ),
+                                  child: child,
+                                ),
+                                footerSection,
+                              ],
                             ),
-                            footerSection,
-                          ],
-                        )
-                      : SingleChildScrollView(
-                          child: Column(
+                          )
+                    : fillHeight
+                        ? Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               if (titleHeader != null) titleHeader,
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: CLTheme.of(context).secondaryBackground,
-                                ),
-                                child: child,
-                              ),
-                              footerSection,
-                            ],
-                          ),
-                        )
-                  : fillHeight
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (titleHeader != null) titleHeader,
-                            Expanded(child: child),
-                            // Padding solo se il footer è mostrato: senza footer
-                            // (infinite scroll) niente spazio morto in fondo.
-                            if (footerShown) ...[
-                              const SizedBox(height: Sizes.padding),
-                              // Sotto: solo il bottom padding Lg del footer (no extra).
-                              footerSection,
-                            ],
-                          ],
-                        )
-                      : SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (titleHeader != null) titleHeader,
-                              child,
-                              // Padding/footer solo se il footer è mostrato: in
-                              // infinite scroll (footer nascosto) niente spazio
-                              // morto sotto il messaggio di fine lista.
+                              Expanded(child: child),
+                              // Padding solo se il footer è mostrato: senza footer
+                              // (infinite scroll) niente spazio morto in fondo.
                               if (footerShown) ...[
                                 const SizedBox(height: Sizes.padding),
                                 // Sotto: solo il bottom padding Lg del footer (no extra).
                                 footerSection,
                               ],
                             ],
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (titleHeader != null) titleHeader,
+                                child,
+                                // Padding/footer solo se il footer è mostrato: in
+                                // infinite scroll (footer nascosto) niente spazio
+                                // morto sotto il messaggio di fine lista.
+                                if (footerShown) ...[
+                                  const SizedBox(height: Sizes.padding),
+                                  // Sotto: solo il bottom padding Lg del footer (no extra).
+                                  footerSection,
+                                ],
+                              ],
+                            ),
                           ),
-                        ),
+              ),
             ),
           ),
-        ),
         );
       },
     );
@@ -891,16 +881,20 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   }
 
   Widget? _buildTitleHeader(BuildContext context) {
-    final hasTitle = title != null || titleWidget != null;
-    if (!hasTitle) return null;
+    final hasHeader = title != null || titleWidget != null || titleActions.isNotEmpty;
+    if (!hasHeader) return null;
     final theme = CLTheme.of(context);
     return Container(
+      // Sfondo = secondaryBackground (si fonde con la card della tabella), niente
+      // border bottom: il titolo siede in cima alla card senza divider.
       decoration: BoxDecoration(
-        color: titleBackgroundColor != null ? titleBackgroundColor!.withValues(alpha: 0.08) : theme.primaryBackground,
-        border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
+        color: titleBackgroundColor != null ? titleBackgroundColor!.withValues(alpha: 0.08) : theme.secondaryBackground,
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.verticalPadding),
+        // Bottom 0: lo stacco Lg dalla filter bar lo dà già il SUO top padding
+        // (desktop, fromLTRB(Lg,Lg,Lg,0)) o il margine della sezione card (mobile)
+        // → niente gap doppio. Top/orizzontali invariati.
+        padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, Sizes.gapLg),
         child: Row(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -908,23 +902,31 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
             Expanded(
               child: titleWidget != null
                   ? titleWidget!
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (titleIcon != null) ...[
-                          titleIcon!,
-                          const SizedBox(width: Sizes.gapMd),
-                        ],
-                        Flexible(
-                          child: Text(
-                            title!,
-                            style: theme.heading4,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                  : title != null
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (titleIcon != null) ...[
+                              titleIcon!,
+                              const SizedBox(width: Sizes.gapMd),
+                            ],
+                            Flexible(
+                              child: Text(
+                                title!,
+                                style: theme.heading4,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
             ),
+            // Azioni del titolo: stessa riga, allineate a destra. Gap Md dal titolo,
+            // Sm tra loro.
+            for (var i = 0; i < titleActions.length; i++) ...[
+              SizedBox(width: i == 0 ? Sizes.gapMd : Sizes.gapSm),
+              titleActions[i],
+            ],
           ],
         ),
       ),
@@ -936,8 +938,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
 /// della tabella): auto-fill se il viewport non è pieno + load a fine scroll.
 /// Aggancia listener allo [scrollController] della pagina e ai cambi tabella; la
 /// pagina passa solo il controller (sostituisce il vecchio plumbing in pagina).
-class _PageScrollAutoFill<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
-    extends StatefulWidget {
+class _PageScrollAutoFill<TKey extends Comparable, TResultId extends Comparable, TResult extends Object> extends StatefulWidget {
   const _PageScrollAutoFill({
     required this.scrollController,
     required this.controller,
@@ -949,8 +950,7 @@ class _PageScrollAutoFill<TKey extends Comparable, TResultId extends Comparable,
   final Widget child;
 
   @override
-  State<_PageScrollAutoFill<TKey, TResultId, TResult>> createState() =>
-      _PageScrollAutoFillState<TKey, TResultId, TResult>();
+  State<_PageScrollAutoFill<TKey, TResultId, TResult>> createState() => _PageScrollAutoFillState<TKey, TResultId, TResult>();
 }
 
 class _PageScrollAutoFillState<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>

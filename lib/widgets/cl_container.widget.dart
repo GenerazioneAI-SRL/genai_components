@@ -26,7 +26,7 @@ class CLContainer extends StatefulWidget {
     this.titleBackgroundColor,
     this.titleIcon,
     this.plainHeader = false,
-    this.externalTitle = true,
+    this.externalTitle = false,
   });
 
   final Widget child;
@@ -117,9 +117,7 @@ class _CLContainerState extends State<CLContainer> {
                       : widget.titleBackgroundColor != null
                           ? widget.titleBackgroundColor!.withValues(alpha: 0.08)
                           : theme.secondaryBackground,
-                  border: (widget.customHeader == null && !widget.plainHeader)
-                      ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1))
-                      : null,
+                  border: (widget.customHeader == null && !widget.plainHeader) ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1)) : null,
                 ),
                 child: Padding(
                   padding: widget.plainHeader
@@ -151,10 +149,7 @@ class _CLContainerState extends State<CLContainer> {
                               ),
                       ),
                       if (widget.actionTitle != null && widget.onActionTap != null && widget.actionWidget == null)
-                        SizedBox(
-                            height: 20,
-                            child: CLGhostButton.primary(
-                                text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)),
+                        SizedBox(height: 20, child: CLGhostButton.primary(text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)),
                       if (widget.actionWidget != null) widget.actionWidget!,
                     ],
                   ),

@@ -234,10 +234,13 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           return out;
         }
 
+        // Leading in Expanded (riempie e fa ellissi sul titolo), trailing flush a
+        // destra. NIENTE Spacer: con un leading Flexible "loose" (titolo mobile) lo
+        // spazio flex allocato ma non usato diventerebbe vuoto in coda (mainAxis
+        // start) → il cluster G3 si sposterebbe verso il centro invece che a destra.
         return Row(
           children: [
-            ...joined(leading),
-            const Spacer(),
+            Expanded(child: Row(children: joined(leading))),
             ...joined(trailing),
           ],
         );
@@ -600,10 +603,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Menu in bolla full-height: padding esterno su tutti i lati tranne destra
-          // (margine 0: il gap lo dà il padding di header/pagina) → evita 2·Lg.
+          // Menu in bolla full-height. Margine esterno Lg su sx/top/bottom; a destra
+          // Sm (non 0): col gap del contenuto evita il doppio Lg, ma lascia respiro
+          // all'ombra dx (blur 3px) che con margine 0 l'header opaco sovradipingerebbe.
           Padding(
-            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, 0, Sizes.gapLg),
+            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapSm, Sizes.gapLg),
             child: SizedBox(
               width: widget.config.sidebarWidth,
               child: _sideCard(
@@ -636,9 +640,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   // ── Tablet (rail icon-only) ────────────────────────────────────────────────
-  /// Rail persistente a sinistra + header (senza hamburger) + body. Il drawer
-  /// resta come overlay: aprendolo da una voce di gruppo della rail mostra il
-  /// menu completo.
+  /// Rail in bolla FULL-HEIGHT a sinistra (come la sidebar desktop) + header solo
+  /// sopra il contenuto + body. Il drawer resta come overlay: aprendolo da una
+  /// voce di gruppo della rail mostra il menu completo.
   Widget _buildRail(BuildContext context) {
     final theme = CLTheme.of(context);
     final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
@@ -659,29 +663,47 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       ),
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
-      body: Column(
+      body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.rail)),
+          // Rail in bolla full-height: margine esterno Lg su sx/top/bottom; a destra
+          // Sm (non 0) → respiro per l'ombra dx (blur 3px) che l'header opaco, dipinto
+          // dopo, sovradipingerebbe. Stesso motivo della sidebar desktop. bg/bordo li dà la card.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapSm, Sizes.gapLg),
+            child: _sideCard(
+              context,
+              child: CLNavRail(
+                destinations: widget.destinations,
+                selectedKey: widget.selectedKey,
+                onSelect: _onSelect,
+                // Tap su gruppo del rail → apri il drawer GIÀ espanso su quel gruppo.
+                onOpenGroup: (d) {
+                  setState(() => _drawerExpandKey = d.key);
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+                header: widget.railHeader,
+                footer: widget.railFooter,
+                width: widget.config.railWidth,
+                frosted: true,
+              ),
+            ),
+          ),
+          // Colonna destra: header solo sopra il contenuto, poi corpo + assistente.
           Expanded(
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                CLNavRail(
-                  destinations: widget.destinations,
-                  selectedKey: widget.selectedKey,
-                  onSelect: _onSelect,
-                  // Tap su gruppo del rail → apri il drawer GIÀ espanso su quel gruppo.
-                  onOpenGroup: (d) {
-                    setState(() => _drawerExpandKey = d.key);
-                    _scaffoldKey.currentState?.openDrawer();
-                  },
-                  header: widget.railHeader,
-                  footer: widget.railFooter,
-                  width: widget.config.railWidth,
+                _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.rail)),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _scopedBody()),
+                      if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
+                    ],
+                  ),
                 ),
-                Expanded(child: _scopedBody()),
-                if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
               ],
             ),
           ),

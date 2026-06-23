@@ -6,7 +6,7 @@ import 'cl_destination.dart';
 /// Rail di navigazione icon-only (tier tablet). Una icona per voce top-level:
 /// le foglie navigano (`onSelect`), i gruppi/sezioni aprono il drawer espanso
 /// (`onOpenGroup`). `header`/`footer` sono slot opzionali (es. tenant in alto,
-/// help+utente in basso). Stile flat, niente bolle.
+/// help+utente in basso). In bolla (`frosted`) bg/bordo li dà la card esterna.
 class CLNavRail extends StatelessWidget {
   const CLNavRail({
     super.key,
@@ -17,6 +17,7 @@ class CLNavRail extends StatelessWidget {
     this.header,
     this.footer,
     this.width = 72,
+    this.frosted = false,
   });
 
   final List<CLDestination> destinations;
@@ -30,6 +31,9 @@ class CLNavRail extends StatelessWidget {
   final Widget? header;
   final Widget? footer;
   final double width;
+
+  /// In card (bolla tablet): bg/bordo li dà la card esterna → qui trasparente.
+  final bool frosted;
 
   /// Voci da mostrare nel rail: i section-header (es. "Anagrafica") NON sono
   /// navigabili e icon-only renderebbero solo una lettera → appiattiti nei loro
@@ -52,11 +56,13 @@ class CLNavRail extends StatelessWidget {
     final theme = CLTheme.of(context);
     return Container(
       width: width,
-      // Rail (menu) = L0 + bordo destro.
-      decoration: BoxDecoration(
-        color: theme.primaryBackground,
-        border: Border(right: BorderSide(color: theme.borderColor)),
-      ),
+      // Rail (menu) = L0 + bordo destro. In bolla → trasparente (lo dà la card).
+      decoration: frosted
+          ? null
+          : BoxDecoration(
+              color: theme.primaryBackground,
+              border: Border(right: BorderSide(color: theme.borderColor)),
+            ),
       child: SafeArea(
         right: false,
         child: Column(
