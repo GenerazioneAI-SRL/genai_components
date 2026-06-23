@@ -197,7 +197,6 @@ class _CLTableStyleScope extends InheritedWidget {
 Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).tertiaryBackground;
 Color _tableHeaderBg(BuildContext c) => CLTableStyle.maybeOf(c)?.headerBackground ?? CLTheme.of(c).secondaryBackground;
 Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).controlFill;
-Color _tableBorder(BuildContext c) => CLTableStyle.maybeOf(c)?.border ?? CLTheme.of(c).borderColor;
 
 /// A paginated DataTable that allows page caching and filtering
 /// [TKey] is the type of the page token
