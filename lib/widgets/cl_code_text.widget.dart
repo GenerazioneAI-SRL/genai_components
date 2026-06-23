@@ -23,7 +23,7 @@ class CLCodeText extends StatelessWidget {
       children: [
         Text(
           prefix,
-          style: prefixStyle ?? CLTheme.of(context).bodyLabel.copyWith(color: CLTheme.of(context).secondaryText),
+          style: prefixStyle ?? CLTheme.of(context).bodyText.copyWith(color: CLTheme.of(context).secondaryText),
         ),
         Flexible(
           child: Text(

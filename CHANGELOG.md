@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.3.0
+
+- **Widgets:** Updated 90 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Genai Components
+
+
 ## 5.2.5
 
 - **Widgets:** Updated 14 components

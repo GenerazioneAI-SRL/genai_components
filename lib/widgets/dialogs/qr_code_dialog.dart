@@ -247,7 +247,7 @@ class _PayloadCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(Icons.tag_rounded, size: 14, color: cl.mutedForeground),
+          Icon(Icons.tag_rounded, size: cl.iconSizeCompact, color: cl.mutedForeground),
           SizedBox(width: cl.gapSm),
           Expanded(
             child: SelectableText(

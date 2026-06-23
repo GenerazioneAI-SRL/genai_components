@@ -115,7 +115,6 @@ class CLPagination extends StatelessWidget {
                       child: Text(
                         '${tok + 1}',
                         style: theme.smallText.copyWith(
-                          fontSize: 12,
                           fontWeight: tok == currentPage ? FontWeight.w700 : FontWeight.w500,
                           color: tok == currentPage ? Colors.white : theme.primaryText,
                         ),

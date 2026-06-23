@@ -94,7 +94,7 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
         if (widget.title != null) ...[
           Padding(
             padding: EdgeInsets.only(bottom: theme.gapSm),
-            child: Text(widget.title!, style: theme.bodyLabel),
+            child: Text(widget.title!, style: theme.heading6),
           ),
         ],
 
@@ -241,7 +241,7 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
                     color: textColor,
                   ),
                 ),
-                SizedBox(width: theme.gapSm),
+                SizedBox(width: theme.gapIconText),
               ],
               AnimatedDefaultTextStyle(
                 duration: widget.animDuration,

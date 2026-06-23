@@ -73,7 +73,7 @@ class _LogoWidgetState extends State<LogoWidget> {
         width: h,
         child: Container(
           decoration: BoxDecoration(
-            color: widget.color?.withValues(alpha: 0.1) ?? theme.primary.withValues(alpha: 0.1),
+            color: widget.color?.withValues(alpha: theme.opacitySoft) ?? theme.primary.withValues(alpha: theme.opacitySoft),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(

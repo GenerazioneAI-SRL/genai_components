@@ -43,7 +43,7 @@ class Question extends Equatable {
   }) : answers = answers ?? [];
 
   static Question fromJson(Map<String, dynamic> json) => Question(
-        question: json['question'] as String,
+        question: json['question'] as String? ?? '',
         singleChoice: json['single_choice'] as bool? ?? true,
         isMandatory: json['is_mandatory'] as bool? ?? false,
         isNumeric: json['isNumeric'] as bool? ?? false,
@@ -51,8 +51,12 @@ class Question extends Equatable {
         isStarRating: json['isStarRating'] as bool? ?? false,
         errorText: json['error_text'] as String?,
         properties: json['properties'] as Map<String, dynamic>?,
-        answers: (json['answers'] as List<dynamic>?)?.map((e) => e as Map<String,String>).toList(),
-        options: (json['options'] as List<dynamic>?)!.map((e) => Option.fromJson(e as Map<String, dynamic>)).toList(),
+        answers: (json['answers'] as List<dynamic>?)
+            ?.map((e) => Map<String, String>.from(e as Map))
+            .toList(),
+        options: (json['options'] as List<dynamic>? ?? const [])
+            .map((e) => Option.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   Map<String, dynamic> toJson() {

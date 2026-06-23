@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../cl_theme.dart';
+import '../../layout/constants/sizes.constant.dart';
 
 /// Tonal variants for [CLActionChip].
 enum CLActionChipTone { primary, secondary, success, warning, danger, neutral }
@@ -81,12 +82,12 @@ class _CLActionChipState extends State<CLActionChip> {
     final base = _toneColor(theme);
     final fg = disabled ? theme.mutedForeground : base;
     final bgAlpha = disabled
-        ? 0.04
+        ? theme.opacityFaint
         : _pressed
             ? 0.18
             : _hovered
-                ? 0.14
-                : 0.10;
+                ? theme.opacityMuted
+                : theme.opacitySoft;
     final borderAlpha = disabled ? 0.10 : (_hovered ? 0.30 : 0.20);
 
     final chip = AnimatedContainer(
@@ -98,7 +99,7 @@ class _CLActionChipState extends State<CLActionChip> {
       ),
       decoration: BoxDecoration(
         color: base.withValues(alpha: bgAlpha),
-        borderRadius: BorderRadius.circular(theme.radiusChip + 2),
+        borderRadius: BorderRadius.circular(theme.radiusControl),
         border: Border.all(color: base.withValues(alpha: borderAlpha), width: 1),
       ),
       child: Row(
@@ -106,14 +107,13 @@ class _CLActionChipState extends State<CLActionChip> {
         children: [
           if (widget.icon != null) ...[
             Icon(widget.icon, size: 14, color: fg),
-            const SizedBox(width: 4),
+            const SizedBox(width: Sizes.gapXs),
           ],
           Text(
             widget.label,
             style: theme.smallLabel.copyWith(
               color: fg,
               fontWeight: FontWeight.w600,
-              fontSize: 12,
             ),
           ),
         ],

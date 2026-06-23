@@ -53,12 +53,12 @@ class CLSectionCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: isDark ? 0.2 : 0.1),
-                    borderRadius: BorderRadius.circular(Sizes.radiusSm),
+                    color: iconColor.withValues(alpha: isDark ? theme.opacityMedium : theme.opacitySoft),
+                    borderRadius: BorderRadius.circular(Sizes.radiusControl),
                   ),
-                  child: HugeIcon(icon: icon, color: iconColor, size: 20),
+                  child: HugeIcon(icon: icon, color: iconColor, size: Sizes.iconSizeDefault),
                 ),
-                const SizedBox(width: Sizes.padding),
+                const SizedBox(width: Sizes.gapMd),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +66,7 @@ class CLSectionCard extends StatelessWidget {
                       Text(title, style: theme.title.copyWith(fontWeight: FontWeight.w600)),
                       if (subtitle != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.only(top: Sizes.gapXs),
                           child: Text(subtitle!, style: theme.bodyLabel),
                         ),
                     ],

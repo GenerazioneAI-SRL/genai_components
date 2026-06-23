@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:video_player/video_player.dart';
 
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 class ClVideoPicker extends StatefulWidget {
   final ValueChanged<PlatformFile?>? onPickedFile;
@@ -115,6 +116,7 @@ class _ClVideoPickerState extends State<ClVideoPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return Column(
       children: [
         GestureDetector(
@@ -127,13 +129,13 @@ class _ClVideoPickerState extends State<ClVideoPicker> {
               height: 135,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.blue[100],
-                borderRadius: BorderRadius.circular(10),
+                color: theme.primary.withValues(alpha: theme.opacitySoft),
+                borderRadius: BorderRadius.circular(Sizes.radiusCard),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add, size: 50, color: Colors.blue),
+                  Icon(Icons.add, size: 48, color: theme.primary),
                   Text(
                     "Seleziona video (.mp4)",
                     style: CLTheme.of(context).bodyLabel,

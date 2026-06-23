@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:mime/mime.dart';
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 import 'cl_media_viewer.widget.dart';
 
@@ -130,8 +131,9 @@ class CLAvatarWidget extends StatelessWidget {
               );
             },
             errorBuilder: (context, error, stackTrace) {
-              return const Center(
-                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey));
+              return Center(
+                  child: Icon(Icons.broken_image,
+                      size: 50, color: CLTheme.of(context).mutedForeground));
             },
           )
         : mimeType.startsWith("video/")
@@ -147,7 +149,7 @@ class CLAvatarWidget extends StatelessWidget {
             : mimeType.startsWith(
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                 ? Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(Sizes.gapSm),
                     child: SvgPicture.asset(
                       "assets/svgs/word.svg",
                       fit: BoxFit.cover,

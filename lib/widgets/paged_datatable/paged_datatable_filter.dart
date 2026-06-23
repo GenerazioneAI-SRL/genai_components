@@ -78,7 +78,7 @@ class TextTableFilter extends TableFilter<String> {
     }
 
     if (isMainFilter) {
-      // Search field: flat controlFill, no border (iOS-clean). Altezza standard
+      // Search field: recess L2 (tertiaryBackground), no border. Altezza standard
       // (inputHeight) per allineare con gli altri controlli della toolbar.
       // Prefix-icon left pad + size sono la sorgente unica su cui la colonna
       // checkbox si centra (vedi PagedDataTableRowMetrics.searchIconCenterX).
@@ -87,7 +87,7 @@ class TextTableFilter extends TableFilter<String> {
         height: theme.inputHeight,
         decoration: BoxDecoration(
           color: _tableSearchFill(context),
-          borderRadius: BorderRadius.circular(theme.radiusControl),
+          borderRadius: BorderRadius.circular(theme.radiusPill),
         ),
         child: Row(
           children: [
@@ -519,7 +519,7 @@ class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: Sizes.gapSm),
         Expanded(
           child: CLTextField.date(
             controller: _endController!,

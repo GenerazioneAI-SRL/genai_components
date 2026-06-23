@@ -65,7 +65,7 @@ class _CLSheetWidget extends StatelessWidget {
             color: theme.secondaryBackground,
             borderRadius: radius,
             border: Border.all(color: theme.cardBorder),
-            boxShadow: theme.cardShadow,
+            boxShadow: theme.popoverShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -73,7 +73,7 @@ class _CLSheetWidget extends StatelessWidget {
               if (title != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: Sizes.padding, vertical: 16),
+                      horizontal: Sizes.padding, vertical: Sizes.gapLg),
                   decoration: BoxDecoration(
                     border: Border(
                         bottom: BorderSide(color: theme.cardBorder)),
@@ -85,7 +85,7 @@ class _CLSheetWidget extends StatelessWidget {
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close, size: 20),
+                        icon: const Icon(Icons.close, size: Sizes.iconSizeDefault),
                         color: theme.mutedForeground,
                         style: ButtonStyle(
                           overlayColor: WidgetStateProperty.all(

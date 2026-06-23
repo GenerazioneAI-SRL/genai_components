@@ -53,7 +53,7 @@ class QuestionCard extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: Sizes.padding),
           decoration: BoxDecoration(
             color: CLTheme.of(context).secondaryBackground,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius),
+            borderRadius: BorderRadius.circular(Sizes.radiusCard),
             border: Border.all(
               color: hasError
                   ? CLTheme.of(context).danger
@@ -106,12 +106,12 @@ class QuestionCard extends StatelessWidget {
             ? CLTheme.of(context).primary.withValues(alpha: 0.05)
             : CLTheme.of(context).primaryBackground,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(Sizes.borderRadius),
-          topRight: Radius.circular(Sizes.borderRadius),
+          topLeft: Radius.circular(Sizes.radiusCard),
+          topRight: Radius.circular(Sizes.radiusCard),
         ),
         border: Border(
           bottom: BorderSide(
-            color: CLTheme.of(context).borderColor.withValues(alpha: 0.5),
+            color: CLTheme.of(context).borderColor.withValues(alpha: CLTheme.of(context).opacityDisabled),
             width: 1,
           ),
         ),
@@ -124,15 +124,15 @@ class QuestionCard extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: hasAnswer
-                  ? CLTheme.of(context).primary.withValues(alpha: 0.1)
-                  : CLTheme.of(context).borderColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
+                  ? CLTheme.of(context).primary.withValues(alpha: CLTheme.of(context).opacitySoft)
+                  : CLTheme.of(context).borderColor.withValues(alpha: CLTheme.of(context).opacityMedium),
+              borderRadius: BorderRadius.circular(Sizes.radiusControl),
             ),
             child: HugeIcon(
               icon: hasAnswer
                   ? HugeIcons.strokeRoundedCheckmarkCircle02
                   : HugeIcons.strokeRoundedHelpCircle,
-              size: 20,
+              size: Sizes.iconSizeDefault,
               color: hasAnswer
                   ? CLTheme.of(context).primary
                   : CLTheme.of(context).secondaryText,
@@ -165,26 +165,20 @@ class QuestionCard extends StatelessWidget {
                         : null,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: Sizes.gapXs),
                 // Sottotitolo o spazio equivalente per mantenere allineamento
                 question.options.isNotEmpty
                     ? Text(
                         question.singleChoice
                             ? "Seleziona un'opzione"
                             : "Seleziona una o più opzioni",
-                        style: CLTheme.of(context).bodyLabel.copyWith(
-                          fontSize: 12,
-                          color: CLTheme.of(context).secondaryText,
-                        ),
+                        style: CLTheme.of(context).smallText,
                       )
                     : Text(
                         question.isStarRating
                             ? "Valuta da 1 a 5 stelle"
                             : "Inserisci la tua risposta",
-                        style: CLTheme.of(context).bodyLabel.copyWith(
-                          fontSize: 12,
-                          color: CLTheme.of(context).secondaryText,
-                        ),
+                        style: CLTheme.of(context).smallText,
                       ),
               ],
             ),
@@ -202,26 +196,25 @@ class QuestionCard extends StatelessWidget {
         vertical: Sizes.padding * 0.75,
       ),
       decoration: BoxDecoration(
-        color: CLTheme.of(context).danger.withValues(alpha: 0.1),
+        color: CLTheme.of(context).danger.withValues(alpha: CLTheme.of(context).opacitySoft),
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(Sizes.borderRadius),
-          bottomRight: Radius.circular(Sizes.borderRadius),
+          bottomLeft: Radius.circular(Sizes.radiusCard),
+          bottomRight: Radius.circular(Sizes.radiusCard),
         ),
       ),
       child: Row(
         children: [
           HugeIcon(
             icon: HugeIcons.strokeRoundedAlert02,
-            size: 16,
+            size: Sizes.iconSizeCompact,
             color: CLTheme.of(context).danger,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: Sizes.gapSm),
           Expanded(
             child: Text(
               errorText,
-              style: CLTheme.of(context).bodyText.copyWith(
+              style: CLTheme.of(context).smallText.copyWith(
                 color: CLTheme.of(context).danger,
-                fontSize: 12,
               ),
             ),
           ),

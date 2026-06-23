@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../layout/constants/sizes.constant.dart';
 import '../models/agent_action.dart';
 import '../models/chat_content.dart';
 import '../models/chat_message.dart';
@@ -366,7 +367,7 @@ class ChatBubble extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (button.icon != null) ...[
-              Icon(button.icon, size: 16, color: colors.text),
+              Icon(button.icon, size: Sizes.iconSizeCompact, color: colors.text),
               const SizedBox(width: 6),
             ],
             Flexible(

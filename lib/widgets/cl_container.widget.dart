@@ -22,10 +22,11 @@ class CLContainer extends StatefulWidget {
     this.actionWidget,
     this.onActionTap,
     this.glassmorphism = true,
-    this.showBorder = true,
+    this.showBorder = false,
     this.titleBackgroundColor,
     this.titleIcon,
     this.plainHeader = false,
+    this.externalTitle = false,
   });
 
   final Widget child;
@@ -59,6 +60,11 @@ class CLContainer extends StatefulWidget {
   /// unica delimitata da bordo/contrasto. Default `false` (header classico).
   final bool plainHeader;
 
+  /// Titolo FUORI dalla card: [title]/[titleWidget] (+ [titleIcon]/azione)
+  /// renderizzati come riga sopra la card, con gap `gapSm` (8) prima della
+  /// superficie. La card non mostra la barra titolo interna. Default `true`.
+  final bool externalTitle;
+
   @override
   State<CLContainer> createState() => _CLContainerState();
 }
@@ -68,8 +74,13 @@ class _CLContainerState extends State<CLContainer> {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final hasTitle = widget.title != null || widget.titleWidget != null;
-    final br = widget.borderRadius ?? BorderRadius.circular(Sizes.borderRadius);
-    final borderWidth = widget.showBorder ? 1.0 : 0.0;
+    // Dark: cardShadowSoft è invisibile su near-black → la card si delinea con un
+    // bordo hairline. Light: ci pensa l'ombra (default Foundation, niente bordo).
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final useBorder = widget.showBorder || (widget.showShadow && isDark);
+    // Card L1: raggio card (radiusCard), non radiusControl. Override esplicito via borderRadius.
+    final br = widget.borderRadius ?? BorderRadius.circular(Sizes.radiusCard);
+    final borderWidth = useBorder ? 1.0 : 0.0;
     final innerBr = BorderRadius.only(
       topLeft: Radius.circular((br.topLeft.x - borderWidth).clamp(0.0, double.infinity)),
       topRight: Radius.circular((br.topRight.x - borderWidth).clamp(0.0, double.infinity)),
@@ -77,16 +88,18 @@ class _CLContainerState extends State<CLContainer> {
       bottomRight: Radius.circular((br.bottomRight.x - borderWidth).clamp(0.0, double.infinity)),
     );
 
-    return Container(
+    final Widget card = Container(
       height: widget.height,
       width: widget.width,
       margin: widget.contentMargin ?? EdgeInsets.zero,
       constraints: widget.constraints,
       decoration: BoxDecoration(
-        border: widget.showBorder ? Border.all(color: CLTheme.of(context).cardBorder, width: 1.0) : null,
+        border: useBorder ? Border.all(color: theme.cardBorder, width: 1.0) : null,
         color: widget.backgroundColor ?? theme.secondaryBackground,
         borderRadius: br,
-        boxShadow: widget.showShadow ? CLTheme.of(context).cardShadow : null,
+        // Default Foundation: ombra soft (card statica L1), nessun bordo. Il
+        // bordo torna opt-in via `showBorder: true`.
+        boxShadow: widget.showShadow ? theme.cardShadowSoft : null,
       ),
       child: ClipRRect(
         borderRadius: innerBr,
@@ -94,7 +107,7 @@ class _CLContainerState extends State<CLContainer> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hasTitle) ...[
+            if (hasTitle && !widget.externalTitle) ...[
               Container(
                 decoration: BoxDecoration(
                   // plainHeader: nessuna barra grigia né divider — il titolo è
@@ -104,9 +117,7 @@ class _CLContainerState extends State<CLContainer> {
                       : widget.titleBackgroundColor != null
                           ? widget.titleBackgroundColor!.withValues(alpha: 0.08)
                           : theme.secondaryBackground,
-                  border: (widget.customHeader == null && !widget.plainHeader)
-                      ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1))
-                      : null,
+                  border: (widget.customHeader == null && !widget.plainHeader) ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1)) : null,
                 ),
                 child: Padding(
                   padding: widget.plainHeader
@@ -138,10 +149,7 @@ class _CLContainerState extends State<CLContainer> {
                               ),
                       ),
                       if (widget.actionTitle != null && widget.onActionTap != null && widget.actionWidget == null)
-                        SizedBox(
-                            height: 20,
-                            child: CLGhostButton.primary(
-                                text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)),
+                        SizedBox(height: 20, child: CLGhostButton.primary(text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)),
                       if (widget.actionWidget != null) widget.actionWidget!,
                     ],
                   ),
@@ -149,10 +157,48 @@ class _CLContainerState extends State<CLContainer> {
               ),
             ],
             widget.customHeader ?? SizedBox.shrink(),
-            Flexible(child: Padding(padding: widget.contentPadding ?? EdgeInsets.zero, child: widget.child)),
+            Flexible(
+              child: Padding(
+                padding: widget.contentPadding ?? const EdgeInsets.all(Sizes.gapLg),
+                child: widget.child,
+              ),
+            ),
           ],
         ),
       ),
     );
+
+    // Titolo fuori card: riga (icona+titolo+azione) sopra la superficie, gap
+    // gapSm (8) prima della card. La card sopra non ha barra titolo interna.
+    if (hasTitle && widget.externalTitle) {
+      final Widget? action = widget.actionWidget ??
+          (widget.actionTitle != null && widget.onActionTap != null
+              ? CLGhostButton.primary(text: widget.actionTitle!, onTap: widget.onActionTap!, context: context)
+              : null);
+      return Column(
+        // Stretch: la card riempie la cella anche con contenuto corto (titolo-row
+        // è già full-width). Senza, la card si stringe sul child.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Titolo a filo sinistro (nessun padding left).
+          Row(
+            children: [
+              if (widget.titleIcon != null) ...[
+                widget.titleIcon!,
+                const SizedBox(width: Sizes.gapSm),
+              ],
+              Expanded(
+                child: widget.titleWidget ?? Text(widget.title!, style: theme.title, overflow: TextOverflow.ellipsis),
+              ),
+              if (action != null) action,
+            ],
+          ),
+          const SizedBox(height: Sizes.gapSm),
+          card,
+        ],
+      );
+    }
+    return card;
   }
 }

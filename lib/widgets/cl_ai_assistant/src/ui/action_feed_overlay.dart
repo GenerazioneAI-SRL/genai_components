@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:genai_components/genai_components.dart';
 
 import '../core/ai_assistant_controller.dart';
 import '../models/action_step.dart';
@@ -43,6 +44,7 @@ class _ActionFeedOverlayState extends State<ActionFeedOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     final curve = CurvedAnimation(parent: _entryC, curve: Curves.easeOutCubic);
     return FadeTransition(
       opacity: curve,
@@ -52,7 +54,10 @@ class _ActionFeedOverlayState extends State<ActionFeedOverlay>
           end: Offset.zero,
         ).animate(curve),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: EdgeInsets.symmetric(
+            horizontal: Sizes.gapLg,
+            vertical: theme.gapIconText,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -216,7 +221,10 @@ class _ActionFeedOverlayState extends State<ActionFeedOverlay>
         if (total > 8)
           Text(
             '+${total - 8}',
-            style: TextStyle(color: _textD.withValues(alpha: 0.5), fontSize: 9),
+            style: TextStyle(
+              color: _textD.withValues(alpha: CLTheme.of(context).opacityDisabled),
+              fontSize: 9,
+            ),
           ),
         const Spacer(),
       ],

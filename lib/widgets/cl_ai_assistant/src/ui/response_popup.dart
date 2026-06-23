@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:genai_components/genai_components.dart';
 
 import '../core/ai_assistant_controller.dart';
 import '../models/chat_message.dart';
@@ -150,7 +151,7 @@ class _ResponsePopupState extends State<ResponsePopup>
                       maxWidth: maxWidth,
                       minWidth: 160,
                     ),
-                    child: _buildCard(text, maxLines),
+                    child: _buildCard(context, text, maxLines),
                   ),
                 ),
               ),
@@ -161,7 +162,7 @@ class _ResponsePopupState extends State<ResponsePopup>
     );
   }
 
-  Widget _buildCard(String text, int maxLines) {
+  Widget _buildCard(BuildContext context, String text, int maxLines) {
     final accentColor = _isAction ? _green : _accent;
 
     return AnimatedBuilder(
@@ -227,7 +228,7 @@ class _ResponsePopupState extends State<ResponsePopup>
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: Sizes.gapSm),
               // Footer: "Tap to see more" + countdown ring.
               Row(
                 children: [

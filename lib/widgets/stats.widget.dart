@@ -32,14 +32,14 @@ class StatsWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(radius: Sizes.padding * 1.5, backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color, size: Sizes.medium)),
+                    CircleAvatar(radius: Sizes.padding * 1.5, backgroundColor: color.withValues(alpha: CLTheme.of(context).opacitySoft), child: Icon(icon, color: color, size: Sizes.iconSizeLarge)),
                     SizedBox(height: Sizes.padding),
                     Text(
                       body,
                       style: CLTheme.of(context).heading2.override(fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis, // Anche qui per evitare overflow
                     ),
-                    SizedBox(height: Sizes.padding),
+                    SizedBox(height: Sizes.gapXs),
                     Text(
                       label,
                       style: CLTheme.of(context).bodyLabel,

@@ -64,7 +64,7 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
       padding: const EdgeInsets.all(Sizes.padding * 2),
       decoration: BoxDecoration(
         color: CLTheme.of(context).primaryBackground,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(color: CLTheme.of(context).borderColor, width: 1),
       ),
       child: Column(
@@ -73,7 +73,7 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
         children: [
           Container(
             padding: const EdgeInsets.all(Sizes.padding),
-            decoration: BoxDecoration(color: CLTheme.of(context).secondaryText.withValues(alpha: 0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: CLTheme.of(context).secondaryText.withValues(alpha: CLTheme.of(context).opacitySoft), shape: BoxShape.circle),
             child: HugeIcon(icon: HugeIcons.strokeRoundedHelpCircle, size: 32, color: CLTheme.of(context).secondaryText),
           ),
           const SizedBox(height: Sizes.padding),
@@ -95,7 +95,7 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
       margin: EdgeInsets.only(bottom: Sizes.padding, left: isNested ? Sizes.padding * 1.5 : 0),
       decoration: BoxDecoration(
         color: CLTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(color: CLTheme.of(context).borderColor, width: 1),
         boxShadow: [BoxShadow(color: CLTheme.of(context).borderColor.withValues(alpha: 0.15), blurRadius: 8, offset: const Offset(0, 2))],
       ),
@@ -120,8 +120,8 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
       padding: const EdgeInsets.all(Sizes.padding),
       decoration: BoxDecoration(
         color: CLTheme.of(context).primaryBackground,
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius)),
-        border: Border(bottom: BorderSide(color: CLTheme.of(context).borderColor.withValues(alpha: 0.5), width: 1)),
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(Sizes.radiusCard), topRight: Radius.circular(Sizes.radiusCard)),
+        border: Border(bottom: BorderSide(color: CLTheme.of(context).borderColor.withValues(alpha: CLTheme.of(context).opacityDisabled), width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,14 +129,14 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
           // Icona solo per nested
           if (isNested) ...[
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(Sizes.gapSm),
               decoration: BoxDecoration(
-                color: CLTheme.of(context).borderColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
+                color: CLTheme.of(context).borderColor.withValues(alpha: CLTheme.of(context).opacityMedium),
+                borderRadius: BorderRadius.circular(Sizes.radiusControl),
               ),
               child: HugeIcon(
                 icon: HugeIcons.strokeRoundedArrowRight01,
-                size: 20,
+                size: Sizes.iconSizeDefault,
                 color: CLTheme.of(context).primary,
               ),
             ),
@@ -149,10 +149,10 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(question.question, style: CLTheme.of(context).bodyText.copyWith(fontWeight: FontWeight.w600, height: 1.4)),
-                const SizedBox(height: 4),
+                const SizedBox(height: Sizes.gapXs),
                 Text(
                   hasAnswer ? "Risposta compilata" : "Nessuna risposta",
-                  style: CLTheme.of(context).bodyLabel.copyWith(fontSize: 12, color: CLTheme.of(context).secondaryText),
+                  style: CLTheme.of(context).smallText.copyWith(color: CLTheme.of(context).secondaryText),
                 ),
               ],
             ),
@@ -207,11 +207,11 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Divider
-          Container(margin: const EdgeInsets.only(bottom: Sizes.padding), height: 1, color: CLTheme.of(context).borderColor.withValues(alpha: 0.5)),
+          Container(margin: const EdgeInsets.only(bottom: Sizes.padding), height: 1, color: CLTheme.of(context).borderColor.withValues(alpha: CLTheme.of(context).opacityDisabled)),
           // Label domande correlate
           Row(
             children: [
-              HugeIcon(icon: HugeIcons.strokeRoundedHierarchySquare08, size: 16, color: CLTheme.of(context).secondaryText),
+              HugeIcon(icon: HugeIcons.strokeRoundedHierarchySquare08, size: Sizes.iconSizeCompact, color: CLTheme.of(context).secondaryText),
               const SizedBox(width: Sizes.padding / 2),
               Text(
                 "Domande correlate",

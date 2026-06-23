@@ -21,8 +21,8 @@ class Option {
   }
 
   factory Option.fromJson(Map<String, dynamic> json) => Option(
-    id: json['id'] as String,
-    text: json['text'] as String,
+    id: json['id']?.toString() ?? '',
+    text: json['text']?.toString() ?? '',
     nested: json['nested'] != null ? (json['nested'] as List).map((q) => Question.fromJson(q as Map<String, dynamic>)).toList() : null,
   );
 }

@@ -310,7 +310,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
                       ),
                       child: rows.isEmpty
                           ? Padding(
-                              padding: EdgeInsets.all(theme.gap3Xl),
+                              padding: EdgeInsets.all(theme.gap2Xl),
                               child: Text(
                                 _loading ? 'Ricerca…' : (widget.emptyText ?? 'Nessun risultato'),
                                 style: theme.bodyLabel,
@@ -358,7 +358,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
       child: Row(
         children: [
           if (item.icon != null) ...[
-            Icon(item.icon, size: 16, color: isSelected ? theme.primaryText : theme.mutedForeground),
+            Icon(item.icon, size: Sizes.iconSizeCompact, color: isSelected ? theme.primaryText : theme.mutedForeground),
             SizedBox(width: theme.gapSm),
           ],
           Expanded(
@@ -385,7 +385,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
       onHover: () => setState(() => _selected = index),
       child: Row(
         children: [
-          Icon(Icons.auto_awesome_outlined, size: 16, color: theme.primary),
+          Icon(Icons.auto_awesome_outlined, size: Sizes.iconSizeCompact, color: theme.primary),
           SizedBox(width: theme.gapSm),
           Expanded(
             child: Text(
@@ -427,7 +427,7 @@ class _HoverRow extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: theme.gapMd, vertical: theme.gapSm),
           decoration: BoxDecoration(
             color: isSelected ? theme.accent : null,
-            borderRadius: BorderRadius.circular(Sizes.borderRadius - 2),
+            borderRadius: BorderRadius.circular(Sizes.radiusControl),
           ),
           child: child,
         ),

@@ -113,7 +113,7 @@ class CLPopupMenu extends StatefulWidget {
     required double maxWidth,
   }) async {
     final theme = CLTheme.of(context);
-    const gap = 6.0;
+    final gap = theme.gapIconText;
 
     final openUpwards = position.dy + anchorSize.height + gap + 250 > screenSize.height;
 
@@ -159,7 +159,7 @@ class CLPopupMenu extends StatefulWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                theme.primary.withValues(alpha: 0.10),
+                                theme.primary.withValues(alpha: theme.opacitySoft),
                                 theme.secondary.withValues(alpha: 0.05),
                               ],
                             ),
@@ -168,10 +168,7 @@ class CLPopupMenu extends StatefulWidget {
                           child: titleWidget ??
                               Text(
                                 title!,
-                                style: theme.bodyLabel.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
+                                style: theme.title.override(fontWeight: FontWeight.w600),
                               ),
                         ),
                       // Items — righe alte come un button default; divider

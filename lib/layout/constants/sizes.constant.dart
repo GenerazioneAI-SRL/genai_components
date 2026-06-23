@@ -2,7 +2,7 @@
 ///
 /// Scala derivata per un admin tool professionale (HR / giuridico / presenze):
 /// griglia 4, spaziature on-grid, radii leggermente più morbidi di shadcn per
-/// bilanciare la densità dei dati con un tono umanista (Inter + Satoshi).
+/// bilanciare la densità dei dati con un tono umanista (Inter).
 ///
 /// I nomi canonici (`gap*`, `page*`, `radius*`) sono intent-revealing: scegli
 /// il token in base all'uso, non al valore numerico. I nomi storici (sm, small,
@@ -94,10 +94,10 @@ class CLSizes {
   /// e non di "finestra tecnica".
   static const radiusCard = 14.0;
 
-  /// 20px — superfici modali.
+  /// 24px — superfici modali (Foundation).
   /// Usato per: dialog, bottom sheet, drawer su mobile, overlay con azioni
   /// complete. Il raggio più grande sottolinea la natura "flottante".
-  static const radiusModal = 20.0;
+  static const radiusModal = 24.0;
 
   /// 9999px — pill.
   /// Usato per: badge con testo (conteggio, status testuale), bottoni pill
@@ -147,45 +147,45 @@ class CLSizes {
   // Aggiunti in 4.4.x — additivi, no breaking.
   // ═══════════════════════════════════════════════════════════
 
-  /// 14px — icona compatta.
+  /// 16px — icona compatta (Foundation).
   /// Usato per: icone dentro chip/badge, icone in tabelle dense, leading di
   /// liste compatte.
-  static const iconSizeCompact = 14.0;
+  static const iconSizeCompact = 16.0;
 
-  /// 18px — icona standard.
+  /// 20px — icona standard (Foundation).
   /// Usato per: icone di bottoni default, icone in header di card, leading
   /// nelle voci di menu.
-  static const iconSizeDefault = 18.0;
+  static const iconSizeDefault = 20.0;
 
-  /// 22px — icona large.
+  /// 24px — icona large (Foundation).
   /// Usato per: icone hero, azioni primarie evidenziate, icone in toolbar
   /// principali.
-  static const iconSizeLarge = 22.0;
+  static const iconSizeLarge = 24.0;
 
-  /// 28px — bottone compatto.
+  /// 32px — bottone compatto (Foundation).
   /// Usato per: `CLButton` size compact, azioni secondarie in toolbar dense,
   /// bottoni inline in tabelle.
-  static const buttonHeightCompact = 28.0;
+  static const buttonHeightCompact = 32.0;
 
-  /// 36px — bottone default.
+  /// 40px — bottone default (Foundation).
   /// Usato per: `CLButton` size default, azioni primarie standard di pagina,
   /// bottoni in form.
-  static const buttonHeightDefault = 36.0;
+  static const buttonHeightDefault = 40.0;
 
-  /// 40px — bottone large.
+  /// 48px — bottone large (Foundation).
   /// Usato per: `CLButton` size large, CTA hero, azioni primarie in modali
   /// di onboarding.
-  static const buttonHeightLarge = 40.0;
+  static const buttonHeightLarge = 48.0;
 
   /// 40px — altezza standard input.
   /// Usato per: `CLTextField`, `CLDropdown`, `CLDatePicker` — allineata a
   /// `buttonHeightDefault` per row form coerenti.
   static const inputHeight = 40.0;
 
-  /// 36px — altezza input compatto.
+  /// 32px — altezza input compatto (Foundation).
   /// Usato per: `CLTextField`/`CLDropdown` con `isCompact: true` — allineata a
   /// `buttonHeightCompact` per toolbar e row dense coerenti.
-  static const inputHeightCompact = 36.0;
+  static const inputHeightCompact = 32.0;
 
   /// 32px — avatar small.
   /// Usato per: avatar in liste dense, leading di chip utente, indicatori

@@ -112,7 +112,7 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
                         vertical: cl.gapXs,
                       ),
                       decoration: BoxDecoration(
-                        color: cl.primary.withValues(alpha: 0.10),
+                        color: cl.primary.withValues(alpha: cl.opacitySoft),
                         borderRadius: BorderRadius.circular(cl.radiusPill),
                         border: Border.all(
                           color: cl.primary.withValues(alpha: 0.22),

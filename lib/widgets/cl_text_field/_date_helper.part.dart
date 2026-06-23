@@ -70,7 +70,7 @@ class _TextFieldDateHelper extends _Helper {
           actionBarSettings: PickerActionBarSettings(
             confirmWidget: _actionBtn(context, 'Conferma', theme.primary, Colors.white),
             cancelWidget:
-                _actionBtn(context, 'Annulla', theme.danger.withAlpha(26), theme.danger),
+                _actionBtn(context, 'Annulla', theme.mutedForeground.withValues(alpha: theme.opacitySoft), theme.mutedForeground),
           ),
           headerSettings: PickerHeaderSettings(
             headerBackgroundColor: theme.primary,
@@ -78,7 +78,7 @@ class _TextFieldDateHelper extends _Helper {
           ),
           dateButtonsSettings: PickerDateButtonsSettings(
             buttonBorder: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
+                borderRadius: BorderRadius.circular(Sizes.radiusChip)),
             selectedMonthBackgroundColor: theme.primary,
             unselectedMonthsTextColor: theme.primaryText,
             currentMonthTextColor: theme.primary,
@@ -87,7 +87,7 @@ class _TextFieldDateHelper extends _Helper {
             scrollAnimationMilliseconds: 0,
             dialogBackgroundColor: theme.secondaryBackground,
             locale: const Locale('it', 'IT'),
-            dialogRoundedCornersRadius: Sizes.borderRadius,
+            dialogRoundedCornersRadius: Sizes.radiusControl,
           ),
         ),
       );
@@ -111,7 +111,7 @@ class _TextFieldDateHelper extends _Helper {
         dialogBackgroundColor: theme.secondaryBackground,
         datePickerTheme: DatePickerThemeData(
           backgroundColor: theme.secondaryBackground,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusControl)),
           headerBackgroundColor: theme.primary,
           headerForegroundColor: Colors.white,
           dayStyle: theme.bodyText,
@@ -121,7 +121,7 @@ class _TextFieldDateHelper extends _Helper {
           dayBackgroundColor: WidgetStateColor.resolveWith(
               (st) => st.contains(WidgetState.selected) ? theme.primary : Colors.transparent),
           todayBackgroundColor: WidgetStateColor.resolveWith((st) =>
-              st.contains(WidgetState.selected) ? theme.primary : theme.primary.withAlpha(26)),
+              st.contains(WidgetState.selected) ? theme.primary : theme.primary.withValues(alpha: theme.opacitySoft)),
           todayForegroundColor: WidgetStateColor.resolveWith(
               (st) => st.contains(WidgetState.selected) ? Colors.white : theme.primary),
           cancelButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(theme.danger)),
@@ -130,10 +130,10 @@ class _TextFieldDateHelper extends _Helper {
       );
 
   Widget _actionBtn(BuildContext ctx, String label, Color bg, Color fg) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.small),
-        margin: const EdgeInsets.symmetric(vertical: Sizes.small / 2),
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.gapXl, vertical: Sizes.gapLg),
+        margin: const EdgeInsets.symmetric(vertical: Sizes.gapSm),
         decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(Sizes.radiusControl)),
         child: Text(label,
             style: CLTheme.of(ctx).bodyText.copyWith(color: fg, fontWeight: FontWeight.w500)),
       );

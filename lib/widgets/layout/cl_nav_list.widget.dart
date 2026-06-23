@@ -19,6 +19,7 @@ class CLNavList extends StatelessWidget {
     required this.selectedKey,
     required this.onSelect,
     this.isCompact = false,
+    this.forceExpandedKey,
   });
 
   final List<CLDestination> destinations;
@@ -27,6 +28,11 @@ class CLNavList extends StatelessWidget {
 
   /// True su drawer mobile/tablet (variazioni minori di dimensione testo).
   final bool isCompact;
+
+  /// Gruppo da forzare aperto oltre a quello della rotta selezionata. Serve al
+  /// drawer aperto da un tap su gruppo del rail: si apre già espanso su quel
+  /// gruppo (es. "Impostazioni HR") anche se non è la rotta corrente.
+  final String? forceExpandedKey;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +67,7 @@ class CLNavList extends StatelessWidget {
                     onSelect: onSelect,
                     isCompact: isCompact,
                     depth: 0,
+                    forceExpandedKey: forceExpandedKey,
                   )
                 else
                   _CLNavTile(
@@ -80,6 +87,7 @@ class CLNavList extends StatelessWidget {
           onSelect: onSelect,
           isCompact: isCompact,
           depth: 0,
+          forceExpandedKey: forceExpandedKey,
         ),
       ];
     }
@@ -107,7 +115,8 @@ class _CLNavTileState extends State<_CLNavTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     final iconWidget = widget.destination.buildIcon(
       widget.selected ? theme.primary : theme.primaryText,
@@ -133,11 +142,11 @@ class _CLNavTileState extends State<_CLNavTile> {
                     duration: const Duration(milliseconds: 160),
                     decoration: BoxDecoration(
                       color: widget.selected
-                          ? theme.secondaryText.withValues(alpha: 0.14)
+                          ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
                           : _hovered
                               ? theme.secondaryText.withValues(alpha: 0.08)
                               : Colors.transparent,
-                      borderRadius: BorderRadius.circular(Sizes.radiusSurface),
+                      borderRadius: BorderRadius.circular(Sizes.radiusControl),
                     ),
                   ),
                 ),
@@ -153,7 +162,8 @@ class _CLNavTileState extends State<_CLNavTile> {
                       Expanded(
                         child: Text(
                           widget.destination.label,
-                          style: theme.bodyText.copyWith(
+                          style: theme.title.copyWith(
+                            fontSize: theme.bodyText.fontSize,
                             color: widget.selected ? theme.primary : theme.primaryText,
                             fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
                           ),
@@ -192,7 +202,8 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     const double boxLeftMargin = _kGroupIndent;
 
@@ -213,7 +224,7 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
                 padding: const EdgeInsets.only(left: Sizes.gapMd),
                 decoration: BoxDecoration(
                   color: widget.selected
-                      ? theme.secondaryText.withValues(alpha: 0.14)
+                      ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
                       : _hovered
                           ? theme.secondaryText.withValues(alpha: 0.08)
                           : Colors.transparent,
@@ -222,7 +233,8 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   widget.destination.label,
-                  style: theme.bodyText.copyWith(
+                  style: theme.title.copyWith(
+                    fontSize: theme.bodyText.fontSize,
                     color: widget.selected ? theme.primary : theme.primaryText,
                     fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
                   ),
@@ -246,6 +258,7 @@ class _CLNavGroup extends StatefulWidget {
     required this.onSelect,
     required this.isCompact,
     required this.depth,
+    this.forceExpandedKey,
   });
 
   final CLDestination destination;
@@ -253,6 +266,7 @@ class _CLNavGroup extends StatefulWidget {
   final ValueChanged<CLDestination> onSelect;
   final bool isCompact;
   final int depth;
+  final String? forceExpandedKey;
 
   @override
   State<_CLNavGroup> createState() => _CLNavGroupState();
@@ -265,10 +279,18 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
 
   bool get _isSelected => widget.destination.containsKey(widget.selectedKey);
 
+  /// Espandi se contiene la rotta selezionata OPPURE se è il gruppo forzato
+  /// (drawer aperto da tap su gruppo del rail).
+  bool get _shouldExpand =>
+      _isSelected ||
+      (widget.forceExpandedKey != null &&
+          (widget.destination.key == widget.forceExpandedKey ||
+              widget.destination.containsKey(widget.forceExpandedKey)));
+
   @override
   void initState() {
     super.initState();
-    _expanded = _isSelected;
+    _expanded = _shouldExpand;
     _rotationCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -292,8 +314,9 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   void didUpdateWidget(_CLNavGroup oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Navigazione esterna (deep-link/command palette) verso un figlio di un
-    // gruppo collassato → espandi così la voce attiva resta visibile.
-    if (_isSelected && !_expanded) {
+    // gruppo collassato, o richiesta di apertura forzata (tap gruppo rail) →
+    // espandi così la voce attiva/forzata resta visibile.
+    if (_shouldExpand && !_expanded) {
       _expanded = true;
       _rotationCtrl.forward();
     }
@@ -310,6 +333,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
           onSelect: widget.onSelect,
           isCompact: widget.isCompact,
           depth: widget.depth + 1,
+          forceExpandedKey: widget.forceExpandedKey,
         ));
       } else {
         out.add(_CLNavSubTile(
@@ -329,7 +353,8 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   Widget _buildTopLevel(CLTheme theme) {
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     final iconWidget = widget.destination.buildIcon(
       _isSelected ? theme.primary : theme.primaryText,
@@ -358,7 +383,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                       duration: const Duration(milliseconds: 160),
                       decoration: BoxDecoration(
                         color: _hovered ? theme.secondaryText.withValues(alpha: 0.08) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(Sizes.radiusSurface),
+                        borderRadius: BorderRadius.circular(Sizes.radiusControl),
                       ),
                     ),
                   ),
@@ -374,7 +399,8 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                         Expanded(
                           child: Text(
                             widget.destination.label,
-                            style: theme.bodyText.copyWith(
+                            style: theme.title.copyWith(
+                              fontSize: theme.bodyText.fontSize,
                               color: _isSelected ? theme.primary : theme.primaryText,
                               fontWeight: _isSelected ? FontWeight.w500 : FontWeight.normal,
                             ),
@@ -424,10 +450,11 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   Widget _buildNested(CLTheme theme) {
-    final h = Sizes.buttonHeightLarge;
+    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
+    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
     final box = Sizes.buttonHeightDefault;
     // 38 ≈ _kGroupIndent arrotondato (indent 1° livello); poi +16 per livello.
-    final nestedPadding = widget.depth == 1 ? 38.0 : 16.0;
+    final nestedPadding = widget.depth == 1 ? 38.0 : Sizes.gapLg;
 
     return Padding(
       padding: EdgeInsets.only(left: nestedPadding),
@@ -459,17 +486,17 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                           width: Sizes.iconSizeDefault,
                           child: Center(
                             child: Icon(Icons.folder_outlined,
-                                size: 16, color: _isSelected ? theme.primary : theme.primaryText),
+                                size: Sizes.iconSizeCompact, color: _isSelected ? theme.primary : theme.primaryText),
                           ),
                         ),
                         const SizedBox(width: Sizes.gapMd),
                         Expanded(
                           child: Text(
                             widget.destination.label,
-                            style: theme.bodyLabel.copyWith(
+                            style: theme.title.copyWith(
                               color: _isSelected ? theme.primary : theme.primaryText,
                               fontWeight: _isSelected ? FontWeight.w600 : FontWeight.w500,
-                              fontSize: widget.isCompact ? 14 : 15,
+                              fontSize: theme.bodyText.fontSize,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -564,7 +591,7 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
                   Expanded(
                     child: Text(
                       t,
-                      style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, fontSize: theme.bodyText.fontSize),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -572,7 +599,7 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
                   RotationTransition(
                     turns: Tween(begin: 0.0, end: 0.25)
                         .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
-                    child: Icon(Icons.chevron_right, size: 13, color: theme.secondaryText),
+                    child: Icon(Icons.chevron_right, size: 15, color: theme.secondaryText),
                   ),
                 ],
               ),
