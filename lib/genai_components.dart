@@ -68,6 +68,9 @@ export 'widgets/cl_popup_menu.widget.dart';
 export 'widgets/cl_view_toggle.widget.dart';
 export 'widgets/cl_tabs/cl_tab_view.widget.dart';
 export 'widgets/cl_tabs/cl_tab_item.model.dart';
+export 'widgets/cl_entity_tabs/entity_domain.dart';
+export 'widgets/cl_entity_tabs/entity_tab.model.dart';
+export 'widgets/cl_entity_tabs/cl_entity_tabs.widget.dart';
 export 'widgets/cl_sheet.widget.dart';
 
 // Feedback

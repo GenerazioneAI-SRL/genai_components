@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.5.0
+
+- **Widgets:** CLEntityTabs gained `groupByDomain` — when true, entries are grouped by `EntityDomain` into one tab per domain (Anagrafica, Risorse Umane, ...), each tab stacking that domain's cards vertically. Keeps the tab count bounded by the number of domains (max 6) instead of the number of cards; moving a card across domains (via `EntityTab.domain`) re-homes it to the right tab. Default false (one tab per entry, unchanged).
+
+
+## 5.4.0
+
+- **Widgets:** Added CLEntityTabs — domain-tagged, gated tab registry over CLTabView. Declares a list of `EntityTab` (key/label/`EntityDomain`/icon/guard/lazy builder), filters by per-tab `guard`, and renders the survivors through CLTabView preserving lazy content mount.
+- **Enums:** Added EntityDomain (`id`, `hr`, `atlas`, `lms`, `certet`, `bill`) with it_IT labels and a per-domain theme accent color.
+
+
 ## 5.3.0
 
 - **Widgets:** Updated 90 components
