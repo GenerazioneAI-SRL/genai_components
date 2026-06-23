@@ -161,13 +161,7 @@ class ShellSlots {
   /// controlli + pageActions): le azioni sulla selezione hanno priorità.
   final Widget? selectionBar;
 
-  bool get isEmpty =>
-      back == null &&
-      breadcrumbs.isEmpty &&
-      pageActions.isEmpty &&
-      contextControls.isEmpty &&
-      contextOverflow == null &&
-      selectionBar == null;
+  bool get isEmpty => back == null && breadcrumbs.isEmpty && pageActions.isEmpty && contextControls.isEmpty && contextOverflow == null && selectionBar == null;
 
   static const ShellSlots empty = ShellSlots();
 }
@@ -243,8 +237,7 @@ class ShellSlotsController extends ChangeNotifier {
   /// locked". In quel caso si difende il notify al post-frame.
   void _notifySafely() {
     final phase = SchedulerBinding.instance.schedulerPhase;
-    if (phase == SchedulerPhase.persistentCallbacks ||
-        phase == SchedulerPhase.midFrameMicrotasks) {
+    if (phase == SchedulerPhase.persistentCallbacks || phase == SchedulerPhase.midFrameMicrotasks) {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (!_disposed) notifyListeners();
       });
@@ -273,15 +266,96 @@ class CLShellScope extends InheritedNotifier<ShellSlotsController> {
   }) : super(notifier: controller);
 
   static ShellSlotsController? maybeOf(BuildContext context) {
-    final element =
-        context.getElementForInheritedWidgetOfExactType<CLShellScope>();
+    final element = context.getElementForInheritedWidgetOfExactType<CLShellScope>();
     return (element?.widget as CLShellScope?)?.notifier;
   }
 
   static ShellSlotsController of(BuildContext context) {
     final controller = maybeOf(context);
-    assert(controller != null,
-        'CLShellScope non trovato: CLAdaptiveShell non è un antenato di questa pagina.');
+    assert(controller != null, 'CLShellScope non trovato: CLAdaptiveShell non è un antenato di questa pagina.');
     return controller!;
   }
+}
+
+/// Pubblica [actions] sul canale page dello shell ([CLShellScope]) per tutta la
+/// vita del widget: lo shell le ricolloca da sé (header su desktop/tablet, area
+/// contestuale sopra la bottom bar su mobile). Incapsula il lifecycle che le
+/// pagine altrimenti ricablano a mano — lookup dello scope, publish post-frame,
+/// gate sulla rotta corrente, clear in dispose — così una pagina passa da ~15
+/// righe sparse (campo + didChangeDependencies + post-frame + dispose) a un solo
+/// widget nel tree:
+///
+/// ```dart
+/// return CLShellPageActions(
+///   actions: _shellActions(context, vm),
+///   child: _buildLayout(context, vm),
+/// );
+/// ```
+///
+/// Trasparente al layout: ritorna [child] invariato (è solo un publisher). Le
+/// [actions] vengono ri-pubblicate a ogni rebuild del parent, quindi è corretto
+/// passare una lista ricostruita dal viewmodel.
+///
+/// [gateOnCurrentRoute] (default true): pubblica solo se il [ModalRoute] della
+/// pagina è quello corrente — evita che una lista, mentre una rotta figlia è in
+/// cima ma resta montata e ribuilda, sovrascriva le azioni della figlia. Mettere
+/// a `false` nelle rotte foglia con GoRouter nidificato, dove [ModalRoute] di
+/// questo context risolve il route del parent ([ModalRoute.isCurrent] sarebbe
+/// sempre false): lì il cleanup è comunque garantito dal dispose → [clearPage].
+class CLShellPageActions extends StatefulWidget {
+  const CLShellPageActions({
+    super.key,
+    required this.actions,
+    required this.child,
+    this.gateOnCurrentRoute = true,
+  });
+
+  final List<ShellAction> actions;
+  final Widget child;
+  final bool gateOnCurrentRoute;
+
+  @override
+  State<CLShellPageActions> createState() => _CLShellPageActionsState();
+}
+
+class _CLShellPageActionsState extends State<CLShellPageActions> {
+  ShellSlotsController? _shell;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Lookup non sottoscrivente: pubblicare non ricostruisce questa pagina.
+    _shell = CLShellScope.maybeOf(context);
+    _publish();
+  }
+
+  @override
+  void didUpdateWidget(covariant CLShellPageActions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Il parent ribuilda con una lista ricostruita ogni volta → ri-pubblica.
+    _publish();
+  }
+
+  @override
+  void dispose() {
+    // Cleanup centralizzato: la pagina che si smonta azzera il canale page.
+    _shell?.clearPage();
+    super.dispose();
+  }
+
+  void _publish() {
+    final shell = _shell;
+    if (shell == null) return;
+    // Post-frame: setPageActions notifica in sincrono → fuori dal build lock.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.gateOnCurrentRoute && !(ModalRoute.of(context)?.isCurrent ?? true)) {
+        return;
+      }
+      shell.setPageActions(widget.actions);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

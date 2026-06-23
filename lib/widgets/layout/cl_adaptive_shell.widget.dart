@@ -49,8 +49,8 @@ class CLAdaptiveShell extends StatefulWidget {
   /// su drawer/bottom-bar; NON includerlo qui.
   final Widget header;
 
-  /// Widget leading dell'header (es. logo), primo elemento del cluster — a sinistra
-  /// del back. `null` = assente.
+  /// Logo dell'app, mostrato in cima al menu (nav panel) su tutti i breakpoint —
+  /// sidebar desktop e drawer tablet/mobile. Mai nell'header. `null` = assente.
   final Widget? headerLeading;
   final Widget body;
   final Widget? navHeader;
@@ -139,6 +139,13 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Logo dell'app in cima al menu (tutti i breakpoint): allineato a sinistra,
+          // gap sotto verso la tenant card. Mai nell'header → vive solo qui.
+          if (widget.headerLeading != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, Sizes.gapMd),
+              child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
+            ),
           if (widget.navHeader != null) widget.navHeader!,
           if (widget.navHeader != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
           Expanded(
@@ -176,8 +183,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         // sinistra, trailing [pageActions · G3 ricerca/AI] a destra. Lo Spacer tra i
         // due si accorcia restringendo la finestra.
         final leading = <Widget>[];
-        // Logo (leading) a sinistra del back.
-        if (widget.headerLeading != null) leading.add(widget.headerLeading!);
+        // Il logo vive in cima al menu (tutti i breakpoint), mai nell'header → qui
+        // niente logo: leading parte da back + breadcrumbs.
         if (s.back != null && !bottomBar) {
           leading.add(CLIconButton(
             onTap: s.back!.onTap,
@@ -310,7 +317,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   color: theme.primaryBackground,
                   border: Border(top: BorderSide(color: theme.borderColor)),
                 ),
-          padding: EdgeInsets.all(theme.gapLg),
+          padding: EdgeInsets.all(theme.gapMd),
           child: _areaContent(context, s, theme, _panelId),
         );
       },
@@ -318,11 +325,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   bool _hasContent(ShellSlots s) =>
-      s.selectionBar != null ||
-      s.contextControls.isNotEmpty ||
-      s.back != null ||
-      s.pageActions.isNotEmpty ||
-      s.contextOverflow != null;
+      s.selectionBar != null || s.contextControls.isNotEmpty || s.back != null || s.pageActions.isNotEmpty || s.contextOverflow != null;
 
   /// Contenuto dell'area per un dato pannello: selezione attiva → SOLO la barra
   /// bulk (priorità); altrimenti `null`/id-non-trovato → le due righe di
@@ -349,12 +352,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             children: [
               for (var i = 0; i < s.contextControls.length; i++) ...[
                 // Stesso gap della riga bassa così le due righe si allineano.
-                if (i > 0) SizedBox(width: theme.gapLg),
+                if (i > 0) SizedBox(width: theme.gapMd),
                 _contextControl(context, theme, s.contextControls[i]),
               ],
             ],
           ),
-          if (hasLower) SizedBox(height: theme.gapLg),
+          if (hasLower) SizedBox(height: theme.gapMd),
         ],
         if (hasLower)
           Builder(
@@ -385,7 +388,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                       iconSize: Sizes.iconSizeDefault,
                       tooltip: s.back!.tooltip ?? 'Indietro',
                     ),
-                    SizedBox(width: theme.gapLg),
+                    SizedBox(width: theme.gapMd),
                   ],
                   Expanded(
                     child: primary != null
@@ -404,7 +407,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 for (var i = 0; i < s.pageActions.length; i++) ...[
-                                  if (i > 0) SizedBox(width: theme.gapLg),
+                                  if (i > 0) SizedBox(width: theme.gapMd),
                                   _actionButton(context, theme, s.pageActions[i]),
                                 ],
                               ],
@@ -414,11 +417,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   // Azioni secondarie a destra del primario (solo se c'è un primario).
                   if (primary != null)
                     for (final a in others) ...[
-                      SizedBox(width: theme.gapLg),
+                      SizedBox(width: theme.gapMd),
                       _actionButton(context, theme, a),
                     ],
                   if (s.contextOverflow != null) ...[
-                    SizedBox(width: theme.gapLg),
+                    SizedBox(width: theme.gapMd),
                     _revealButton(context, theme, s.contextOverflow!),
                   ],
                 ],
@@ -586,32 +589,44 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   // ── Desktop ──────────────────────────────────────────────────────────────
-  /// Header frosted full-width in alto (tutto lo schermo); sotto, in Row: menu (in
-  /// bolla) · shell · assistente.
+  /// Menu in bolla FULL-HEIGHT a sinistra (logo in cima + nav), con padding esterno;
+  /// a destra, in Column: header frosted (solo sopra il contenuto) · shell ·
+  /// assistente. Il logo vive nel menu, non nell'header.
   Widget _buildSidebar(BuildContext context) {
     final theme = CLTheme.of(context);
     return ColoredBox(
       // Shell content bg = primaryBackground (uguale a header/footer strip).
       color: theme.primaryBackground,
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.sidebar)),
+          // Menu in bolla full-height: padding esterno su tutti i lati tranne destra
+          // (margine 0: il gap lo dà il padding di header/pagina) → evita 2·Lg.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, 0, Sizes.gapLg),
+            child: SizedBox(
+              width: widget.config.sidebarWidth,
+              child: _sideCard(
+                context,
+                child: _navPanel(theme, isCompact: false, frosted: true),
+              ),
+            ),
+          ),
+          // Colonna destra: header solo sopra il contenuto, poi corpo + assistente.
           Expanded(
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Menu in bolla (card bianca + margine). Lato shell: margine 0 (il
-                // gap Lg lo dà già il padding della pagina) → evita 2·Lg.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, 0, Sizes.gapLg),
-                  child: SizedBox(
-                    width: widget.config.sidebarWidth,
-                    child: _sideCard(context, child: _navPanel(theme, isCompact: false, frosted: true)),
+                _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.sidebar)),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _scopedBody()),
+                      if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
+                    ],
                   ),
                 ),
-                Expanded(child: _scopedBody()),
-                if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
               ],
             ),
           ),
@@ -752,48 +767,53 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
-  /// Strip bassa full-width (no bolla, no margine): area contestuale (azioni/back +
-  /// controlli tabella) + nav. Sfondo primaryBackground solido (come header strip).
-  /// SafeArea bottom per l'home indicator.
+  /// Bottom bar in BOLLA: card (secondaryBackground + ombra soft) con margine esterno
+  /// su sx/dx/bottom — niente top (flush col contenuto sopra) — e SafeArea bottom per
+  /// l'home indicator. Dentro: area contestuale (azioni/controlli tabella) + nav,
+  /// separate da un divider quando coesistono.
   Widget _mobileBottomStrip(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
-    return DecoratedBox(
-      decoration: BoxDecoration(color: theme.primaryBackground),
-      child: SafeArea(
-        top: false,
-        child: AnimatedBuilder(
-          animation: _slots,
-          builder: (context, _) {
-            // Con azioni sopra → divider (indent Lg) le separa dalla nav; nav da
-            // sola → niente divider. La nav tiene sempre top padding Lg
-            // (`topBorder: true`) → respiro sotto il divider e quando è da sola.
-            final hasContext = _hasContent(_slots.slots);
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _mobileContextArea(context, frosted: true),
-                if (hasContext && withBottomBar)
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    indent: Sizes.gapLg,
-                    endIndent: Sizes.gapLg,
-                    color: theme.borderColor,
-                  ),
-                if (withBottomBar)
-                  CLBottomBar(
-                    destinations: widget.bottomDestinations ?? widget.destinations,
-                    selectedKey: widget.selectedKey,
-                    onSelect: _onSelect,
-                    onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
-                    onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
-                    maxItems: widget.config.maxBottomBarItems,
-                    topBorder: true,
-                    floating: true,
-                  ),
-              ],
-            );
-          },
-        ),
+    return SafeArea(
+      top: false,
+      child: AnimatedBuilder(
+        animation: _slots,
+        builder: (context, _) {
+          // Con azioni sopra → divider (indent Lg) le separa dalla nav; nav da
+          // sola → niente divider. La nav tiene sempre top padding Lg
+          // (`topBorder: true`) → respiro sotto il divider e quando è da sola.
+          final hasContext = _hasContent(_slots.slots);
+          return Padding(
+            // Bolla: margine esterno su sx/dx/bottom, niente top (flush col contenuto).
+            padding: const EdgeInsets.fromLTRB(Sizes.gapMd, 0, Sizes.gapMd, Sizes.gapMd),
+            child: _sideCard(
+              context,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _mobileContextArea(context, frosted: true),
+                  if (hasContext && withBottomBar)
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: Sizes.gapMd,
+                      endIndent: Sizes.gapMd,
+                      color: theme.borderColor,
+                    ),
+                  if (withBottomBar)
+                    CLBottomBar(
+                      destinations: widget.bottomDestinations ?? widget.destinations,
+                      selectedKey: widget.selectedKey,
+                      onSelect: _onSelect,
+                      onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+                      onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
+                      maxItems: widget.config.maxBottomBarItems,
+                      topBorder: true,
+                      floating: true,
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

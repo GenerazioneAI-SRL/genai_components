@@ -48,9 +48,9 @@ class CLBottomBar extends StatelessWidget {
     final iconSize = theme.iconSizeDefault;
 
     final content = Padding(
-      // Inset Lg. Top a 0 quando sopra c'è l'area contestuale (il suo bottom
-      // padding dà già il gap Lg) → evita doppio Lg; Lg quando la nav è da sola.
-      padding: EdgeInsets.fromLTRB(theme.gapLg, topBorder ? theme.gapLg : 0, theme.gapLg, theme.gapLg),
+      // Inset Md. Top a 0 quando sopra c'è l'area contestuale (il suo bottom
+      // padding dà già il gap Md) → evita doppio Md; Md quando la nav è da sola.
+      padding: EdgeInsets.fromLTRB(theme.gapMd, topBorder ? theme.gapMd : 0, theme.gapMd, theme.gapMd),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -72,9 +72,9 @@ class CLBottomBar extends StatelessWidget {
                 onTap: onOverflow,
               ),
             ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
 
     // Floating: nessun bg/bordo/SafeArea propri → li dà la bolla frosted dello shell.
     if (floating) return content;
