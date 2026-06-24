@@ -78,8 +78,8 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     }
     // Nessun tint su hover: la riga resta sul colore zebra.
     return (
-      // Zebra a 2 grigi: pari controlFill (scuro), dispari primaryBackground (chiaro).
-      rowColor: widget.isEven ? theme.controlFill : theme.primaryBackground,
+      // Zebra: pari (prima riga) primaryBackground, dispari secondaryBackground (bianco).
+      rowColor: widget.isEven ? theme.primaryBackground : theme.secondaryBackground,
       leftBorderColor: Colors.transparent,
     );
   }

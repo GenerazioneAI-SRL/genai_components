@@ -21,7 +21,7 @@ class CLContainer extends StatefulWidget {
     this.titleWidget,
     this.actionWidget,
     this.onActionTap,
-    this.glassmorphism = true,
+    this.glassmorphism = false,
     this.showBorder = false,
     this.titleBackgroundColor,
     this.titleIcon,

@@ -190,13 +190,13 @@ class _CLTableStyleScope extends InheritedWidget {
   bool updateShouldNotify(_CLTableStyleScope old) => old.style != style;
 }
 
-// Search tabella = recess L2 (tertiaryBackground): input incassato, ruolo a sé
-// (standard 4-livelli). Bottoni toolbar = controlFill (fill controlli neutri su L1):
-// erano `muted` (più caldo) → incoerenti con gli icon button shell. Ruoli diversi
-// → grigi diversi legittimi. Override per-tabella via CLTableStyle.
-Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).tertiaryBackground;
+// Chrome tabella (ricerca + bottoni toolbar) = primaryBackground: superfici
+// "flat", appena accennate sul toolbar bianco (secondaryBackground). controlFill
+// resta solo per i bottoni che vivono SUL grigio (es. azioni nelle row).
+// Override per-tabella via CLTableStyle.
+Color _tableSearchFill(BuildContext c) => CLTableStyle.maybeOf(c)?.searchFill ?? CLTheme.of(c).primaryBackground;
 Color _tableHeaderBg(BuildContext c) => CLTableStyle.maybeOf(c)?.headerBackground ?? CLTheme.of(c).secondaryBackground;
-Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).controlFill;
+Color _tableButtonFill(BuildContext c) => CLTableStyle.maybeOf(c)?.buttonFill ?? CLTheme.of(c).primaryBackground;
 
 /// A paginated DataTable that allows page caching and filtering
 /// [TKey] is the type of the page token

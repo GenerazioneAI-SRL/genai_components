@@ -17,7 +17,6 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
           padding: EdgeInsets.all(hPadding),
           decoration: BoxDecoration(
             color: themeData.headerBackgroundColor ?? CLTheme.of(context).primaryBackground,
-            border: Border(top: BorderSide(color: CLTheme.of(context).borderColor, width: 1)),
           ),
           child: isMobile ? _buildMobileFooter(context, state) : _buildDesktopFooter(context, state),
         );
@@ -65,7 +64,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                 alignment: Alignment.center,
                 padding: EdgeInsets.symmetric(horizontal: t.gapMd),
                 decoration: BoxDecoration(
-                  color: t.muted,
+                  color: t.primaryBackground,
                   borderRadius: BorderRadius.circular(t.radiusPill),
                 ),
                 child: AnimatedSwitcher(
@@ -123,7 +122,7 @@ class _PageSizeControls extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(t.gapXs),
       decoration: BoxDecoration(
-        color: t.muted,
+        color: t.primaryBackground,
         borderRadius: BorderRadius.circular(t.radiusPill),
       ),
       child: Row(
@@ -222,7 +221,7 @@ class _PaginationControls<TKey extends Comparable, TResultId extends Comparable,
     return Container(
       padding: EdgeInsets.all(t.gapXs),
       decoration: BoxDecoration(
-        color: t.muted,
+        color: t.primaryBackground,
         borderRadius: BorderRadius.circular(t.radiusPill),
       ),
       child: Row(

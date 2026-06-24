@@ -289,8 +289,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return CLIconButton(
       onTap: onTap,
       iconData: a.icon ?? Icons.circle,
-      backgroundColor: theme.secondaryBackground,
-      boxShadow: theme.cardShadowSoft,
+      // Azione secondaria nella bolla: flat su primaryBackground, niente ombra.
+      backgroundColor: theme.primaryBackground,
       iconColor: theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -312,7 +312,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         if (!_hasContent(s)) return const SizedBox.shrink();
         final theme = CLTheme.of(context);
         return Container(
-          // Frosted: bg/bordo li dà la bolla esterna → qui solo padding.
+          // Frosted: bg/bordo + padding li dà la bolla esterna (card con padding Lg)
+          // → qui niente. Non-frosted: striscia a sé con bg/bordo + padding Md.
           decoration: frosted
               ? null
               : BoxDecoration(
@@ -320,7 +321,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   color: theme.primaryBackground,
                   border: Border(top: BorderSide(color: theme.borderColor)),
                 ),
-          padding: EdgeInsets.all(theme.gapMd),
+          padding: frosted ? EdgeInsets.zero : EdgeInsets.all(theme.gapMd),
           child: _areaContent(context, s, theme, _panelId),
         );
       },
@@ -384,8 +385,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                     CLIconButton(
                       onTap: s.back!.onTap,
                       iconData: Icons.chevron_left,
-                      backgroundColor: theme.secondaryBackground,
-                      boxShadow: theme.cardShadowSoft,
+                      backgroundColor: theme.primaryBackground,
                       iconColor: theme.primaryText,
                       size: theme.buttonHeightDefault,
                       iconSize: Sizes.iconSizeDefault,
@@ -466,8 +466,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             CLIconButton(
               onTap: close,
               iconData: Icons.arrow_back,
-              backgroundColor: theme.secondaryBackground,
-              boxShadow: theme.cardShadowSoft,
+              backgroundColor: theme.primaryBackground,
               iconColor: theme.primaryText,
               size: theme.buttonHeightDefault,
               iconSize: Sizes.iconSizeDefault,
@@ -493,8 +492,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     final btn = CLIconButton(
       onTap: () => _togglePanel(r.id),
       iconData: r.icon,
-      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.secondaryBackground,
-      boxShadow: active ? null : theme.cardShadowSoft,
+      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.primaryBackground,
+      boxShadow: null,
       iconColor: active ? theme.primary : theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -541,7 +540,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Container(
         height: theme.inputHeight,
         decoration: BoxDecoration(
-          color: theme.tertiaryBackground,
+          color: theme.primaryBackground,
           borderRadius: BorderRadius.circular(theme.radiusPill),
         ),
         child: Row(
@@ -802,34 +801,31 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           // (`topBorder: true`) → respiro sotto il divider e quando è da sola.
           final hasContext = _hasContent(_slots.slots);
           return Padding(
-            // Bolla: margine esterno su sx/dx/bottom, niente top (flush col contenuto).
-            padding: const EdgeInsets.fromLTRB(Sizes.gapMd, 0, Sizes.gapMd, Sizes.gapMd),
+            // Bolla bottom bar: margine esterno Lg su tutti i lati.
+            padding: const EdgeInsets.all(Sizes.gapLg),
             child: _sideCard(
               context,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _mobileContextArea(context, frosted: true),
-                  if (hasContext && withBottomBar)
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      indent: Sizes.gapMd,
-                      endIndent: Sizes.gapMd,
-                      color: theme.borderColor,
-                    ),
-                  if (withBottomBar)
-                    CLBottomBar(
-                      destinations: widget.bottomDestinations ?? widget.destinations,
-                      selectedKey: widget.selectedKey,
-                      onSelect: _onSelect,
-                      onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
-                      onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
-                      maxItems: widget.config.maxBottomBarItems,
-                      topBorder: true,
-                      floating: true,
-                    ),
-                ],
+              child: Padding(
+                // Padding interno Lg; gap Md tra gli elementi (context area · nav).
+                padding: const EdgeInsets.all(Sizes.gapLg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _mobileContextArea(context, frosted: true),
+                    if (hasContext && withBottomBar) const SizedBox(height: Sizes.gapMd),
+                    if (withBottomBar)
+                      CLBottomBar(
+                        destinations: widget.bottomDestinations ?? widget.destinations,
+                        selectedKey: widget.selectedKey,
+                        onSelect: _onSelect,
+                        onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+                        onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
+                        maxItems: widget.config.maxBottomBarItems,
+                        topBorder: true,
+                        floating: true,
+                      ),
+                  ],
+                ),
               ),
             ),
           );
