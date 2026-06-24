@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.5.1
+
+- **Widgets:** Updated 4 components
+
+
 ## 5.5.0
 
 - **Widgets:** CLEntityTabs gained `groupByDomain` — when true, entries are grouped by `EntityDomain` into one tab per domain (Anagrafica, Risorse Umane, ...), each tab stacking that domain's cards vertically. Keeps the tab count bounded by the number of domains (max 6) instead of the number of cards; moving a card across domains (via `EntityTab.domain`) re-homes it to the right tab. Default false (one tab per entry, unchanged).
