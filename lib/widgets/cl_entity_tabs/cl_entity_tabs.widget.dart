@@ -26,6 +26,10 @@ import 'entity_tab.model.dart';
 class CLEntityTabs extends StatelessWidget {
   final List<EntityTab> tabs;
   final String? title;
+
+  /// Header ricco persistente sopra la tab bar (ha precedenza su [title]).
+  /// Resta visibile al cambio tab; inoltrato a [CLTabView.titleWidget].
+  final Widget? titleWidget;
   final bool showDivider;
 
   /// Colore dell'indicator (sottolineato) del tab attivo, inoltrato a
@@ -38,13 +42,20 @@ class CLEntityTabs extends StatelessWidget {
   /// sé (label/icona della voce).
   final bool groupByDomain;
 
+  /// Notificato col `key` della tab attiva ([EntityTab.key], o nome del dominio
+  /// se [groupByDomain]); utile per scoping di contenuti renderizzati FUORI dal
+  /// widget. Inoltrato a [CLTabView.onTabChanged] mappando indice→key.
+  final ValueChanged<String>? onTabChanged;
+
   const CLEntityTabs({
     super.key,
     required this.tabs,
     this.title,
+    this.titleWidget,
     this.showDivider = false,
     this.indicatorColor,
     this.groupByDomain = false,
+    this.onTabChanged,
   });
 
   @override
@@ -66,12 +77,19 @@ class CLEntityTabs extends StatelessWidget {
     }
 
     final items = groupByDomain ? _groupedItems(visible, theme) : _perTabItems(visible);
+    // Chiavi parallele agli items: riportano la tab attiva come key stabile,
+    // indipendente dal filtraggio dei guard.
+    final keys = groupByDomain
+        ? [for (final d in EntityDomain.values) if (visible.any((t) => t.domain == d)) d.name]
+        : [for (final t in visible) t.key];
 
     return CLTabView(
       clTabItems: items,
       title: title,
+      titleWidget: titleWidget,
       showDivider: showDivider,
       indicatorColor: indicatorColor,
+      onTabChanged: onTabChanged == null ? null : (i) => onTabChanged!(keys[i]),
     );
   }
 

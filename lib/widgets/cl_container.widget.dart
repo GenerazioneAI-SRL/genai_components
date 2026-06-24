@@ -27,6 +27,7 @@ class CLContainer extends StatefulWidget {
     this.titleIcon,
     this.plainHeader = false,
     this.externalTitle = false,
+    this.recessed = false,
   });
 
   final Widget child;
@@ -65,6 +66,13 @@ class CLContainer extends StatefulWidget {
   /// superficie. La card non mostra la barra titolo interna. Default `true`.
   final bool externalTitle;
 
+  /// Superficie "incassata": background [CLTheme.primaryBackground] e NESSUNA
+  /// ombra esterna (ignora [showShadow]). Pensata per sotto-aree dentro una card
+  /// L1 (secondaryBackground): si delinea per contrasto, effetto "pozzo".
+  /// [backgroundColor] esplicito ha comunque precedenza; [showBorder] resta opt-in.
+  /// Default `false`.
+  final bool recessed;
+
   @override
   State<CLContainer> createState() => _CLContainerState();
 }
@@ -77,7 +85,10 @@ class _CLContainerState extends State<CLContainer> {
     // Dark: cardShadowSoft è invisibile su near-black → la card si delinea con un
     // bordo hairline. Light: ci pensa l'ombra (default Foundation, niente bordo).
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final useBorder = widget.showBorder || (widget.showShadow && isDark);
+    // recessed = superficie incassata: niente ombra (e quindi niente auto-bordo
+    // dark) a prescindere da showShadow. `elevated` è l'elevazione effettiva.
+    final elevated = widget.showShadow && !widget.recessed;
+    final useBorder = widget.showBorder || (elevated && isDark);
     // Card L1: raggio card (radiusCard), non radiusControl. Override esplicito via borderRadius.
     final br = widget.borderRadius ?? BorderRadius.circular(Sizes.radiusCard);
     final borderWidth = useBorder ? 1.0 : 0.0;
@@ -95,11 +106,11 @@ class _CLContainerState extends State<CLContainer> {
       constraints: widget.constraints,
       decoration: BoxDecoration(
         border: useBorder ? Border.all(color: theme.cardBorder, width: 1.0) : null,
-        color: widget.backgroundColor ?? theme.secondaryBackground,
+        color: widget.backgroundColor ?? (widget.recessed ? theme.primaryBackground : theme.secondaryBackground),
         borderRadius: br,
         // Default Foundation: ombra soft (card statica L1), nessun bordo. Il
         // bordo torna opt-in via `showBorder: true`.
-        boxShadow: widget.showShadow ? theme.cardShadowSoft : null,
+        boxShadow: elevated ? theme.cardShadowSoft : null,
       ),
       child: ClipRRect(
         borderRadius: innerBr,
@@ -112,17 +123,23 @@ class _CLContainerState extends State<CLContainer> {
                 decoration: BoxDecoration(
                   // plainHeader: nessuna barra grigia né divider — il titolo è
                   // una label sopra il contenuto (grouped iOS).
+                  // recessed: la barra titolo segue il background della card
+                  // (primaryBackground), seamless col body, e NIENTE divider sotto.
                   color: widget.plainHeader
                       ? Colors.transparent
                       : widget.titleBackgroundColor != null
                           ? widget.titleBackgroundColor!.withValues(alpha: 0.08)
-                          : theme.secondaryBackground,
-                  border: (widget.customHeader == null && !widget.plainHeader) ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1)) : null,
+                          : widget.recessed
+                              ? (widget.backgroundColor ?? theme.primaryBackground)
+                              : theme.secondaryBackground,
+                  border: (widget.customHeader == null && !widget.plainHeader && !widget.recessed)
+                      ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1))
+                      : null,
                 ),
                 child: Padding(
                   padding: widget.plainHeader
-                      ? const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding, Sizes.padding, 0)
-                      : const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.verticalPadding),
+                      ? const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0)
+                      : const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapMd),
                   child: Row(
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

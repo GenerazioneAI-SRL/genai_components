@@ -143,7 +143,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           // gap sotto verso la tenant card. Mai nell'header → vive solo qui.
           if (widget.headerLeading != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, Sizes.gapMd),
+              padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
               child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
             ),
           if (widget.navHeader != null) widget.navHeader!,
@@ -603,11 +603,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Menu in bolla full-height. Margine esterno Lg su sx/top/bottom; a destra
-          // Sm (non 0): col gap del contenuto evita il doppio Lg, ma lascia respiro
-          // all'ombra dx (blur 3px) che con margine 0 l'header opaco sovradipingerebbe.
+          // Menu in bolla full-height. Margine esterno Lg su tutti i lati.
           Padding(
-            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapSm, Sizes.gapLg),
+            padding: const EdgeInsets.all(Sizes.gapLg),
             child: SizedBox(
               width: widget.config.sidebarWidth,
               child: _sideCard(
@@ -616,24 +614,26 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               ),
             ),
           ),
-          // Colonna destra: header solo sopra il contenuto, poi corpo + assistente.
+          // Colonna centrale: header solo sopra il contenuto, poi corpo.
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _headerStrip(context, theme, child: _composedHeader(context, mode: CLNavMode.sidebar)),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _scopedBody()),
-                      if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
-                    ],
-                  ),
-                ),
+                Expanded(child: _scopedBody()),
               ],
             ),
           ),
+          // Assistente AI: bolla full-height a destra, di fianco a header + shell,
+          // stessa card del menu (bianca + ombra). Margine esterno Lg.
+          if (widget.trailing != null)
+            Padding(
+              padding: const EdgeInsets.all(Sizes.gapLg),
+              child: SizedBox(
+                width: widget.config.trailingWidth,
+                child: _sideCard(context, child: widget.trailing!),
+              ),
+            ),
         ],
       ),
     );
@@ -666,11 +666,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Rail in bolla full-height: margine esterno Lg su sx/top/bottom; a destra
-          // Sm (non 0) → respiro per l'ombra dx (blur 3px) che l'header opaco, dipinto
-          // dopo, sovradipingerebbe. Stesso motivo della sidebar desktop. bg/bordo li dà la card.
+          // Rail in bolla full-height. Margine esterno Lg su tutti i lati.
           Padding(
-            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapSm, Sizes.gapLg),
+            padding: const EdgeInsets.all(Sizes.gapLg),
             child: _sideCard(
               context,
               child: CLNavRail(

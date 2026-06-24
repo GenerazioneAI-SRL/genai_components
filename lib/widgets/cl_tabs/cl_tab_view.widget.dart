@@ -6,25 +6,37 @@ import 'cl_tab_item.model.dart';
 /// quando attiva. Divider 1px continuo sotto la riga delle tab; l'indicatore
 /// 3px del tab attivo sovrascrive il divider creando l'effetto "active rail".
 ///
-/// API pubblica invariata:
+/// API pubblica:
 /// - [clTabItems] elenco tab
-/// - [title] titolo opzionale sopra la tab bar
+/// - [title] titolo testo opzionale sopra la tab bar
+/// - [titleWidget] header ricco opzionale (ha precedenza su [title])
 /// - [showDivider] mostra/nasconde un secondo divider sotto la tab bar
 class CLTabView extends StatefulWidget {
   final List<CLTabItem> clTabItems;
   final String? title;
+
+  /// Header persistente reso sopra la tab bar, al posto di [title], quando
+  /// fornito (es. nome entità + sottotitolo). Resta visibile al cambio tab.
+  final Widget? titleWidget;
   final bool showDivider;
 
   /// Colore dell'indicator (sottolineato 3px) del tab attivo.
   /// Default: `theme.primary`.
   final Color? indicatorColor;
 
+  /// Notificato quando cambia la tab attiva (indice), a transizione conclusa,
+  /// e una volta dopo il primo frame per sincronizzare la tab iniziale. Utile
+  /// per contenuti renderizzati FUORI da CLTabView ma scoped alla tab attiva.
+  final ValueChanged<int>? onTabChanged;
+
   const CLTabView({
     super.key,
     required this.clTabItems,
     this.title,
+    this.titleWidget,
     this.showDivider = false,
     this.indicatorColor,
+    this.onTabChanged,
   });
 
   @override
@@ -50,6 +62,12 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
     super.initState();
     _controller = TabController(length: widget.clTabItems.length, vsync: this);
     _controller.addListener(_onTabChanged);
+    // Sincronizza la tab iniziale col chiamante (per contenuti scoped esterni).
+    if (widget.onTabChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onTabChanged!(_controller.index);
+      });
+    }
   }
 
   @override
@@ -67,6 +85,7 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
     if (!_controller.indexIsChanging) {
       _builtIndexes.add(_controller.index);
       setState(() {});
+      widget.onTabChanged?.call(_controller.index);
     }
   }
 
@@ -90,8 +109,13 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Titolo opzionale
-        if (widget.title != null) ...[
+        // Header persistente: titleWidget ricco se fornito, altrimenti title testo.
+        if (widget.titleWidget != null) ...[
+          Padding(
+            padding: EdgeInsets.only(bottom: theme.gapSm),
+            child: widget.titleWidget!,
+          ),
+        ] else if (widget.title != null) ...[
           Padding(
             padding: EdgeInsets.only(bottom: theme.gapSm),
             child: Text(widget.title!, style: theme.heading6),
