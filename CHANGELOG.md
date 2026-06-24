@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.6.0
+
+- **Widgets:** Updated 5 components
+
+
 ## 5.5.1
 
 - **Widgets:** Updated 4 components
