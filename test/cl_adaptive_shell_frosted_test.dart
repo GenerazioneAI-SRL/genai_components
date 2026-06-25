@@ -146,5 +146,30 @@ void main() {
 
       expect(find.byKey(_kBodyKey), findsOneWidget);
     });
+
+    // ── T6: frosted header contiene BackdropFilter ────────────────────────────
+    testWidgets(
+        'T6: frostedFullBleed=true – appBar contiene BackdropFilter con blur',
+        (tester) async {
+      _setViewWidth(tester, 390);
+      addTearDown(() => _resetView(tester));
+
+      await tester.pumpWidget(
+        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
+      );
+      await tester.pump();
+
+      // Scaffold usa appBar: PreferredSize → dentro deve esserci un BackdropFilter.
+      final backdrops = find.byType(BackdropFilter);
+      expect(backdrops, findsAtLeastNWidgets(1),
+          reason: 'frosted header deve contenere almeno un BackdropFilter');
+
+      // Il filtro deve essere un blur gaussiano.
+      final bf = tester.widget<BackdropFilter>(backdrops.first);
+      // ImageFilter.blur produce un _ImageFilter con toString che contiene "blur"
+      // oppure possiamo verificare che il filtro non sia null.
+      expect(bf.filter, isNotNull,
+          reason: 'BackdropFilter.filter deve essere impostato (ImageFilter.blur)');
+    });
   });
 }

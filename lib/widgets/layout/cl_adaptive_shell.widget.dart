@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:genai_components/cl_theme.dart';
@@ -783,33 +785,45 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   /// AppBar frosted: altezza fissa `buttonHeightDefault + gapLg * 2`, hamburger
-  /// + header composto. Nessun blur in questo task (aggiunto in task successivo).
+  /// + header composto. Blur vetro smerigliato via ClipRect + BackdropFilter +
+  /// sfondo traslucente (primaryBackground @ opacityDisabled) così il contenuto
+  /// che scrolla sotto rimane visibile (blurred).
   PreferredSizeWidget _frostedHeader(BuildContext context, CLTheme theme) {
     final height = theme.buttonHeightDefault + theme.gapLg * 2;
     return PreferredSize(
       preferredSize: Size.fromHeight(height),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapLg),
-          child: SizedBox(
-            height: theme.buttonHeightDefault,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CLIconButton(
-                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                  iconData: Icons.menu,
-                  backgroundColor: theme.secondaryBackground,
-                  boxShadow: theme.cardShadowSoft,
-                  iconColor: theme.primaryText,
-                  size: theme.buttonHeightDefault,
-                  iconSize: Sizes.iconSizeDefault,
-                  tooltip: 'Menu',
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.primaryBackground.withValues(alpha: theme.opacityDisabled),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapLg),
+                child: SizedBox(
+                  height: theme.buttonHeightDefault,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      CLIconButton(
+                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                        iconData: Icons.menu,
+                        backgroundColor: theme.secondaryBackground,
+                        boxShadow: theme.cardShadowSoft,
+                        iconColor: theme.primaryText,
+                        size: theme.buttonHeightDefault,
+                        iconSize: Sizes.iconSizeDefault,
+                        tooltip: 'Menu',
+                      ),
+                      SizedBox(width: theme.gapLg),
+                      Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
+                    ],
+                  ),
                 ),
-                SizedBox(width: theme.gapLg),
-                Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
-              ],
+              ),
             ),
           ),
         ),
