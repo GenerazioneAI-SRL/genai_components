@@ -17,6 +17,10 @@ class CLShellConfig {
   final int maxBottomBarItems;   // 5
   final double drawerWidthFactor; // 0.85 (mobile/tablet)
 
+  /// Opt-in: attiva lo shell mobile "full-bleed" (contenuto edge-to-edge sotto
+  /// header/bolla in blur). Default false → comportamento legacy invariato.
+  final bool frostedFullBleed;
+
   const CLShellConfig({
     this.tabletBreakpoint = 600,
     this.desktopBreakpoint = 1079,
@@ -25,6 +29,7 @@ class CLShellConfig {
     this.trailingWidth = 360,
     this.maxBottomBarItems = 5,
     this.drawerWidthFactor = 0.85,
+    this.frostedFullBleed = false,
   });
 }
 
