@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:genai_components/widgets/layout/cl_adaptive_shell.widget.dart';
+import 'package:genai_components/widgets/layout/cl_bottom_bar.widget.dart';
 import 'package:genai_components/widgets/layout/cl_destination.dart';
 import 'package:genai_components/widgets/layout/cl_shell_config.dart';
+import 'package:genai_components/widgets/layout/cl_shell_slots.dart';
 
 // ─── Harness ────────────────────────────────────────────────────────────────
 
@@ -174,6 +176,58 @@ void main() {
       final bf = tester.widget<BackdropFilter>(blurInBottom);
       expect(bf.filter, isNotNull,
           reason: 'BackdropFilter.filter deve essere impostato (ImageFilter.blur)');
+    });
+
+    // ── T8: nav nascosta quando selectionBar attiva ──────────────────────────
+    testWidgets(
+        'T8: frostedFullBleed=true – CLBottomBar assente con selectionBar attiva, '
+        'presente senza', (tester) async {
+      _setViewWidth(tester, 390);
+      addTearDown(() => _resetView(tester));
+
+      final controller = ShellSlotsController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CLAdaptiveShell(
+            destinations: [_dest('home'), _dest('explore')],
+            selectedKey: 'home',
+            onSelect: (_) {},
+            header: const Text('Header'),
+            body: ColoredBox(
+              key: _kBodyKey,
+              color: Colors.red,
+              child: const SizedBox.expand(),
+            ),
+            config: const CLShellConfig(frostedFullBleed: true),
+            slotsController: controller,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Prima di attivare la selezione: CLBottomBar presente.
+      expect(find.byType(CLBottomBar), findsOneWidget,
+          reason: 'senza selezione CLBottomBar deve essere visibile');
+
+      // Attiva selezione.
+      controller.setSelectionBar(const Text('Bulk', key: Key('bulk-bar')));
+      await tester.pump();
+
+      // Bulk bar visibile, CLBottomBar nascosta.
+      expect(find.byKey(const Key('bulk-bar')), findsOneWidget,
+          reason: 'bulk bar deve essere visibile durante la selezione');
+      expect(find.byType(CLBottomBar), findsNothing,
+          reason: 'CLBottomBar deve essere nascosta durante la selezione');
+
+      // Disattiva selezione.
+      controller.setSelectionBar(null);
+      await tester.pump();
+
+      // CLBottomBar di nuovo presente.
+      expect(find.byType(CLBottomBar), findsOneWidget,
+          reason: 'CLBottomBar deve tornare visibile dopo la selezione');
     });
 
     // ── T6: frosted header contiene BackdropFilter ────────────────────────────

@@ -868,13 +868,17 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return AnimatedBuilder(
       animation: _slots,
       builder: (context, _) {
-        final hasContext = _hasContent(_slots.slots);
+        final s = _slots.slots;
+        final hasContext = _hasContent(s);
+        final panelOpen = _panelId != null;
+        final selecting = s.selectionBar != null;
+        final showNav = withBottomBar && !panelOpen && !selecting;
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _mobileContextArea(context, frosted: true),
-            if (hasContext && withBottomBar) SizedBox(height: theme.gapMd),
-            if (withBottomBar)
+            if (hasContext && showNav) SizedBox(height: theme.gapMd),
+            if (showNav)
               CLBottomBar(
                 destinations: widget.bottomDestinations ?? widget.destinations,
                 selectedKey: widget.selectedKey,
