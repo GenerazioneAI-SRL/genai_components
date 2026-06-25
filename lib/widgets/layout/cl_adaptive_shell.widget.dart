@@ -853,7 +853,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
               ),
               child: Padding(
                 padding: EdgeInsets.all(theme.gapLg),
-                child: _bubbleInner(context, theme, withBottomBar: withBottomBar),
+                child: _bubbleInner(context, theme, withBottomBar: withBottomBar, applyNavGating: true),
               ),
             ),
           ),
@@ -864,7 +864,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
 
   /// Contenuto interno della bolla bottom (area contestuale + nav). Estratto
   /// per evitare duplicazione tra [_mobileBottomStrip] e [_frostedBottom].
-  Widget _bubbleInner(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
+  ///
+  /// [applyNavGating] — solo il path frosted nasconde la nav quando un pannello
+  /// è aperto o la selezione bulk è attiva. Il path legacy non gata mai la nav
+  /// (comportamento invariato rispetto a prima di Task 5).
+  Widget _bubbleInner(BuildContext context, CLTheme theme, {required bool withBottomBar, bool applyNavGating = false}) {
     return AnimatedBuilder(
       animation: _slots,
       builder: (context, _) {
@@ -872,7 +876,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         final hasContext = _hasContent(s);
         final panelOpen = _panelId != null;
         final selecting = s.selectionBar != null;
-        final showNav = withBottomBar && !panelOpen && !selecting;
+        // Legacy (applyNavGating=false): showNav = withBottomBar (old behavior).
+        // Frosted (applyNavGating=true): nasconde nav se pannello aperto o selezione.
+        final showNav = withBottomBar && (!applyNavGating || (!panelOpen && !selecting));
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
