@@ -74,12 +74,12 @@ Stati della bolla:
 
 Tutto in un solo contenitore → l'utente guarda sempre lì per sapere cosa può fare.
 
-## Comportamenti da confermare
+## Comportamenti (decisi)
 
-1. **Filtri + selezione righe insieme** → *proposta: uno alla volta.* Selezioni righe
-   → la bolla va in modo "bulk" e i filtri si chiudono. Più semplice, meno confusione.
-2. **Riga navigazione quando un pannello (filtri) è aperto** → *proposta: sparisce*,
-   torna quando chiudi il pannello. Stai operando, non navigando.
+1. **Filtri + selezione righe → uno alla volta.** Quando selezioni righe la bolla
+   passa in modo "bulk" e l'eventuale pannello filtri si chiude. Niente stati misti.
+2. **Riga navigazione quando un pannello (filtri) è aperto → sparisce**, torna quando
+   chiudi il pannello. Stai operando, non navigando.
 
 ## Strategia componente condiviso
 
