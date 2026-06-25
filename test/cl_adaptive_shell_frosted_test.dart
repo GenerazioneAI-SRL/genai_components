@@ -4,7 +4,7 @@ import 'package:genai_components/widgets/layout/cl_adaptive_shell.widget.dart';
 import 'package:genai_components/widgets/layout/cl_destination.dart';
 import 'package:genai_components/widgets/layout/cl_shell_config.dart';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Harness ────────────────────────────────────────────────────────────────
 
 const _kBodyKey = Key('body');
 
@@ -14,27 +14,26 @@ CLDestination _dest(String key) => CLDestination(
       icon: Icons.home,
     );
 
+/// Harness senza Scaffold esterno: l'unico Scaffold nell'albero è quello dello
+/// shell. Viewport < 600 px forza CLNavMode.bottomBar.
 Widget _buildHarness({required CLShellConfig config}) {
   return MaterialApp(
-    home: Scaffold(
-      body: CLAdaptiveShell(
-        destinations: [_dest('home'), _dest('explore')],
-        selectedKey: 'home',
-        onSelect: (_) {},
-        header: const Text('Header'),
-        body: const ColoredBox(
-          key: _kBodyKey,
-          color: Colors.red,
-          child: SizedBox.expand(),
-        ),
-        config: config,
+    home: CLAdaptiveShell(
+      destinations: [_dest('home'), _dest('explore')],
+      selectedKey: 'home',
+      onSelect: (_) {},
+      header: const Text('Header'),
+      body: ColoredBox(
+        key: _kBodyKey,
+        color: Colors.red,
+        child: const SizedBox.expand(),
       ),
+      config: config,
     ),
   );
 }
 
-/// Imposta la larghezza del viewport al valore richiesto.
-/// Larghezza < 600 → CLNavMode.bottomBar.
+/// Forza larghezza viewport. Width < 600 → CLNavMode.bottomBar.
 void _setViewWidth(WidgetTester tester, double width) {
   tester.view.physicalSize = Size(width, 844);
   tester.view.devicePixelRatio = 1.0;
@@ -49,72 +48,58 @@ void _resetView(WidgetTester tester) {
 
 void main() {
   group('CLAdaptiveShell – frostedFullBleed mobile scaffold', () {
-    // ── T1: legacy (frostedFullBleed=false) — body in Column/Expanded ────────
-    testWidgets('T1: legacy branch – body NOT inside a Stack', (tester) async {
+    // ── T1: frosted (frostedFullBleed=true) — extendBody + appBar + bottomNav ─
+    testWidgets(
+        'T1: frostedFullBleed=true – Scaffold extendBody/extendBodyBehindAppBar '
+        'con appBar e bottomNavigationBar', (tester) async {
       _setViewWidth(tester, 390);
       addTearDown(() => _resetView(tester));
 
       await tester.pumpWidget(
-        _buildHarness(config: const CLShellConfig(frostedFullBleed: false)),
+        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
       );
       await tester.pump();
 
-      final bodyFinder = find.byKey(_kBodyKey);
-      expect(bodyFinder, findsOneWidget);
+      // Solo lo Scaffold dello shell nell'albero (nessun Scaffold nel harness).
+      final scaffoldFinder = find.byType(Scaffold);
+      expect(scaffoldFinder, findsOneWidget);
 
-      final ancestors = tester.widgetList(
-        find.ancestor(of: bodyFinder, matching: find.byType(Stack)),
-      );
-      expect(ancestors.isEmpty, isTrue,
-          reason: 'legacy: body non deve essere dentro uno Stack');
+      final scaffold = tester.widget<Scaffold>(scaffoldFinder);
+      expect(scaffold.extendBody, isTrue,
+          reason: 'frostedFullBleed: extendBody deve essere true');
+      expect(scaffold.extendBodyBehindAppBar, isTrue,
+          reason: 'frostedFullBleed: extendBodyBehindAppBar deve essere true');
+      expect(scaffold.appBar, isNotNull,
+          reason: 'frostedFullBleed: appBar deve essere presente');
+      expect(scaffold.bottomNavigationBar, isNotNull,
+          reason: 'frostedFullBleed: bottomNavigationBar deve essere presente');
     });
 
-    // ── T2: frosted full-bleed (frostedFullBleed=true) — body in Stack ───────
-    testWidgets('T2: frostedFullBleed=true – body IS inside a Stack',
+    // ── T2: legacy (frostedFullBleed=false) — extendBody false, no appBar ────
+    testWidgets(
+        'T2: frostedFullBleed=false – Scaffold NON usa extendBody né appBar',
         (tester) async {
       _setViewWidth(tester, 390);
       addTearDown(() => _resetView(tester));
 
       await tester.pumpWidget(
-        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
-      );
-      await tester.pump();
-
-      final bodyFinder = find.byKey(_kBodyKey);
-      expect(bodyFinder, findsOneWidget);
-
-      final stackAncestors = tester.widgetList(
-        find.ancestor(of: bodyFinder, matching: find.byType(Stack)),
-      );
-      expect(stackAncestors.isNotEmpty, isTrue,
-          reason: 'frostedFullBleed=true: body deve essere dentro uno Stack');
-    });
-
-    // ── T3: Scaffold presente in entrambi i rami ──────────────────────────────
-    testWidgets('T3: legacy branch – Scaffold presente', (tester) async {
-      _setViewWidth(tester, 390);
-      addTearDown(() => _resetView(tester));
-
-      await tester.pumpWidget(
         _buildHarness(config: const CLShellConfig(frostedFullBleed: false)),
       );
       await tester.pump();
-      expect(find.byType(Scaffold), findsWidgets);
+
+      final scaffoldFinder = find.byType(Scaffold);
+      expect(scaffoldFinder, findsOneWidget);
+
+      final scaffold = tester.widget<Scaffold>(scaffoldFinder);
+      expect(scaffold.extendBody, isFalse,
+          reason: 'legacy: extendBody deve essere false');
+      expect(scaffold.appBar, isNull,
+          reason: 'legacy: appBar deve essere null (Column in body)');
     });
 
-    testWidgets('T4: frostedFullBleed=true – Scaffold presente', (tester) async {
-      _setViewWidth(tester, 390);
-      addTearDown(() => _resetView(tester));
-
-      await tester.pumpWidget(
-        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
-      );
-      await tester.pump();
-      expect(find.byType(Scaffold), findsWidgets);
-    });
-
-    // ── T5: default config invariata ─────────────────────────────────────────
-    testWidgets('T5: default config (frostedFullBleed=false) – body NOT in Stack',
+    // ── T3: default config invariata ─────────────────────────────────────────
+    testWidgets(
+        'T3: default config (frostedFullBleed=false) – comportamento legacy',
         (tester) async {
       _setViewWidth(tester, 390);
       addTearDown(() => _resetView(tester));
@@ -124,14 +109,42 @@ void main() {
       );
       await tester.pump();
 
-      final bodyFinder = find.byKey(_kBodyKey);
-      expect(bodyFinder, findsOneWidget);
+      final scaffoldFinder = find.byType(Scaffold);
+      expect(scaffoldFinder, findsOneWidget);
 
-      final ancestors = tester.widgetList(
-        find.ancestor(of: bodyFinder, matching: find.byType(Stack)),
+      final scaffold = tester.widget<Scaffold>(scaffoldFinder);
+      expect(scaffold.extendBody, isFalse,
+          reason: 'default config: legacy path, extendBody false');
+      expect(scaffold.appBar, isNull,
+          reason: 'default config: legacy path, appBar null');
+    });
+
+    // ── T4: frosted — body comunque presente nell'albero ─────────────────────
+    testWidgets('T4: frostedFullBleed=true – body widget presente nell\'albero',
+        (tester) async {
+      _setViewWidth(tester, 390);
+      addTearDown(() => _resetView(tester));
+
+      await tester.pumpWidget(
+        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
       );
-      expect(ancestors.isEmpty, isTrue,
-          reason: 'default config: legacy path, no Stack');
+      await tester.pump();
+
+      expect(find.byKey(_kBodyKey), findsOneWidget);
+    });
+
+    // ── T5: legacy — body presente ───────────────────────────────────────────
+    testWidgets('T5: frostedFullBleed=false – body widget presente nell\'albero',
+        (tester) async {
+      _setViewWidth(tester, 390);
+      addTearDown(() => _resetView(tester));
+
+      await tester.pumpWidget(
+        _buildHarness(config: const CLShellConfig(frostedFullBleed: false)),
+      );
+      await tester.pump();
+
+      expect(find.byKey(_kBodyKey), findsOneWidget);
     });
   });
 }

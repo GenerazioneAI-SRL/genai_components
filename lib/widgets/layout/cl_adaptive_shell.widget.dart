@@ -715,14 +715,19 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// **Legacy (false):** Column → header in alto, body in mezzo, barra in
   /// basso. Il body sta in flusso tra le barre → le pagine non insettano.
   ///
-  /// **Frosted full-bleed (true):** Stack → body occupa tutta la superficie
-  /// (edge-to-edge), header e bottom bar si sovrappongono come overlay.
-  /// Le pagine devono insettare i propri contenuti con [MediaQuery.padding]
-  /// (SafeArea) per non essere coperte dalle barre.
+  /// **Frosted full-bleed (true):** `Scaffold(extendBody: true,
+  /// extendBodyBehindAppBar: true)` con `appBar:` e `bottomNavigationBar:`.
+  /// Flutter misura la bottom bar (altezza variabile) e inietta l'inset nel
+  /// MediaQuery del body → le pagine non devono calcolare manualmente il padding.
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = CLTheme.of(context);
-    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
 
+    if (widget.config.frostedFullBleed) {
+      return _frostedScaffold(context, theme, withBottomBar: withBottomBar);
+    }
+
+    // ── Legacy: Column in flusso ─────────────────────────────────────────────
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
     final drawer = Drawer(
       width: drawerWidth,
       backgroundColor: theme.primaryBackground,
@@ -730,39 +735,6 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: SafeArea(child: _navPanel(theme, isCompact: true)),
     );
 
-    if (widget.config.frostedFullBleed) {
-      // ── Full-bleed skeleton: body sotto, barre in overlay ─────────────────
-      return Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: theme.primaryBackground,
-        drawer: drawer,
-        endDrawer: widget.endDrawer,
-        endDrawerEnableOpenDragGesture: false,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Body occupa tutta la superficie (edge-to-edge).
-            _scopedBody(),
-            // Header overlay in cima.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _mobileHeaderStrip(context, theme),
-            ),
-            // Bottom bar overlay in fondo.
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _mobileBottomStrip(context, theme, withBottomBar: withBottomBar),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ── Legacy: Column in flusso ─────────────────────────────────────────────
     return Scaffold(
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
@@ -778,6 +750,77 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         ],
       ),
     );
+  }
+
+  /// Ramo frosted full-bleed: Scaffold con `extendBody`/`extendBodyBehindAppBar`
+  /// veri così Flutter calcola gli inset della bottom bar (altezza variabile) e
+  /// li inietta nel MediaQuery del body automaticamente.
+  Widget _frostedScaffold(
+    BuildContext context,
+    CLTheme theme, {
+    required bool withBottomBar,
+  }) {
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    final drawer = Drawer(
+      width: drawerWidth,
+      backgroundColor: theme.primaryBackground,
+      shape: const RoundedRectangleBorder(),
+      child: SafeArea(child: _navPanel(theme, isCompact: true)),
+    );
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: theme.primaryBackground,
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      drawer: drawer,
+      endDrawer: widget.endDrawer,
+      endDrawerEnableOpenDragGesture: false,
+      appBar: _frostedHeader(context, theme),
+      bottomNavigationBar: _frostedBottom(context, theme, withBottomBar: withBottomBar),
+      body: _scopedBody(),
+    );
+  }
+
+  /// AppBar frosted: altezza fissa `buttonHeightDefault + gapLg * 2`, hamburger
+  /// + header composto. Nessun blur in questo task (aggiunto in task successivo).
+  PreferredSizeWidget _frostedHeader(BuildContext context, CLTheme theme) {
+    final height = theme.buttonHeightDefault + theme.gapLg * 2;
+    return PreferredSize(
+      preferredSize: Size.fromHeight(height),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapLg),
+          child: SizedBox(
+            height: theme.buttonHeightDefault,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CLIconButton(
+                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                  iconData: Icons.menu,
+                  backgroundColor: theme.secondaryBackground,
+                  boxShadow: theme.cardShadowSoft,
+                  iconColor: theme.primaryText,
+                  size: theme.buttonHeightDefault,
+                  iconSize: Sizes.iconSizeDefault,
+                  tooltip: 'Menu',
+                ),
+                SizedBox(width: theme.gapLg),
+                Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bottom bar frosted: delega a `_mobileBottomStrip` (blur aggiunto in task
+  /// successivo).
+  Widget _frostedBottom(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
+    return _mobileBottomStrip(context, theme, withBottomBar: withBottomBar);
   }
 
   /// Striscia header full-width (no bolla, no margine): sfondo primaryBackground
