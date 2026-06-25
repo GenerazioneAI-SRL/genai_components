@@ -607,9 +607,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Menu in bolla full-height. Margine esterno Lg su tutti i lati.
+          // Menu in bolla full-height. Margine esterno Lg su sx/top/bottom; NO right:
+          // il gap verso il contenuto lo dà il padding sinistro di header/body
+          // (altrimenti menu-right Lg + content-left Lg = doppio gap).
           Padding(
-            padding: const EdgeInsets.all(Sizes.gapLg),
+            padding: const EdgeInsets.only(left: Sizes.gapLg, top: Sizes.gapLg, bottom: Sizes.gapLg),
             child: SizedBox(
               width: widget.config.sidebarWidth,
               child: _sideCard(
@@ -845,8 +847,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   Widget _frostedBottom(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
     return SafeArea(
       top: false,
+      // Margine esterno bolla: NO top. Lo Scaffold misura tutta la
+      // bottomNavigationBar per l'inset del body; un top qui verrebbe conteggiato
+      // come clearance ma è solo spazio trasparente sotto cui il contenuto scorre.
       child: Padding(
-        padding: EdgeInsets.all(theme.gapLg),
+        padding: EdgeInsets.only(left: theme.gapLg, right: theme.gapLg, bottom: theme.gapLg),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(theme.radiusBubble),
           child: BackdropFilter(
