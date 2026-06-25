@@ -607,11 +607,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Menu in bolla full-height. Margine esterno Lg su sx/top/bottom; NO right:
-          // il gap verso il contenuto lo dà il padding sinistro di header/body
-          // (altrimenti menu-right Lg + content-left Lg = doppio gap).
+          // Menu in bolla full-height. Margine esterno Lg su TUTTI i lati: il
+          // right serve allo spazio dell'ombra della card (toglierlo la clippa).
           Padding(
-            padding: const EdgeInsets.only(left: Sizes.gapLg, top: Sizes.gapLg, bottom: Sizes.gapLg),
+            padding: const EdgeInsets.all(Sizes.gapLg),
             child: SizedBox(
               width: widget.config.sidebarWidth,
               child: _sideCard(
