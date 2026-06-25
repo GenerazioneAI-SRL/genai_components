@@ -832,10 +832,63 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
-  /// Bottom bar frosted: delega a `_mobileBottomStrip` (blur aggiunto in task
-  /// successivo).
+  /// Bottom bar frosted: bolla traslucente con vetro smerigliato. Stessa logica
+  /// del [_frostedHeader]: ClipRect + BackdropFilter (sigma 18) + sfondo
+  /// primaryBackground @ 0.72. Angoli [theme.radiusBubble], margine esterno Lg,
+  /// SafeArea bottom per l'home indicator.
   Widget _frostedBottom(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
-    return _mobileBottomStrip(context, theme, withBottomBar: withBottomBar);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.all(theme.gapLg),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(theme.radiusBubble),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.primaryBackground.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(theme.radiusBubble),
+                border: Border.all(color: theme.borderColor),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(theme.gapLg),
+                child: _bubbleInner(context, theme, withBottomBar: withBottomBar),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Contenuto interno della bolla bottom (area contestuale + nav). Estratto
+  /// per evitare duplicazione tra [_mobileBottomStrip] e [_frostedBottom].
+  Widget _bubbleInner(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
+    return AnimatedBuilder(
+      animation: _slots,
+      builder: (context, _) {
+        final hasContext = _hasContent(_slots.slots);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _mobileContextArea(context, frosted: true),
+            if (hasContext && withBottomBar) SizedBox(height: theme.gapMd),
+            if (withBottomBar)
+              CLBottomBar(
+                destinations: widget.bottomDestinations ?? widget.destinations,
+                selectedKey: widget.selectedKey,
+                onSelect: _onSelect,
+                onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+                onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
+                maxItems: widget.config.maxBottomBarItems,
+                topBorder: true,
+                floating: true,
+              ),
+          ],
+        );
+      },
+    );
   }
 
   /// Striscia header full-width (no bolla, no margine): sfondo primaryBackground
@@ -891,43 +944,17 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   Widget _mobileBottomStrip(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
     return SafeArea(
       top: false,
-      child: AnimatedBuilder(
-        animation: _slots,
-        builder: (context, _) {
-          // Con azioni sopra → divider (indent Lg) le separa dalla nav; nav da
-          // sola → niente divider. La nav tiene sempre top padding Lg
-          // (`topBorder: true`) → respiro sotto il divider e quando è da sola.
-          final hasContext = _hasContent(_slots.slots);
-          return Padding(
-            // Bolla bottom bar: margine esterno Lg su tutti i lati.
+      child: Padding(
+        // Bolla bottom bar: margine esterno Lg su tutti i lati.
+        padding: const EdgeInsets.all(Sizes.gapLg),
+        child: _sideCard(
+          context,
+          child: Padding(
+            // Padding interno Lg; gap Md tra gli elementi (context area · nav).
             padding: const EdgeInsets.all(Sizes.gapLg),
-            child: _sideCard(
-              context,
-              child: Padding(
-                // Padding interno Lg; gap Md tra gli elementi (context area · nav).
-                padding: const EdgeInsets.all(Sizes.gapLg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _mobileContextArea(context, frosted: true),
-                    if (hasContext && withBottomBar) const SizedBox(height: Sizes.gapMd),
-                    if (withBottomBar)
-                      CLBottomBar(
-                        destinations: widget.bottomDestinations ?? widget.destinations,
-                        selectedKey: widget.selectedKey,
-                        onSelect: _onSelect,
-                        onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
-                        onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
-                        maxItems: widget.config.maxBottomBarItems,
-                        topBorder: true,
-                        floating: true,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+            child: _bubbleInner(context, theme, withBottomBar: withBottomBar),
+          ),
+        ),
       ),
     );
   }

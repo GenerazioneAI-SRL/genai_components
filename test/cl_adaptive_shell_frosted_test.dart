@@ -147,6 +147,35 @@ void main() {
       expect(find.byKey(_kBodyKey), findsOneWidget);
     });
 
+    // ── T7: frosted bottom contiene BackdropFilter ───────────────────────────
+    testWidgets(
+        'T7: frostedFullBleed=true – bottomNavigationBar contiene BackdropFilter con blur',
+        (tester) async {
+      _setViewWidth(tester, 390);
+      addTearDown(() => _resetView(tester));
+
+      await tester.pumpWidget(
+        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
+      );
+      await tester.pump();
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.bottomNavigationBar, isNotNull,
+          reason: 'frostedFullBleed: bottomNavigationBar deve essere presente');
+
+      // Scope al bottomNavigationBar subtree: esattamente un BackdropFilter.
+      final blurInBottom = find.descendant(
+        of: find.byWidget(scaffold.bottomNavigationBar!),
+        matching: find.byType(BackdropFilter),
+      );
+      expect(blurInBottom, findsOneWidget,
+          reason: 'frosted bottom deve contenere esattamente un BackdropFilter');
+
+      final bf = tester.widget<BackdropFilter>(blurInBottom);
+      expect(bf.filter, isNotNull,
+          reason: 'BackdropFilter.filter deve essere impostato (ImageFilter.blur)');
+    });
+
     // ── T6: frosted header contiene BackdropFilter ────────────────────────────
     testWidgets(
         'T6: frostedFullBleed=true – appBar contiene BackdropFilter con blur',
