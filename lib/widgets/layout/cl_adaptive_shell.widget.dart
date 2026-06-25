@@ -710,24 +710,64 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   // ── Mobile (drawer + bottom bar) ───────────────────────────────────────────
-  /// Shell mobile: Column → header (striscia frosted) in alto, body in mezzo, barra
-  /// contestuale/nav (bolla frosted) in basso. Niente stack/full-bleed: il body sta
-  /// in flusso tra le barre → le pagine non devono insettare il contenuto.
+  /// Shell mobile: due rami selezionati da [CLShellConfig.frostedFullBleed].
+  ///
+  /// **Legacy (false):** Column → header in alto, body in mezzo, barra in
+  /// basso. Il body sta in flusso tra le barre → le pagine non insettano.
+  ///
+  /// **Frosted full-bleed (true):** Stack → body occupa tutta la superficie
+  /// (edge-to-edge), header e bottom bar si sovrappongono come overlay.
+  /// Le pagine devono insettare i propri contenuti con [MediaQuery.padding]
+  /// (SafeArea) per non essere coperte dalle barre.
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = CLTheme.of(context);
     final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
 
+    final drawer = Drawer(
+      width: drawerWidth,
+      backgroundColor: theme.primaryBackground,
+      shape: const RoundedRectangleBorder(),
+      child: SafeArea(child: _navPanel(theme, isCompact: true)),
+    );
+
+    if (widget.config.frostedFullBleed) {
+      // ── Full-bleed skeleton: body sotto, barre in overlay ─────────────────
+      return Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: theme.primaryBackground,
+        drawer: drawer,
+        endDrawer: widget.endDrawer,
+        endDrawerEnableOpenDragGesture: false,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Body occupa tutta la superficie (edge-to-edge).
+            _scopedBody(),
+            // Header overlay in cima.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _mobileHeaderStrip(context, theme),
+            ),
+            // Bottom bar overlay in fondo.
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _mobileBottomStrip(context, theme, withBottomBar: withBottomBar),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Legacy: Column in flusso ─────────────────────────────────────────────
     return Scaffold(
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
       backgroundColor: theme.primaryBackground,
-      drawer: Drawer(
-        width: drawerWidth,
-        // Menu drawer = L0.
-        backgroundColor: theme.primaryBackground,
-        shape: const RoundedRectangleBorder(),
-        child: SafeArea(child: _navPanel(theme, isCompact: true)),
-      ),
+      drawer: drawer,
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
       body: Column(
