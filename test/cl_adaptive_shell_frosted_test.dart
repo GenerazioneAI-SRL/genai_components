@@ -159,15 +159,18 @@ void main() {
       );
       await tester.pump();
 
-      // Scaffold usa appBar: PreferredSize → dentro deve esserci un BackdropFilter.
-      final backdrops = find.byType(BackdropFilter);
-      expect(backdrops, findsAtLeastNWidgets(1),
-          reason: 'frosted header deve contenere almeno un BackdropFilter');
+      // Scope al PreferredSize dell'appBar → esattamente un BackdropFilter nell'header.
+      // PreferredSize è il tipo restituito da _frostedHeader; è unico nell'albero
+      // (il legacy path non usa appBar, e il bottomNav non è un PreferredSize).
+      final blurInHeader = find.descendant(
+        of: find.byType(PreferredSize),
+        matching: find.byType(BackdropFilter),
+      );
+      expect(blurInHeader, findsOneWidget,
+          reason: 'frosted header deve contenere esattamente un BackdropFilter');
 
       // Il filtro deve essere un blur gaussiano.
-      final bf = tester.widget<BackdropFilter>(backdrops.first);
-      // ImageFilter.blur produce un _ImageFilter con toString che contiene "blur"
-      // oppure possiamo verificare che il filtro non sia null.
+      final bf = tester.widget<BackdropFilter>(blurInHeader);
       expect(bf.filter, isNotNull,
           reason: 'BackdropFilter.filter deve essere impostato (ImageFilter.blur)');
     });

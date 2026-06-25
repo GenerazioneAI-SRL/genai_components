@@ -794,10 +794,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       preferredSize: Size.fromHeight(height),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: theme.primaryBackground.withValues(alpha: theme.opacityDisabled),
+              color: theme.primaryBackground.withValues(alpha: 0.72),
+              border: Border(bottom: BorderSide(color: theme.borderColor)),
             ),
             child: SafeArea(
               bottom: false,
