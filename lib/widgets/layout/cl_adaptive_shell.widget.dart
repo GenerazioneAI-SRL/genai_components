@@ -847,7 +847,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: theme.primaryBackground.withValues(alpha: 0.72),
+                color: theme.secondaryBackground.withValues(alpha: 0.78),
                 borderRadius: BorderRadius.circular(theme.radiusBubble),
                 border: Border.all(color: theme.borderColor),
               ),
