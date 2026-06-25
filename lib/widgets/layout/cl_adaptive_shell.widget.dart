@@ -75,7 +75,10 @@ class CLAdaptiveShell extends StatefulWidget {
   State<CLAdaptiveShell> createState() => _CLAdaptiveShellState();
 }
 
+
 class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
+  static const double _kFrostSigma = 18.0;
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   /// Pannello reveal aperto nell'area contestuale mobile: filtri / ordina /
@@ -784,17 +787,20 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
-  /// AppBar frosted: altezza fissa `buttonHeightDefault + gapLg * 2`, hamburger
-  /// + header composto. Blur vetro smerigliato via ClipRect + BackdropFilter +
-  /// sfondo traslucente (primaryBackground @ opacityDisabled) così il contenuto
-  /// che scrolla sotto rimane visibile (blurred).
+  /// AppBar frosted: altezza `buttonHeightDefault + gapLg * 2 + topInset`,
+  /// hamburger + header composto. Blur vetro smerigliato via ClipRect +
+  /// BackdropFilter + sfondo traslucente (primaryBackground @ alpha 0.72) così
+  /// il contenuto che scrolla sotto rimane visibile (blurred). Il topInset
+  /// (notch/status bar) è incluso nell'altezza preferred così la SafeArea
+  /// interna lo consuma senza clippare il contenuto.
   PreferredSizeWidget _frostedHeader(BuildContext context, CLTheme theme) {
-    final height = theme.buttonHeightDefault + theme.gapLg * 2;
+    final topInset = MediaQuery.paddingOf(context).top;
+    final height = theme.buttonHeightDefault + theme.gapLg * 2 + topInset;
     return PreferredSize(
       preferredSize: Size.fromHeight(height),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: theme.primaryBackground.withValues(alpha: 0.72),
@@ -834,8 +840,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
 
   /// Bottom bar frosted: bolla traslucente con vetro smerigliato. Stessa logica
   /// del [_frostedHeader]: ClipRect + BackdropFilter (sigma 18) + sfondo
-  /// primaryBackground @ 0.72. Angoli [theme.radiusBubble], margine esterno Lg,
-  /// SafeArea bottom per l'home indicator.
+  /// secondaryBackground @ alpha 0.78. Angoli [theme.radiusBubble], margine
+  /// esterno Lg, SafeArea bottom per l'home indicator.
   Widget _frostedBottom(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
     return SafeArea(
       top: false,
@@ -844,7 +850,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(theme.radiusBubble),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: theme.secondaryBackground.withValues(alpha: 0.78),

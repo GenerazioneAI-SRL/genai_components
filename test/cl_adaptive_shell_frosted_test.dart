@@ -339,6 +339,53 @@ void main() {
           reason: 'il bottone reveal è nell\'albero dopo setContextControls');
     });
 
+    // ── T_NOTCH: header height includes top safe-area inset (no clip on notched devices) ──
+    // RED before fix: preferredSize.height == 72 regardless of topInset →
+    //   SafeArea eats 47px → content row (72px) clipped → hamburger invisible.
+    // GREEN after fix: preferredSize.height == 72 + 47 = 119 →
+    //   SafeArea consumes 47px inset, leaves 72px for content → no overflow.
+    testWidgets(
+        'T_NOTCH: frostedFullBleed=true – header height includes top inset, '
+        'hamburger icon not clipped on notched device', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      // Simulate 47px status-bar / notch inset.
+      tester.view.padding = const FakeViewPadding(top: 47);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        tester.view.resetPadding();
+      });
+
+      await tester.pumpWidget(
+        _buildHarness(config: const CLShellConfig(frostedFullBleed: true)),
+      );
+      await tester.pump();
+
+      // No overflow / render errors.
+      expect(tester.takeException(), isNull,
+          reason: 'no RenderFlex overflow with top inset 47px');
+
+      // PreferredSize height must include the top inset (72 + 47 = 119).
+      final ps = tester.widget<PreferredSize>(find.byType(PreferredSize));
+      expect(
+        ps.preferredSize.height,
+        greaterThan(72),
+        reason: 'preferredSize.height must exceed 72 when topInset=47',
+      );
+
+      // Hamburger icon must be present in the tree (not clipped away).
+      final menuIconFinder = find.byIcon(Icons.menu);
+      expect(menuIconFinder, findsOneWidget,
+          reason: 'hamburger icon must be present in the tree');
+      final iconBottom = tester.getRect(menuIconFinder).bottom;
+      expect(
+        iconBottom,
+        lessThanOrEqualTo(ps.preferredSize.height + 1),
+        reason: 'hamburger icon bottom must be within appBar height',
+      );
+    });
+
     // ── T6: frosted header contiene BackdropFilter ────────────────────────────
     testWidgets(
         'T6: frostedFullBleed=true – appBar contiene BackdropFilter con blur',
