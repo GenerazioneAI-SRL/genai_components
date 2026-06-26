@@ -717,18 +717,21 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             child: _scopedBody(),
           ),
         ),
-        // z1 — header blur FULL WIDTH (hairline). leftInset allinea il contenuto
-        // header al contenuto pagina (dopo la card nav).
+        // z1 — header blur (hairline). leftInset allinea il contenuto header al
+        // contenuto pagina (dopo la card nav). Lo strip finisce sempre gapLg
+        // prima del bordo dx (o della card AI): gutter Lg VUOTO allineato al
+        // body. flushTrailing → contenuto header a filo del bordo strip = body.
         Positioned(
           top: 0,
           left: 0,
-          right: 0,
+          right: aiCardLeft + theme.gapLg,
           child: _frostedHeader(
             context,
             theme,
             withMenuButton: false,
             leftInset: cardWidth + theme.gapLg,
             mode: headerMode,
+            flushTrailing: true,
           ),
         ),
         // z2 — card nav SOPRA l'header. Ombra safe. Margine sx/top/bottom.
@@ -987,6 +990,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     bool withMenuButton = true,
     double leftInset = 0,
     CLNavMode mode = CLNavMode.bottomBar,
+    // Azzera il padding destro interno: il gutter Lg verso pannello/bordo lo
+    // fornisce lo Stack (lo strip finisce gapLg prima) → contenuto header
+    // allineato al contenuto pagina (desktop/tablet full-bleed con AI).
+    bool flushTrailing = false,
   }) {
     final topInset = MediaQuery.paddingOf(context).top;
     final height = theme.buttonHeightDefault + theme.gapLg * 2 + topInset;
@@ -1003,7 +1010,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapLg),
+                padding: EdgeInsets.fromLTRB(
+                  theme.gapLg,
+                  theme.gapLg,
+                  flushTrailing ? 0 : theme.gapLg,
+                  theme.gapLg,
+                ),
                 child: SizedBox(
                   height: theme.buttonHeightDefault,
                   child: Row(

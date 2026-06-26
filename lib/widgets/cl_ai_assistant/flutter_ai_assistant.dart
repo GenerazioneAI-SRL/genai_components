@@ -47,3 +47,6 @@ export 'src/manifest/manifest.dart';
 // Voice
 export 'src/voice/voice_input_service.dart';
 export 'src/voice/voice_output_service.dart';
+
+// UI widgets
+export 'ui/cl_ai_assistant.widget.dart';
