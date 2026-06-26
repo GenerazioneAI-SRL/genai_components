@@ -103,7 +103,14 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   /// Rende il `body` accessibile alle pagine per pubblicare i loro slot.
-  Widget _scopedBody() => CLShellScope(controller: _slots, child: widget.body);
+  /// Scrollbar nascosta in tutto il contenuto shell (scroll via drag/wheel) →
+  /// coerente con la rail; le pagine non mostrano scrollbar.
+  Widget _scopedBody() => Builder(
+        builder: (context) => ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: CLShellScope(controller: _slots, child: widget.body),
+        ),
+      );
 
   /// Selezione: chiude prima il drawer (se aperto su tablet/mobile), poi delega
   /// all'app. Su desktop `_scaffoldKey` non è montato → no-op.
