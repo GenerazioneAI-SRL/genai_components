@@ -414,4 +414,46 @@ void main() {
           reason: 'BackdropFilter.filter deve essere impostato (ImageFilter.blur)');
     });
   });
+
+  group('CLAdaptiveShell – frostedFullBleed desktop/tablet', () {
+    // Desktop (width > 1079) → _frostedSidebar: ColoredBox + Stack, niente Scaffold.
+    testWidgets('desktop frosted: Stack full-bleed, header blur, niente Scaffold', (tester) async {
+      _setViewWidth(tester, 1400);
+      addTearDown(() => _resetView(tester));
+      await tester.pumpWidget(_buildHarness(config: const CLShellConfig(frostedFullBleed: true)));
+      await tester.pump();
+
+      expect(find.byType(Scaffold), findsNothing, reason: 'desktop frosted usa ColoredBox, non Scaffold');
+      final blur = find.descendant(of: find.byType(PreferredSize), matching: find.byType(BackdropFilter));
+      expect(blur, findsOneWidget, reason: 'header full-width con blur');
+      expect(find.byKey(_kBodyKey), findsOneWidget);
+      expect(find.ancestor(of: find.byKey(_kBodyKey), matching: find.byType(Stack)), findsWidgets,
+          reason: 'body full-bleed dentro lo Stack');
+    });
+
+    // Tablet (600 ≤ width ≤ 1079) → _frostedRail: Scaffold (per il drawer) + Stack.
+    testWidgets('tablet frosted: Scaffold (drawer) + Stack full-bleed + header blur', (tester) async {
+      _setViewWidth(tester, 800);
+      addTearDown(() => _resetView(tester));
+      await tester.pumpWidget(_buildHarness(config: const CLShellConfig(frostedFullBleed: true)));
+      await tester.pump();
+
+      expect(find.byType(Scaffold), findsOneWidget, reason: 'rail frosted ha lo Scaffold per il drawer');
+      final blur = find.descendant(of: find.byType(PreferredSize), matching: find.byType(BackdropFilter));
+      expect(blur, findsOneWidget, reason: 'header full-width con blur');
+      expect(find.byKey(_kBodyKey), findsOneWidget);
+      expect(find.ancestor(of: find.byKey(_kBodyKey), matching: find.byType(Stack)), findsWidgets);
+    });
+
+    // Legacy desktop (flag off): header = _headerStrip (no PreferredSize), niente blur.
+    testWidgets('desktop legacy: niente header PreferredSize/blur (flag off)', (tester) async {
+      _setViewWidth(tester, 1400);
+      addTearDown(() => _resetView(tester));
+      await tester.pumpWidget(_buildHarness(config: const CLShellConfig(frostedFullBleed: false)));
+      await tester.pump();
+
+      expect(find.byType(PreferredSize), findsNothing, reason: 'legacy desktop non usa PreferredSize header');
+      expect(find.byType(BackdropFilter), findsNothing, reason: 'legacy desktop non ha blur');
+    });
+  });
 }
