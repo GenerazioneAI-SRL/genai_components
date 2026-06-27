@@ -426,8 +426,8 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
           color: model._isSelected
               // Tint opaco su tertiaryBackground (grigio zebra scuro): resta sopra le righe.
               ? Color.alphaBlend(_effectiveTablePrimary(context).withValues(alpha: 0.10), theme.tertiaryBackground)
-              // Zebra a 2 grigi: pari controlFill (scuro), dispari primaryBackground (chiaro).
-              : (widget.index % 2 == 0 ? theme.controlFill : theme.primaryBackground),
+              // Zebra identica a desktop: pari primaryBackground, dispari secondaryBackground (bianco).
+              : (widget.index % 2 == 0 ? theme.primaryBackground : theme.secondaryBackground),
           padding: const EdgeInsets.all(Sizes.gapLg),
           child: Row(
             children: [

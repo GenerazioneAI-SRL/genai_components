@@ -717,21 +717,22 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             child: _scopedBody(),
           ),
         ),
-        // z1 — header blur (hairline). leftInset allinea il contenuto header al
-        // contenuto pagina (dopo la card nav). Lo strip finisce sempre gapLg
-        // prima del bordo dx (o della card AI): gutter Lg VUOTO allineato al
-        // body. flushTrailing → contenuto header a filo del bordo strip = body.
+        // z1 — header blur (hairline) FULL-BLEED: da bordo a bordo, SOTTO le card
+        // nav (sx) e AI (dx) che galleggiano z2/z3 → l'header non viene "spinto"
+        // dalla bolla AI, le passa sotto come fa col menu. leftInset/rightInset
+        // riservano lo spazio delle card così il contenuto header (titolo/ricerca/
+        // AI button) resta allineato al contenuto pagina e mai sotto le bolle.
         Positioned(
           top: 0,
           left: 0,
-          right: aiCardLeft + theme.gapLg,
+          right: 0,
           child: _frostedHeader(
             context,
             theme,
             withMenuButton: false,
             leftInset: cardWidth + theme.gapLg,
             mode: headerMode,
-            flushTrailing: true,
+            rightInset: aiCardLeft,
           ),
         ),
         // z2 — card nav SOPRA l'header. Ombra safe. Margine sx/top/bottom.
@@ -990,10 +991,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     bool withMenuButton = true,
     double leftInset = 0,
     CLNavMode mode = CLNavMode.bottomBar,
-    // Azzera il padding destro interno: il gutter Lg verso pannello/bordo lo
-    // fornisce lo Stack (lo strip finisce gapLg prima) → contenuto header
-    // allineato al contenuto pagina (desktop/tablet full-bleed con AI).
-    bool flushTrailing = false,
+    // Inset destro simmetrico a [leftInset]: riserva lo spazio della card AI (che
+    // galleggia z3 sopra l'header full-bleed) → il contenuto header finisce
+    // allineato al contenuto pagina, mai sotto la bolla AI.
+    double rightInset = 0,
   }) {
     final topInset = MediaQuery.paddingOf(context).top;
     final height = theme.buttonHeightDefault + theme.gapLg * 2 + topInset;
@@ -1010,12 +1011,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  theme.gapLg,
-                  theme.gapLg,
-                  flushTrailing ? 0 : theme.gapLg,
-                  theme.gapLg,
-                ),
+                padding: EdgeInsets.all(theme.gapLg),
                 child: SizedBox(
                   height: theme.buttonHeightDefault,
                   child: Row(
@@ -1036,6 +1032,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                       ] else if (leftInset > 0)
                         SizedBox(width: leftInset),
                       Expanded(child: _composedHeader(context, mode: mode)),
+                      // Riserva lo spazio della card AI (z3) → contenuto header a
+                      // filo del body, mai sotto la bolla AI.
+                      if (rightInset > 0) SizedBox(width: rightInset),
                     ],
                   ),
                 ),
