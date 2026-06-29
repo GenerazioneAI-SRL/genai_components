@@ -71,20 +71,31 @@ class CLNavRail extends StatelessWidget {
               SizedBox(height: theme.gapMd),
               header!,
               SizedBox(height: theme.gapMd),
+              // Stesso divider del menu desktop (sotto la sezione header).
+              Divider(height: 1, thickness: 1, color: theme.borderColor),
             ],
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(vertical: theme.gapSm),
-                child: Column(
-                  children: [
-                    for (final d in _items)
-                      _RailItem(destination: d, selectedKey: selectedKey, onSelect: onSelect, onOpenGroup: onOpenGroup),
-                  ],
+              // Rail icon-only: niente scrollbar visibile (lo clipperebbe la card
+              // arrotondata e su una rail è inusuale). Scrolla con drag/wheel.
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: theme.gapSm),
+                    child: Column(
+                      children: [
+                        for (final d in _items)
+                          _RailItem(destination: d, selectedKey: selectedKey, onSelect: onSelect, onOpenGroup: onOpenGroup),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
             if (footer != null) ...[
+              // Stesso divider del menu desktop (sopra la sezione footer).
+              Divider(height: 1, thickness: 1, color: theme.borderColor),
               SizedBox(height: theme.gapSm),
               footer!,
               SizedBox(height: theme.gapMd),

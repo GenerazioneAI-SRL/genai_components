@@ -21,6 +21,7 @@ export 'widgets/buttons/cl_confirm_dialog.dart';
 // Layout widgets
 export 'widgets/cl_card.widget.dart';
 export 'widgets/cl_container.widget.dart';
+export 'widgets/cl_label_value.widget.dart';
 export 'widgets/cl_input_group.widget.dart';
 export 'widgets/cl_popup_surface.widget.dart';
 export 'widgets/layout/cl_adaptive_shell.widget.dart';
@@ -135,6 +136,7 @@ export 'enums/tool_name.enum.dart';
 
 // AI Assistant
 export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
+export 'widgets/cl_ai_assistant/src/core/ai_conversation_store.dart';
 export 'widgets/cl_ai_assistant/src/llm/providers/openai_provider.dart';
 export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
 

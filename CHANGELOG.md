@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.7.0
+
+- **Widgets:** Updated 22 components
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Genai Components
+- **Tests:** Updated Cl Adaptive Shell Frosted Test
+
+
 ## 5.6.0
 
 - **Widgets:** Updated 5 components

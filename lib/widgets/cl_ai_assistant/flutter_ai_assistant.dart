@@ -16,6 +16,7 @@ library;
 export 'src/core/ai_assistant.dart';
 export 'src/core/ai_assistant_config.dart';
 export 'src/core/ai_assistant_controller.dart';
+export 'src/core/ai_conversation_store.dart';
 export 'src/core/ai_event.dart';
 export 'src/core/ai_logger.dart';
 
@@ -47,3 +48,6 @@ export 'src/manifest/manifest.dart';
 // Voice
 export 'src/voice/voice_input_service.dart';
 export 'src/voice/voice_output_service.dart';
+
+// UI widgets
+export 'ui/cl_ai_assistant.widget.dart';

@@ -344,6 +344,7 @@ class _DialogCloseButtonState extends State<DialogCloseButton> {
           duration: const Duration(milliseconds: 140),
           width: cl.buttonHeightCompact,
           height: cl.buttonHeightCompact,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _hover ? cl.muted : Colors.transparent,
             shape: BoxShape.circle,

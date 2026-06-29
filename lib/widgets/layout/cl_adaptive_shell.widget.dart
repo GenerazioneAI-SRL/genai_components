@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:genai_components/cl_theme.dart';
@@ -35,6 +37,8 @@ class CLAdaptiveShell extends StatefulWidget {
     this.railHeader,
     this.railFooter,
     this.bottomDestinations,
+    this.bottomBarItems,
+    this.bottomBarHomeLogo,
   });
 
   final List<CLDestination> destinations;
@@ -42,6 +46,17 @@ class CLAdaptiveShell extends StatefulWidget {
   /// Voci dedicate alla bottom bar (mobile). Se `null` usa [destinations]. Serve a
   /// curare un set diverso dal menu completo (es. solo le 4 scorciatoie chiave).
   final List<CLDestination>? bottomDestinations;
+
+  /// Voci FISSE custom della bottom bar (mobile). Se non null sostituisce la barra
+  /// nav (destination-driven) con queste voci nell'ordine dato — es. [menu,
+  /// dashboard, AI, profilo, ricerca]. L'hamburger nell'header viene nascosto
+  /// (il menu vive nella barra). Usa `slotsController.openMenu()/openAi()` per le
+  /// azioni che richiedono lo Scaffold interno.
+  final List<CLBottomBarItem>? bottomBarItems;
+
+  /// Logo mostrato nell'header MOBILE (bottom-bar) quando la pagina non ha
+  /// breadcrumb né back (es. home). Sostituisce il titolo vuoto. `null` = niente.
+  final Widget? bottomBarHomeLogo;
   final String? selectedKey;
   final ValueChanged<CLDestination> onSelect;
 
@@ -74,6 +89,8 @@ class CLAdaptiveShell extends StatefulWidget {
 }
 
 class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
+  static const double _kFrostSigma = 18.0;
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   /// Pannello reveal aperto nell'area contestuale mobile: filtri / ordina /
@@ -99,7 +116,14 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   /// Rende il `body` accessibile alle pagine per pubblicare i loro slot.
-  Widget _scopedBody() => CLShellScope(controller: _slots, child: widget.body);
+  /// Scrollbar nascosta in tutto il contenuto shell (scroll via drag/wheel) →
+  /// coerente con la rail; le pagine non mostrano scrollbar.
+  Widget _scopedBody() => Builder(
+        builder: (context) => ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: CLShellScope(controller: _slots, child: widget.body),
+        ),
+      );
 
   /// Selezione: chiude prima il drawer (se aperto su tablet/mobile), poi delega
   /// all'app. Su desktop `_scaffoldKey` non è montato → no-op.
@@ -111,6 +135,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Collega le azioni shell (menu/AI) al controller: le voci custom della
+    // bottom bar le invocano senza accedere al contesto interno dello shell.
+    _slots.bindShellActions(
+      openMenu: () => _scaffoldKey.currentState?.openDrawer(),
+      openAi: () => _scaffoldKey.currentState?.openEndDrawer(),
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final mode = resolveCLNavMode(constraints.maxWidth, widget.config);
@@ -213,6 +243,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             // Desktop: path completo intrinseco.
             leading.add(_breadcrumbs(theme, s.breadcrumbs));
           }
+        } else if (bottomBar && s.back == null && widget.bottomBarHomeLogo != null) {
+          // Mobile, pagina senza breadcrumb/back (home): logo al posto del titolo.
+          leading.add(widget.bottomBarHomeLogo!);
         }
 
         final trailing = <Widget>[];
@@ -329,7 +362,11 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   bool _hasContent(ShellSlots s) =>
-      s.selectionBar != null || s.contextControls.isNotEmpty || s.back != null || s.pageActions.isNotEmpty || s.contextOverflow != null;
+      s.selectionBar != null ||
+      s.contextControls.isNotEmpty ||
+      s.back != null ||
+      s.pageActions.isNotEmpty ||
+      s.contextOverflow != null;
 
   /// Contenuto dell'area per un dato pannello: selezione attiva → SOLO la barra
   /// bulk (priorità); altrimenti `null`/id-non-trovato → le due righe di
@@ -385,7 +422,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                     CLIconButton(
                       onTap: s.back!.onTap,
                       iconData: Icons.chevron_left,
-                      backgroundColor: theme.primaryBackground,
+                      // Bolla frosted: card bianca elevata (non flat/recessed).
+                      backgroundColor: theme.secondaryBackground,
+                      boxShadow: theme.cardShadowSoft,
                       iconColor: theme.primaryText,
                       size: theme.buttonHeightDefault,
                       iconSize: Sizes.iconSizeDefault,
@@ -492,8 +531,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     final btn = CLIconButton(
       onTap: () => _togglePanel(r.id),
       iconData: r.icon,
-      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.primaryBackground,
-      boxShadow: null,
+      // Bolla frosted: bottoni come card bianche elevate (non flat/recessed);
+      // attivo (pannello aperto) resta tint primary senza ombra.
+      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.secondaryBackground,
+      boxShadow: active ? null : theme.cardShadowSoft,
       iconColor: active ? theme.primary : theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -596,13 +637,17 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// assistente. Il logo vive nel menu, non nell'header.
   Widget _buildSidebar(BuildContext context) {
     final theme = CLTheme.of(context);
+    if (widget.config.frostedFullBleed) {
+      return _frostedSidebar(context, theme);
+    }
     return ColoredBox(
       // Shell content bg = primaryBackground (uguale a header/footer strip).
       color: theme.primaryBackground,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Menu in bolla full-height. Margine esterno Lg su tutti i lati.
+          // Menu in bolla full-height. Margine esterno Lg su TUTTI i lati: il
+          // right serve allo spazio dell'ombra della card (toglierlo la clippa).
           Padding(
             padding: const EdgeInsets.all(Sizes.gapLg),
             child: SizedBox(
@@ -638,12 +683,121 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
+  // ── Desktop full-bleed (opt-in) ────────────────────────────────────────────
+  /// Stack: contenuto full-bleed che scorre sotto un header blur FULL WIDTH, con
+  /// menu (e assistente) in card sopra l'header nello z-order → l'ombra delle card
+  /// galleggia sopra header/contenuto e non viene MAI clippata. Insets verticali
+  /// del contenuto via MediaQuery (come mobile); orizzontali via Positioned.
+  Widget _frostedSidebar(BuildContext context, CLTheme theme) {
+    return ColoredBox(
+      color: theme.primaryBackground,
+      child: _frostedBody(
+        context,
+        theme,
+        navCard: _sideCard(context, child: _navPanel(theme, isCompact: false, frosted: true)),
+        cardWidth: widget.config.sidebarWidth,
+        headerMode: CLNavMode.sidebar,
+      ),
+    );
+  }
+
+  /// Corpo full-bleed condiviso da desktop ([_frostedSidebar]) e tablet
+  /// ([_frostedRail]). Stack: contenuto sotto un header blur FULL WIDTH; la card
+  /// nav (e l'AI) stanno SOPRA l'header nello z-order → l'ombra galleggia e non
+  /// viene MAI clippata. Insets del contenuto su tutti i lati via MediaQuery
+  /// (gutter = gapLg; top = header + gutter) → le pagine li consumano. Il wrapper
+  /// (ColoredBox desktop / Scaffold tablet col drawer) lo fornisce il chiamante.
+  Widget _frostedBody(
+    BuildContext context,
+    CLTheme theme, {
+    required Widget navCard,
+    required double cardWidth,
+    required CLNavMode headerMode,
+  }) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    final headerH = theme.buttonHeightDefault + theme.gapLg * 2 + topInset;
+    // Il content region parte al bordo della card nav (margine sx + card); il gutter
+    // sx iniettato è lo spazio dove vive l'ombra (card su z superiore → safe).
+    final cardRight = theme.gapLg + cardWidth;
+    final hasAi = widget.trailing != null;
+    final aiCardLeft = hasAi ? theme.gapLg + widget.config.trailingWidth : 0.0;
+    final mq = MediaQuery.of(context);
+
+    return Stack(
+      children: [
+        // z0 — contenuto: tra card nav (sx) e card AI (dx). Insets su tutti i lati.
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: cardRight,
+          right: aiCardLeft,
+          child: MediaQuery(
+            data: mq.copyWith(
+              padding: mq.padding.copyWith(
+                top: headerH + theme.gapLg, // clearance header + gutter
+                bottom: theme.gapLg,
+                left: theme.gapLg,
+                right: theme.gapLg,
+              ),
+            ),
+            child: _scopedBody(),
+          ),
+        ),
+        // z1 — header blur (hairline) FULL-BLEED: da bordo a bordo, SOTTO le card
+        // nav (sx) e AI (dx) che galleggiano z2/z3 → l'header non viene "spinto"
+        // dalla bolla AI, le passa sotto come fa col menu. leftInset/rightInset
+        // riservano lo spazio delle card così il contenuto header (titolo/ricerca/
+        // AI button) resta allineato al contenuto pagina e mai sotto le bolle.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _frostedHeader(
+            context,
+            theme,
+            withMenuButton: false,
+            leftInset: cardWidth + theme.gapLg,
+            mode: headerMode,
+            rightInset: aiCardLeft,
+          ),
+        ),
+        // z2 — card nav SOPRA l'header. Ombra safe. Margine sx/top/bottom.
+        Positioned(
+          top: 0,
+          left: 0,
+          bottom: 0,
+          child: Padding(
+            padding: const EdgeInsets.only(left: Sizes.gapLg, top: Sizes.gapLg, bottom: Sizes.gapLg),
+            child: SizedBox(width: cardWidth, child: navCard),
+          ),
+        ),
+        // z3 — assistente AI a destra, sopra (ombra safe). Margine dx/top/bottom.
+        if (hasAi)
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: Padding(
+              padding: const EdgeInsets.only(right: Sizes.gapLg, top: Sizes.gapLg, bottom: Sizes.gapLg),
+              child: SizedBox(
+                width: widget.config.trailingWidth,
+                child: _sideCard(context, child: widget.trailing!),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   // ── Tablet (rail icon-only) ────────────────────────────────────────────────
   /// Rail in bolla FULL-HEIGHT a sinistra (come la sidebar desktop) + header solo
   /// sopra il contenuto + body. Il drawer resta come overlay: aprendolo da una
   /// voce di gruppo della rail mostra il menu completo.
   Widget _buildRail(BuildContext context) {
     final theme = CLTheme.of(context);
+    if (widget.config.frostedFullBleed) {
+      return _frostedRail(context, theme);
+    }
     final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
     return Scaffold(
       key: _scaffoldKey,
@@ -697,7 +851,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(child: _scopedBody()),
-                      if (widget.trailing != null) SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
+                      if (widget.trailing != null)
+                        SizedBox(width: widget.config.trailingWidth, child: widget.trailing!),
                     ],
                   ),
                 ),
@@ -709,25 +864,82 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
+  // ── Tablet full-bleed (opt-in) ──────────────────────────────────────────────
+  /// Come [_frostedSidebar] ma con la rail icon-only al posto del menu esteso.
+  /// Stack: contenuto full-bleed sotto header blur FULL WIDTH, rail card sopra
+  /// (ombra mai clippata). Scaffold per il drawer (tap su gruppo → drawer esteso).
+  Widget _frostedRail(BuildContext context, CLTheme theme) {
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: theme.primaryBackground,
+      onDrawerChanged: (open) {
+        if (!open && _drawerExpandKey != null) setState(() => _drawerExpandKey = null);
+      },
+      drawer: Drawer(
+        width: drawerWidth,
+        backgroundColor: theme.primaryBackground,
+        shape: const RoundedRectangleBorder(),
+        child: SafeArea(child: _navPanel(theme, isCompact: true, forceExpandedKey: _drawerExpandKey)),
+      ),
+      endDrawer: widget.endDrawer,
+      endDrawerEnableOpenDragGesture: false,
+      body: _frostedBody(
+        context,
+        theme,
+        navCard: _sideCard(
+          context,
+          child: CLNavRail(
+            destinations: widget.destinations,
+            selectedKey: widget.selectedKey,
+            onSelect: _onSelect,
+            onOpenGroup: (d) {
+              setState(() => _drawerExpandKey = d.key);
+              _scaffoldKey.currentState?.openDrawer();
+            },
+            header: widget.railHeader,
+            footer: widget.railFooter,
+            width: widget.config.railWidth,
+            frosted: true,
+          ),
+        ),
+        cardWidth: widget.config.railWidth,
+        headerMode: CLNavMode.rail,
+      ),
+    );
+  }
+
   // ── Mobile (drawer + bottom bar) ───────────────────────────────────────────
-  /// Shell mobile: Column → header (striscia frosted) in alto, body in mezzo, barra
-  /// contestuale/nav (bolla frosted) in basso. Niente stack/full-bleed: il body sta
-  /// in flusso tra le barre → le pagine non devono insettare il contenuto.
+  /// Shell mobile: due rami selezionati da [CLShellConfig.frostedFullBleed].
+  ///
+  /// **Legacy (false):** Column → header in alto, body in mezzo, barra in
+  /// basso. Il body sta in flusso tra le barre → le pagine non insettano.
+  ///
+  /// **Frosted full-bleed (true):** `Scaffold(extendBody: true,
+  /// extendBodyBehindAppBar: true)` con `appBar:` e `bottomNavigationBar:`.
+  /// Flutter misura la bottom bar (altezza variabile) e inietta l'inset nel
+  /// MediaQuery del body → le pagine non devono calcolare manualmente il padding.
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = CLTheme.of(context);
+
+    if (widget.config.frostedFullBleed) {
+      return _frostedScaffold(context, theme, withBottomBar: withBottomBar);
+    }
+
+    // ── Legacy: Column in flusso ─────────────────────────────────────────────
     final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    final drawer = Drawer(
+      width: drawerWidth,
+      backgroundColor: theme.primaryBackground,
+      shape: const RoundedRectangleBorder(),
+      child: SafeArea(child: _navPanel(theme, isCompact: true)),
+    );
 
     return Scaffold(
       key: _scaffoldKey,
       // Shell content = page bg (#F6F5F4).
       backgroundColor: theme.primaryBackground,
-      drawer: Drawer(
-        width: drawerWidth,
-        // Menu drawer = L0.
-        backgroundColor: theme.primaryBackground,
-        shape: const RoundedRectangleBorder(),
-        child: SafeArea(child: _navPanel(theme, isCompact: true)),
-      ),
+      drawer: drawer,
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
       body: Column(
@@ -737,6 +949,202 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           _mobileBottomStrip(context, theme, withBottomBar: withBottomBar),
         ],
       ),
+    );
+  }
+
+  /// Ramo frosted full-bleed: Scaffold con `extendBody`/`extendBodyBehindAppBar`
+  /// veri così Flutter calcola gli inset della bottom bar (altezza variabile) e
+  /// li inietta nel MediaQuery del body automaticamente.
+  Widget _frostedScaffold(
+    BuildContext context,
+    CLTheme theme, {
+    required bool withBottomBar,
+  }) {
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    final drawer = Drawer(
+      width: drawerWidth,
+      backgroundColor: theme.primaryBackground,
+      shape: const RoundedRectangleBorder(),
+      child: SafeArea(child: _navPanel(theme, isCompact: true)),
+    );
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: theme.primaryBackground,
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      drawer: drawer,
+      endDrawer: widget.endDrawer,
+      endDrawerEnableOpenDragGesture: false,
+      // Hamburger nell'header solo se il menu NON è già nella bottom bar custom.
+      appBar: _frostedHeader(context, theme, withMenuButton: widget.bottomBarItems == null),
+      bottomNavigationBar: _frostedBottom(context, theme, withBottomBar: withBottomBar),
+      // Builder → legge il MediaQuery iniettato dallo Scaffold (top header / bottom
+      // bolla) e aggiunge il gutter orizzontale (gapLg). Le pagine consumano tutto
+      // da MediaQuery.padding senza hardcodare, coerente col desktop.
+      body: Builder(
+        builder: (context) {
+          final bodyMq = MediaQuery.of(context);
+          return MediaQuery(
+            data: bodyMq.copyWith(
+              padding: bodyMq.padding.copyWith(
+                // Scaffold inietta top=header, bottom=bolla. Aggiungo il gutter (gapLg)
+                // su tutti i lati per spaziatura uniforme col desktop.
+                top: bodyMq.padding.top + theme.gapLg,
+                bottom: bodyMq.padding.bottom + theme.gapLg,
+                left: theme.gapLg,
+                right: theme.gapLg,
+              ),
+            ),
+            child: _scopedBody(),
+          );
+        },
+      ),
+    );
+  }
+
+  /// AppBar frosted: altezza `buttonHeightDefault + gapLg * 2 + topInset`,
+  /// hamburger + header composto. Blur vetro smerigliato via ClipRect +
+  /// BackdropFilter + sfondo traslucente (secondaryBackground @ alpha 0.72) così
+  /// il contenuto che scrolla sotto rimane visibile (blurred). Il topInset
+  /// (notch/status bar) è incluso nell'altezza preferred così la SafeArea
+  /// interna lo consuma senza clippare il contenuto.
+  /// [withMenuButton] — true (mobile): hamburger che apre il drawer. false
+  /// (desktop): nessun hamburger (menu sempre visibile), il contenuto header
+  /// parte dopo [leftInset] (area menu) così non finisce sotto la card menu.
+  PreferredSizeWidget _frostedHeader(
+    BuildContext context,
+    CLTheme theme, {
+    bool withMenuButton = true,
+    double leftInset = 0,
+    CLNavMode mode = CLNavMode.bottomBar,
+    // Inset destro simmetrico a [leftInset]: riserva lo spazio della card AI (che
+    // galleggia z3 sopra l'header full-bleed) → il contenuto header finisce
+    // allineato al contenuto pagina, mai sotto la bolla AI.
+    double rightInset = 0,
+  }) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    final height = theme.buttonHeightDefault + theme.gapLg * 2 + topInset;
+    return PreferredSize(
+      preferredSize: Size.fromHeight(height),
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              // Vetro smerigliato bianco (come la bolla bottom), non il canvas grigio.
+              color: theme.secondaryBackground.withValues(alpha: 0.72),
+              border: Border(bottom: BorderSide(color: theme.borderColor)),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.all(theme.gapLg),
+                child: SizedBox(
+                  height: theme.buttonHeightDefault,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (withMenuButton) ...[
+                        CLIconButton(
+                          onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                          iconData: Icons.menu,
+                          backgroundColor: theme.secondaryBackground,
+                          boxShadow: theme.cardShadowSoft,
+                          iconColor: theme.primaryText,
+                          size: theme.buttonHeightDefault,
+                          iconSize: Sizes.iconSizeDefault,
+                          tooltip: 'Menu',
+                        ),
+                        SizedBox(width: theme.gapLg),
+                      ] else if (leftInset > 0)
+                        SizedBox(width: leftInset),
+                      Expanded(child: _composedHeader(context, mode: mode)),
+                      // Riserva lo spazio della card AI (z3) → contenuto header a
+                      // filo del body, mai sotto la bolla AI.
+                      if (rightInset > 0) SizedBox(width: rightInset),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bottom bar frosted: bolla traslucente con vetro smerigliato. Stessa logica
+  /// del [_frostedHeader]: ClipRect + BackdropFilter (sigma 18) + sfondo
+  /// secondaryBackground @ alpha 0.78. Angoli [theme.radiusBubble], margine
+  /// esterno Lg, SafeArea bottom per l'home indicator.
+  Widget _frostedBottom(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
+    return SafeArea(
+      top: false,
+      // Margine esterno bolla: NO top. Lo Scaffold misura tutta la
+      // bottomNavigationBar per l'inset del body; un top qui verrebbe conteggiato
+      // come clearance ma è solo spazio trasparente sotto cui il contenuto scorre.
+      child: Padding(
+        padding: EdgeInsets.only(left: theme.gapLg, right: theme.gapLg, bottom: theme.gapLg),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(theme.radiusBubble),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.secondaryBackground.withValues(alpha: 0.78),
+                borderRadius: BorderRadius.circular(theme.radiusBubble),
+                border: Border.all(color: theme.borderColor),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(theme.gapLg),
+                child: _bubbleInner(context, theme, withBottomBar: withBottomBar, applyNavGating: true),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Contenuto interno della bolla bottom (area contestuale + nav). Estratto
+  /// per evitare duplicazione tra [_mobileBottomStrip] e [_frostedBottom].
+  ///
+  /// [applyNavGating] — solo il path frosted nasconde la nav quando un pannello
+  /// è aperto o la selezione bulk è attiva. Il path legacy non gata mai la nav
+  /// (comportamento invariato rispetto a prima di Task 5).
+  Widget _bubbleInner(BuildContext context, CLTheme theme, {required bool withBottomBar, bool applyNavGating = false}) {
+    return AnimatedBuilder(
+      animation: _slots,
+      builder: (context, _) {
+        final s = _slots.slots;
+        final hasContext = _hasContent(s);
+        final panelOpen = _panelId != null;
+        final selecting = s.selectionBar != null;
+        // Legacy (applyNavGating=false): showNav = withBottomBar (old behavior).
+        // Frosted (applyNavGating=true): nasconde nav se pannello aperto o selezione.
+        final showNav = withBottomBar && (!applyNavGating || (!panelOpen && !selecting));
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _mobileContextArea(context, frosted: true),
+            if (hasContext && showNav) SizedBox(height: theme.gapMd),
+            if (showNav)
+              CLBottomBar(
+                destinations: widget.bottomDestinations ?? widget.destinations,
+                selectedKey: widget.selectedKey,
+                onSelect: _onSelect,
+                onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
+                onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
+                maxItems: widget.config.maxBottomBarItems,
+                // Custom: barra fissa [menu, dashboard, AI, profilo, ricerca].
+                items: widget.bottomBarItems,
+                topBorder: true,
+                floating: true,
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -768,17 +1176,20 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CLIconButton(
-              onTap: () => _scaffoldKey.currentState?.openDrawer(),
-              iconData: Icons.menu,
-              backgroundColor: theme.secondaryBackground,
-              boxShadow: theme.cardShadowSoft,
-              iconColor: theme.primaryText,
-              size: theme.buttonHeightDefault,
-              iconSize: Sizes.iconSizeDefault,
-              tooltip: 'Menu',
-            ),
-            const SizedBox(width: Sizes.gapLg),
+            // Hamburger solo se il menu non è già nella bottom bar custom.
+            if (widget.bottomBarItems == null) ...[
+              CLIconButton(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                iconData: Icons.menu,
+                backgroundColor: theme.secondaryBackground,
+                boxShadow: theme.cardShadowSoft,
+                iconColor: theme.primaryText,
+                size: theme.buttonHeightDefault,
+                iconSize: Sizes.iconSizeDefault,
+                tooltip: 'Menu',
+              ),
+              const SizedBox(width: Sizes.gapLg),
+            ],
             Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
           ],
         ),
@@ -793,43 +1204,17 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   Widget _mobileBottomStrip(BuildContext context, CLTheme theme, {required bool withBottomBar}) {
     return SafeArea(
       top: false,
-      child: AnimatedBuilder(
-        animation: _slots,
-        builder: (context, _) {
-          // Con azioni sopra → divider (indent Lg) le separa dalla nav; nav da
-          // sola → niente divider. La nav tiene sempre top padding Lg
-          // (`topBorder: true`) → respiro sotto il divider e quando è da sola.
-          final hasContext = _hasContent(_slots.slots);
-          return Padding(
-            // Bolla bottom bar: margine esterno Lg su tutti i lati.
+      child: Padding(
+        // Bolla bottom bar: margine esterno Lg su tutti i lati.
+        padding: const EdgeInsets.all(Sizes.gapLg),
+        child: _sideCard(
+          context,
+          child: Padding(
+            // Padding interno Lg; gap Md tra gli elementi (context area · nav).
             padding: const EdgeInsets.all(Sizes.gapLg),
-            child: _sideCard(
-              context,
-              child: Padding(
-                // Padding interno Lg; gap Md tra gli elementi (context area · nav).
-                padding: const EdgeInsets.all(Sizes.gapLg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _mobileContextArea(context, frosted: true),
-                    if (hasContext && withBottomBar) const SizedBox(height: Sizes.gapMd),
-                    if (withBottomBar)
-                      CLBottomBar(
-                        destinations: widget.bottomDestinations ?? widget.destinations,
-                        selectedKey: widget.selectedKey,
-                        onSelect: _onSelect,
-                        onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
-                        onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
-                        maxItems: widget.config.maxBottomBarItems,
-                        topBorder: true,
-                        floating: true,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+            child: _bubbleInner(context, theme, withBottomBar: withBottomBar),
+          ),
+        ),
       ),
     );
   }

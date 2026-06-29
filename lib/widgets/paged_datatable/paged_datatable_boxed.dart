@@ -188,7 +188,9 @@ class _PagedDataTableBoxed<
       itemCount: rowCount + (showTail ? 1 : 0),
       shrinkWrap: !fillHeight,
       separatorBuilder: (context, index) => Divider(
-          height: 1, thickness: 1, color: CLTheme.of(context).secondaryBackground),
+          height: 1,
+          thickness: 1,
+          color: CLTheme.of(context).secondaryBackground),
       itemBuilder: (context, index) {
         if (index >= rowCount) {
           return state.hasNextPage
@@ -371,7 +373,9 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
     final actions =
         widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
 
-    // Ruoli mobile: titolo = colonna isMain (fallback: prima colonna); sottotitolo = colonna isSubtitle.
+    // Ruoli mobile: titolo = colonna isMain (fallback: prima colonna);
+    // sottotitoli = TUTTE le colonne isSubtitle, in ordine di definizione
+    // (ognuna è una riga aggiuntiva nella card).
     final cols = state.columns;
     BaseTableColumn<TResult>? titleColumn;
     for (final c in cols) {
@@ -381,13 +385,10 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
       }
     }
     titleColumn ??= cols.isNotEmpty ? cols.first : null;
-    BaseTableColumn<TResult>? subtitleColumn;
-    for (final c in cols) {
-      if (c.isSubtitle) {
-        subtitleColumn = c;
-        break;
-      }
-    }
+    final subtitleColumns = [
+      for (final c in cols)
+        if (c.isSubtitle) c,
+    ];
 
     return Selector<_PagedDataTableState<TKey, TResultId, TResult>, bool>(
       selector: (_, m) => m.mobileSelectionMode,
@@ -425,9 +426,13 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
           curve: Curves.easeOutCubic,
           color: model._isSelected
               // Tint opaco su tertiaryBackground (grigio zebra scuro): resta sopra le righe.
-              ? Color.alphaBlend(_effectiveTablePrimary(context).withValues(alpha: 0.10), theme.tertiaryBackground)
-              // Zebra a 2 grigi: pari controlFill (scuro), dispari primaryBackground (chiaro).
-              : (widget.index % 2 == 0 ? theme.controlFill : theme.primaryBackground),
+              ? Color.alphaBlend(
+                  _effectiveTablePrimary(context).withValues(alpha: 0.10),
+                  theme.tertiaryBackground)
+              // Zebra identica a desktop: pari primaryBackground, dispari secondaryBackground (bianco).
+              : (widget.index % 2 == 0
+                  ? theme.primaryBackground
+                  : theme.secondaryBackground),
           padding: const EdgeInsets.all(Sizes.gapLg),
           child: Row(
             children: [
@@ -461,13 +466,12 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                   children: [
                     if (titleColumn != null)
                       titleColumn.buildCell(model.item, model.index),
-                    if (subtitleColumn != null) ...[
+                    for (final sub in subtitleColumns) ...[
                       const SizedBox(height: 2),
                       DefaultTextStyle(
                         style: theme.bodyLabel
                             .copyWith(color: theme.secondaryText, fontSize: 12),
-                        child:
-                            subtitleColumn.buildCell(model.item, model.index),
+                        child: sub.buildCell(model.item, model.index),
                       ),
                     ],
                   ],
@@ -545,7 +549,8 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: theme.secondaryText.withValues(alpha: theme.opacityMedium),
+                    color: theme.secondaryText
+                        .withValues(alpha: theme.opacityMedium),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -574,10 +579,12 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: theme.secondaryText.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(Sizes.radiusControl),
+                          borderRadius:
+                              BorderRadius.circular(Sizes.radiusControl),
                         ),
                         child: Icon(Icons.close_rounded,
-                            size: Sizes.iconSizeCompact, color: theme.secondaryText),
+                            size: Sizes.iconSizeCompact,
+                            color: theme.secondaryText),
                       ),
                     ),
                   ],
