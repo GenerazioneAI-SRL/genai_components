@@ -18,6 +18,9 @@ class CLSoftButton extends StatefulWidget {
   final String? confirmationMessage;
   final bool isCompact;
 
+  /// Override raggio angoli. Default `theme.radiusControl`. Es. `theme.radiusPill`.
+  final double? borderRadius;
+
   const CLSoftButton({
     super.key,
     required this.color,
@@ -31,6 +34,7 @@ class CLSoftButton extends StatefulWidget {
     this.hugeIcon,
     this.width,
     this.isCompact = false,
+    this.borderRadius,
   });
 
   factory CLSoftButton.primary({
@@ -44,6 +48,7 @@ class CLSoftButton extends StatefulWidget {
     bool needConfirmation = false,
     String? confirmationMessage,
     bool isCompact = false,
+    double? borderRadius,
   }) {
     return CLSoftButton(
       text: text,
@@ -57,6 +62,7 @@ class CLSoftButton extends StatefulWidget {
       needConfirmation: needConfirmation,
       confirmationMessage: confirmationMessage,
       isCompact: isCompact,
+      borderRadius: borderRadius,
     );
   }
 
@@ -217,6 +223,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
     final fgColor = theme.primaryText;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
+    final radius = widget.borderRadius ?? theme.radiusControl;
     final baseBg = theme.muted;
     final hoverBg = Color.lerp(baseBg, Colors.black, 0.08)!;
     final pressedBg = Color.lerp(baseBg, Colors.black, 0.16)!;
@@ -263,7 +270,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
                 shape: WidgetStateProperty.resolveWith((states) {
                   return RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(theme.radiusControl),
+                    borderRadius: BorderRadius.circular(radius),
                     side: states.contains(WidgetState.focused)
                         ? BorderSide(color: focusBorder, width: 2)
                         : BorderSide.none,
@@ -294,7 +301,7 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
                 }),
                 foregroundColor: WidgetStateProperty.all(fgColor),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl))),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius))),
                 elevation: WidgetStateProperty.all(0),
                 shadowColor: WidgetStateProperty.all(Colors.transparent),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),

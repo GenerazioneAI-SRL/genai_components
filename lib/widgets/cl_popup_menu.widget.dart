@@ -64,7 +64,7 @@ class CLPopupMenu extends StatefulWidget {
     required this.items,
     required this.builder,
     this.alignment = CLPopupAlignment.end,
-    this.minWidth = 200,
+    this.minWidth = 0,
     this.maxWidth = 280,
   });
 
@@ -76,9 +76,14 @@ class CLPopupMenu extends StatefulWidget {
     String? title,
     Widget? titleWidget,
     CLPopupAlignment alignment = CLPopupAlignment.end,
-    double minWidth = 200,
+    double minWidth = 0,
     double maxWidth = 280,
   }) async {
+    // Mobile (<600): bottom sheet full-width invece del popover ancorato.
+    if (MediaQuery.of(context).size.width < 600) {
+      return _showSheet(context: context, items: items, title: title, titleWidget: titleWidget);
+    }
+
     final renderBox = anchorKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
@@ -100,6 +105,63 @@ class CLPopupMenu extends StatefulWidget {
     );
   }
 
+  /// Mobile: stesse voci in un bottom sheet full-width (handle + header opzionale
+  /// + righe). Tap voce → pop sheet + onTap (gestito da [_CLPopupMenuItemWidget]).
+  static Future<void> _showSheet({
+    required BuildContext context,
+    required List<CLPopupMenuItem> items,
+    String? title,
+    Widget? titleWidget,
+  }) {
+    return showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final theme = CLTheme.of(ctx);
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(theme.radiusSurface)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Material(
+            type: MaterialType.transparency,
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Handle drag.
+                  const SizedBox(height: Sizes.gapMd),
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.borderColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Sizes.gapSm),
+                  if (title != null || titleWidget != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapLg * 0.75),
+                      child:
+                          titleWidget ?? Text(title!, style: theme.title.override(fontWeight: FontWeight.w600)),
+                    ),
+                  for (int i = 0; i < items.length; i++)
+                    _CLPopupMenuItemWidget(item: items[i], isLast: i == items.length - 1),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   static Future<void> _showPopup({
     required BuildContext context,
     required Offset position,
@@ -117,12 +179,22 @@ class CLPopupMenu extends StatefulWidget {
 
     final openUpwards = position.dy + anchorSize.height + gap + 250 > screenSize.height;
 
+    // Posizionamento orizzontale con auto-flip: l'allineamento richiesto viene
+    // ribaltato se il popup uscirebbe dallo schermo (es. anchor sul bordo
+    // sinistro + .end → flip a .start). Stima worst-case con maxWidth.
+    const edge = 8.0;
+    final anchorRight = position.dx + anchorSize.width;
+    final endOverflowsLeft = anchorRight - maxWidth < edge;
+    final startOverflowsRight = position.dx + maxWidth > screenSize.width - edge;
+    final wantEnd = alignment == CLPopupAlignment.end;
+    final useEnd = wantEnd ? !endOverflowsLeft : startOverflowsRight;
+
     double? left;
     double? right;
-    if (alignment == CLPopupAlignment.start) {
-      left = position.dx;
+    if (useEnd) {
+      right = (screenSize.width - anchorRight).clamp(edge, double.infinity);
     } else {
-      right = screenSize.width - position.dx - anchorSize.width;
+      left = position.dx.clamp(edge, double.infinity);
     }
 
     await showGeneralDialog(
@@ -142,7 +214,10 @@ class CLPopupMenu extends StatefulWidget {
               bottom: openUpwards ? screenSize.height - position.dy + gap : null,
               child: ConstrainedBox(
                 constraints: BoxConstraints(minWidth: minWidth, maxWidth: maxWidth),
-                child: CLPopupSurface(
+                // IntrinsicWidth: il popup si dimensiona al contenuto più largo
+                // (capped da min/max), invece di prendere sempre maxWidth.
+                child: IntrinsicWidth(
+                  child: CLPopupSurface(
                   animateUpward: openUpwards,
                   child: Material(
                     type: MaterialType.transparency,
@@ -153,7 +228,7 @@ class CLPopupMenu extends StatefulWidget {
                       // Header con gradient
                       if (title != null || titleWidget != null)
                         Container(
-                          padding: const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding * 0.75, Sizes.padding, Sizes.padding * 0.75),
+                          padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapLg * 0.75),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
@@ -189,6 +264,7 @@ class CLPopupMenu extends StatefulWidget {
                     ],
                   ),
                   ),
+                ),
                 ),
               ),
             ),
@@ -248,9 +324,13 @@ class _CLPopupMenuItemWidget extends StatelessWidget {
           Navigator.of(context).pop();
           item.onTap();
         },
-        hoverColor: theme.muted,
+        // accent = token "hover/interactive surface". Splash trasparente +
+        // highlight = accent → il press combacia con l'hover (niente ripple tinto).
+        hoverColor: theme.accent,
+        highlightColor: theme.accent,
+        splashColor: Colors.transparent,
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
+          padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg),
           alignment: Alignment.centerLeft,
           decoration: isLast
               ? null

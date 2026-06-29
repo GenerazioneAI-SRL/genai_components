@@ -37,6 +37,8 @@ class CLAdaptiveShell extends StatefulWidget {
     this.railHeader,
     this.railFooter,
     this.bottomDestinations,
+    this.bottomBarItems,
+    this.bottomBarHomeLogo,
   });
 
   final List<CLDestination> destinations;
@@ -44,6 +46,17 @@ class CLAdaptiveShell extends StatefulWidget {
   /// Voci dedicate alla bottom bar (mobile). Se `null` usa [destinations]. Serve a
   /// curare un set diverso dal menu completo (es. solo le 4 scorciatoie chiave).
   final List<CLDestination>? bottomDestinations;
+
+  /// Voci FISSE custom della bottom bar (mobile). Se non null sostituisce la barra
+  /// nav (destination-driven) con queste voci nell'ordine dato — es. [menu,
+  /// dashboard, AI, profilo, ricerca]. L'hamburger nell'header viene nascosto
+  /// (il menu vive nella barra). Usa `slotsController.openMenu()/openAi()` per le
+  /// azioni che richiedono lo Scaffold interno.
+  final List<CLBottomBarItem>? bottomBarItems;
+
+  /// Logo mostrato nell'header MOBILE (bottom-bar) quando la pagina non ha
+  /// breadcrumb né back (es. home). Sostituisce il titolo vuoto. `null` = niente.
+  final Widget? bottomBarHomeLogo;
   final String? selectedKey;
   final ValueChanged<CLDestination> onSelect;
 
@@ -122,6 +135,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Collega le azioni shell (menu/AI) al controller: le voci custom della
+    // bottom bar le invocano senza accedere al contesto interno dello shell.
+    _slots.bindShellActions(
+      openMenu: () => _scaffoldKey.currentState?.openDrawer(),
+      openAi: () => _scaffoldKey.currentState?.openEndDrawer(),
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final mode = resolveCLNavMode(constraints.maxWidth, widget.config);
@@ -224,6 +243,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             // Desktop: path completo intrinseco.
             leading.add(_breadcrumbs(theme, s.breadcrumbs));
           }
+        } else if (bottomBar && s.back == null && widget.bottomBarHomeLogo != null) {
+          // Mobile, pagina senza breadcrumb/back (home): logo al posto del titolo.
+          leading.add(widget.bottomBarHomeLogo!);
         }
 
         final trailing = <Widget>[];
@@ -400,7 +422,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                     CLIconButton(
                       onTap: s.back!.onTap,
                       iconData: Icons.chevron_left,
-                      backgroundColor: theme.primaryBackground,
+                      // Bolla frosted: card bianca elevata (non flat/recessed).
+                      backgroundColor: theme.secondaryBackground,
+                      boxShadow: theme.cardShadowSoft,
                       iconColor: theme.primaryText,
                       size: theme.buttonHeightDefault,
                       iconSize: Sizes.iconSizeDefault,
@@ -507,8 +531,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     final btn = CLIconButton(
       onTap: () => _togglePanel(r.id),
       iconData: r.icon,
-      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.primaryBackground,
-      boxShadow: null,
+      // Bolla frosted: bottoni come card bianche elevate (non flat/recessed);
+      // attivo (pannello aperto) resta tint primary senza ombra.
+      backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.secondaryBackground,
+      boxShadow: active ? null : theme.cardShadowSoft,
       iconColor: active ? theme.primary : theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -950,7 +976,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       drawer: drawer,
       endDrawer: widget.endDrawer,
       endDrawerEnableOpenDragGesture: false,
-      appBar: _frostedHeader(context, theme),
+      // Hamburger nell'header solo se il menu NON è già nella bottom bar custom.
+      appBar: _frostedHeader(context, theme, withMenuButton: widget.bottomBarItems == null),
       bottomNavigationBar: _frostedBottom(context, theme, withBottomBar: withBottomBar),
       // Builder → legge il MediaQuery iniettato dallo Scaffold (top header / bottom
       // bolla) e aggiunge il gutter orizzontale (gapLg). Le pagine consumano tutto
@@ -978,7 +1005,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
 
   /// AppBar frosted: altezza `buttonHeightDefault + gapLg * 2 + topInset`,
   /// hamburger + header composto. Blur vetro smerigliato via ClipRect +
-  /// BackdropFilter + sfondo traslucente (primaryBackground @ alpha 0.72) così
+  /// BackdropFilter + sfondo traslucente (secondaryBackground @ alpha 0.72) così
   /// il contenuto che scrolla sotto rimane visibile (blurred). Il topInset
   /// (notch/status bar) è incluso nell'altezza preferred così la SafeArea
   /// interna lo consuma senza clippare il contenuto.
@@ -1005,7 +1032,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: theme.primaryBackground.withValues(alpha: 0.72),
+              // Vetro smerigliato bianco (come la bolla bottom), non il canvas grigio.
+              color: theme.secondaryBackground.withValues(alpha: 0.72),
               border: Border(bottom: BorderSide(color: theme.borderColor)),
             ),
             child: SafeArea(
@@ -1109,6 +1137,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                 onOpenGroup: (_) => _scaffoldKey.currentState?.openDrawer(),
                 onOverflow: () => _scaffoldKey.currentState?.openDrawer(),
                 maxItems: widget.config.maxBottomBarItems,
+                // Custom: barra fissa [menu, dashboard, AI, profilo, ricerca].
+                items: widget.bottomBarItems,
                 topBorder: true,
                 floating: true,
               ),
@@ -1146,17 +1176,20 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CLIconButton(
-              onTap: () => _scaffoldKey.currentState?.openDrawer(),
-              iconData: Icons.menu,
-              backgroundColor: theme.secondaryBackground,
-              boxShadow: theme.cardShadowSoft,
-              iconColor: theme.primaryText,
-              size: theme.buttonHeightDefault,
-              iconSize: Sizes.iconSizeDefault,
-              tooltip: 'Menu',
-            ),
-            const SizedBox(width: Sizes.gapLg),
+            // Hamburger solo se il menu non è già nella bottom bar custom.
+            if (widget.bottomBarItems == null) ...[
+              CLIconButton(
+                onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                iconData: Icons.menu,
+                backgroundColor: theme.secondaryBackground,
+                boxShadow: theme.cardShadowSoft,
+                iconColor: theme.primaryText,
+                size: theme.buttonHeightDefault,
+                iconSize: Sizes.iconSizeDefault,
+                tooltip: 'Menu',
+              ),
+              const SizedBox(width: Sizes.gapLg),
+            ],
             Expanded(child: _composedHeader(context, mode: CLNavMode.bottomBar)),
           ],
         ),

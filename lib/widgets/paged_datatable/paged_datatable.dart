@@ -312,6 +312,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// Icona opzionale mostrata a sinistra del [title]. Ignorata se [titleWidget] è valorizzato.
   final Widget? titleIcon;
 
+  /// Override stile del [title]. Default `theme.heading2`.
+  final TextStyle? titleStyle;
+
   /// Colore di sfondo dell'header del titolo (applicato con alpha 0.08).
   final Color? titleBackgroundColor;
 
@@ -389,6 +392,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.title,
     this.titleWidget,
     this.titleIcon,
+    this.titleStyle,
     this.titleBackgroundColor,
     this.titleActions = const [],
     this.primaryColor,
@@ -893,7 +897,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
         // Bottom 0: lo stacco Lg dalla filter bar lo dà già il SUO top padding
         // (desktop, fromLTRB(Lg,Lg,Lg,0)) o il margine della sezione card (mobile)
         // → niente gap doppio. Top/orizzontali invariati.
-        padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, Sizes.gapLg),
+        padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
         child: Row(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -912,7 +916,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             Flexible(
                               child: Text(
                                 title!,
-                                style: theme.heading4,
+                                style: titleStyle ?? theme.heading2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),

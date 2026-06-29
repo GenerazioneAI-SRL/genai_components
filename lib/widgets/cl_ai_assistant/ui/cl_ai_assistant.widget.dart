@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -5,6 +7,8 @@ import 'package:genai_components/cl_theme.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'package:genai_components/widgets/buttons/cl_icon_button.widget.dart';
 import 'package:genai_components/widgets/buttons/cl_button.widget.dart';
+import 'package:genai_components/widgets/buttons/cl_soft_button.widget.dart';
+import 'package:genai_components/widgets/dialogs/_dialog_chrome.dart';
 import 'package:genai_components/widgets/cl_ai_assistant/flutter_ai_assistant.dart';
 
 // ---------------------------------------------------------------------------
@@ -92,11 +96,43 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
 
   AiAssistantController? _controller;
   bool _prevWaitingForUserResponse = false;
+  bool _inputFocused = false;
 
-  // ── trigger hover state ────────────────────────────────────────────────────
-  bool _aiHovered = false;
+  // Glass bars: header/footer fluttuano sopra la lista; misuro le loro altezze
+  // per dare il padding giusto alla lista (i messaggi scorrono sotto il blur).
+  final _headerKey = GlobalKey();
+  final _footerKey = GlobalKey();
+  double _headerH = 64;
+  double _footerH = 72;
+
+  void _measureBars() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final h = (_headerKey.currentContext?.findRenderObject() as RenderBox?)?.size.height;
+      final f = (_footerKey.currentContext?.findRenderObject() as RenderBox?)?.size.height;
+      if ((h != null && h != _headerH) || (f != null && f != _footerH)) {
+        setState(() {
+          if (h != null) _headerH = h;
+          if (f != null) _footerH = f;
+        });
+      }
+    });
+  }
 
   // ── lifecycle ──────────────────────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    if (_focusNode.hasFocus != _inputFocused) {
+      setState(() => _inputFocused = _focusNode.hasFocus);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -110,6 +146,8 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
         _controller!.embedMode = true;
         _controller!.addListener(_onControllerChanged);
       }
+      // Cambio scope (tenant) → reset + reload conversazioni del tenant corrente.
+      _controller?.syncScope();
     } catch (_) {}
   }
 
@@ -154,9 +192,31 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
     }
   }
 
+  Future<void> _showHistorySheet(BuildContext context) async {
+    final controller = _controller;
+    if (controller == null) return;
+    // Mobile (<600): bottom sheet. Tablet/desktop (≥600): dialog centrato.
+    final isCompact = MediaQuery.of(context).size.width < 600;
+    if (isCompact) {
+      await showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (ctx) => _HistorySheet(controller: controller),
+      );
+    } else {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => _HistorySheet(controller: controller, asDialog: true),
+      );
+    }
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _controller?.removeListener(_onControllerChanged);
+    _focusNode.removeListener(_onFocusChanged);
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -182,13 +242,7 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
   Widget _buildPanel(BuildContext context) {
     final theme = CLTheme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      children: [
-        _chatHeader(context, theme),
-        Expanded(child: _chatMessages(context, theme, isDark)),
-        _chatInputBar(context, theme, isDark),
-      ],
-    );
+    return _chatBody(context, theme, isDark);
   }
 
   // ── drawer ─────────────────────────────────────────────────────────────────
@@ -196,20 +250,76 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
   Widget _buildDrawer(BuildContext context) {
     final theme = CLTheme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Mobile (<600): full-bleed. Tablet (≥600): larghezza come il pannello
+    // desktop (~380) invece di tutto schermo.
     final width = MediaQuery.of(context).size.width;
-    final drawerWidth = width > 600 ? 380.0 : width * 0.85;
+    final drawerWidth = width >= 600 ? 380.0 : width;
     return Drawer(
       width: drawerWidth,
       backgroundColor: theme.secondaryBackground,
       elevation: 0,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _chatHeader(context, theme),
-            Expanded(child: _chatMessages(context, theme, isDark)),
-            _chatInputBar(context, theme, isDark),
-          ],
+      child: _chatBody(context, theme, isDark),
+    );
+  }
+
+  // ── shared body: messaggi scrollabili sotto header/footer glass ─────────────
+
+  Widget _chatBody(BuildContext context, CLTheme theme, bool isDark) {
+    _measureBars();
+    return Stack(
+      children: [
+        // Lista messaggi: riempie tutto, padding = altezze barre così i messaggi
+        // scorrono sotto il blur senza nascondersi.
+        Positioned.fill(
+          child: _chatMessages(context, theme, isDark, topInset: _headerH, bottomInset: _footerH),
+        ),
+        // Header glass (in alto).
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: KeyedSubtree(
+            key: _headerKey,
+            child: _glassBar(
+              theme,
+              top: true,
+              child: SafeArea(bottom: false, child: _chatHeader(context, theme)),
+            ),
+          ),
+        ),
+        // Footer glass + input (in basso).
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: KeyedSubtree(
+            key: _footerKey,
+            child: _glassBar(
+              theme,
+              top: false,
+              child: SafeArea(top: false, child: _chatInputBar(context, theme, isDark)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Barra glass tipo header shell: blur + velo semi-trasparente + bordo token.
+  Widget _glassBar(CLTheme theme, {required bool top, required Widget child}) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: theme.secondaryBackground.withValues(alpha: 0.72),
+            border: Border(
+              top: top ? BorderSide.none : BorderSide(color: theme.borderColor),
+              bottom: top ? BorderSide(color: theme.borderColor) : BorderSide.none,
+            ),
+          ),
+          child: child,
         ),
       ),
     );
@@ -219,112 +329,131 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
 
   Widget _buildTrigger(BuildContext context) {
     final theme = CLTheme.of(context);
+    // Gradiente brand: blu Skillera → viola. Applicato a icona (+ testo) via
+    // ShaderMask (figli in bianco → colorati dal gradiente).
+    final gradient = LinearGradient(colors: [theme.primary, theme.accentPurple]);
+    Widget gradientMask(Widget child) => ShaderMask(
+          shaderCallback: (b) => gradient.createShader(Offset.zero & b.size),
+          blendMode: BlendMode.srcIn,
+          child: child,
+        );
+
     if (widget.compact) {
-      // Mobile: icon-only button
-      return CLIconButton(
+      // Tablet: bianca + ombra, solo icona gradiente.
+      return GestureDetector(
         onTap: widget.onTap!,
-        iconData: LucideIcons.sparkle300,
-        backgroundColor: theme.secondaryBackground,
-        boxShadow: theme.cardShadowSoft,
-        border: Border.all(color: theme.primary, width: 1),
-        iconColor: theme.primary,
-        size: theme.buttonHeightDefault,
-        iconSize: Sizes.iconSizeDefault,
-        tooltip: 'Skillera Ai',
+        child: Tooltip(
+          message: 'Skillera Ai',
+          child: Container(
+            width: theme.buttonHeightDefault,
+            height: theme.buttonHeightDefault,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: theme.secondaryBackground,
+              shape: BoxShape.circle,
+              boxShadow: theme.cardShadowSoft,
+            ),
+            child: gradientMask(
+              const Icon(LucideIcons.sparkle300, color: Colors.white, size: Sizes.iconSizeDefault),
+            ),
+          ),
+        ),
       );
     }
-    // Desktop: pill button with hover highlight
-    final highlight = _aiHovered || widget.active;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _aiHovered = true),
-      onExit: (_) => setState(() => _aiHovered = false),
-      child: CLButton(
-        context: context,
-        border: Border.all(color: theme.primary, width: 1),
-        boxShadow: theme.cardShadowSoft,
-        onTap: widget.onTap!,
-        iconData: LucideIcons.sparkle300,
-        textStyle: theme.bodyLabel.override(
-          fontWeight: FontWeight.w500,
-          color: highlight ? Colors.white : theme.primary,
+
+    // Desktop: bianca + ombra, icona + testo gradiente.
+    return GestureDetector(
+      onTap: widget.onTap!,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapSm),
+        decoration: BoxDecoration(
+          color: theme.secondaryBackground,
+          borderRadius: BorderRadius.circular(theme.radiusPill),
+          boxShadow: theme.cardShadowSoft,
         ),
-        backgroundColor: highlight ? theme.primary : theme.secondaryBackground,
-        iconColor: highlight ? Colors.white : theme.primary,
-        iconSize: Sizes.iconSizeDefault,
-        borderRadius: theme.radiusPill,
-        iconAlignment: IconAlignment.start,
-        text: 'Skillera Ai',
+        child: gradientMask(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(LucideIcons.sparkle300, color: Colors.white, size: Sizes.iconSizeDefault),
+              const SizedBox(width: Sizes.gapSm),
+              Text('Skillera Ai',
+                  style: theme.bodyLabel.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   // ── shared chat body: header ───────────────────────────────────────────────
 
+  // Titolo conversazione = primo messaggio utente (troncato), come skillera_test.
+  // Vuota → "Nuova conversazione".
+  String _conversationTitle() {
+    final msgs = _controller?.messages ?? const [];
+    for (final m in msgs) {
+      if (m.role == AiMessageRole.user) {
+        final t = m.content.trim().replaceAll('\n', ' ');
+        if (t.isEmpty) continue;
+        return t.length > 32 ? '${t.substring(0, 32)}…' : t;
+      }
+    }
+    return 'Nuova conversazione';
+  }
+
   Widget _chatHeader(BuildContext context, CLTheme theme) {
+    final isProcessing = _controller?.isProcessing ?? false;
+    // Selettore chat sul titolo: chevron + tap → elenco conversazioni (dove vive
+    // anche l'eliminazione). Solo con persistenza attiva.
+    final hasStore = _controller?.config.conversationStore != null;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: Sizes.gapLg,
         vertical: Sizes.gapLg,
       ),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.borderColor.withValues(alpha: 0.5)),
-        ),
-      ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(Sizes.gapSm),
-            decoration: BoxDecoration(
-              color: theme.primary.withValues(alpha: theme.opacitySoft),
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
-            ),
-            child: HugeIcon(
-              icon: HugeIcons.strokeRoundedAiChat02,
-              color: theme.primary,
-              size: Sizes.iconSizeCompact,
-            ),
-          ),
-          const SizedBox(width: Sizes.gapMd),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Assistente AI', style: theme.title),
-                if (_controller != null && _controller!.isProcessing)
-                  Text(
-                    'Sta pensando...',
-                    style: theme.smallLabel.copyWith(color: theme.primary),
-                  )
-                else
-                  Text('Chiedimi qualcosa', style: theme.smallLabel),
-              ],
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: hasStore
+                  ? CLSoftButton.primary(
+                      text: _conversationTitle(),
+                      onTap: () => _showHistorySheet(context),
+                      context: context,
+                      icon: LucideIcons.chevronDown,
+                      iconAlignment: IconAlignment.end,
+                      isCompact: true,
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Sizes.gapSm),
+                      child: Text(
+                        _conversationTitle(),
+                        style: theme.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
             ),
           ),
-          if (_controller != null && _controller!.messages.isNotEmpty)
-            IconButton(
-              icon: HugeIcon(
-                icon: HugeIcons.strokeRoundedDelete02,
-                color: theme.secondaryText,
-                size: 18,
-              ),
-              tooltip: 'Cancella conversazione',
-              onPressed: () {
-                _controller!.clearConversation();
-                setState(() {});
-              },
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          if (isProcessing) ...[
+            const SizedBox(width: Sizes.gapSm),
+            SizedBox(
+              width: Sizes.iconSizeCompact,
+              height: Sizes.iconSizeCompact,
+              child: CircularProgressIndicator(strokeWidth: 2, color: theme.primary),
             ),
-          IconButton(
-            icon: HugeIcon(
-              icon: HugeIcons.strokeRoundedCancel01,
-              color: theme.secondaryText,
-              size: 18,
-            ),
-            onPressed: () => _handleClose(context),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ],
+          const SizedBox(width: Sizes.gapSm),
+          CLIconButton(
+            iconData: LucideIcons.x,
+            backgroundColor: theme.muted,
+            iconColor: theme.secondaryText,
+            borderRadius: theme.radiusPill,
+            tooltip: 'Chiudi',
+            onTap: () => _handleClose(context),
           ),
         ],
       ),
@@ -333,36 +462,79 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
 
   // ── shared chat body: messages list ───────────────────────────────────────
 
-  Widget _chatMessages(BuildContext context, CLTheme theme, bool isDark) {
+  // ── empty state: saluto gradiente + chip ancorate in basso ────────────────
+
+  Widget _emptyState(BuildContext context, CLTheme theme, {required double topInset, required double bottomInset}) {
+    final gradient = LinearGradient(colors: [theme.primary, theme.accentPurple]);
+    final rawName = _controller?.config.userNameProvider?.call()?.trim();
+    final hasName = rawName != null && rawName.isNotEmpty;
+    final suggestions = _controller?.config.initialSuggestions ?? const [];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padTop = topInset + Sizes.gap2Xl;
+        final padBottom = bottomInset + Sizes.padding;
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(Sizes.gap2Xl, padTop, Sizes.gap2Xl, padBottom),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - padTop - padBottom),
+            child: Column(
+              // Tutto ancorato in basso: saluto subito sopra le chip rapide.
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (b) => gradient.createShader(Offset.zero & b.size),
+                      blendMode: BlendMode.srcIn,
+                      child: Text(
+                        hasName ? 'Ciao $rawName' : 'Ciao',
+                        style: theme.heading2.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(height: Sizes.gapXs),
+                    Text(
+                      'Come posso aiutarti oggi?',
+                      style: theme.heading2.copyWith(color: theme.secondaryText, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                if (suggestions.isNotEmpty) ...[
+                  const SizedBox(height: Sizes.gapLg),
+                  Wrap(
+                    spacing: Sizes.gapSm,
+                    runSpacing: Sizes.gapSm,
+                    children: [
+                      for (final chip in suggestions)
+                        CLSoftButton.primary(
+                          text: chip.label,
+                          icon: chip.icon,
+                          context: context,
+                          borderRadius: theme.radiusPill,
+                          onTap: () {
+                            _controller!.sendSuggestion(chip.label, chip.message);
+                            setState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _chatMessages(BuildContext context, CLTheme theme, bool isDark,
+      {double topInset = 0, double bottomInset = 0}) {
     final messages = _controller?.messages ?? [];
 
     if (messages.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(Sizes.gap3Xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedAiChat02,
-                color: theme.secondaryText.withValues(alpha: 0.4),
-                size: 48,
-              ),
-              const SizedBox(height: Sizes.padding),
-              Text(
-                'Assistente AI',
-                style: theme.heading6.copyWith(color: theme.secondaryText),
-              ),
-              const SizedBox(height: Sizes.gapSm),
-              Text(
-                "Chiedimi di navigare, trovare informazioni o eseguire azioni nell'app.",
-                style: theme.bodyLabel.copyWith(color: theme.secondaryText),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
+      return _emptyState(context, theme, topInset: topInset, bottomInset: bottomInset);
     }
 
     final showTyping =
@@ -370,9 +542,11 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Sizes.padding,
-        vertical: Sizes.padding / 2,
+      padding: EdgeInsets.fromLTRB(
+        Sizes.padding,
+        topInset + Sizes.padding / 2,
+        Sizes.padding,
+        bottomInset + Sizes.padding / 2,
       ),
       itemCount: messages.length + (showTyping ? 1 : 0),
       itemBuilder: (context, index) {
@@ -527,75 +701,270 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
     final canType = !isProcessing || isWaiting;
     final showStop = isProcessing && !isWaiting;
 
-    return Container(
+    final canSend = _textController.text.trim().isNotEmpty && canType;
+
+    return Padding(
       padding: const EdgeInsets.all(Sizes.padding * 0.75),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: theme.borderColor.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: Row(
+      // Text area sopra, tasto invio FUORI dal box, in basso a destra.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
+          // Text area custom: focus = ring 1px gradiente blu/viola, no glow.
+          Container(
+            padding: const EdgeInsets.all(1),
+            decoration: BoxDecoration(
+              gradient: _inputFocused
+                  ? LinearGradient(colors: [theme.primary, theme.accentPurple])
+                  : null,
+              color: _inputFocused ? null : theme.borderColor,
+              borderRadius: BorderRadius.circular(theme.radiusModal),
+            ),
             child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapMd),
               decoration: BoxDecoration(
-                color: isDark
-                    ? theme.primaryBackground
-                    : theme.primaryBackground.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(Sizes.radiusModal),
-                border: Border.all(
-                  color: theme.borderColor.withValues(alpha: 0.5),
-                ),
+                color: theme.secondaryBackground,
+                borderRadius: BorderRadius.circular(theme.radiusModal - 1),
               ),
               child: TextField(
                 controller: _textController,
                 focusNode: _focusNode,
                 enabled: canType,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _send(),
+                minLines: 2,
+                maxLines: 6,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                onChanged: (_) => setState(() {}),
                 style: theme.bodyText.copyWith(fontSize: 13.5),
+                cursorColor: theme.primary,
                 decoration: InputDecoration(
                   hintText: isWaiting
                       ? 'Rispondi...'
                       : isProcessing
                           ? 'Attendi la risposta...'
                           : 'Scrivi un messaggio...',
-                  hintStyle: theme.bodyLabel.copyWith(
-                    color: theme.secondaryText,
-                    fontSize: 13.5,
-                  ),
+                  hintStyle: theme.bodyLabel.copyWith(color: theme.secondaryText, fontSize: 13.5),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: Sizes.gapLg,
-                    vertical: 10,
-                  ),
-                  isDense: true,
+                  isCollapsed: true,
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: Sizes.gapSm),
-          Material(
-            color: showStop
-                ? theme.secondaryText.withValues(alpha: 0.3)
-                : theme.primary,
-            borderRadius: BorderRadius.circular(Sizes.radiusModal - 4),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(Sizes.radiusModal - 4),
-              onTap: showStop ? () => _controller?.requestStop() : _send,
-              child: Container(
-                width: Sizes.buttonHeightDefault,
-                height: Sizes.buttonHeightDefault,
-                alignment: Alignment.center,
-                child: Icon(
-                  showStop ? Icons.stop_rounded : Icons.send_rounded,
-                  color: Colors.white,
-                  size: Sizes.iconSizeDefault,
+          const SizedBox(height: Sizes.gapSm),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Material(
+                color: showStop
+                    ? theme.secondaryText.withValues(alpha: 0.3)
+                    : (canSend ? theme.primary : theme.primary.withValues(alpha: 0.4)),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: showStop ? () => _controller?.requestStop() : (canSend ? _send : null),
+                  child: SizedBox(
+                    width: Sizes.buttonHeightDefault,
+                    height: Sizes.buttonHeightDefault,
+                    child: Center(
+                      child: Icon(
+                        showStop ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+                        color: Colors.white,
+                        size: Sizes.iconSizeDefault,
+                      ),
+                    ),
+                  ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: Sizes.gapSm),
+          // Informativa privacy Skillera AI.
+          Text.rich(
+            TextSpan(
+              style: theme.smallLabel.copyWith(color: theme.secondaryText),
+              children: const [
+                TextSpan(
+                  text: 'Skillera AI opera nel rispetto dei tuoi permessi e del GDPR. '
+                      'Verifica sempre le risposte.',
+                ),
+              ],
             ),
+            textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Storico conversazioni (carica / elimina / nuova). Bottom sheet su mobile,
+/// dialog su tablet/desktop ([asDialog] = true).
+class _HistorySheet extends StatefulWidget {
+  const _HistorySheet({required this.controller, this.asDialog = false});
+  final AiAssistantController controller;
+  final bool asDialog;
+
+  @override
+  State<_HistorySheet> createState() => _HistorySheetState();
+}
+
+class _HistorySheetState extends State<_HistorySheet> {
+  late Future<List<AiConversationSummary>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.controller.listConversations();
+  }
+
+  void _reload() {
+    final f = widget.controller.listConversations();
+    setState(() => _future = f);
+  }
+
+  String _relative(DateTime d) {
+    final now = DateTime.now();
+    if (d.year == now.year && d.month == now.month && d.day == now.day) return 'oggi';
+    final diff = now.difference(d).inDays;
+    if (diff <= 1) return 'ieri';
+    if (diff < 7) return '${diff}g fa';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  }
+
+  Widget _newButton(BuildContext context) => CLSoftButton.primary(
+        text: 'Nuova',
+        context: context,
+        isCompact: true,
+        onTap: () {
+          widget.controller.newConversation();
+          Navigator.of(context).pop();
+        },
+      );
+
+  Widget _convList(BuildContext context, CLTheme theme) {
+    return FutureBuilder<List<AiConversationSummary>>(
+      future: _future,
+      builder: (ctx, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(Sizes.padding),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final items = snap.data ?? const [];
+        if (items.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(Sizes.padding),
+            child: Text('Nessuna conversazione salvata',
+                style: theme.bodyLabel.copyWith(color: theme.secondaryText)),
+          );
+        }
+        return ListView.separated(
+          shrinkWrap: true,
+          itemCount: items.length,
+          separatorBuilder: (_, __) => Divider(height: 1, color: theme.borderColor),
+          itemBuilder: (c, i) {
+            final conv = items[i];
+            return ListTile(
+              title: Text(conv.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.bodyText),
+              subtitle: Text(_relative(conv.updatedAt),
+                  style: theme.smallLabel.copyWith(color: theme.secondaryText)),
+              trailing: IconButton(
+                icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: theme.secondaryText, size: 18),
+                tooltip: 'Elimina',
+                onPressed: () async {
+                  await widget.controller.deleteConversation(conv.id);
+                  _reload();
+                },
+              ),
+              onTap: () async {
+                await widget.controller.loadConversation(conv.id);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final maxH = MediaQuery.of(context).size.height * 0.7;
+
+    // Tablet/desktop: chrome dialog standard (DialogShell + DialogHeader).
+    if (widget.asDialog) {
+      return DialogShell(
+        maxWidth: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // X in alto a destra, sopra tutto.
+            Padding(
+              padding: EdgeInsets.fromLTRB(theme.gap2Xl, theme.gapLg, theme.gapLg, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: CLIconButton(
+                  iconData: LucideIcons.x,
+                  backgroundColor: theme.muted,
+                  iconColor: theme.secondaryText,
+                  borderRadius: theme.radiusPill,
+                  tooltip: 'Chiudi',
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+            // Titolo + Nuova, una riga sotto.
+            Padding(
+              padding: EdgeInsets.fromLTRB(theme.gap2Xl, theme.gapLg, theme.gap2Xl, theme.gapLg),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Conversazioni', style: theme.title.copyWith(fontWeight: FontWeight.w600))),
+                  _newButton(context),
+                ],
+              ),
+            ),
+            Flexible(child: ConstrainedBox(constraints: BoxConstraints(maxHeight: maxH), child: _convList(context, theme))),
+            SizedBox(height: theme.gapLg),
+          ],
+        ),
+      );
+    }
+
+    // Mobile: bottom sheet con drag handle.
+    return SafeArea(
+      top: false,
+      child: Material(
+        color: theme.secondaryBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(theme.radiusSurface)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: Sizes.gapMd),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(color: theme.borderColor, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapMd, Sizes.gapLg, Sizes.gapSm),
+                child: Row(
+                  children: [
+                    Expanded(child: Text('Conversazioni', style: theme.title.copyWith(fontWeight: FontWeight.w600))),
+                    _newButton(context),
+                  ],
+                ),
+              ),
+              Flexible(child: _convList(context, theme)),
+              const SizedBox(height: Sizes.gapMd),
+            ],
+          ),
+        ),
       ),
     );
   }

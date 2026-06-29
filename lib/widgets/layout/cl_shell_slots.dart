@@ -190,6 +190,25 @@ class ShellSlotsController extends ChangeNotifier {
         selectionBar: _selectionBar,
       );
 
+  // ── Azioni shell (drawer / AI) ──────────────────────────────────────────
+  // Bound dallo shell (ha il GlobalKey dello Scaffold). Permettono all'app di
+  // pilotare apertura menu/AI da widget costruiti SOPRA lo shell (es. le voci
+  // custom della bottom bar) senza accedere al contesto interno dello shell.
+  VoidCallback? _openMenu;
+  VoidCallback? _openAi;
+
+  /// Chiamato dallo shell in build per collegare le azioni allo Scaffold interno.
+  void bindShellActions({VoidCallback? openMenu, VoidCallback? openAi}) {
+    _openMenu = openMenu;
+    _openAi = openAi;
+  }
+
+  /// Apre il drawer menu (no-op se nessuno Scaffold con drawer è montato).
+  void openMenu() => _openMenu?.call();
+
+  /// Apre l'endDrawer AI (no-op se non disponibile).
+  void openAi() => _openAi?.call();
+
   /// Canale navigazione (centrale). Aggiorna back + breadcrumbs.
   void setNav({ShellBack? back, List<ShellCrumb> breadcrumbs = const []}) {
     _back = back;

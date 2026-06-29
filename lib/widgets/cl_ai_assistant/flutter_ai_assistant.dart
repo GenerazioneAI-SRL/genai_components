@@ -16,6 +16,7 @@ library;
 export 'src/core/ai_assistant.dart';
 export 'src/core/ai_assistant_config.dart';
 export 'src/core/ai_assistant_controller.dart';
+export 'src/core/ai_conversation_store.dart';
 export 'src/core/ai_event.dart';
 export 'src/core/ai_logger.dart';
 

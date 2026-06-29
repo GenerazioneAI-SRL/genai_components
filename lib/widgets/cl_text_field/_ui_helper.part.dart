@@ -234,9 +234,9 @@ class _TextFieldUiHelper extends _Helper {
       filled: true,
       fillColor: w.fillColor ?? theme.secondaryBackground,
       enabledBorder: b(theme.cardBorder, 1.0),
-      focusedBorder: b(theme.primary, 2.0),
+      focusedBorder: b(theme.primary, 1.0),
       errorBorder: b(theme.danger, 1.0),
-      focusedErrorBorder: b(theme.danger, 2.0),
+      focusedErrorBorder: b(theme.danger, 1.0),
       disabledBorder: b(theme.cardBorder.withValues(alpha: 0.5), 1.0),
       errorStyle: theme.smallLabel.copyWith(color: theme.danger, fontSize: 11, height: 1.3),
     );

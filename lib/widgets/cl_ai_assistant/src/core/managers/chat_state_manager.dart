@@ -269,6 +269,9 @@ extension _ChatStateManager on AiAssistantController {
       if (_isHandoffMode) _exitHandoffMode(keepOverlay: true);
       _safeNotify();
 
+      // Persisti la conversazione (no-op se nessuno store configurato).
+      unawaited(_persistConversation());
+
       // Drain the pending message queue — process next queued message.
       if (_pendingMessage != null && !_disposed) {
         final queued = _pendingMessage!;
@@ -340,6 +343,9 @@ extension _ChatStateManager on AiAssistantController {
   /// Clear the conversation and start fresh.
   void _clearConversationImpl() {
     _emit(AiEventType.conversationCleared, {'messageCount': _messages.length});
+    // Stacca la conversazione attiva → il prossimo salvataggio ne crea una
+    // nuova (le conversazioni salvate restano in history).
+    _activeConversationId = null;
     // If processing, stop first.
     if (_isProcessing) {
       _cancelRequested = true;

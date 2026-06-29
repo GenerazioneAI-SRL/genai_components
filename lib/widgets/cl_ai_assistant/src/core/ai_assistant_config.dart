@@ -5,6 +5,7 @@ import '../llm/react_agent.dart';
 import '../manifest/ai_app_manifest.dart';
 import '../models/chat_content.dart';
 import '../tools/tool_definition.dart';
+import 'ai_conversation_store.dart';
 import 'ai_event.dart';
 
 /// A suggestion chip shown in the chat overlay's empty state.
@@ -301,6 +302,19 @@ class AiAssistantConfig {
   /// ```
   final AiEventCallback? onEvent;
 
+  /// Persistenza conversazioni. Se `null` la chat è solo in memoria (default).
+  /// Fornita dall'app (es. [SharedPrefsAiConversationStore]).
+  final AiConversationStore? conversationStore;
+
+  /// Scope di persistenza, valutato a runtime ad ogni save/load — tipicamente
+  /// l'id del tenant corrente → conversazioni isolate per tenant. `null` =
+  /// scope unico `'default'`.
+  final String Function()? conversationScopeProvider;
+
+  /// Nome utente per il saluto nell'empty state (es. "Ciao Mario"). Valutato a
+  /// runtime. `null` o vuoto → saluto generico senza nome.
+  final String? Function()? userNameProvider;
+
   const AiAssistantConfig({
     required this.provider,
     this.voiceEnabled = true,
@@ -334,5 +348,8 @@ class AiAssistantConfig {
     this.disabledBuiltInTools = const {},
     this.postTaskChipsBuilder,
     this.onEvent,
+    this.conversationStore,
+    this.conversationScopeProvider,
+    this.userNameProvider,
   });
 }

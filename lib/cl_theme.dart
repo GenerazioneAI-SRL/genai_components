@@ -351,7 +351,7 @@ class LightModeTheme extends CLTheme {
     super.alternate = const Color(0xFFECEEF0),
     super.primaryText = const Color(0xF2000000),
     super.secondaryText = const Color(0xFF5D6066),
-    super.primaryBackground = const Color(0xFFFBFBFC),
+    super.primaryBackground = const Color(0xFFF3F4F6),
     super.secondaryBackground = const Color(0xFFFFFFFF),
     super.tertiaryBackground = const Color(0xFFECEEF0), // = controlFill (palette a 2 grigi)
     super.success = const Color(0xFF16A34A),

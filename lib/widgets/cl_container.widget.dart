@@ -28,6 +28,7 @@ class CLContainer extends StatefulWidget {
     this.plainHeader = false,
     this.externalTitle = false,
     this.recessed = false,
+    this.showTitleDivider = false,
   });
 
   final Widget child;
@@ -72,6 +73,9 @@ class CLContainer extends StatefulWidget {
   /// [backgroundColor] esplicito ha comunque precedenza; [showBorder] resta opt-in.
   /// Default `false`.
   final bool recessed;
+
+  /// Divider sotto il titolo (header classico). Default `false`.
+  final bool showTitleDivider;
 
   @override
   State<CLContainer> createState() => _CLContainerState();
@@ -132,7 +136,7 @@ class _CLContainerState extends State<CLContainer> {
                           : widget.recessed
                               ? (widget.backgroundColor ?? theme.primaryBackground)
                               : theme.secondaryBackground,
-                  border: (widget.customHeader == null && !widget.plainHeader && !widget.recessed)
+                  border: (widget.showTitleDivider && widget.customHeader == null && !widget.plainHeader && !widget.recessed)
                       ? Border(bottom: BorderSide(color: theme.cardBorder, width: 1))
                       : null,
                 ),

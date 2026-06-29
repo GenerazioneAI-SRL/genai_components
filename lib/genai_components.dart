@@ -136,6 +136,7 @@ export 'enums/tool_name.enum.dart';
 
 // AI Assistant
 export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
+export 'widgets/cl_ai_assistant/src/core/ai_conversation_store.dart';
 export 'widgets/cl_ai_assistant/src/llm/providers/openai_provider.dart';
 export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
 
