@@ -133,6 +133,9 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                 } else {
                                   await _showFilterOverlayMobile(context, state);
                                 }
+                                // Overlay chiuso → rilascia il focus rimasto sul bottone
+                                // (altrimenti resta il bordo focus 2px persistente).
+                                FocusManager.instance.primaryFocus?.unfocus();
                               }
 
                               return Stack(
@@ -150,17 +153,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                             iconSize: Sizes.iconSizeDefault,
                                             tooltip: 'Filtri',
                                           )
-                                        : CLButton(
+                                        : CLOutlineButton.primary(
                                             text: "Filtri",
                                             iconAlignment: IconAlignment.start,
-                                            iconData: LucideIcons.slidersHorizontal,
-                                            backgroundColor: _tableButtonFill(context),
-                                            iconColor: CLTheme.of(context).primaryText,
-                                            textStyle: CLTheme.of(context).bodyText.copyWith(
-                                              color: CLTheme.of(context).primaryText,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            borderRadius: Sizes.radiusPill,
+                                            icon: LucideIcons.slidersHorizontal,
                                             onTap: isDisabled ? () {} : onTap,
                                             context: context,
                                           ),
