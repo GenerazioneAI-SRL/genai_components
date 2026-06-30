@@ -479,6 +479,7 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   void _init() {
     if (!_initialized) {
       controller._state = this;
+      controller._attached = true;
       _initialized = false;
     }
     _initSizes();
