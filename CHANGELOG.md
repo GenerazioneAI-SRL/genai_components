@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.7.1
+
+- **Widgets:** Updated 18 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+
+
 ## 5.7.0
 
 - **Widgets:** Updated 22 components
