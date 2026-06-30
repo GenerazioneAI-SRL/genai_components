@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.7.2
+
+- **Widgets:** Updated 18 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Changelog Md
+
+
 ## 5.7.1
 
 - **Widgets:** Updated 18 components (incl. Paged Datatable Controller, Paged Datatable State)
