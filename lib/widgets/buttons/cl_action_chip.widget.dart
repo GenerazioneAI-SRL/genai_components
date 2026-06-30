@@ -88,7 +88,6 @@ class _CLActionChipState extends State<CLActionChip> {
             : _hovered
                 ? theme.opacityMuted
                 : theme.opacitySoft;
-    final borderAlpha = disabled ? 0.10 : (_hovered ? 0.30 : 0.20);
 
     final chip = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
@@ -100,7 +99,6 @@ class _CLActionChipState extends State<CLActionChip> {
       decoration: BoxDecoration(
         color: base.withValues(alpha: bgAlpha),
         borderRadius: BorderRadius.circular(theme.radiusControl),
-        border: Border.all(color: base.withValues(alpha: borderAlpha), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

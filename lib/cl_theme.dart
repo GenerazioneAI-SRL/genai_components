@@ -226,20 +226,20 @@ abstract class CLTheme {
   /// 80px — offset verticale header pagina.
   double get pageTop => 80.0;
 
-  /// 4px — radius chip/badge.
-  double get radiusChip => 4.0;
+  /// 6px — radius chip/badge.
+  double get radiusChip => 6.0;
 
-  /// 8px — radius controlli (bottoni, input).
-  double get radiusControl => 8.0;
+  /// 12px — radius controlli (bottoni, input).
+  double get radiusControl => 12.0;
 
-  /// 10px — radius superfici (popup, dropdown).
-  double get radiusSurface => 10.0;
+  /// 14px — radius superfici (popup, dropdown).
+  double get radiusSurface => 14.0;
 
-  /// 14px — radius card.
-  double get radiusCard => 14.0;
+  /// 18px — radius card.
+  double get radiusCard => 18.0;
 
-  /// 24px — radius modali.
-  double get radiusModal => 24.0;
+  /// 28px — radius modali.
+  double get radiusModal => 28.0;
 
   /// 9999px — radius pill.
   double get radiusPill => 9999.0;
@@ -351,7 +351,7 @@ class LightModeTheme extends CLTheme {
     super.alternate = const Color(0xFFECEEF0),
     super.primaryText = const Color(0xF2000000),
     super.secondaryText = const Color(0xFF5D6066),
-    super.primaryBackground = const Color(0xFFF3F4F6),
+    super.primaryBackground = const Color(0xFFF4F6FA),
     super.secondaryBackground = const Color(0xFFFFFFFF),
     super.tertiaryBackground = const Color(0xFFECEEF0), // = controlFill (palette a 2 grigi)
     super.success = const Color(0xFF16A34A),

@@ -78,8 +78,11 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     }
     // Nessun tint su hover: la riga resta sul colore zebra.
     return (
-      // Zebra: pari (prima riga) primaryBackground, dispari secondaryBackground (bianco).
-      rowColor: widget.isEven ? theme.primaryBackground : theme.secondaryBackground,
+      // Zebra morbida a due grigi: pari = primaryBackground, dispari = un grigio
+      // un filo più chiaro (verso il bianco, NON bianco pieno).
+      rowColor: widget.isEven
+          ? theme.primaryBackground
+          : Color.alphaBlend(theme.secondaryBackground.withValues(alpha: 0.7), theme.primaryBackground),
       leftBorderColor: Colors.transparent,
     );
   }
@@ -325,7 +328,7 @@ class _DataTableCell<TResultId extends Comparable, TResult extends Object>
     return Container(
       padding: EdgeInsets.symmetric(
           horizontal: CLTheme.of(context).gapLg,
-          vertical: CLTheme.of(context).pagePadX * 0.75),
+          vertical: CLTheme.of(context).gapMd),
       width: width,
       child: Align(
         alignment:

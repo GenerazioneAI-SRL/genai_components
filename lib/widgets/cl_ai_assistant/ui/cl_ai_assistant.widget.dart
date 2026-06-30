@@ -365,7 +365,9 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
     return GestureDetector(
       onTap: widget.onTap!,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapSm),
+        height: theme.buttonHeightDefault,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg),
         decoration: BoxDecoration(
           color: theme.secondaryBackground,
           borderRadius: BorderRadius.circular(theme.radiusPill),

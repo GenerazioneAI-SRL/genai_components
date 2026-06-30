@@ -2,7 +2,9 @@
 
 ## 5.7.1
 
-- **Widgets:** Updated Paged Datatable Controller, Paged Datatable State
+- **Widgets:** Updated 18 components (incl. Paged Datatable Controller, Paged Datatable State)
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
 
 
 ## 5.7.0

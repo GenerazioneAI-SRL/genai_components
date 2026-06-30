@@ -429,10 +429,10 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
               ? Color.alphaBlend(
                   _effectiveTablePrimary(context).withValues(alpha: 0.10),
                   theme.tertiaryBackground)
-              // Zebra identica a desktop: pari primaryBackground, dispari secondaryBackground (bianco).
+              // Zebra identica a desktop: pari primaryBackground, dispari grigio un filo più chiaro.
               : (widget.index % 2 == 0
                   ? theme.primaryBackground
-                  : theme.secondaryBackground),
+                  : Color.alphaBlend(theme.secondaryBackground.withValues(alpha: 0.7), theme.primaryBackground)),
           padding: const EdgeInsets.all(Sizes.gapLg),
           child: Row(
             children: [

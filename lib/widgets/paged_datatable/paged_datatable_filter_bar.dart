@@ -42,20 +42,11 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
         // Filtri extra attivi (non main) per i chip
         final activeExtraFilters = state.filters.entries.where((e) => !e.value._filter.isMainFilter && e.value.hasValue).toList();
 
-        // Azioni bulk (desktop): sempre rese, grigiate se 0 selezionati. Su
-        // compact resta la toolbar di selezione separata (vedi paged_datatable.dart).
-        final isDesktopBar = !_isTableCompact(context);
-        final selCount = state.selectedRows.length;
-        final selItems = selectionActionsBuilder == null || !isDesktopBar
-            ? <TResult>[]
-            : state.selectedRows.entries
-                .where((e) => e.value < state._items.length)
-                .map((e) => state._items[e.value])
-                .toList();
-        final selActions = selectionActionsBuilder == null || !isDesktopBar
-            ? const <Widget>[]
-            : selectionActionsBuilder!(context, selCount, selItems);
-        final showSelectionBlock = selActions.isNotEmpty;
+        // Azioni bulk: NON più rese nella toolbar (filter tab) su desktop —
+        // vivono nella card flottante sopra il footer (vedi
+        // _DesktopBulkActionsFloatingCard in paged_datatable.dart). Su mobile/
+        // hoisted la barra bulk vive nel bottom shell (selectionBar). Qui restano
+        // solo titolo/azioni-pagina (Nuovo, download, menu).
 
         Widget child = LayoutBuilder(
           builder: (context, constraints) {
@@ -133,6 +124,9 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                 } else {
                                   await _showFilterOverlayMobile(context, state);
                                 }
+                                // Overlay chiuso → rilascia il focus rimasto sul bottone
+                                // (altrimenti resta il bordo focus 2px persistente).
+                                FocusManager.instance.primaryFocus?.unfocus();
                               }
 
                               return Stack(
@@ -150,17 +144,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                             iconSize: Sizes.iconSizeDefault,
                                             tooltip: 'Filtri',
                                           )
-                                        : CLButton(
+                                        : CLOutlineButton.primary(
                                             text: "Filtri",
                                             iconAlignment: IconAlignment.start,
-                                            iconData: LucideIcons.slidersHorizontal,
-                                            backgroundColor: _tableButtonFill(context),
-                                            iconColor: CLTheme.of(context).primaryText,
-                                            textStyle: CLTheme.of(context).bodyText.copyWith(
-                                              color: CLTheme.of(context).primaryText,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            borderRadius: Sizes.radiusPill,
+                                            icon: LucideIcons.slidersHorizontal,
                                             onTap: isDisabled ? () {} : onTap,
                                             context: context,
                                           ),
@@ -195,53 +182,13 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                   ),
 
                   // Gap Lg tra cluster ricerca/filtri e azioni a destra (es. Altre azioni)
-                  if (showSelectionBlock || header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
+                  if (header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
                     SizedBox(width: clTheme.gapLg),
 
                   // === DESTRA: Azioni ===
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Azioni bulk selezione: contatore "N selezionato" (solo se >0)
-                      // + bottoni grigiati/disabilitati quando 0 selezionati.
-                      if (showSelectionBlock) ...[
-                        if (selCount > 0) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _effectiveTablePrimary(context).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(clTheme.radiusControl),
-                            ),
-                            child: Text(
-                              '$selCount selezionat${selCount == 1 ? 'o' : 'i'}',
-                              style: clTheme.bodyLabel.copyWith(
-                                color: _effectiveTablePrimary(context),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: clTheme.gapMd),
-                        ],
-                        Opacity(
-                          opacity: selCount == 0 ? 0.4 : 1,
-                          child: IgnorePointer(
-                            ignoring: selCount == 0,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                for (var i = 0; i < selActions.length; i++) ...[
-                                  if (i > 0) SizedBox(width: clTheme.gapMd),
-                                  selActions[i],
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (header != null || downloadPage != null || mainMenus.isNotEmpty || extraMenus.isNotEmpty)
-                          SizedBox(width: clTheme.gapLg),
-                      ],
-
                       // Header custom
                       if (header != null) ...[Flexible(child: header!), SizedBox(width: clTheme.gapLg)],
 
@@ -765,7 +712,7 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
             ],
           ),
         ),
-        SizedBox(height: theme.gapMd),
+        SizedBox(height: theme.gapLg),
         Row(
           children: [
             CLButton(
@@ -773,6 +720,8 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
               textStyle: theme.bodyText.copyWith(color: theme.primaryText),
               iconAlignment: IconAlignment.start,
               text: 'Ripristina',
+              // Panel reveal nella bottom bar mobile (chrome) → pill.
+              borderRadius: theme.radiusPill,
               onTap: () {
                 state.resetFilterSort();
                 onClose();
@@ -782,6 +731,7 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
             const Spacer(),
             CLButton.primary(
               text: 'Applica',
+              borderRadius: theme.radiusPill,
               onTap: () {
                 state.filtersFormKey.currentState?.save();
                 state.applyFilters();
@@ -849,7 +799,7 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
             }
           },
         ),
-        SizedBox(height: theme.gapMd),
+        SizedBox(height: theme.gapLg),
         Row(
           children: [
             CLButton(
@@ -857,6 +807,8 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
               textStyle: theme.bodyText.copyWith(color: theme.primaryText),
               iconAlignment: IconAlignment.start,
               text: 'Rimuovi',
+              // Panel reveal nella bottom bar mobile (chrome) → pill.
+              borderRadius: theme.radiusPill,
               onTap: () {
                 state.removeSort();
                 widget.onClose();
@@ -866,6 +818,7 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
             const Spacer(),
             CLButton.primary(
               text: 'Applica',
+              borderRadius: theme.radiusPill,
               onTap: () {
                 state.applyFilters(columnId: selectedColumn?.id, descending: descending);
                 widget.onClose();
@@ -1131,7 +1084,7 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: t.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(t.radiusChip),
               ),
               child: Text(
                 '$count selezionat${count == 1 ? 'o' : 'i'}',

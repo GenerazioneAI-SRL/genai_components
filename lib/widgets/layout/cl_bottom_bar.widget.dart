@@ -115,9 +115,12 @@ class CLBottomBar extends StatelessWidget {
     }
 
     final content = Padding(
-      // Inset Md. Top a 0 quando sopra c'è l'area contestuale (il suo bottom
-      // padding dà già il gap Md) → evita doppio Md; Md quando la nav è da sola.
-      padding: EdgeInsets.fromLTRB(theme.gapMd, topBorder ? theme.gapMd : 0, theme.gapMd, theme.gapMd),
+      // Floating (dentro la bolla frosted): nessun padding proprio — la bolla
+      // dà già gapLg attorno e il gap dal context area sopra. Evita il doppio
+      // padding (16+12). Standalone (nav da sola): inset Md su tutti i lati.
+      padding: floating
+          ? EdgeInsets.zero
+          : EdgeInsets.fromLTRB(theme.gapMd, topBorder ? theme.gapMd : 0, theme.gapMd, theme.gapMd),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: rowChildren,

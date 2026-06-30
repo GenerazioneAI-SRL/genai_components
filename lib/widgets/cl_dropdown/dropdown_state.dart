@@ -279,6 +279,13 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     }
   }
 
+  /// `true` quando la lista deve essere presentata come bottom sheet modale
+  /// (mobile, width < 600) anziché come overlay ancorato (desktop).
+  bool _useBottomSheet = false;
+
+  /// Soglia di breakpoint mobile/desktop (allineata al resto del DS).
+  static const double _mobileBreakpoint = 600.0;
+
   void openOverlay() async {
     if (isOverlayOpen) return;
 
@@ -289,16 +296,97 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     _scrollController = ScrollController();
     _scrollController!.addListener(_onScrollListener);
 
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    isOverlayOpen = true;
-    notifyListeners();
+    // Mobile (width < 600) → bottom sheet modale. Desktop → overlay ancorato.
+    final isMobile =
+        MediaQuery.sizeOf(context).width < _mobileBreakpoint;
+
+    if (isMobile) {
+      _useBottomSheet = true;
+      isOverlayOpen = true;
+      notifyListeners();
+      _openBottomSheet();
+    } else {
+      _useBottomSheet = false;
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+      isOverlayOpen = true;
+      notifyListeners();
+    }
+  }
+
+  void _openBottomSheet() {
+    final theme = CLTheme.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.secondaryBackground,
+      barrierColor: kCLModalScrim,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(theme.radiusModal),
+        ),
+      ),
+      builder: (sheetContext) {
+        // Riascolta lo stato così la lista del sheet si ricostruisce su
+        // search/loading/paging (al pari di markNeedsBuild per l'overlay).
+        return ListenableBuilder(
+          listenable: this,
+          builder: (context, _) {
+            final maxH = MediaQuery.sizeOf(context).height * 0.7;
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Drag handle
+                    Padding(
+                      padding: EdgeInsets.only(
+                          top: theme.gapMd, bottom: theme.gapSm),
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: theme.borderColor,
+                          borderRadius: BorderRadius.circular(theme.radiusPill),
+                        ),
+                      ),
+                    ),
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: maxH),
+                        child: _buildListContent(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      // Chiusura del sheet (drag/tap-scrim/select) → reset stato come overlay.
+      if (_useBottomSheet && isOverlayOpen) {
+        _useBottomSheet = false;
+        closeOverlay();
+      }
+    });
   }
 
   void closeOverlay() {
     if (!isOverlayOpen) return;
     _overlayEntry?.remove();
     _overlayEntry = null;
+    // Se aperto come bottom sheet, chiudi la route modale (se ancora montata).
+    if (_useBottomSheet) {
+      _useBottomSheet = false;
+      final nav = Navigator.maybeOf(context);
+      if (nav != null && nav.canPop()) nav.pop();
+    }
     isOverlayOpen = false;
 
     _scrollController?.removeListener(_onScrollListener);
@@ -371,111 +459,9 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
               offset: openUpward ? const Offset(0, -gap) : const Offset(0, gap),
               child: CLPopupSurface(
                 animateUpward: openUpward,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Lista degli elementi (la ricerca vive nel campo trigger)
-                    loading && items.isEmpty
-                        ? Material(
-                            type: MaterialType.transparency,
-                            child: Container(
-                              padding: const EdgeInsets.all(Sizes.padding),
-                              child: const Center(
-                                  child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2))),
-                            ),
-                          )
-                        : items.isEmpty
-                            ? Material(
-                                type: MaterialType.transparency,
-                                child: Container(
-                                  padding: const EdgeInsets.all(Sizes.padding),
-                                  child: Text('Nessun risultato trovato',
-                                      style: CLTheme.of(context).bodyLabel),
-                                ),
-                              )
-                            : ConstrainedBox(
-                                constraints:
-                                    BoxConstraints(maxHeight: listMaxHeight),
-                                child: ListView.separated(
-                                  controller: _scrollController,
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount:
-                                      items.length + (_loadingMore ? 1 : 0),
-                                  separatorBuilder: (context, index) => Divider(
-                                    height: 1,
-                                    thickness: 1,
-                                    color: CLTheme.of(context).borderColor,
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    // Loader di fine lista
-                                    if (index >= items.length) {
-                                      return const Padding(
-                                        padding:
-                                            EdgeInsets.symmetric(vertical: CLSizes.gapMd),
-                                        child: Center(
-                                            child: SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                        strokeWidth: 2))),
-                                      );
-                                    }
-
-                                    var item = items[index];
-                                    final isSelected = isMultiple
-                                        ? selectedItems.contains(item)
-                                        : selectedItem == item;
-
-                                    return _DropdownHoverItem(
-                                      onTap: () => _selectItem(item),
-                                      isSelected: isSelected,
-                                      child: Material(
-                                        type: MaterialType.transparency,
-                                        child: ListTile(
-                                          dense: isCompact,
-                                          visualDensity: isCompact
-                                              ? VisualDensity.compact
-                                              : null,
-                                          titleTextStyle:
-                                              CLTheme.of(context).bodyText,
-                                          title: itemBuilder(context, item),
-                                          trailing: isMultiple
-                                              ? Checkbox(
-                                                  splashRadius: 0,
-                                                  // In compact: niente floor 48px
-                                                  // del tap target Material.
-                                                  materialTapTargetSize: isCompact
-                                                      ? MaterialTapTargetSize
-                                                          .shrinkWrap
-                                                      : MaterialTapTargetSize
-                                                          .padded,
-                                                  visualDensity: isCompact
-                                                      ? VisualDensity.compact
-                                                      : null,
-                                                  value: selectedItems
-                                                      .contains(item),
-                                                  onChanged: (value) {
-                                                    _selectItem(item);
-                                                  },
-                                                  activeColor:
-                                                      CLTheme.of(context)
-                                                          .primary,
-                                                  checkColor: Colors.white,
-                                                )
-                                              : null,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                  ],
+                child: _buildListContent(
+                  context,
+                  listMaxHeight: listMaxHeight,
                 ),
               ),
             ),
@@ -483,6 +469,107 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
         ],
       ),
     );
+  }
+
+  /// Contenuto condiviso (lista + loader + empty + paging/infinite-scroll)
+  /// renderizzato sia dall'overlay desktop sia dal bottom sheet mobile.
+  /// [listMaxHeight], se fornito, vincola l'altezza della lista (overlay):
+  /// nel bottom sheet il vincolo è gestito dal chiamante (Flexible+maxH).
+  Widget _buildListContent(BuildContext context, {double? listMaxHeight}) {
+    final theme = CLTheme.of(context);
+
+    if (loading && items.isEmpty) {
+      return Material(
+        type: MaterialType.transparency,
+        child: Container(
+          padding: const EdgeInsets.all(Sizes.padding),
+          child: const Center(
+            child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+        ),
+      );
+    }
+
+    if (items.isEmpty) {
+      return Material(
+        type: MaterialType.transparency,
+        child: Container(
+          padding: const EdgeInsets.all(Sizes.padding),
+          child: Text('Nessun risultato trovato', style: theme.bodyLabel),
+        ),
+      );
+    }
+
+    final Widget list = ListView.separated(
+      controller: _scrollController,
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      itemCount: items.length + (_loadingMore ? 1 : 0),
+      separatorBuilder: (context, index) => Divider(
+        height: 1,
+        thickness: 1,
+        color: theme.borderColor,
+      ),
+      itemBuilder: (context, index) {
+        // Loader di fine lista
+        if (index >= items.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: CLSizes.gapMd),
+            child: Center(
+                child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))),
+          );
+        }
+
+        var item = items[index];
+        final isSelected = isMultiple
+            ? selectedItems.contains(item)
+            : selectedItem == item;
+
+        return _DropdownHoverItem(
+          onTap: () => _selectItem(item),
+          isSelected: isSelected,
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              dense: isCompact,
+              visualDensity: isCompact ? VisualDensity.compact : null,
+              titleTextStyle: theme.bodyText,
+              title: itemBuilder(context, item),
+              trailing: isMultiple
+                  ? Checkbox(
+                      splashRadius: 0,
+                      // In compact: niente floor 48px del tap target Material.
+                      materialTapTargetSize: isCompact
+                          ? MaterialTapTargetSize.shrinkWrap
+                          : MaterialTapTargetSize.padded,
+                      visualDensity: isCompact ? VisualDensity.compact : null,
+                      value: selectedItems.contains(item),
+                      onChanged: (value) {
+                        _selectItem(item);
+                      },
+                      activeColor: theme.primary,
+                      checkColor: Colors.white,
+                    )
+                  : null,
+            ),
+          ),
+        );
+      },
+    );
+
+    if (listMaxHeight != null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: listMaxHeight),
+        child: list,
+      );
+    }
+    return list;
   }
 
   void _selectItem(T item) {

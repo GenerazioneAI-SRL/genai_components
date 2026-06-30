@@ -44,29 +44,9 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Range risultati al posto del label "Righe per pagina" (rimosso),
+              // come testo semplice (niente pill).
               Flexible(
-                child: Text(
-                  'Righe per pagina:',
-                  style: t.smallLabel.copyWith(color: t.secondaryText),
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
-              ),
-              SizedBox(width: t.gapLg),
-              _PageSizeControls(
-                  pageSizes: pageSizes,
-                  currentPageSize: state._pageSize,
-                  onChanged: (size) => state.setPageSize(size),
-                  theme: t),
-              SizedBox(width: t.gapLg),
-              Container(
-                height: t.buttonHeightCompact,
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: t.gapMd),
-                decoration: BoxDecoration(
-                  color: t.primaryBackground,
-                  borderRadius: BorderRadius.circular(t.radiusPill),
-                ),
                 child: AnimatedSwitcher(
                   duration: t.durationBase,
                   child: Text(
@@ -78,9 +58,17 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                       color: t.secondaryText,
                       fontWeight: FontWeight.w500,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                 ),
               ),
+              SizedBox(width: t.gapLg),
+              _PageSizeControls(
+                  pageSizes: pageSizes,
+                  currentPageSize: state._pageSize,
+                  onChanged: (size) => state.setPageSize(size),
+                  theme: t),
             ],
           ),
         ),
