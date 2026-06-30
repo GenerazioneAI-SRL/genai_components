@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.7.1
+
+- **Widgets:** Updated Paged Datatable Controller, Paged Datatable State
+
+
 ## 5.7.0
 
 - **Widgets:** Updated 22 components
