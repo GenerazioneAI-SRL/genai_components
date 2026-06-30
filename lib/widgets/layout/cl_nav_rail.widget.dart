@@ -68,9 +68,9 @@ class CLNavRail extends StatelessWidget {
         child: Column(
           children: [
             if (header != null) ...[
-              SizedBox(height: theme.gapMd),
+              SizedBox(height: theme.gapLg),
               header!,
-              SizedBox(height: theme.gapMd),
+              SizedBox(height: theme.gapLg),
               // Stesso divider del menu desktop (sotto la sezione header).
               Divider(height: 1, thickness: 1, color: theme.borderColor),
             ],
@@ -96,9 +96,9 @@ class CLNavRail extends StatelessWidget {
             if (footer != null) ...[
               // Stesso divider del menu desktop (sopra la sezione footer).
               Divider(height: 1, thickness: 1, color: theme.borderColor),
-              SizedBox(height: theme.gapSm),
+              SizedBox(height: theme.gapLg),
               footer!,
-              SizedBox(height: theme.gapMd),
+              SizedBox(height: theme.gapLg),
             ],
           ],
         ),

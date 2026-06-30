@@ -68,36 +68,38 @@ class CLSizes {
   static const pageTop = 80.0;
 
   // ═══════════════════════════════════════════════════════════
-  // RADIUS (scala "soft-pro": +2 rispetto a shadcn sui controlli)
+  // RADIUS (scala "soft-pro": controlli a 12 — tono morbido, isolati a pill)
   // ═══════════════════════════════════════════════════════════
 
-  /// 4px — chip, badge, tag densi.
+  /// 6px — chip, badge, tag densi.
   /// Usato per: status badge, tag di filtri, pill di conteggio,
-  /// celle di tabella con sfondo tinto.
-  static const radiusChip = 4.0;
+  /// celle di tabella con sfondo tinto. Scala ~proporzionale al control
+  /// (resta tight per non confondersi con un bottone).
+  static const radiusChip = 6.0;
 
-  /// 8px — controlli interattivi.
+  /// 12px — controlli interattivi.
   /// Usato per: `CLButton` e varianti (filled/outline/ghost/soft), `CLTextField`,
-  /// `CLDropdown`, `CLDatePicker`. Scelta +2 rispetto allo shadcn 6 per smussare
-  /// il tono tecnico: l'app è d'uso quotidiano, i controlli devono sembrare
-  /// "amichevoli".
-  static const radiusControl = 8.0;
+  /// `CLDropdown`, `CLDatePicker`. Tono morbido/amichevole per uso quotidiano.
+  /// NB: i bottoni isolati di chrome (back, switch tenant, footer menu) restano
+  /// `radiusPill` — NON usano questo token.
+  static const radiusControl = 12.0;
 
-  /// 10px — surface secondarie.
+  /// 14px — surface secondarie.
   /// Usato per: popover, tooltip, menu contestuali, dropdown flottanti,
-  /// container secondari dentro card.
-  static const radiusSurface = 10.0;
+  /// container secondari dentro card. control + 2 (recessed, concentrico).
+  static const radiusSurface = 14.0;
 
-  /// 14px — card e pannelli.
+  /// 18px — card e pannelli.
   /// Usato per: `CLSectionCard`, card del dashboard, pannelli di sezione,
   /// `CLPageHeader`. Abbastanza morbido da dare sensazione di "contenitore"
-  /// e non di "finestra tecnica".
-  static const radiusCard = 14.0;
+  /// e non di "finestra tecnica". surface + 4 (concentrico).
+  static const radiusCard = 18.0;
 
-  /// 24px — superfici modali (Foundation).
+  /// 28px — superfici modali (Foundation).
   /// Usato per: dialog, bottom sheet, drawer su mobile, overlay con azioni
   /// complete. Il raggio più grande sottolinea la natura "flottante".
-  static const radiusModal = 24.0;
+  /// card + 10 (preserva gerarchia card < modal < bubble).
+  static const radiusModal = 28.0;
 
   /// 9999px — pill.
   /// Usato per: badge con testo (conteggio, status testuale), bottoni pill
@@ -121,9 +123,9 @@ class CLSizes {
   static const padding = pagePadX; // 20 (era 18)
   static const headerOffset = pageTop; // 80
 
-  static const radiusSm = radiusChip; //  4
-  static const borderRadius = radiusControl; // 8 (era 6)
-  static const radiusLg = radiusSurface; // 10 (era 8)
+  static const radiusSm = radiusChip; //  6
+  static const borderRadius = radiusControl; // 12
+  static const radiusLg = radiusSurface; // 14
 
   // Duplicati storici: stesso valore di un altro alias.
   static const md = gapLg; // 16

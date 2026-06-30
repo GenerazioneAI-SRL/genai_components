@@ -47,7 +47,7 @@ class CLButton extends StatefulWidget {
   /// Se `true` (default), emette un `HapticFeedback.selectionClick()` al press (iOS/Android).
   final bool haptic;
 
-  /// Override del raggio di angolo. Se `null` usa `Sizes.radiusControl` (6, scala shadcn).
+  /// Override del raggio di angolo. Se `null` usa `theme.radiusControl` (12).
   final double? borderRadius;
 
   /// Ombra esterna opzionale. Se `null` il bottone resta piatto (default DS).

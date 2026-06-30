@@ -374,7 +374,10 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                 isReadOnly: lockTyping,
                 validators: widget.validators,
                 fillColor: widget.fillColor,
-                isCompact: widget.isCompact,
+                // Trigger field SEMPRE ad altezza standard input (40px = theme.inputHeight),
+                // come il campo ricerca. widget.isCompact governa solo la densità degli
+                // item del menu (via state.isCompact), non l'altezza del campo.
+                isCompact: false,
                 onTap: (widget.isEnabled && !lockTyping) ? () => state.openOverlay() : null,
                 onChanged: (widget.isEnabled && !lockTyping)
                     ? (value) async => state.onTriggerChanged(value)

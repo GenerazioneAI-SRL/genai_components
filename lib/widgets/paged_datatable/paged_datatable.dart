@@ -665,49 +665,68 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                     },
                   );
             return !_isTableCompact(context)
-                ? Container(
-                    decoration: BoxDecoration(
-                      color: CLTheme.of(context).secondaryBackground,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        /* FILTER TAB */
-                        if (localTheme.configuration.filterBarVisibile &&
-                            (header != null ||
-                                mainMenus.isNotEmpty ||
-                                extraMenus.isNotEmpty ||
-                                selectionActionsBuilder != null ||
-                                state.filters.isNotEmpty)) ...[
-                          _PagedDataTableFilterTab<TKey, TResultId, TResult>(
-                            mainMenus,
-                            extraMenus,
-                            header,
-                            rowsSelectable,
-                            idGetter,
-                            downloadPage,
-                            downloadButtonText,
-                            downloadButtonIcon,
-                            isFilterBarRounded,
-                            hoistFilterBarToShell,
-                            selectionActionsBuilder,
-                          ),
-                        ],
-
-                        // Desktop: le azioni bulk vivono nella toolbar (filter tab),
-                        // niente barra di selezione separata.
-
-                        /* HEADER ROW — inset Lg (allineato alla bolla). Top Lg: + il
-                           centering del testo nella riga (44px) ≈ 2Xl visivo dalla toolbar. */
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
-                          child: _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
-                              rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth, selectAllInHeader),
+                ? Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: CLTheme.of(context).secondaryBackground,
                         ),
-                        /* ITEMS */
-                        rowsSection,
-                      ],
-                    ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            /* FILTER TAB */
+                            if (localTheme.configuration.filterBarVisibile &&
+                                (header != null ||
+                                    mainMenus.isNotEmpty ||
+                                    extraMenus.isNotEmpty ||
+                                    selectionActionsBuilder != null ||
+                                    state.filters.isNotEmpty)) ...[
+                              _PagedDataTableFilterTab<TKey, TResultId, TResult>(
+                                mainMenus,
+                                extraMenus,
+                                header,
+                                rowsSelectable,
+                                idGetter,
+                                downloadPage,
+                                downloadButtonText,
+                                downloadButtonIcon,
+                                isFilterBarRounded,
+                                hoistFilterBarToShell,
+                                selectionActionsBuilder,
+                              ),
+                            ],
+
+                            // Desktop: le azioni bulk NON vivono più nella toolbar
+                            // (filter tab) — vivono nella card flottante sopra il
+                            // footer (vedi _DesktopBulkActionsFloatingCard sotto).
+
+                            /* HEADER ROW — inset Lg (allineato alla bolla). Top Lg: + il
+                               centering del testo nella riga (44px) ≈ 2Xl visivo dalla toolbar. */
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
+                              child: _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
+                                  rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth, selectAllInHeader),
+                            ),
+                            /* ITEMS */
+                            rowsSection,
+                          ],
+                        ),
+                      ),
+                      // Card flottante azioni bulk (desktop): overlay sopra le righe,
+                      // ancorata gapLg SOPRA il footer (= bordo inferiore di questa
+                      // sezione righe, il footer è la sezione sorella subito sotto).
+                      // Non sposta le righe (è in overlay nello Stack).
+                      if (selectionActionsBuilder != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: Sizes.gapLg,
+                          child: _DesktopBulkActionsFloatingCard<TKey, TResultId, TResult>(
+                            selectionActionsBuilder: selectionActionsBuilder!,
+                            idGetter: idGetter,
+                          ),
+                        ),
+                    ],
                   )
                 : Column(
                     children: [
@@ -791,8 +810,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               child: Material(
                 type: MaterialType.transparency,
                 shape: RoundedRectangleBorder(
-                  // Dark: ombra invisibile → bordo hairline per delineare la card.
-                  side: (!embedded && (showBorder || Theme.of(context).brightness == Brightness.dark))
+                  // Hairline solo se esplicitamente richiesto (showBorder). Niente
+                  // bordo auto in dark: la card si appoggia al contrasto bg/righe.
+                  side: (!embedded && showBorder)
                       ? BorderSide(color: CLTheme.of(context).borderColor, width: 1)
                       : BorderSide.none,
                   borderRadius: BorderRadius.circular(embedded ? 0 : Sizes.radiusCard),
@@ -1015,4 +1035,94 @@ class _PageScrollAutoFillState<TKey extends Comparable, TResultId extends Compar
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Card flottante (desktop) con le azioni bulk di selezione. Renderizzata come
+/// overlay nello `Stack` della sezione righe, ancorata `gapLg` SOPRA il footer:
+/// non sposta le righe quando appare. Contenuto orizzontale, larghezza-contenuto,
+/// centrato. Compare/scompare con fade + slide dal basso (stesso feel della
+/// vecchia toolbar di selezione). Mostra: badge conteggio, azioni
+/// (`selectionActionsBuilder`), bottone "Deseleziona tutto".
+class _DesktopBulkActionsFloatingCard<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatelessWidget {
+  const _DesktopBulkActionsFloatingCard({
+    required this.selectionActionsBuilder,
+    required this.idGetter,
+  });
+
+  final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems) selectionActionsBuilder;
+  final ModelIdGetter<TResultId, TResult> idGetter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<_PagedDataTableState<TKey, TResultId, TResult>, int>(
+      selector: (context, model) => model._rowsSelectionChange,
+      builder: (context, _, __) {
+        final st = context.read<_PagedDataTableState<TKey, TResultId, TResult>>();
+        final selectedCount = st.selectedRows.length;
+        final clTheme = CLTheme.of(context);
+
+        Widget content;
+        if (selectedCount == 0) {
+          content = const SizedBox.shrink(key: ValueKey('bulk_card_hidden'));
+        } else {
+          final selectedItems =
+              st.selectedRows.entries.where((e) => e.value < st._items.length).map((e) => st._items[e.value]).toList();
+          final actionWidgets = selectionActionsBuilder(context, selectedCount, selectedItems);
+          content = Align(
+            key: const ValueKey('bulk_card_visible'),
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              // Card flottante (overlay): solo ombra (popoverShadow), niente hairline.
+              padding: EdgeInsets.all(Sizes.gapLg),
+              decoration: BoxDecoration(
+                color: clTheme.secondaryBackground,
+                borderRadius: BorderRadius.circular(clTheme.radiusCard),
+                boxShadow: clTheme.popoverShadow,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Conteggio + deseleziona = unico bottone muted (icona X + testo).
+                  CLButton(
+                    text: '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                    iconData: LucideIcons.x400,
+                    iconAlignment: IconAlignment.start,
+                    backgroundColor: clTheme.muted,
+                    textStyle: clTheme.bodyLabel.copyWith(color: clTheme.secondaryText, fontWeight: FontWeight.w500),
+                    iconColor: clTheme.secondaryText,
+                    borderRadius: Sizes.radiusControl,
+                    onTap: () => st.clearAllSelections(),
+                    context: context,
+                  ),
+                  if (actionWidgets.isNotEmpty)
+                    for (final action in actionWidgets) ...[
+                      SizedBox(width: clTheme.gapMd),
+                      action,
+                    ],
+                ],
+              ),
+            ),
+          );
+        }
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.3),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+              child: child,
+            ),
+          ),
+          child: content,
+        );
+      },
+    );
+  }
 }

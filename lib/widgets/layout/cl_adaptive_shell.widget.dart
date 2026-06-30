@@ -103,6 +103,12 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// (espande solo il gruppo della rotta corrente).
   String? _drawerExpandKey;
 
+  /// Altezze misurate delle barre frosted (header/footer) del menu bolla: servono
+  /// a riservare il padding della lista così le voci scorrono SOTTO il vetro
+  /// smerigliato senza finire coperte in modo permanente.
+  double _menuHeaderH = 0;
+  double _menuFooterH = 0;
+
   /// Slot pubblicati dalle pagine discendenti (back/breadcrumbs/azioni/contesto).
   /// Lo shell ascolta questo controller e ricolloca i contenuti per breakpoint.
   /// Usa quello passato da [CLAdaptiveShell.slotsController] o ne crea uno proprio.
@@ -157,39 +163,98 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   }
 
   Widget _navPanel(CLTheme theme, {required bool isCompact, String? forceExpandedKey, bool frosted = false}) {
+    final hasHeader = widget.headerLeading != null || widget.navHeader != null;
+    final hasFooter = widget.navFooter != null;
+
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
       // bordo li dà la card esterna → qui trasparente.
       decoration: frosted
           ? null
           : BoxDecoration(
-              color: theme.primaryBackground,
+              // Drawer mobile (compact): superficie elevata = secondaryBackground.
+              // Menu desktop (rail/sidebar): L0 = primaryBackground + bordo destro.
+              color: isCompact ? theme.secondaryBackground : theme.primaryBackground,
               border: Border(right: BorderSide(color: theme.borderColor)),
             ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      // Stack: la lista riempie e scorre SOTTO le barre frosted di header/footer
+      // (vetro smerigliato traslucido come l'header shell, niente hairline). Il
+      // padding top/bottom della lista = altezza misurata delle barre → prima/ultima
+      // voce restano raggiungibili.
+      child: Stack(
         children: [
-          // Logo dell'app in cima al menu (tutti i breakpoint): allineato a sinistra,
-          // gap sotto verso la tenant card. Mai nell'header → vive solo qui.
-          if (widget.headerLeading != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
-              child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
-            ),
-          if (widget.navHeader != null) widget.navHeader!,
-          if (widget.navHeader != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
-          Expanded(
+          Positioned.fill(
             child: CLNavList(
               destinations: widget.destinations,
               selectedKey: widget.selectedKey,
               onSelect: _onSelect,
               isCompact: isCompact,
               forceExpandedKey: forceExpandedKey,
+              // Altezza barra + gapLg di respiro tra vetro e prima/ultima voce.
+              padding: EdgeInsets.only(
+                left: Sizes.gapLg,
+                right: Sizes.gapLg,
+                top: (hasHeader ? _menuHeaderH : 0) + Sizes.gapLg,
+                bottom: (hasFooter ? _menuFooterH : 0) + Sizes.gapLg,
+              ),
             ),
           ),
-          if (widget.navFooter != null) Divider(height: 1, thickness: 1, color: theme.borderColor),
-          if (widget.navFooter != null) widget.navFooter!,
+          // Barra header frosted (logo + navHeader): in alto, full-width.
+          if (hasHeader)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _MeasureSize(
+                onChange: (s) {
+                  if (s.height != _menuHeaderH) setState(() => _menuHeaderH = s.height);
+                },
+                child: _frostedMenuBar(
+                  theme,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.headerLeading != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
+                          child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
+                        ),
+                      if (widget.navHeader != null) widget.navHeader!,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // Barra footer frosted (navFooter): in basso, full-width.
+          if (hasFooter)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _MeasureSize(
+                onChange: (s) {
+                  if (s.height != _menuFooterH) setState(() => _menuFooterH = s.height);
+                },
+                child: _frostedMenuBar(theme, child: widget.navFooter!),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+
+  /// Barra vetro smerigliato per header/footer del menu bolla: ClipRect +
+  /// BackdropFilter (blur sigma frost) + sfondo traslucido, identica all'header
+  /// shell. La lista dietro nello Stack viene sfocata sotto il vetro.
+  Widget _frostedMenuBar(CLTheme theme, {required Widget child}) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: theme.secondaryBackground.withValues(alpha: 0.6)),
+          child: child,
+        ),
       ),
     );
   }
@@ -323,7 +388,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       onTap: onTap,
       iconData: a.icon ?? Icons.circle,
       // Azione secondaria nella bolla: flat su primaryBackground, niente ombra.
+      // Bottom bar mobile (chrome): pill.
       backgroundColor: theme.primaryBackground,
+      borderRadius: theme.radiusPill,
       iconColor: theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -423,8 +490,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                       onTap: s.back!.onTap,
                       iconData: Icons.chevron_left,
                       // Bolla frosted: card bianca elevata (non flat/recessed).
+                      // Bottom bar mobile (chrome): pill.
                       backgroundColor: theme.secondaryBackground,
                       boxShadow: theme.cardShadowSoft,
+                      borderRadius: theme.radiusPill,
                       iconColor: theme.primaryText,
                       size: theme.buttonHeightDefault,
                       iconSize: Sizes.iconSizeDefault,
@@ -439,6 +508,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                             icon: primary.icon,
                             iconAlignment: IconAlignment.start,
                             fullWidth: true,
+                            // Bottom bar mobile (chrome): pill.
                             borderRadius: theme.radiusPill,
                             onTap: primary.enabled ? (primary.onTap ?? () {}) : () {},
                             context: context,
@@ -515,7 +585,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             Expanded(child: Text(r.title, style: theme.heading5, overflow: TextOverflow.ellipsis)),
           ],
         ),
-        SizedBox(height: theme.gapSm),
+        SizedBox(height: theme.gapLg),
         ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.45),
           child: SingleChildScrollView(child: r.panelBuilder(context, close)),
@@ -533,8 +603,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       iconData: r.icon,
       // Bolla frosted: bottoni come card bianche elevate (non flat/recessed);
       // attivo (pannello aperto) resta tint primary senza ombra.
+      // Bottom bar mobile (chrome): pill.
       backgroundColor: active ? theme.primary.withValues(alpha: 0.12) : theme.secondaryBackground,
       boxShadow: active ? null : theme.cardShadowSoft,
+      borderRadius: theme.radiusPill,
       iconColor: active ? theme.primary : theme.primaryText,
       size: theme.buttonHeightDefault,
       iconSize: Sizes.iconSizeDefault,
@@ -582,6 +654,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         height: theme.inputHeight,
         decoration: BoxDecoration(
           color: theme.primaryBackground,
+          // Bottom bar mobile (chrome): pill.
           borderRadius: BorderRadius.circular(theme.radiusPill),
         ),
         child: Row(
@@ -810,7 +883,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       drawer: Drawer(
         width: drawerWidth,
         // Menu drawer = L0.
-        backgroundColor: theme.primaryBackground,
+        backgroundColor: theme.secondaryBackground,
         shape: const RoundedRectangleBorder(),
         child: SafeArea(child: _navPanel(theme, isCompact: true, forceExpandedKey: _drawerExpandKey)),
       ),
@@ -878,7 +951,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       },
       drawer: Drawer(
         width: drawerWidth,
-        backgroundColor: theme.primaryBackground,
+        backgroundColor: theme.secondaryBackground,
         shape: const RoundedRectangleBorder(),
         child: SafeArea(child: _navPanel(theme, isCompact: true, forceExpandedKey: _drawerExpandKey)),
       ),
@@ -1033,8 +1106,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           child: DecoratedBox(
             decoration: BoxDecoration(
               // Vetro smerigliato bianco (come la bolla bottom), non il canvas grigio.
-              color: theme.secondaryBackground.withValues(alpha: 0.72),
-              border: Border(bottom: BorderSide(color: theme.borderColor)),
+              // Niente hairline: il blur basta a separare dal contenuto sotto.
+              color: theme.secondaryBackground.withValues(alpha: 0.6),
             ),
             child: SafeArea(
               bottom: false,
@@ -1087,12 +1160,13 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       child: Padding(
         padding: EdgeInsets.only(left: theme.gapLg, right: theme.gapLg, bottom: theme.gapLg),
         child: ClipRRect(
+          // Bottom bar mobile (chrome): bolla capsule = radiusBubble (concentrica ai pill interni).
           borderRadius: BorderRadius.circular(theme.radiusBubble),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: theme.secondaryBackground.withValues(alpha: 0.78),
+                color: theme.secondaryBackground.withValues(alpha: 0.66),
                 borderRadius: BorderRadius.circular(theme.radiusBubble),
                 border: Border.all(color: theme.borderColor),
               ),
@@ -1128,7 +1202,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _mobileContextArea(context, frosted: true),
-            if (hasContext && showNav) SizedBox(height: theme.gapMd),
+            if (hasContext && showNav) SizedBox(height: theme.gapLg),
             if (showNav)
               CLBottomBar(
                 destinations: widget.bottomDestinations ?? widget.destinations,
@@ -1217,5 +1291,35 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         ),
       ),
     );
+  }
+}
+
+/// Riporta la dimensione renderizzata del [child] via [onChange] dopo il layout.
+/// Usato dallo shell per misurare le barre frosted del menu e riservare il
+/// padding della lista.
+class _MeasureSize extends StatefulWidget {
+  const _MeasureSize({required this.onChange, required this.child});
+
+  final ValueChanged<Size> onChange;
+  final Widget child;
+
+  @override
+  State<_MeasureSize> createState() => _MeasureSizeState();
+}
+
+class _MeasureSizeState extends State<_MeasureSize> {
+  Size? _old;
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final size = context.size;
+      if (size != null && size != _old) {
+        _old = size;
+        widget.onChange(size);
+      }
+    });
+    return widget.child;
   }
 }

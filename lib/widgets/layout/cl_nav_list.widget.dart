@@ -20,11 +20,17 @@ class CLNavList extends StatelessWidget {
     required this.onSelect,
     this.isCompact = false,
     this.forceExpandedKey,
+    this.padding = const EdgeInsets.all(Sizes.gapLg),
   });
 
   final List<CLDestination> destinations;
   final String? selectedKey;
   final ValueChanged<CLDestination> onSelect;
+
+  /// Padding interno della lista. Default Lg su tutti i lati; lo shell lo
+  /// sovrascrive con top/bottom = altezza barre frosted per far scorrere le
+  /// voci sotto il vetro smerigliato di header/footer.
+  final EdgeInsets padding;
 
   /// True su drawer mobile/tablet (variazioni minori di dimensione testo).
   final bool isCompact;
@@ -39,7 +45,7 @@ class CLNavList extends StatelessWidget {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.all(Sizes.gapLg),
+        padding: padding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,

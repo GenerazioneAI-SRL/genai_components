@@ -244,34 +244,49 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
           curve: widget.animCurve,
           height: widget.height,
           padding: EdgeInsets.symmetric(horizontal: theme.gapLg),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: underlineColor,
-                width: underlineThickness,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          // Indicatore = barra centrata lunga metà del tab (non più border full-width).
+          child: Stack(
             children: [
-              if (widget.item.icon != null) ...[
-                AnimatedSwitcher(
-                  duration: widget.animDuration,
-                  child: Icon(
-                    widget.item.icon,
-                    key: ValueKey<Color>(textColor),
-                    size: theme.iconSizeCompact,
-                    color: textColor,
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.item.icon != null) ...[
+                      AnimatedSwitcher(
+                        duration: widget.animDuration,
+                        child: Icon(
+                          widget.item.icon,
+                          key: ValueKey<Color>(textColor),
+                          size: theme.iconSizeCompact,
+                          color: textColor,
+                        ),
+                      ),
+                      SizedBox(width: theme.gapIconText),
+                    ],
+                    AnimatedDefaultTextStyle(
+                      duration: widget.animDuration,
+                      curve: widget.animCurve,
+                      style: baseStyle,
+                      child: Text(widget.item.tabName),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: AnimatedContainer(
+                      duration: widget.animDuration,
+                      curve: widget.animCurve,
+                      height: underlineThickness,
+                      color: underlineColor,
+                    ),
                   ),
                 ),
-                SizedBox(width: theme.gapIconText),
-              ],
-              AnimatedDefaultTextStyle(
-                duration: widget.animDuration,
-                curve: widget.animCurve,
-                style: baseStyle,
-                child: Text(widget.item.tabName),
               ),
             ],
           ),

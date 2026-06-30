@@ -93,8 +93,11 @@ class _CLContainerState extends State<CLContainer> {
     // dark) a prescindere da showShadow. `elevated` è l'elevazione effettiva.
     final elevated = widget.showShadow && !widget.recessed;
     final useBorder = widget.showBorder || (elevated && isDark);
-    // Card L1: raggio card (radiusCard), non radiusControl. Override esplicito via borderRadius.
-    final br = widget.borderRadius ?? BorderRadius.circular(Sizes.radiusCard);
+    // Raggio per livello di annidamento (concentrico, token distinti):
+    // - recessed = superficie secondaria dentro card → radiusSurface (14)
+    // - card L1 → radiusCard (18)
+    // Override esplicito via borderRadius. Nesting: control 12 < surface 14 < card 18.
+    final br = widget.borderRadius ?? BorderRadius.circular(widget.recessed ? Sizes.radiusSurface : Sizes.radiusCard);
     final borderWidth = useBorder ? 1.0 : 0.0;
     final innerBr = BorderRadius.only(
       topLeft: Radius.circular((br.topLeft.x - borderWidth).clamp(0.0, double.infinity)),

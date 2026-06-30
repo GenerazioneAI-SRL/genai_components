@@ -43,7 +43,8 @@ class CLIconButton extends StatefulWidget {
   /// Bordo opzionale. Se `null` nessun bordo (focus ring a parte).
   final BoxBorder? border;
 
-  /// Override del raggio di angolo. Se `null` usa `theme.radiusControl`.
+  /// Override del raggio di angolo. Se `null` default 999 (cerchio/pill):
+  /// i bottoni icona isolati di chrome sono tondi per design (DS: quadrati→cerchio).
   final double? borderRadius;
 
   /// Tooltip mostrato al hover/long-press.
