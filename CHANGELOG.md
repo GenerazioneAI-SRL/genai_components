@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.7.3
+
+- **Foundation:** Added CLPressable shared interaction primitive (hover/press/focus/disabled + keyboard activation)
+- **Buttons:** CLActionChip and CLActionText migrated onto CLPressable; CLOutlineButton and CLSoftButton tone factories now render colored (fix ignored `color` param — secondary and raw constructor stay neutral)
+- **Widgets:** Updated Cl Tab View, Cl Nav List, Cl Nav Rail
+
 ## 5.7.2
 
 - **Widgets:** Updated 18 components

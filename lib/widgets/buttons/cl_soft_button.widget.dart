@@ -21,6 +21,12 @@ class CLSoftButton extends StatefulWidget {
   /// Override raggio angoli. Default `theme.radiusControl`. Es. `theme.radiusPill`.
   final double? borderRadius;
 
+  /// Interno: `true` → tono semantico colorato (primary/success/info/warning/
+  /// danger): bg tinta `color × opacitySoft` + testo/icona `color`. `false` →
+  /// neutro (secondary + costruttore raw): bg `muted`, testo `primaryText`.
+  /// Prima [color] non veniva mai letto in `build()` e ogni tono rendeva grigio.
+  final bool _colored;
+
   const CLSoftButton({
     super.key,
     required this.color,
@@ -35,7 +41,22 @@ class CLSoftButton extends StatefulWidget {
     this.width,
     this.isCompact = false,
     this.borderRadius,
-  });
+  }) : _colored = false;
+
+  const CLSoftButton._colored({
+    required this.color,
+    required this.text,
+    required this.onTap,
+    required this.context,
+    required this.iconAlignment,
+    this.needConfirmation = false,
+    this.confirmationMessage,
+    this.iconData,
+    this.hugeIcon,
+    this.width,
+    this.isCompact = false,
+    this.borderRadius,
+  }) : _colored = true;
 
   factory CLSoftButton.primary({
     required String text,
@@ -50,7 +71,7 @@ class CLSoftButton extends StatefulWidget {
     bool isCompact = false,
     double? borderRadius,
   }) {
-    return CLSoftButton(
+    return CLSoftButton._colored(
       text: text,
       color: CLTheme.of(context).primary,
       onTap: onTap,
@@ -105,7 +126,7 @@ class CLSoftButton extends StatefulWidget {
     String? confirmationMessage,
     bool isCompact = false,
   }) {
-    return CLSoftButton(
+    return CLSoftButton._colored(
       text: text,
       color: CLTheme.of(context).success,
       onTap: onTap,
@@ -132,7 +153,7 @@ class CLSoftButton extends StatefulWidget {
     String? confirmationMessage,
     bool isCompact = false,
   }) {
-    return CLSoftButton(
+    return CLSoftButton._colored(
       text: text,
       color: CLTheme.of(context).info,
       onTap: onTap,
@@ -159,7 +180,7 @@ class CLSoftButton extends StatefulWidget {
     String? confirmationMessage,
     bool isCompact = false,
   }) {
-    return CLSoftButton(
+    return CLSoftButton._colored(
       text: text,
       color: CLTheme.of(context).warning,
       onTap: onTap,
@@ -186,7 +207,7 @@ class CLSoftButton extends StatefulWidget {
     String? confirmationMessage,
     bool isCompact = false,
   }) {
-    return CLSoftButton(
+    return CLSoftButton._colored(
       text: text,
       color: CLTheme.of(context).danger,
       onTap: onTap,
@@ -220,14 +241,17 @@ class _CLSoftButtonState extends State<CLSoftButton> with AsyncButtonMixin {
     final theme = CLTheme.of(context);
     final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
     const vPad = 0.0;
-    final fgColor = theme.primaryText;
+    final colored = widget._colored;
+    final fgColor = colored ? widget.color : theme.primaryText;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final radius = widget.borderRadius ?? theme.radiusControl;
-    final baseBg = theme.muted;
-    final hoverBg = Color.lerp(baseBg, Colors.black, 0.08)!;
-    final pressedBg = Color.lerp(baseBg, Colors.black, 0.16)!;
-    final focusBorder = theme.primary;
+    final baseBg = colored ? widget.color.withValues(alpha: theme.opacitySoft) : theme.muted;
+    final hoverBg =
+        colored ? widget.color.withValues(alpha: theme.opacityMuted) : Color.lerp(theme.muted, Colors.black, 0.08)!;
+    final pressedBg =
+        colored ? widget.color.withValues(alpha: theme.opacityMedium) : Color.lerp(theme.muted, Colors.black, 0.16)!;
+    final focusBorder = colored ? widget.color : theme.primary;
     final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
 
     return Theme(

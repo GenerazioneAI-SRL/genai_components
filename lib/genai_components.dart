@@ -7,6 +7,9 @@ export 'cl_theme.dart';
 // Layout
 export 'layout/constants/sizes.constant.dart';
 
+// Foundation (Tier 0 — primitivi di base condivisi)
+export 'widgets/foundation/cl_pressable.widget.dart';
+
 // Buttons
 export 'widgets/buttons/cl_button.widget.dart';
 export 'widgets/buttons/cl_compact_action_scope.dart';

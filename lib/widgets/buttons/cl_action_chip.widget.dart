@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
+import '../foundation/cl_pressable.widget.dart';
 
 /// Tonal variants for [CLActionChip].
 enum CLActionChipTone { primary, secondary, success, warning, danger, neutral }
@@ -12,6 +13,9 @@ enum CLActionChipTone { primary, secondary, success, warning, danger, neutral }
 /// label/icon). Replaces ad-hoc `Container + InkWell + Padding` patterns
 /// scattered in pages.
 ///
+/// Interazione (hover/press/disabled + attivazione da tastiera) delegata al
+/// primitivo Foundation [CLPressable]; il chrome/visuale resta invariato.
+///
 /// Example:
 /// ```dart
 /// CLActionChip(
@@ -20,7 +24,7 @@ enum CLActionChipTone { primary, secondary, success, warning, danger, neutral }
 ///   onTap: () => _showDialog(),
 /// )
 /// ```
-class CLActionChip extends StatefulWidget {
+class CLActionChip extends StatelessWidget {
   /// Label text.
   final String label;
 
@@ -49,17 +53,9 @@ class CLActionChip extends StatefulWidget {
     this.tooltip,
   });
 
-  @override
-  State<CLActionChip> createState() => _CLActionChipState();
-}
-
-class _CLActionChipState extends State<CLActionChip> {
-  bool _hovered = false;
-  bool _pressed = false;
-
   Color _toneColor(CLTheme theme) {
-    if (widget.color != null) return widget.color!;
-    switch (widget.tone) {
+    if (color != null) return color!;
+    switch (tone) {
       case CLActionChipTone.primary:
         return theme.primary;
       case CLActionChipTone.secondary:
@@ -78,64 +74,55 @@ class _CLActionChipState extends State<CLActionChip> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final disabled = widget.onTap == null;
+    final disabled = onTap == null;
     final base = _toneColor(theme);
     final fg = disabled ? theme.mutedForeground : base;
-    final bgAlpha = disabled
-        ? theme.opacityFaint
-        : _pressed
-            ? 0.18
-            : _hovered
-                ? theme.opacityMuted
-                : theme.opacitySoft;
 
-    final chip = AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOut,
-      height: 28,
-      padding: EdgeInsets.symmetric(
-        horizontal: widget.icon != null ? theme.gapSm : theme.gapMd,
-      ),
-      decoration: BoxDecoration(
-        color: base.withValues(alpha: bgAlpha),
-        borderRadius: BorderRadius.circular(theme.radiusControl),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.icon != null) ...[
-            Icon(widget.icon, size: 14, color: fg),
-            const SizedBox(width: Sizes.gapXs),
-          ],
-          Text(
-            widget.label,
-            style: theme.smallLabel.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w600,
-            ),
+    final chip = CLPressable(
+      enabled: !disabled,
+      onTap: onTap,
+      semanticLabel: label,
+      builder: (context, state) {
+        final bgAlpha = state.disabled
+            ? theme.opacityFaint
+            : state.pressed
+                ? 0.18
+                : state.hovered
+                    ? theme.opacityMuted
+                    : theme.opacitySoft;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          height: 28,
+          padding: EdgeInsets.symmetric(
+            horizontal: icon != null ? theme.gapSm : theme.gapMd,
           ),
-        ],
-      ),
+          decoration: BoxDecoration(
+            color: base.withValues(alpha: bgAlpha),
+            borderRadius: BorderRadius.circular(theme.radiusControl),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 14, color: fg),
+                const SizedBox(width: Sizes.gapXs),
+              ],
+              Text(
+                label,
+                style: theme.smallLabel.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
 
-    final interactive = MouseRegion(
-      cursor: disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      onEnter: disabled ? null : (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() {
-        _hovered = false;
-        _pressed = false;
-      }),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
-        onTapUp: disabled ? null : (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: chip,
-      ),
-    );
-
-    if (widget.tooltip == null) return interactive;
-    return Tooltip(message: widget.tooltip, child: interactive);
+    if (tooltip == null) return chip;
+    return Tooltip(message: tooltip, child: chip);
   }
 }

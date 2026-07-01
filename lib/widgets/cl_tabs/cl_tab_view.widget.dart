@@ -122,30 +122,36 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
           ),
         ],
 
-        // Tab row — solo underline del tab attivo, nessun rail continuo
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(widget.clTabItems.length, (index) {
-            final item = widget.clTabItems[index];
-            final isActive = _controller.index == index;
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == widget.clTabItems.length - 1 ? 0 : theme.gapLg,
-              ),
-              child: _CLTabUnderlineItem(
-                item: item,
-                isActive: isActive,
-                onTap: () => _selectIndex(index),
-                theme: theme,
-                animDuration: _kAnimDuration,
-                animCurve: _kAnimCurve,
-                activeUnderline: _kActiveUnderline,
-                height: _kTabHeight,
-                showRail: widget.showDivider,
-                indicatorColor: widget.indicatorColor,
-              ),
-            );
-          }),
+        // Tab row — solo underline del tab attivo, nessun rail continuo.
+        // Scroll orizzontale: su larghezze strette (mobile, molte tab) la riga
+        // scorre invece di overfloware.
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(widget.clTabItems.length, (index) {
+              final item = widget.clTabItems[index];
+              final isActive = _controller.index == index;
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == widget.clTabItems.length - 1 ? 0 : theme.gapLg,
+                ),
+                child: _CLTabUnderlineItem(
+                  item: item,
+                  isActive: isActive,
+                  onTap: () => _selectIndex(index),
+                  theme: theme,
+                  animDuration: _kAnimDuration,
+                  animCurve: _kAnimCurve,
+                  activeUnderline: _kActiveUnderline,
+                  height: _kTabHeight,
+                  showRail: widget.showDivider,
+                  indicatorColor: widget.indicatorColor,
+                ),
+              );
+            }),
+          ),
         ),
 
         // Divider opzionale sotto la tab bar (oltre a quello di default)

@@ -150,7 +150,7 @@ class _CLNavTileState extends State<_CLNavTile> {
                       color: widget.selected
                           ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
                           : _hovered
-                              ? theme.secondaryText.withValues(alpha: 0.08)
+                              ? theme.secondaryText.withValues(alpha: theme.opacitySoft)
                               : Colors.transparent,
                       borderRadius: BorderRadius.circular(Sizes.radiusControl),
                     ),
@@ -232,7 +232,7 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
                   color: widget.selected
                       ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
                       : _hovered
-                          ? theme.secondaryText.withValues(alpha: 0.08)
+                          ? theme.secondaryText.withValues(alpha: theme.opacitySoft)
                           : Colors.transparent,
                   borderRadius: BorderRadius.circular(Sizes.radiusControl),
                 ),
@@ -388,7 +388,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
                       decoration: BoxDecoration(
-                        color: _hovered ? theme.secondaryText.withValues(alpha: 0.08) : Colors.transparent,
+                        color: _hovered ? theme.secondaryText.withValues(alpha: theme.opacitySoft) : Colors.transparent,
                         borderRadius: BorderRadius.circular(Sizes.radiusControl),
                       ),
                     ),
@@ -482,7 +482,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
                     duration: const Duration(milliseconds: 160),
                     height: box,
                     decoration: BoxDecoration(
-                      color: _hovered ? theme.secondaryText.withValues(alpha: 0.08) : Colors.transparent,
+                      color: _hovered ? theme.secondaryText.withValues(alpha: theme.opacitySoft) : Colors.transparent,
                       borderRadius: BorderRadius.circular(Sizes.radiusControl),
                     ),
                     child: Row(

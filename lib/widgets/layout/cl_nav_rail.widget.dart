@@ -138,7 +138,7 @@ class _RailItem extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: theme.gapSm / 2),
       child: Material(
-        color: selected ? theme.secondaryText.withValues(alpha: 0.12) : Colors.transparent,
+        color: selected ? theme.secondaryText.withValues(alpha: theme.opacityMuted) : Colors.transparent,
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(

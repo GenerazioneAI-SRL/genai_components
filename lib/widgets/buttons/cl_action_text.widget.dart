@@ -3,6 +3,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
+import '../foundation/cl_pressable.widget.dart';
 import 'cl_confirm_dialog.dart';
 import 'cl_loading_spinner.widget.dart';
 
@@ -222,7 +223,6 @@ class CLActionText extends StatefulWidget {
 
 class _CLActionTextState extends State<CLActionText> {
   bool loading = false;
-  bool isHovering = false;
 
   Future<void> _handleTap() async {
     if (loading) return;
@@ -264,18 +264,18 @@ class _CLActionTextState extends State<CLActionText> {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final fontSize = isMobile ? 13.0 : 14.0;
     final iconSz = isMobile ? Sizes.iconSizeCompact : Sizes.iconSizeDefault;
-    final activeColor = isHovering ? (widget.hoverColor ?? widget.color) : widget.color;
     final hasIcon = widget.iconData != null || widget.hugeIcon != null || loading;
 
     return IntrinsicWidth(
-      child: MouseRegion(
-        onEnter: widget.enableHover ? (_) => setState(() => isHovering = true) : null,
-        onExit: widget.enableHover ? (_) => setState(() => isHovering = false) : null,
+      child: CLPressable(
+        onTap: _handleTap,
         cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: _handleTap,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
+        semanticLabel: widget.text,
+        builder: (context, state) {
+          // Hover applicato solo quando enableHover (comportamento invariato).
+          final activeColor =
+              (widget.enableHover && state.hovered) ? (widget.hoverColor ?? widget.color) : widget.color;
+          return Padding(
             padding: EdgeInsets.symmetric(vertical: isMobile ? Sizes.gapXs : 2),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -298,8 +298,8 @@ class _CLActionTextState extends State<CLActionText> {
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
