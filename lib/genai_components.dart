@@ -120,6 +120,11 @@ export 'widgets/cl_survey/cl_survey_result_viewer.widget.dart';
 export 'widgets/cl_survey/models/question.dart';
 export 'widgets/cl_survey/models/question_result.dart';
 
+// Node graph (data-driven wrapper sopra motore vendored fl_nodes)
+export 'src/widgets/cl_node_graph/cl_graph_models.dart';
+export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, classifyGraphLink, CLGraphLinkRole;
+export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
+
 // Grid
 export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';
 
