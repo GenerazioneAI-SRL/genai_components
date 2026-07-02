@@ -29,4 +29,28 @@ void main() {
       expect(pos.containsKey(n.id), isTrue, reason: 'manca ${n.id}');
     }
   });
+
+  test('containment cycle does not stack-overflow and positions every node', () {
+    final cycleNodes = [_n('a', 'module'), _n('b', 'course')];
+    final cycleEdges = [_c('a', 'b'), _c('b', 'a')];
+
+    Map<String, Offset>? pos;
+    expect(() => pos = clHierarchicalLayout(cycleNodes, cycleEdges), returnsNormally);
+    expect(pos, isNotNull);
+    expect(pos!.containsKey('a'), isTrue);
+    expect(pos!.containsKey('b'), isTrue);
+  });
+
+  test('shared parent (diamond) places the shared node once', () {
+    final diamondNodes = [_n('m', 'module'), _n('a', 'course'), _n('b', 'course'), _n('x', 'lesson')];
+    final diamondEdges = [_c('m', 'a'), _c('m', 'b'), _c('a', 'x'), _c('b', 'x')];
+
+    final pos1 = clHierarchicalLayout(diamondNodes, diamondEdges);
+    for (final n in diamondNodes) {
+      expect(pos1.containsKey(n.id), isTrue, reason: 'manca ${n.id}');
+    }
+
+    final pos2 = clHierarchicalLayout(diamondNodes, diamondEdges);
+    expect(pos1, equals(pos2));
+  });
 }

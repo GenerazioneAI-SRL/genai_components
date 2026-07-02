@@ -19,9 +19,12 @@ Map<String, Offset> clHierarchicalLayout(List<CLGraphNode> nodes, List<CLGraphEd
   }
 
   final positions = <String, Offset>{};
+  final placed = <String>{};
   var rowCursor = 0;
 
   double place(String id, int depth) {
+    if (placed.contains(id)) return positions[id]?.dy ?? rowCursor * _rowHeight;
+    placed.add(id);
     final kids = children[id] ?? const [];
     final double y;
     if (kids.isEmpty) {
