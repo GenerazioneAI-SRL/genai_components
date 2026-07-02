@@ -221,7 +221,7 @@ class _PageTileState extends State<_PageTile> {
     );
 
     if (disabled) {
-      tile = Opacity(opacity: 0.4, child: tile);
+      tile = Opacity(opacity: t.opacityDisabled, child: tile);
     }
 
     return Focus(

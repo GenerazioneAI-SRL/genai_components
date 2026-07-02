@@ -246,7 +246,7 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
 
     // ── Disabled: fade opacità ───────────────────────────────────────
     button = AnimatedOpacity(
-      opacity: widget.enabled ? 1.0 : 0.5,
+      opacity: widget.enabled ? 1.0 : theme.opacityDisabled,
       duration: const Duration(milliseconds: 150),
       child: button,
     );
