@@ -106,20 +106,39 @@ abstract final class CLToneStyle {
   }
 
   /// Percorso neutro: replica il chrome storico dei bottoni non colorati.
+  /// Per `soft`: base muted, hover/press scuriscono muted (Color.lerp con black).
+  /// Per ghost/outline/link: hover accent, press accent scurito, bordo cardBorder su outline.
   static CLToneColors _neutral(
       CLTheme theme, CLVariant variant, CLPressableState s) {
     final Color bg;
-    if (s.pressed) {
-      bg = Color.lerp(theme.accent, Colors.black, 0.08)!;
-    } else if (s.hovered) {
-      bg = theme.accent;
+    final Color? border;
+
+    if (variant == CLVariant.soft) {
+      // Soft neutro: usa la scala muted (come in cl_soft_button.widget.dart)
+      if (s.pressed) {
+        bg = Color.lerp(theme.muted, Colors.black, 0.16)!;
+      } else if (s.hovered) {
+        bg = Color.lerp(theme.muted, Colors.black, 0.08)!;
+      } else {
+        bg = theme.muted;
+      }
+      border = null;
     } else {
-      bg = variant == CLVariant.soft ? theme.muted : Colors.transparent;
+      // Ghost/outline/link: usa accent (comportamento storico)
+      if (s.pressed) {
+        bg = Color.lerp(theme.accent, Colors.black, 0.08)!;
+      } else if (s.hovered) {
+        bg = theme.accent;
+      } else {
+        bg = Colors.transparent;
+      }
+      border = variant == CLVariant.outline ? theme.cardBorder : null;
     }
+
     return CLToneColors(
       bg: bg,
       fg: theme.primaryText,
-      border: variant == CLVariant.outline ? theme.cardBorder : null,
+      border: border,
     );
   }
 }

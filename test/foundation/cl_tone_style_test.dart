@@ -90,6 +90,24 @@ void main() {
           color: theme.secondary, variant: CLVariant.outline, colored: false);
       expect(idle.border, theme.cardBorder);
     });
+
+    test('soft neutro: base=muted, hover/press scuriscono muted', () {
+      final idle = CLToneStyle.resolve(theme,
+          color: theme.secondary, variant: CLVariant.soft, colored: false);
+      final hover = CLToneStyle.resolve(theme,
+          color: theme.secondary,
+          variant: CLVariant.soft,
+          colored: false,
+          state: const CLPressableState(hovered: true));
+      final press = CLToneStyle.resolve(theme,
+          color: theme.secondary,
+          variant: CLVariant.soft,
+          colored: false,
+          state: const CLPressableState(pressed: true));
+      expect(idle.bg, theme.muted);
+      expect(hover.bg, Color.lerp(theme.muted, Colors.black, 0.08));
+      expect(press.bg, Color.lerp(theme.muted, Colors.black, 0.16));
+    });
   });
 
   group('CLToneStyle.colorOf', () {
