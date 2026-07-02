@@ -37,4 +37,98 @@ void main() {
     expect(find.byType(CLNodeGraph), findsOneWidget);
     expect(tapped, isNull);
   });
+
+  testWidgets('rebuild on data change empties the graph (no duplicate nodes) and does not fire consumer callbacks', (tester) async {
+    // Contatori dei callback consumer: NESSUNO deve scattare durante un rebuild
+    // programmatico (né tap, né create/delete link, né reparent).
+    var linkCreated = 0;
+    var linkDeleted = 0;
+    var reparented = 0;
+    var tapped = 0;
+
+    final graphKey = GlobalKey<State<CLNodeGraph>>();
+
+    // Prima configurazione: 2 nodi + 1 arco di contenimento.
+    const initialNodes = [
+      CLGraphNode(id: 'm', type: 'module', title: 'Modulo'),
+      CLGraphNode(id: 'c1', type: 'course', title: 'Corso 1'),
+    ];
+    const initialEdges = [
+      CLGraphEdge(id: 'e:m>c1', fromNodeId: 'm', toNodeId: 'c1', kind: CLGraphEdgeKind.containment),
+    ];
+
+    // Seconda configurazione: insieme DIVERSO — 3 nodi + 2 archi — così
+    // `_graphChanged` scatta e `didUpdateWidget` invoca `_rebuildGraph`.
+    const nextNodes = [
+      CLGraphNode(id: 'a', type: 'module', title: 'A'),
+      CLGraphNode(id: 'b', type: 'course', title: 'B'),
+      CLGraphNode(id: 'c', type: 'course', title: 'C'),
+    ];
+    const nextEdges = [
+      CLGraphEdge(id: 'e:a>b', fromNodeId: 'a', toNodeId: 'b', kind: CLGraphEdgeKind.containment),
+      CLGraphEdge(id: 'e:a>c', fromNodeId: 'a', toNodeId: 'c', kind: CLGraphEdgeKind.containment),
+    ];
+
+    Widget buildGraph(List<CLGraphNode> nodes, List<CLGraphEdge> edges) {
+      return MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 800,
+            height: 600,
+            child: CLNodeGraph(
+              key: graphKey,
+              nodes: nodes,
+              edges: edges,
+              onNodeTap: (_) => tapped++,
+              onLinkCreate: (_, __) async {
+                linkCreated++;
+                return true;
+              },
+              onLinkDelete: (_) => linkDeleted++,
+              onReparent: (_, __) async {
+                reparented++;
+                return true;
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Primo mount (config iniziale).
+    await tester.pumpWidget(buildGraph(initialNodes, initialEdges));
+    await tester.pump(const Duration(milliseconds: 100)); // postFrame rebuild
+    await tester.pump(const Duration(milliseconds: 100)); // drena eventi async del bus
+
+    final ex1 = tester.takeException();
+    if (ex1 != null) expect(ex1.toString(), contains('grid.frag'));
+
+    final state = graphKey.currentState! as dynamic;
+    expect(state.debugNodeCount, 2, reason: 'primo mount: 2 nodi');
+
+    // Azzera i contatori dopo il primo mount: ci interessa solo il rebuild.
+    linkCreated = 0;
+    linkDeleted = 0;
+    reparented = 0;
+    tapped = 0;
+
+    // Rebuild con dati diversi → didUpdateWidget → _rebuildGraph.
+    await tester.pumpWidget(buildGraph(nextNodes, nextEdges));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100)); // drena eventi async del bus
+
+    final ex2 = tester.takeException();
+    if (ex2 != null) expect(ex2.toString(), contains('grid.frag'));
+
+    // Il CUORE del bug: dopo un rebuild devono esserci 3 nodi (i nuovi), NON 5
+    // (3 nuovi appesi ai 2 vecchi mai rimossi).
+    expect(state.debugNodeCount, 3, reason: 'rebuild deve SVUOTARE il grafo, non appendere');
+
+    // La cascata di rimozione link è programmatica: nessun callback consumer
+    // deve essere scattato durante il rebuild.
+    expect(linkDeleted, 0, reason: 'la cascata di rimozione non deve chiamare onLinkDelete');
+    expect(linkCreated, 0, reason: 'i link ricreati da noi non devono chiamare onLinkCreate');
+    expect(reparented, 0, reason: 'nessun reparent durante un rebuild');
+    expect(tapped, 0, reason: 'nessun tap durante un rebuild');
+  });
 }

@@ -54,6 +54,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   CLGraphLayout get _layout => widget.layout ?? clHierarchicalLayout;
 
+  /// Numero di nodi vivi nel motore. Esposto solo ai test per verificare che un
+  /// rebuild svuoti davvero il grafo (niente duplicati) — vedi test rebuild.
+  @visibleForTesting
+  int get debugNodeCount => _controller.nodeCount;
+
   @override
   void initState() {
     super.initState();
@@ -127,11 +132,21 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   void _rebuildGraph() {
     if (!mounted) return;
-    // Gli id dei link che stiamo per distruggere con `project.clear()` erano
-    // nostri: memorizziamoli così l'evento (async) di rimozione non venga letto
-    // come una cancellazione utente.
+    // Svuota davvero il grafo precedente. ATTENZIONE: `project.clear()`
+    // (→ controller.clear()) azzera SOLO lo spatial-hash e i set di selezione,
+    // NON `projectData.nodes`/`.links`: usarlo lascerebbe i nodi in mappa e un
+    // secondo rebuild APPENDEREBBE duplicati. Rimuoviamo invece ogni nodo con
+    // `removeNodeById`, che cancella il nodo dalla mappa e a cascata i suoi link
+    // (sincrono: le mutazioni delle mappe avvengono prima di qualsiasi await).
+    //
+    // La cascata emette un `FlRemoveLinkEvent` per ciascun link: sono rimozioni
+    // programmatiche NOSTRE, quindi pre-registriamo TUTTI gli id dei link
+    // correnti in `_ownRemovedLinkIds` così `_onEngineEvent` li assorbe e non
+    // chiama `onLinkDelete` del consumer.
     _ownRemovedLinkIds.addAll(_edgeByFlLink.keys);
-    _controller.project.clear();
+    for (final flId in _flByCl.values.toList()) {
+      _controller.removeNodeById(flId);
+    }
     _flByCl.clear();
     _clNodeById.clear();
     _edgeByFlLink.clear();
