@@ -48,7 +48,6 @@ class CLGhostButton extends StatefulWidget {
   const CLGhostButton._colored({
     required this.color,
     required this.text,
-    this.buttonStyle,
     required this.onTap,
     required this.context,
     required this.iconAlignment,
@@ -59,7 +58,7 @@ class CLGhostButton extends StatefulWidget {
     this.width,
     this.foregroundColor,
     this.isCompact = false,
-  }) : _colored = true;
+  }) : buttonStyle = null, _colored = true;
 
   factory CLGhostButton.primary({
     required String text,
