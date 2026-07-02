@@ -9,6 +9,7 @@ export 'layout/constants/sizes.constant.dart';
 
 // Foundation (Tier 0 — primitivi di base condivisi)
 export 'widgets/foundation/cl_pressable.widget.dart';
+export 'widgets/foundation/cl_tone_style.dart';
 
 // Buttons
 export 'widgets/buttons/cl_button.widget.dart';
