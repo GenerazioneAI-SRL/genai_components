@@ -27,8 +27,7 @@ class CLToneColors {
 /// Per `solid`: hover/press scuriscono con `Color.lerp(bg, black, 0.08/0.16)`.
 ///
 /// `colored: false` è il percorso neutro (tono secondary + costruttori raw dei
-/// bottoni): hover `accent`, testo `primaryText` — identico al comportamento
-/// storico, così i widget esistenti non cambiano resa dove erano neutri.
+/// bottoni): ghost/outline/link neutri → hover `accent`, press `accent` scurito; **soft neutro → scala su `muted`** (idle `muted`, hover/press scuriti con lerp 0.08/0.16); testo sempre `primaryText`.
 ///
 /// Con `state.disabled` restituisce i colori idle: l'opacità disabled
 /// (`theme.opacityDisabled`) la applica il consumer sull'intero widget.

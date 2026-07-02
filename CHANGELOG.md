@@ -3,7 +3,7 @@
 ## 5.8.0
 
 - **Foundation:** Added CLToneStyle recipe (single resolver for tone × variant × interaction-state colors) and CLSurface primitive (card/soft/recessed/panel/tint surface presets)
-- **Buttons:** CLGhostButton now reads its `color` param via CLToneStyle — tone factories (primary/success/info/warning/danger) render tinted hover/press/foreground; `secondary` and raw constructor stay neutral (fix ignored `color`, same bug class as 5.7.3 outline/soft fix)
+- **Buttons:** CLGhostButton now reads its `color` param via CLToneStyle — tone factories (primary/success/info/warning/danger) render tinted hover/press/foreground; `secondary` and raw constructor stay neutral (fix ignored `color`, same bug class as 5.7.3 outline/soft fix); icons/spinner now follow the foreground color (neutral ghost icons shift from secondaryText to primaryText, and a caller-supplied foregroundColor now recolors the icon too)
 - **Fixes:** hardcoded disabled opacities in CLIconButton (0.5) and CLPagination (0.4) replaced with `theme.opacityDisabled`
 
 ## 5.7.3

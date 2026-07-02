@@ -40,7 +40,8 @@ class CLSurface extends StatelessWidget {
     this.clipBehavior = Clip.none,
     this.width,
     this.height,
-  }) : tintColor = null;
+  }) : tintColor = null,
+       assert(kind != CLSurfaceKind.tint || color != null, 'CLSurfaceKind.tint richiede un colore: usa CLSurface.tint(color: ...)');
 
   const CLSurface.card({
     super.key,
