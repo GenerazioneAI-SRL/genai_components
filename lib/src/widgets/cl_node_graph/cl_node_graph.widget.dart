@@ -67,7 +67,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       width: canvasSize.width,
       height: canvasSize.height,
       child: GestureDetector(
-        behavior: HitTestBehavior.deferToChild,
+        behavior: HitTestBehavior.translucent,
         onTapDown: (d) {
           // tap "a vuoto" sul canvas → prova a colpire un arco propedeuticità
           final hit = nearestEdgeId(d.localPosition, segments);
@@ -91,9 +91,6 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 ),
               ),
             ),
-            // × dell'arco selezionato (tappabile) al midpoint
-            if (_selectedEdgeId != null)
-              ..._deleteHandle(segments),
             // card nodo sopra
             for (final n in widget.nodes)
               if (rects[n.id] != null)
@@ -104,6 +101,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                   height: kCardH,
                   child: _nodeCard(context, theme, n, byId),
                 ),
+            // × dell'arco selezionato (tappabile) al midpoint — sopra le card
+            if (_selectedEdgeId != null)
+              ..._deleteHandle(segments),
           ],
         ),
       ),
