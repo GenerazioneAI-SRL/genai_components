@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 
 import '../../cl_theme.dart';
-import '../../layout/constants/sizes.constant.dart';
+import '../foundation/cl_pressable.widget.dart';
 
 /// Animated container for a refined Skillera dialog. Wraps a Material
 /// surface with rounded modal radius, theme-aware shadow and entrance
@@ -104,6 +104,7 @@ class DialogHeader extends StatelessWidget {
                   style: cl.heading4.copyWith(
                     color: cl.primaryText,
                     fontSize: 18,
+                    fontWeight: FontWeight.w600,
                     height: 1.3,
                   ),
                 ),
@@ -137,15 +138,10 @@ class DialogFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = CLTheme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: cl.borderColor, width: 1)),
-        color: cl.muted.withValues(alpha: 0.40),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: cl.gap2Xl,
-        vertical: cl.gapLg,
-      ),
+    // Footer piatto in stile shadcn: nessuna hairline né fascia colorata —
+    // separato dal corpo solo dallo spazio. Bottoni allineati a destra.
+    return Padding(
+      padding: EdgeInsets.fromLTRB(cl.gap2Xl, 0, cl.gap2Xl, cl.gap2Xl),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -201,11 +197,10 @@ class IconBadge extends StatelessWidget {
 /// `ghost` is bordered transparent.
 enum CLDialogButtonTone { primary, danger, ghost }
 
-/// Compact, hover/press-aware dialog button. Single component covers the
-/// three semantic tones used across all CL dialogs. Provides the same look
-/// as the Material `ElevatedButton`/`OutlinedButton` would, but with the
-/// Skillera brand polish (Inter SemiBold label, on-grid radius, soft glow).
-class CLDialogButton extends StatefulWidget {
+/// Bottone di dialog in stile shadcn: superficie piatta, tre toni semantici
+/// (primary/danger filled, ghost outline). Interazione via [CLPressable]
+/// (hover/press/focus + attivazione tastiera), senza press-scale.
+class CLDialogButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
@@ -222,98 +217,72 @@ class CLDialogButton extends StatefulWidget {
   });
 
   @override
-  State<CLDialogButton> createState() => _CLDialogButtonState();
-}
-
-class _CLDialogButtonState extends State<CLDialogButton> {
-  bool _hover = false;
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
     final cl = CLTheme.of(context);
-    final disabled = widget.onPressed == null;
+    final disabled = onPressed == null;
 
-    Color background;
-    Color foreground;
-    Color? borderColor;
+    return CLPressable(
+      enabled: !disabled,
+      onTap: onPressed,
+      autofocus: autofocus,
+      semanticLabel: label,
+      builder: (context, state) {
+        Color background;
+        Color foreground;
+        Color? borderColor;
 
-    switch (widget.tone) {
-      case CLDialogButtonTone.primary:
-        background = disabled
-            ? cl.muted
-            : Color.alphaBlend(
-                Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0),
-                cl.primary,
-              );
-        foreground = disabled ? cl.mutedForeground : Colors.white;
-        break;
-      case CLDialogButtonTone.danger:
-        background = disabled
-            ? cl.muted
-            : Color.alphaBlend(
-                Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0),
-                cl.danger,
-              );
-        foreground = disabled ? cl.mutedForeground : Colors.white;
-        break;
-      case CLDialogButtonTone.ghost:
-        background = _hover ? cl.muted : Colors.transparent;
-        foreground = cl.primaryText;
-        borderColor = cl.borderColor;
-        break;
-    }
+        switch (tone) {
+          case CLDialogButtonTone.primary:
+            background = disabled
+                ? cl.muted
+                : Color.alphaBlend(
+                    Colors.black.withValues(alpha: state.hovered ? cl.opacitySoft : 0),
+                    cl.primary,
+                  );
+            foreground = disabled ? cl.mutedForeground : Colors.white;
+            break;
+          case CLDialogButtonTone.danger:
+            background = disabled
+                ? cl.muted
+                : Color.alphaBlend(
+                    Colors.black.withValues(alpha: state.hovered ? cl.opacitySoft : 0),
+                    cl.danger,
+                  );
+            foreground = disabled ? cl.mutedForeground : Colors.white;
+            break;
+          case CLDialogButtonTone.ghost:
+            background = state.hovered ? cl.muted : Colors.transparent;
+            foreground = cl.primaryText;
+            borderColor = cl.borderColor;
+            break;
+        }
 
-    return Focus(
-      autofocus: widget.autofocus,
-      child: MouseRegion(
-        cursor: disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: GestureDetector(
-          onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
-          onTapUp: disabled ? null : (_) => setState(() => _pressed = false),
-          onTapCancel: disabled ? null : () => setState(() => _pressed = false),
-          onTap: widget.onPressed,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            curve: Curves.easeOut,
-            height: CLSizes.buttonHeightDefault,
-            transform: _pressed
-                ? (Matrix4.identity()..scaleByDouble(0.98, 0.98, 1, 1))
-                : Matrix4.identity(),
-            transformAlignment: Alignment.center,
-            padding: EdgeInsets.symmetric(horizontal: cl.gapLg),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(cl.radiusControl),
-              border: borderColor != null
-                  ? Border.all(color: borderColor, width: 1)
-                  : null,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.icon != null) ...[
-                  Icon(widget.icon, size: cl.iconSizeCompact, color: foreground),
-                  SizedBox(width: cl.gapSm),
-                ],
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: foreground,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ],
-            ),
+        return AnimatedContainer(
+          duration: cl.durationFast,
+          curve: cl.easingStandard,
+          height: cl.buttonHeightDefault,
+          padding: EdgeInsets.symmetric(horizontal: cl.gapLg),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(cl.radiusControl),
+            border: borderColor != null ? Border.all(color: borderColor, width: 1) : null,
           ),
-        ),
-      ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: cl.iconSizeCompact, color: foreground),
+                SizedBox(width: cl.gapSm),
+              ],
+              Text(
+                label,
+                style: cl.bodyText.copyWith(color: foreground, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

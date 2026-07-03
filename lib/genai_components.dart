@@ -91,6 +91,7 @@ export 'widgets/cl_progress.widget.dart';
 export 'widgets/cl_confirm_refuse_buttons.widget.dart';
 
 // States
+export 'widgets/cl_empty_state.widget.dart';
 export 'widgets/cl_shimmer.widget.dart';
 export 'widgets/cl_collapsible.widget.dart';
 export 'widgets/cl_skeleton.widget.dart';

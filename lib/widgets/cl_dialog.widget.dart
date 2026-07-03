@@ -40,6 +40,19 @@ abstract class CLDialog<T> extends StatelessWidget {
   /// Label of the cancel button.
   final String cancelLabel;
 
+  /// Optional leading widget in the header (icon badge, avatar).
+  final Widget? headerLeading;
+
+  /// Whether to show the close (×) button in the header. Default `true`.
+  final bool showCloseButton;
+
+  /// Max dialog width. Default `480`.
+  final double maxWidth;
+
+  /// When `true` (default) the body is wrapped in a scroll view. Set `false`
+  /// when the content manages its own scrolling (e.g. an inner list/table).
+  final bool scrollableBody;
+
   /// Creates a [CLDialog].
   const CLDialog({
     super.key,
@@ -49,6 +62,10 @@ abstract class CLDialog<T> extends StatelessWidget {
     this.onConfirm,
     this.confirmLabel = 'Conferma',
     this.cancelLabel = 'Annulla',
+    this.headerLeading,
+    this.showCloseButton = true,
+    this.maxWidth = 480,
+    this.scrollableBody = true,
   });
 
   /// Builds the body of the dialog. Subclasses must override.
@@ -58,32 +75,39 @@ abstract class CLDialog<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final cl = CLTheme.of(context);
     return DialogShell(
+      maxWidth: maxWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DialogHeader(
             title: title,
             subtitle: subtitle,
-            trailing: DialogCloseButton(
-              onPressed: () {
-                onCancel?.call();
-                Navigator.of(context).pop();
-              },
-            ),
+            leading: headerLeading,
+            trailing: showCloseButton
+                ? DialogCloseButton(
+                    onPressed: () {
+                      onCancel?.call();
+                      Navigator.of(context).pop();
+                    },
+                  )
+                : null,
           ),
           Flexible(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                cl.gap2Xl,
-                0,
-                cl.gap2Xl,
-                cl.gap2Xl,
-              ),
-              child: DefaultTextStyle.merge(
-                style: cl.bodyText.copyWith(color: cl.primaryText),
-                child: buildContent(context),
-              ),
-            ),
+            child: scrollableBody
+                ? SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(cl.gap2Xl, 0, cl.gap2Xl, cl.gap2Xl),
+                    child: DefaultTextStyle.merge(
+                      style: cl.bodyText.copyWith(color: cl.primaryText),
+                      child: buildContent(context),
+                    ),
+                  )
+                : Padding(
+                    padding: EdgeInsets.fromLTRB(cl.gap2Xl, 0, cl.gap2Xl, cl.gap2Xl),
+                    child: DefaultTextStyle.merge(
+                      style: cl.bodyText.copyWith(color: cl.primaryText),
+                      child: buildContent(context),
+                    ),
+                  ),
           ),
           DialogFooter(
             actions: [
@@ -111,4 +135,75 @@ abstract class CLDialog<T> extends StatelessWidget {
       ),
     );
   }
+
+  /// Apre un CLDialog **inline**, senza sottoclasse. Ritorna il risultato di
+  /// [onConfirm] (o `null` se annullato/chiuso).
+  ///
+  /// ```dart
+  /// final ok = await CLDialog.show<bool>(
+  ///   context,
+  ///   title: 'Gestisci contatti',
+  ///   headerLeading: IconBadge(icon: Icons.contacts, color: theme.primary),
+  ///   maxWidth: 520,
+  ///   content: (ctx) => _contactsForm,
+  ///   confirmLabel: 'Salva',
+  ///   onConfirm: () => vm.save(),
+  /// );
+  /// ```
+  static Future<T?> show<T>(
+    BuildContext context, {
+    required String title,
+    required WidgetBuilder content,
+    String? subtitle,
+    Widget? headerLeading,
+    bool showCloseButton = true,
+    double maxWidth = 480,
+    bool scrollableBody = true,
+    FutureOr<T?> Function()? onConfirm,
+    VoidCallback? onCancel,
+    String confirmLabel = 'Conferma',
+    String cancelLabel = 'Annulla',
+    bool barrierDismissible = true,
+  }) {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: (_) => _CLBuilderDialog<T>(
+        title: title,
+        subtitle: subtitle,
+        headerLeading: headerLeading,
+        showCloseButton: showCloseButton,
+        maxWidth: maxWidth,
+        scrollableBody: scrollableBody,
+        onConfirm: onConfirm,
+        onCancel: onCancel,
+        confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
+        contentBuilder: content,
+      ),
+    );
+  }
+}
+
+/// Sottoclasse concreta di [CLDialog] per l'uso inline via [CLDialog.show].
+/// Rende [contentBuilder] come corpo — nessuna sottoclasse lato consumer.
+class _CLBuilderDialog<T> extends CLDialog<T> {
+  const _CLBuilderDialog({
+    required super.title,
+    super.subtitle,
+    super.onCancel,
+    super.onConfirm,
+    super.confirmLabel = 'Conferma',
+    super.cancelLabel = 'Annulla',
+    super.headerLeading,
+    super.showCloseButton = true,
+    super.maxWidth = 480,
+    super.scrollableBody = true,
+    required this.contentBuilder,
+  });
+
+  final WidgetBuilder contentBuilder;
+
+  @override
+  Widget buildContent(BuildContext context) => contentBuilder(context);
 }
