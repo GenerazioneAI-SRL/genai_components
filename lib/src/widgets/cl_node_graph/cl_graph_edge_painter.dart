@@ -2,14 +2,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'cl_graph_models.dart';
 
-/// Estremi (centri card) di ogni arco `link`, per painter e hit-test.
-List<({String id, Offset a, Offset b})> linkSegments(
+/// Estremi (centri card) di ogni arco `prerequisite`, per painter e hit-test.
+List<({String id, Offset a, Offset b})> prereqSegments(
   Map<String, Rect> nodeRects,
   List<CLGraphEdge> edges,
 ) {
   final out = <({String id, Offset a, Offset b})>[];
   for (final e in edges) {
-    if (e.kind != CLGraphEdgeKind.link) continue;
+    if (e.kind != CLGraphEdgeKind.prerequisite) continue;
     final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
     if (from == null || to == null) continue;
     out.add((id: e.id, a: from.center, b: to.center));
@@ -22,6 +22,7 @@ class CLGraphEdgePainter extends CustomPainter {
   final List<CLGraphEdge> edges;
   final Color containmentColor;
   final Color linkColor;
+  final Color orderColor;
   final Color selectedColor;
   final String? selectedEdgeId;
 
@@ -30,6 +31,7 @@ class CLGraphEdgePainter extends CustomPainter {
     required this.edges,
     required this.containmentColor,
     required this.linkColor,
+    required this.orderColor,
     required this.selectedColor,
     this.selectedEdgeId,
   });
@@ -47,9 +49,21 @@ class CLGraphEdgePainter extends CustomPainter {
       if (from == null || to == null) continue;
       canvas.drawLine(from.center, to.center, cPaint);
     }
-    // 2) propedeuticità (freccia; selezionato evidenziato + ×)
+    // 2) ordine (tratteggiata grigia, freccia, NON selezionabile)
     for (final e in edges) {
-      if (e.kind != CLGraphEdgeKind.link) continue;
+      if (e.kind != CLGraphEdgeKind.order) continue;
+      final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
+      if (from == null || to == null) continue;
+      final paint = Paint()
+        ..color = orderColor
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke;
+      _drawDashedLine(canvas, from.center, to.center, paint);
+      _drawArrowHead(canvas, from.center, to.center, paint);
+    }
+    // 3) prerequisito (piena; selezionato evidenziato + ×)
+    for (final e in edges) {
+      if (e.kind != CLGraphEdgeKind.prerequisite) continue;
       final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
       if (from == null || to == null) continue;
       final selected = e.id == selectedEdgeId;
@@ -61,6 +75,20 @@ class CLGraphEdgePainter extends CustomPainter {
       canvas.drawLine(a, b, paint);
       _drawArrowHead(canvas, a, b, paint);
       if (selected) _drawDeleteX(canvas, Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2), selectedColor);
+    }
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset a, Offset b, Paint paint) {
+    const dash = 6.0, gap = 4.0;
+    final total = (b - a).distance;
+    if (total == 0) return;
+    final dir = (b - a) / total;
+    var d = 0.0;
+    while (d < total) {
+      final start = a + dir * d;
+      final end = a + dir * (d + dash).clamp(0.0, total);
+      canvas.drawLine(start, end, paint);
+      d += dash + gap;
     }
   }
 
@@ -93,6 +121,7 @@ class CLGraphEdgePainter extends CustomPainter {
       old.edges != edges ||
       old.selectedEdgeId != selectedEdgeId ||
       old.linkColor != linkColor ||
+      old.orderColor != orderColor ||
       old.selectedColor != selectedColor ||
       old.containmentColor != containmentColor;
 }

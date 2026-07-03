@@ -92,7 +92,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       maxY = maxY > r.bottom ? maxY : r.bottom;
     }
     final canvasSize = Size(maxX + _pad, maxY + _pad);
-    final segments = linkSegments(rects, widget.edges);
+    final segments = prereqSegments(rects, widget.edges);
 
     // Un SOLO DragTarget avvolge l'intero canvas: il bersaglio del drop non è
     // deciso dall'hit-test per-card (fragile dentro lo scroll + ghost sfasato)
@@ -137,6 +137,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                       edges: widget.edges,
                       containmentColor: theme.borderColor,
                       linkColor: theme.primary,
+                      orderColor: theme.mutedForeground,
                       selectedColor: theme.danger,
                       selectedEdgeId: _selectedEdgeId,
                     ),

@@ -21,8 +21,8 @@ class CLGraphNode {
   });
 }
 
-/// Tipo di arco: contenimento (gerarchia) o link generico (propedeuticità).
-enum CLGraphEdgeKind { containment, link }
+/// Tipo di arco: contenimento (gerarchia), propedeuticità o ordine.
+enum CLGraphEdgeKind { containment, prerequisite, order }
 
 class CLGraphEdge {
   final String id;
