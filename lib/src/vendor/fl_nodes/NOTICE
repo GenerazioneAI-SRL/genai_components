@@ -1,4 +1,0 @@
-This directory vendors "fl_nodes_core" (https://github.com/WilliamKarolDiCioccio/fl_nodes)
-Copyright (c) William Karol Di Cioccio — MIT License (see LICENSE in this directory).
-Vendored into genai_components: imports rewritten to package:genai_components/src/vendor/fl_nodes/*,
-grid.frag shader assetKey updated to the genai_components package path. Engine code otherwise unmodified.
