@@ -120,7 +120,7 @@ export 'widgets/cl_survey/cl_survey_result_viewer.widget.dart';
 export 'widgets/cl_survey/models/question.dart';
 export 'widgets/cl_survey/models/question_result.dart';
 
-// Node graph (data-driven wrapper sopra motore vendored fl_nodes)
+// Node graph (widget data-driven custom: Stack + CustomPaint)
 export 'src/widgets/cl_node_graph/cl_graph_models.dart';
 export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, classifyGraphLink, CLGraphLinkRole;
 export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
