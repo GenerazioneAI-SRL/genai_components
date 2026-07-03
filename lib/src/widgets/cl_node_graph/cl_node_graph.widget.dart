@@ -159,6 +159,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         offset: positions[n.id] ?? Offset.zero,
         customData: {'clId': n.id},
       );
+      // Il nodeBuilder custom bypassa base_node, unico punto in cui il motore
+      // inizializza i late builtStyle/builtHeaderStyle. Il render object li legge
+      // su insert -> inizializzali qui dai default del prototype (evita LateInitializationError).
+      fl.builtStyle = fl.prototype.styleBuilder(fl.state);
+      fl.builtHeaderStyle = fl.prototype.headerStyleBuilder(fl.state);
       _flByCl[n.id] = fl.id;
     }
     for (final e in widget.edges) {
