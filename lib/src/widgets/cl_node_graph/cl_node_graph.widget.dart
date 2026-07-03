@@ -6,7 +6,7 @@ import 'cl_graph_edge_painter.dart';
 import 'cl_graph_geometry.dart';
 
 const double kCardW = 220;
-const double kCardH = 64;
+const double kCardH = 84;
 const double _pad = 60; // margine attorno al bounding box
 
 /// Canvas a nodi data-driven (MVP): render nodi+archi da `nodes`/`edges`,
