@@ -8,6 +8,16 @@ import 'cl_graph_geometry.dart';
 const double kCardW = 220;
 const double kCardH = 84;
 const double _pad = 60; // margine attorno al bounding box
+const double _kHandleSize = 24; // diametro degli handle di connessione
+
+/// Payload di un drag partito da un handle di connessione: identifica il nodo
+/// sorgente + il tipo di arco da creare al drop. Distinto dal payload `String`
+/// del drag-corpo (reparent) così il DragTarget<Object> del canvas può ramificare.
+class _EdgeDrag {
+  final String nodeId;
+  final CLGraphEdgeKind kind;
+  const _EdgeDrag(this.nodeId, this.kind);
+}
 
 /// Canvas a nodi data-driven (MVP): render nodi+archi da `nodes`/`edges`,
 /// tap→select, drag nodo→nodo per propedeuticità/reparent, tap arco→× per
@@ -17,9 +27,10 @@ class CLNodeGraph extends StatefulWidget {
   final List<CLGraphEdge> edges;
   final String? selectedNodeId;
   final void Function(String nodeId)? onNodeTap;
-  final Future<bool> Function(String fromNodeId, String toNodeId)? onLinkCreate; // from=prereq
-  final void Function(String edgeId)? onLinkDelete;
+  final void Function(String fromNodeId, String toNodeId, CLGraphEdgeKind kind)? onEdgeCreate; // from=sorgente handle
+  final void Function(String edgeId, CLGraphEdgeKind kind)? onEdgeDelete;
   final Future<bool> Function(String childNodeId, String newParentNodeId)? onReparent;
+  final bool Function(CLGraphNode node)? canConnect; // true ⇒ mostra i due handle di connessione
   final CLGraphLayout? layout;
 
   const CLNodeGraph({
@@ -28,9 +39,10 @@ class CLNodeGraph extends StatefulWidget {
     required this.edges,
     this.selectedNodeId,
     this.onNodeTap,
-    this.onLinkCreate,
-    this.onLinkDelete,
+    this.onEdgeCreate,
+    this.onEdgeDelete,
     this.onReparent,
+    this.canConnect,
     this.layout,
   });
 
@@ -102,21 +114,36 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       key: _canvasKey,
       width: canvasSize.width,
       height: canvasSize.height,
-      child: DragTarget<String>(
+      child: DragTarget<Object>(
         onWillAcceptWithDetails: (_) => true, // il bersaglio reale è risolto per-Rect
         onMove: (d) {
-          final id = _resolveTargetId(d.offset, rects, d.data);
+          // sourceId per _resolveTargetId (che esclude il sorgente): dal payload,
+          // sia esso reparent (String) o connessione (_EdgeDrag).
+          final data = d.data;
+          final sourceId = data is _EdgeDrag ? data.nodeId : data as String;
+          final id = _resolveTargetId(d.offset, rects, sourceId);
           if (id != _dragHoverId) setState(() => _dragHoverId = id);
         },
         onLeave: (_) {
           if (_dragHoverId != null) setState(() => _dragHoverId = null);
         },
         onAcceptWithDetails: (d) {
-          final id = _resolveTargetId(d.offset, rects, d.data);
+          final data = d.data;
+          // Ramo connessione: crea arco (kind dal handle) source→target.
+          if (data is _EdgeDrag) {
+            final target = _resolveTargetId(d.offset, rects, data.nodeId);
+            if (_dragHoverId != null) setState(() => _dragHoverId = null);
+            if (target == null) return; // drop nel vuoto o sul sorgente stesso
+            widget.onEdgeCreate?.call(data.nodeId, target, data.kind);
+            return;
+          }
+          // Ramo reparent (payload String): logica invariata via _onDrop.
+          final sourceId = data as String;
+          final id = _resolveTargetId(d.offset, rects, sourceId);
           if (_dragHoverId != null) setState(() => _dragHoverId = null);
           if (id == null) return; // drop nel vuoto o sul sorgente stesso
           final target = byId[id];
-          if (target != null) _onDrop(d.data, target, byId);
+          if (target != null) _onDrop(sourceId, target, byId);
         },
         builder: (context, cand, rej) => GestureDetector(
           behavior: HitTestBehavior.translucent,
@@ -197,7 +224,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         height: 22,
         child: GestureDetector(
           onTap: () {
-            widget.onLinkDelete?.call(_selectedEdgeId!);
+            widget.onEdgeDelete?.call(_selectedEdgeId!, CLGraphEdgeKind.prerequisite);
             setState(() => _selectedEdgeId = null);
           },
           child: const SizedBox.expand(), // area tap sopra la × disegnata
@@ -259,7 +286,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     // Ghost geometricamente identico al child (kCardW×kCardH) + anchor esplicito
     // `childDragAnchorStrategy` ⇒ top-left del feedback = pointer - grabPoint, così
     // il ghost segue il cursore sotto il punto di presa (fix "ghost sfasato").
-    return Draggable<String>(
+    final body = Draggable<String>(
       data: n.id,
       dragAnchorStrategy: childDragAnchorStrategy,
       feedback: Material(color: Colors.transparent, child: Opacity(opacity: 0.85, child: SizedBox(width: kCardW, height: kCardH, child: card))),
@@ -278,6 +305,68 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         ),
       ),
     );
+
+    // Solo i nodi connettibili espongono i due handle di connessione.
+    if (widget.canConnect?.call(n) != true) return body;
+
+    // NOTA layout: il Positioned esterno (build) vincola la card a kCardW×kCardH.
+    // Gli handle sono inset DENTRO tale box (right/bottom = 2) — NON in overflow
+    // negativo — così restano interamente hit-testabili (un RenderStack non testa
+    // i figli oltre i propri bounds anche con Clip.none). kCardW/kCardH invariati.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(child: body),
+        // handle ORDINE — lato destro, verticale-centrato
+        Positioned(
+          right: 2,
+          top: (kCardH - _kHandleSize) / 2,
+          child: _connHandle(theme: theme, nodeId: n.id, kind: CLGraphEdgeKind.order, icon: Icons.swap_vert),
+        ),
+        // handle PROPEDEUTICITÀ — lato inferiore, orizzontale-centrato
+        Positioned(
+          bottom: 2,
+          left: (kCardW - _kHandleSize) / 2,
+          child: _connHandle(theme: theme, nodeId: n.id, kind: CLGraphEdgeKind.prerequisite, icon: Icons.lock_outline),
+        ),
+      ],
+    );
+  }
+
+  /// Handle di connessione: un pallino trascinabile (`Draggable<_EdgeDrag>`) che
+  /// avvia la creazione di un arco [kind] con sorgente [nodeId]. Unico helper
+  /// sanzionato del task. Usa `secondaryBackground`/`mutedForeground`/`danger`.
+  ///
+  /// COORDINATE: `dragAnchorStrategy` fissa l'ancora a (kCardW/2, kCardH/2) così
+  /// che `_resolveTargetId` (che somma quello stesso offset a `details.offset`)
+  /// risolva il bersaglio ESATTAMENTE sotto il puntatore. Il feedback è un box
+  /// trasparente kCardW×kCardH col pallino ghost centrato ⇒ il ghost resta sotto
+  /// il cursore. Riusa `_resolveTargetId` intatto (nessun helper extra).
+  Widget _connHandle({
+    required CLTheme theme,
+    required String nodeId,
+    required CLGraphEdgeKind kind,
+    required IconData icon,
+  }) {
+    Widget circle(Color fill, Color fg, {Border? border}) => Container(
+          width: _kHandleSize,
+          height: _kHandleSize,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: fill, shape: BoxShape.circle, border: border, boxShadow: theme.cardShadowSoft),
+          child: Icon(icon, size: 14, color: fg),
+        );
+    final dot = circle(theme.secondaryBackground, theme.mutedForeground, border: Border.all(color: theme.mutedForeground, width: 1.5));
+    final ghost = circle(theme.danger, theme.secondaryBackground);
+    return Draggable<_EdgeDrag>(
+      data: _EdgeDrag(nodeId, kind),
+      dragAnchorStrategy: (_, __, ___) => const Offset(kCardW / 2, kCardH / 2),
+      feedback: Material(
+        color: Colors.transparent,
+        child: SizedBox(width: kCardW, height: kCardH, child: Center(child: ghost)),
+      ),
+      childWhenDragging: Opacity(opacity: 0.35, child: dot),
+      child: MouseRegion(cursor: SystemMouseCursors.grab, child: dot),
+    );
   }
 
   /// [sourceId] trascinato su [target]. Lezione→corso = reparent; altrimenti link (from=prereq).
@@ -287,7 +376,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     if (source.type == 'lesson' && target.type == 'course') {
       widget.onReparent?.call(source.id, target.id);
     } else {
-      widget.onLinkCreate?.call(source.id, target.id); // from=source=prereq, to=target=dipendente
+      // Drag-corpo su nodo non-parent = crea propedeuticità (comportamento storico).
+      widget.onEdgeCreate?.call(source.id, target.id, CLGraphEdgeKind.prerequisite);
     }
   }
 }
