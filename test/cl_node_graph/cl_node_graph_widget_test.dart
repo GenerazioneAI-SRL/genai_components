@@ -131,4 +131,59 @@ void main() {
     expect(reparented, 0, reason: 'nessun reparent durante un rebuild');
     expect(tapped, 0, reason: 'nessun tap durante un rebuild');
   });
+
+  testWidgets('rebuild diff-based: i nodi persistiti mantengono lo stesso id motore', (tester) async {
+    // Regression del bug di reconciliation: con lo stesso insieme di clId, un
+    // rebuild (innescato da un cambio di title) NON deve rigenerare gli id motore
+    // dei nodi persistiti. Il vecchio codice rimuoveva/riaggiungeva tutto → id
+    // sempre nuovi → churn di reconciliation → crash del RenderBox.
+    final graphKey = GlobalKey<State<CLNodeGraph>>();
+
+    const firstNodes = [
+      CLGraphNode(id: 'a', type: 'module', title: 'A'),
+      CLGraphNode(id: 'b', type: 'course', title: 'B'),
+    ];
+    const secondNodes = [
+      CLGraphNode(id: 'a', type: 'module', title: 'A modificato'), // stesso clId, title diverso
+      CLGraphNode(id: 'b', type: 'course', title: 'B'),
+    ];
+    const edges = [
+      CLGraphEdge(id: 'e:a>b', fromNodeId: 'a', toNodeId: 'b', kind: CLGraphEdgeKind.containment),
+    ];
+
+    Widget buildGraph(List<CLGraphNode> nodes) => MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: CLNodeGraph(key: graphKey, nodes: nodes, edges: edges),
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(buildGraph(firstNodes));
+    await tester.pump(const Duration(milliseconds: 100)); // postFrame rebuild
+    await tester.pump(const Duration(milliseconds: 100)); // drena eventi async del bus
+    final ex1 = tester.takeException();
+    if (ex1 != null) expect(ex1.toString(), contains('grid.frag'));
+
+    final state = graphKey.currentState! as dynamic;
+    final flA = state.debugFlIdFor('a') as String?;
+    final flB = state.debugFlIdFor('b') as String?;
+    expect(flA, isNotNull);
+    expect(flB, isNotNull);
+    expect(state.debugNodeCount, 2);
+
+    // Rebuild con stesso insieme di clId (solo title cambiato).
+    await tester.pumpWidget(buildGraph(secondNodes));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    final ex2 = tester.takeException();
+    if (ex2 != null) expect(ex2.toString(), contains('grid.frag'));
+
+    // Il CUORE del fix: gli id motore dei nodi persistiti sono INVARIATI.
+    expect(state.debugFlIdFor('a'), flA, reason: 'nodo persistito: id motore stabile');
+    expect(state.debugFlIdFor('b'), flB, reason: 'nodo persistito: id motore stabile');
+    expect(state.debugNodeCount, 2, reason: 'nessun duplicato dopo il rebuild');
+  });
 }

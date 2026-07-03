@@ -59,6 +59,12 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   @visibleForTesting
   int get debugNodeCount => _controller.nodeCount;
 
+  /// Id del nodo motore associato a un `clId`. Esposto solo ai test per
+  /// verificare che il rebuild diff-based mantenga stabili gli id dei nodi
+  /// persistiti (niente reconciliation churn) — vedi test stabilità id.
+  @visibleForTesting
+  String? debugFlIdFor(String clId) => _flByCl[clId];
+
   @override
   void initState() {
     super.initState();
@@ -132,28 +138,59 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   void _rebuildGraph() {
     if (!mounted) return;
-    // Svuota davvero il grafo precedente. ATTENZIONE: `project.clear()`
-    // (→ controller.clear()) azzera SOLO lo spatial-hash e i set di selezione,
-    // NON `projectData.nodes`/`.links`: usarlo lascerebbe i nodi in mappa e un
-    // secondo rebuild APPENDEREBBE duplicati. Rimuoviamo invece ogni nodo con
-    // `removeNodeById`, che cancella il nodo dalla mappa e a cascata i suoi link
-    // (sincrono: le mutazioni delle mappe avvengono prima di qualsiasi await).
-    //
-    // La cascata emette un `FlRemoveLinkEvent` per ciascun link: sono rimozioni
-    // programmatiche NOSTRE, quindi pre-registriamo TUTTI gli id dei link
-    // correnti in `_ownRemovedLinkIds` così `_onEngineEvent` li assorbe e non
-    // chiama `onLinkDelete` del consumer.
+    // Rebuild DIFF-BASED. Il vecchio approccio rimuoveva e riaggiungeva TUTTI i
+    // nodi ad ogni cambiamento: `addNode` genera un id motore NUOVO ogni volta,
+    // quindi i child widget del motore ricevevano chiavi nuove ad ogni rebuild.
+    // Durante la reconciliation di Flutter il nuovo child viene inserito PRIMA
+    // che il vecchio venga rimosso, così `NodeEditorRenderBox.insert` vedeva
+    // transitoriamente più figli dei nodi nel controller e lanciava
+    // "Found N children, but only M nodes". Diffando per clId i nodi persistiti
+    // mantengono il loro id motore (chiavi stabili → niente churn).
+
+    // === LINK: rimuovi tutti quelli tracciati, si riaggiungono dai dati ===
+    // Rimuovendoli PRIMA dei nodi, la successiva `removeNodeById` sui nodi
+    // scomparsi non innesca alcuna cascata (i loro link sono già spariti):
+    // niente doppie rimozioni né leak in `_edgeByFlLink`. Le rimozioni sono
+    // NOSTRE: pre-registriamo gli id in `_ownRemovedLinkIds` così
+    // `_onEngineEvent` assorbe i `FlRemoveLinkEvent` e non chiama `onLinkDelete`.
     _ownRemovedLinkIds.addAll(_edgeByFlLink.keys);
-    for (final flId in _flByCl.values.toList()) {
-      _controller.removeNodeById(flId);
+    for (final flLinkId in _edgeByFlLink.keys.toList()) {
+      _controller.removeLinkById(flLinkId);
     }
-    _flByCl.clear();
-    _clNodeById.clear();
     _edgeByFlLink.clear();
+
+    // === NODI: diff per clId ===
+    final currentClIds = widget.nodes.map((n) => n.id).toSet();
+
+    // clId scomparsi dai dati → rimuovi dal motore e dal bookkeeping.
+    for (final clId in _flByCl.keys.toList()) {
+      if (!currentClIds.contains(clId)) {
+        _controller.removeNodeById(_flByCl[clId]!);
+        _flByCl.remove(clId);
+      }
+    }
 
     final positions = _layout(widget.nodes, widget.edges);
     for (final n in widget.nodes) {
+      // Il nodeBuilder legge sempre i dati aggiornati (title/subtitle/accent) al
+      // prossimo setState: rinfresca la mappa per OGNI nodo corrente.
       _clNodeById[n.id] = n;
+      final existingFlId = _flByCl[n.id];
+      if (existingFlId != null) {
+        // Nodo PERSISTITO: mantieni l'id motore (chiavi stabili). Il controller
+        // non espone un setter di offset assoluto, ma `offset` è un campo
+        // pubblico mutabile del modello (come il motore stesso lo aggiorna):
+        // applichiamo il nuovo offset di layout e teniamo in sync
+        // `unboundNodeOffsets` (base del drag). Se manca la posizione, invariato.
+        final fl = _controller.getNodeById(existingFlId);
+        final pos = positions[n.id];
+        if (fl != null && pos != null) {
+          fl.offset = pos;
+          _controller.unboundNodeOffsets[existingFlId] = pos;
+        }
+        continue;
+      }
+      // Nodo NUOVO: crealo e inizializza gli stili built dal prototype.
       final fl = _controller.addNode(
         'cl.node',
         offset: positions[n.id] ?? Offset.zero,
@@ -166,6 +203,10 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       fl.builtHeaderStyle = fl.prototype.headerStyleBuilder(fl.state);
       _flByCl[n.id] = fl.id;
     }
+    // Prune dei dati stantii dei nodi scomparsi.
+    _clNodeById.removeWhere((clId, _) => !currentClIds.contains(clId));
+
+    // === LINK: riaggiungi dai dati (fonte di verità) ===
     for (final e in widget.edges) {
       final from = _flByCl[e.fromNodeId], to = _flByCl[e.toNodeId];
       if (from == null || to == null) continue;
