@@ -133,12 +133,16 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       ),
     );
 
-    // Scroll 2-assi (niente pan/zoom).
-    return Scrollbar(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+    // Fit-to-view: scala il grafo per riempire l'area visibile (aspect ratio
+    // preservato, centrato). Niente scroll/pan/zoom: tutto il grafo è visibile.
+    // `globalToLocal` (drop) e la localPosition del tap (hit-test archi) passano
+    // per la transform del FittedBox → coordinate corrette anche scalati.
+    return LayoutBuilder(
+      builder: (context, constraints) => SizedBox(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        child: FittedBox(
+          fit: BoxFit.contain,
           child: canvas,
         ),
       ),
