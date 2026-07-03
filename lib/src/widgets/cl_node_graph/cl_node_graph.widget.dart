@@ -162,11 +162,24 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     // === NODI: diff per clId ===
     final currentClIds = widget.nodes.map((n) => n.id).toSet();
 
+    // Traccia se il diff aggiunge/rimuove nodi: in tal caso il motore emette già
+    // un evento Tree (FlAddNodeEvent/FlRemoveNodeEvent) che instrada verso
+    // `_updateNodes`, quindi la ripropagazione degli offset avviene da sola.
+    var structuralChange = false;
+    // Traccia se almeno un nodo PERSISTITO ha cambiato offset SENZA add/remove:
+    // in quel caso nessun evento Tree parte e va forzata la ripropagazione (#3).
+    var repositioned = false;
+
     // clId scomparsi dai dati → rimuovi dal motore e dal bookkeeping.
     for (final clId in _flByCl.keys.toList()) {
       if (!currentClIds.contains(clId)) {
-        _controller.removeNodeById(_flByCl[clId]!);
+        final flId = _flByCl[clId]!;
+        _controller.removeNodeById(flId);
+        // `removeNodeById` NON ripulisce `unboundNodeOffsets`: senza questo prune
+        // la mappa accumula entry per id motore ormai morti (leak).
+        _controller.unboundNodeOffsets.remove(flId);
         _flByCl.remove(clId);
+        structuralChange = true;
       }
     }
 
@@ -185,6 +198,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         final fl = _controller.getNodeById(existingFlId);
         final pos = positions[n.id];
         if (fl != null && pos != null) {
+          // NB: questo path assume `enableSnapToGrid: false` (vedi FlNodesConfig
+          // in initState): scrive l'offset assoluto di layout senza applicare lo
+          // snap che `addNode` applicherebbe. Con snap attivo motore e
+          // bookkeeping divergerebbero.
+          if (fl.offset != pos) repositioned = true;
           fl.offset = pos;
           _controller.unboundNodeOffsets[existingFlId] = pos;
         }
@@ -202,6 +220,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       fl.builtStyle = fl.prototype.styleBuilder(fl.state);
       fl.builtHeaderStyle = fl.prototype.headerStyleBuilder(fl.state);
       _flByCl[n.id] = fl.id;
+      structuralChange = true;
     }
     // Prune dei dati stantii dei nodi scomparsi.
     _clNodeById.removeWhere((clId, _) => !currentClIds.contains(clId));
@@ -218,6 +237,33 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         _ownAddedLinkIds.add(link.id); // link creato da noi: ignora il suo FlAddLinkEvent
       }
     }
+
+    // === #3: propaga la riposizione dei nodi persistiti al render object ===
+    // Mutare `fl.offset` NON alza `nodesDataDirty` né emette eventi. Il render
+    // object copia `node.offset -> childParentData.offset` solo in `_updateNodes`,
+    // raggiunto esclusivamente da eventi di categoria Tree / DragSelection /
+    // ConfigurationChange. Su un rebuild di SOLA riposizione (es. reparent tra
+    // nodi già esistenti, dove il set di nodi non cambia) nessun evento parte: i
+    // nodi resterebbero disegnati e hit-testati alla vecchia posizione finché un
+    // add/remove o un drag non li scuote. Se invece c'è stato un add/remove, il
+    // motore ha già emesso un evento Tree e `_updateNodes` rilegge TUTTI gli
+    // offset (inclusi i persistiti spostati): niente doppia propagazione.
+    //
+    // Meccanismo: alziamo i flag dirty pubblici ed emettiamo UN SOLO
+    // FlConfigurationChangeEvent — l'unico evento pubblico di categoria Tree
+    // privo di effetti collaterali pesanti (non undoable → niente pollution della
+    // history; non resetta viewport/transform come Load/New project; non tocca la
+    // clipboard come Paste/Cut) che il render object instrada verso `_updateNodes`.
+    // L'evento porta la config CORRENTE e nessun consumer la ri-applica, quindi
+    // non modifica lo stato del motore. Emesso una volta sola per rebuild.
+    if (repositioned && !structuralChange) {
+      _controller.forceNodeRepaint(); // nodesDataDirty = true
+      _controller.forceLinkRepaint(); // linksDataDirty = true (archi ai nuovi offset)
+      _controller.eventBus.emit(
+        FlConfigurationChangeEvent(_controller.config, id: UniqueKey().toString()),
+      );
+    }
+
     _applySelection();
     if (mounted) setState(() {});
   }
