@@ -369,15 +369,15 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     );
   }
 
-  /// [sourceId] trascinato su [target]. Lezione→corso = reparent; altrimenti link (from=prereq).
+  /// [sourceId] trascinato col CORPO su [target]. Unico effetto: reparent
+  /// lezione→corso. Le frecce (propedeuticità/ordine) si creano SOLO dagli
+  /// handle di connessione → il body-drag non crea più link (niente ambiguità
+  /// col pan e con gli handle).
   void _onDrop(String sourceId, CLGraphNode target, Map<String, CLGraphNode> byId) {
     final source = byId[sourceId];
     if (source == null || source.id == target.id) return;
     if (source.type == 'lesson' && target.type == 'course') {
       widget.onReparent?.call(source.id, target.id);
-    } else {
-      // Drag-corpo su nodo non-parent = crea propedeuticità (comportamento storico).
-      widget.onEdgeCreate?.call(source.id, target.id, CLGraphEdgeKind.prerequisite);
     }
   }
 }
