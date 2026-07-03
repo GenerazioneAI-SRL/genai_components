@@ -42,8 +42,37 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   String? _selectedEdgeId;
   String? _dragHoverId; // nodo bersaglio corrente sotto il ghost (highlight)
   final GlobalKey _canvasKey = GlobalKey(); // per global→canvas-local del drop
+  final TransformationController _tc = TransformationController(); // pan/zoom
+  bool _fitApplied = false; // fit iniziale applicato una sola volta
 
   CLGraphLayout get _layout => widget.layout ?? clHierarchicalLayout;
+
+  @override
+  void dispose() {
+    _tc.dispose();
+    super.dispose();
+  }
+
+  /// Fit iniziale (una volta): scala per far entrare tutto il grafo nel
+  /// viewport e centra. Poi l'utente naviga liberamente con pan/zoom.
+  void _applyInitialFit(Size viewport, Size content) {
+    if (_fitApplied) return;
+    if (viewport.isEmpty || content.isEmpty) return;
+    final scaleW = viewport.width / content.width;
+    final scaleH = viewport.height / content.height;
+    final s = (scaleW < scaleH ? scaleW : scaleH).clamp(0.2, 1.5); // contain
+    final tx = ((viewport.width - content.width * s) / 2).clamp(0.0, double.infinity);
+    final ty = ((viewport.height - content.height * s) / 2).clamp(0.0, double.infinity);
+    _fitApplied = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _tc.value = Matrix4.identity()
+        ..setEntry(0, 0, s)
+        ..setEntry(1, 1, s)
+        ..setEntry(0, 3, tx)
+        ..setEntry(1, 3, ty);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,19 +162,24 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       ),
     );
 
-    // Fit-to-view: scala il grafo per riempire l'area visibile (aspect ratio
-    // preservato, centrato). Niente scroll/pan/zoom: tutto il grafo è visibile.
-    // `globalToLocal` (drop) e la localPosition del tap (hit-test archi) passano
-    // per la transform del FittedBox → coordinate corrette anche scalati.
+    // Pan + zoom per navigare (InteractiveViewer). Fit iniziale automatico
+    // (una volta) via _applyInitialFit. `constrained: false` lascia il canvas
+    // alla sua dimensione naturale e permette pan libero; il drag delle card
+    // (gesture più profonda) vince sull'arena → il pan avviene su spazio vuoto.
+    // globalToLocal del drop e la localPosition del tap passano per la transform
+    // dell'InteractiveViewer → drag e hit-test archi corretti anche scalati.
     return LayoutBuilder(
-      builder: (context, constraints) => SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: FittedBox(
-          fit: BoxFit.contain,
+      builder: (context, constraints) {
+        _applyInitialFit(constraints.biggest, canvasSize);
+        return InteractiveViewer(
+          transformationController: _tc,
+          constrained: false,
+          minScale: 0.2,
+          maxScale: 3.0,
+          boundaryMargin: const EdgeInsets.all(double.infinity),
           child: canvas,
-        ),
-      ),
+        );
+      },
     );
   }
 
