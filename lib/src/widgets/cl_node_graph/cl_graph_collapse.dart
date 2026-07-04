@@ -20,7 +20,9 @@ Set<String> hiddenNodeIds(List<CLGraphEdge> edges, Set<String> collapsedIds) {
   }
   final hidden = <String>{};
   final stack = <String>[];
-  for (final c in collapsedIds) stack.addAll(children[c] ?? const []);
+  for (final c in collapsedIds) {
+    stack.addAll(children[c] ?? const []);
+  }
   while (stack.isNotEmpty) {
     final n = stack.removeLast();
     if (!hidden.add(n)) continue; // già visto → cycle-safe
