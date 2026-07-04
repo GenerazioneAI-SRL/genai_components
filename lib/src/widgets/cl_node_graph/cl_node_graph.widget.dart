@@ -467,14 +467,15 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   }
 
   /// [sourceId] trascinato col CORPO su [target]. Unico effetto: reparent
-  /// lezione→corso. Le frecce prereq si creano SOLO via click-to-connect sul
-  /// pallino → il body-drag non crea link (niente ambiguità col pan).
+  /// (il consumer decide la validità via onReparent). Le frecce prereq si
+  /// creano SOLO via click-to-connect sul pallino → il body-drag non crea
+  /// link (niente ambiguità col pan).
   void _onDrop(String sourceId, CLGraphNode target, Map<String, CLGraphNode> byId) {
     final source = byId[sourceId];
     if (source == null || source.id == target.id) return;
-    if (source.type == 'lesson' && target.type == 'course') {
-      widget.onReparent?.call(source.id, target.id);
-    }
+    // Reparent domain-agnostico: il widget non conosce i 'type' del dominio.
+    // Il consumer valida via onReparent (→ Future<bool>) e rifiuta se non lecito.
+    widget.onReparent?.call(source.id, target.id);
   }
 }
 
