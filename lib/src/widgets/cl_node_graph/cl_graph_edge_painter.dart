@@ -2,14 +2,31 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'cl_graph_models.dart';
 
-/// Ancora porta OUT (destra, "sblocca") del source. 12 ≈ _kDotInset + _kDotSize/2
-/// del widget → coerente con la porta renderizzata.
-Offset _outAnchor(Rect r) => Offset(r.right - 12, r.center.dy);
-/// Ancora porta IN (sinistra, "richiede") del target.
-Offset _inAnchor(Rect r) => Offset(r.left + 12, r.center.dy);
+/// Ancora porta OUT (destra, "sblocca") del source — sul bordo destro della card
+/// (il pallino è a cavallo del bordo). Coerente con la porta renderizzata.
+Offset _outAnchor(Rect r) => Offset(r.right, r.center.dy);
+/// Ancora porta IN (sinistra, "richiede") del target — sul bordo sinistro.
+Offset _inAnchor(Rect r) => Offset(r.left, r.center.dy);
+
+/// Offset di controllo del bezier: adattivo alla distanza (stile fl_nodes),
+/// clamp 40–320. OUT esce verso destra, IN entra da sinistra.
+double _ctrlOffset(Offset a, Offset b) {
+  final dist = (b - a).distance;
+  return dist < 800 ? (dist / 2).clamp(40.0, 320.0) : 320.0;
+}
+
+/// Percorso curvo OUT(dx)→IN(sx): cubic bezier con control point orizzontali.
+Path clLinkPath(Offset a, Offset b) {
+  final c = _ctrlOffset(a, b);
+  return Path()
+    ..moveTo(a.dx, a.dy)
+    ..cubicTo(a.dx + c, a.dy, b.dx - c, b.dy, b.dx, b.dy);
+}
 
 /// Estremi (porta OUT del source → porta IN del target) di ogni arco
-/// `prerequisite`, per painter e hit-test del cestino.
+/// `prerequisite`, per hit-test del cestino (segmento retto: la curva è quasi
+/// orizzontale su span brevi, la soglia di hover è ampia). Il midpoint retto
+/// coincide col punto t=0.5 del bezier simmetrico → cestino resta sulla curva.
 List<({String id, Offset a, Offset b})> prereqSegments(
   Map<String, Rect> nodeRects,
   List<CLGraphEdge> edges,
@@ -45,18 +62,20 @@ class CLGraphEdgePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1) contenimento (sotto, neutro, no freccia)
+    // 1) contenimento (modulo→risorsa): curva leggera dalla porta OUT del
+    // modulo alla porta IN della risorsa.
     final cPaint = Paint()
       ..color = containmentColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     for (final e in edges) {
-      if (e.kind != CLGraphEdgeKind.containment) continue;
+      if (e.kind != CLGraphEdgeKind.containment || e.hidden) continue;
       final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
       if (from == null || to == null) continue;
-      canvas.drawLine(from.center, to.center, cPaint);
+      final a = _outAnchor(from), b = _inAnchor(to);
+      canvas.drawPath(clLinkPath(a, b), cPaint);
     }
-    // 2) ordine (tratteggiata grigia, freccia, NON selezionabile)
+    // 2) ordine (tratteggiata grigia retta, freccia — NON selezionabile)
     for (final e in edges) {
       if (e.kind != CLGraphEdgeKind.order) continue;
       final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
@@ -66,9 +85,9 @@ class CLGraphEdgePainter extends CustomPainter {
         ..strokeWidth = 1.6
         ..style = PaintingStyle.stroke;
       _drawDashedLine(canvas, from.center, to.center, paint);
-      _drawArrowHead(canvas, from.center, to.center, paint);
+      _arrowHead(canvas, to.center, math.atan2(to.center.dy - from.center.dy, to.center.dx - from.center.dx), paint);
     }
-    // 3) prerequisito (piena; selezionato evidenziato + ×)
+    // 3) prerequisito (curva piena; selezionato evidenziato)
     for (final e in edges) {
       if (e.kind != CLGraphEdgeKind.prerequisite) continue;
       final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
@@ -79,8 +98,7 @@ class CLGraphEdgePainter extends CustomPainter {
         ..strokeWidth = selected ? 2.5 : 1.8
         ..style = PaintingStyle.stroke;
       final a = _outAnchor(from), b = _inAnchor(to);
-      canvas.drawLine(a, b, paint);
-      _drawArrowHead(canvas, a, b, paint);
+      canvas.drawPath(clLinkPath(a, b), paint);
     }
   }
 
@@ -98,11 +116,9 @@ class CLGraphEdgePainter extends CustomPainter {
     }
   }
 
-  void _drawArrowHead(Canvas canvas, Offset a, Offset b, Paint paint) {
+  /// Punta di freccia con vertice in [tip] orientata lungo [angle] (rad).
+  void _arrowHead(Canvas canvas, Offset tip, double angle, Paint paint) {
     const size = 9.0;
-    final angle = math.atan2(b.dy - a.dy, b.dx - a.dx);
-    // punta arretrata di ~18px dal centro target per non finire dentro la card
-    final tip = Offset(b.dx - 18 * math.cos(angle), b.dy - 18 * math.sin(angle));
     final p1 = Offset(tip.dx - size * math.cos(angle - math.pi / 7), tip.dy - size * math.sin(angle - math.pi / 7));
     final p2 = Offset(tip.dx - size * math.cos(angle + math.pi / 7), tip.dy - size * math.sin(angle + math.pi / 7));
     canvas.drawLine(tip, p1, paint);

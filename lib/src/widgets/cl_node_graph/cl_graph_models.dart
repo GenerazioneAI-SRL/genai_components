@@ -33,12 +33,16 @@ class CLGraphEdge {
   final String fromNodeId;
   final String toNodeId;
   final CLGraphEdgeKind kind;
+  /// Arco strutturale (conta per il layout) ma NON disegnato. Utile per il
+  /// containment verso risorse già collegate visivamente da una freccia prereq.
+  final bool hidden;
 
   const CLGraphEdge({
     required this.id,
     required this.fromNodeId,
     required this.toNodeId,
     required this.kind,
+    this.hidden = false,
   });
 }
 
