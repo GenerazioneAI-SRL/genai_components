@@ -13,10 +13,9 @@ const double _pad = 60; // margine attorno al bounding box
 const double _kDotSize = 16; // diametro del pallino di connessione prereq
 const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
 
-/// Ancora del pallino di connessione: bottom-center della card, appena DENTRO
-/// il box (matcha la posizione del pallino). Usato come sorgente della linea
-/// pending. Stesso spazio-coordinate di `rects`/`nodeRects` (canvas-local).
-Offset _dotAnchor(Rect r) => Offset(r.center.dx, r.bottom - _kDotInset - _kDotSize / 2);
+/// Ancora porta OUT (destra, "sblocca"): centro-destra della card, dentro il box.
+/// Sorgente della linea pending. Stesso spazio-coordinate di `rects` (canvas-local).
+Offset _outAnchor(Rect r) => Offset(r.right - _kDotInset - _kDotSize / 2, r.center.dy);
 
 /// Canvas a nodi data-driven (MVP): render nodi+archi da `nodes`/`edges`,
 /// tap→select, drag nodo→nodo per propedeuticità/reparent, tap arco→× per
@@ -29,6 +28,7 @@ class CLNodeGraph extends StatefulWidget {
   final void Function(String fromNodeId, String toNodeId, CLGraphEdgeKind kind)? onEdgeCreate; // from=sorgente handle
   final void Function(String edgeId, CLGraphEdgeKind kind)? onEdgeDelete;
   final Future<bool> Function(String childNodeId, String newParentNodeId)? onReparent;
+  final bool Function(CLGraphNode node)? canDrag; // false ⇒ card NON trascinabile per reparent (default: trascinabile)
   final bool Function(CLGraphNode node)? canConnect; // true ⇒ mostra il pallino di connessione prereq
   final CLGraphLayout? layout;
   final Set<String>? collapsedNodeIds; // nodi collassati ⇒ discendenti nascosti, archi re-anchored
@@ -44,6 +44,7 @@ class CLNodeGraph extends StatefulWidget {
     this.onEdgeCreate,
     this.onEdgeDelete,
     this.onReparent,
+    this.canDrag,
     this.canConnect,
     this.layout,
     this.collapsedNodeIds,
@@ -57,6 +58,7 @@ class CLNodeGraph extends StatefulWidget {
 
 class _CLNodeGraphState extends State<CLNodeGraph> {
   String? _selectedEdgeId;
+  String? _hoveredEdgeId; // arco prereq sotto il cursore ⇒ evidenziato + cestino
   String? _dragHoverId; // nodo bersaglio corrente sotto il ghost (highlight)
   // Connessione CLICK-TO-CONNECT (prereq): tap sul pallino di A → pending da A;
   // la linea segue il cursore fino al secondo tap (card/pallino B) che crea
@@ -164,13 +166,27 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
           if (target != null) _onDrop(sourceId, target, byId);
         },
         builder: (context, cand, rej) => Listener(
+          // translucent ⇒ il Listener resta nel hit-path anche sopra i "vuoti"
+          // tra le card (dove il GestureDetector figlio, pur translucent,
+          // ritorna false): senza questo, onPointerHover NON scatta proprio
+          // sopra il tratto visibile dell'arco (che cade nel gap tra due card).
+          behavior: HitTestBehavior.translucent,
           // Cursor-follow della linea pending: SOLO mentre `_pendingFromId != null`
           // aggiorna `_pendingCursor` con la localPosition (canvas-local: origine =
           // top-left di questo box che riempie la SizedBox del canvas, già
           // post-transform dell'InteractiveViewer). onPointerHover = mouse senza
           // bottone premuto → non collide con pan/drag.
           onPointerHover: (e) {
-            if (_pendingFromId != null) setState(() => _pendingCursor = e.localPosition);
+            if (_pendingFromId != null) {
+              setState(() => _pendingCursor = e.localPosition);
+              return;
+            }
+            // Hover su un arco prereq → evidenzia + mostra cestino. Soglia più
+            // ampia del tap così si aggancia facilmente col mouse. L'evento
+            // arriva al Listener (antenato) anche quando il cursore è sopra una
+            // card → hit-test dell'arco affidabile nonostante l'occlusione.
+            final hit = nearestEdgeId(e.localPosition, segments, threshold: 16);
+            if (hit != _hoveredEdgeId) setState(() => _hoveredEdgeId = hit);
           },
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
@@ -202,7 +218,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                         linkColor: theme.primary,
                         orderColor: theme.mutedForeground,
                         selectedColor: theme.danger,
-                        selectedEdgeId: _selectedEdgeId,
+                        selectedEdgeId: _hoveredEdgeId ?? _selectedEdgeId,
                       ),
                     ),
                   ),
@@ -213,7 +229,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                     child: IgnorePointer(
                       child: CustomPaint(
                         painter: _PendingEdgePainter(
-                          from: _dotAnchor(rects[_pendingFromId]!),
+                          from: _outAnchor(rects[_pendingFromId]!),
                           to: _pendingCursor!,
                           color: theme.danger,
                         ),
@@ -230,9 +246,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                       height: kCardH,
                       child: _nodeCard(context, theme, n, rects),
                     ),
-                // × dell'arco selezionato (tappabile) al midpoint — sopra le card
-                if (_selectedEdgeId != null)
-                  ..._deleteHandle(segments),
+                // Cestino dell'arco sotto cursore (hover) o selezionato (tap
+                // touch) al midpoint — sopra le card, quindi sempre cliccabile
+                // anche se il midpoint cade sotto una card.
+                if ((_hoveredEdgeId ?? _selectedEdgeId) != null)
+                  ..._edgeDeleteHandle(segments, (_hoveredEdgeId ?? _selectedEdgeId)!, theme),
               ],
             ),
           ),
@@ -261,23 +279,40 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     );
   }
 
-  List<Widget> _deleteHandle(List<({String id, Offset a, Offset b})> segments) {
-    final seg = segments.where((s) => s.id == _selectedEdgeId);
+  /// Cestino cliccabile al midpoint dell'arco [edgeId] (hover o selezione tap).
+  /// Reso sopra le card ⇒ sempre cliccabile anche se il midpoint cade sotto una
+  /// card. La `MouseRegion.onEnter` mantiene l'hover sull'arco mentre si punta
+  /// il cestino (evita che il ridisegno lo faccia sparire prima del click).
+  List<Widget> _edgeDeleteHandle(List<({String id, Offset a, Offset b})> segments, String edgeId, CLTheme theme) {
+    final seg = segments.where((s) => s.id == edgeId);
     if (seg.isEmpty) return const [];
     final s = seg.first;
     final mid = Offset((s.a.dx + s.b.dx) / 2, (s.a.dy + s.b.dy) / 2);
     return [
       Positioned(
-        left: mid.dx - 11,
-        top: mid.dy - 11,
-        width: 22,
-        height: 22,
-        child: GestureDetector(
-          onTap: () {
-            widget.onEdgeDelete?.call(_selectedEdgeId!, CLGraphEdgeKind.prerequisite);
-            setState(() => _selectedEdgeId = null);
+        left: mid.dx - 12,
+        top: mid.dy - 12,
+        width: 24,
+        height: 24,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) {
+            if (_hoveredEdgeId != edgeId) setState(() => _hoveredEdgeId = edgeId);
           },
-          child: const SizedBox.expand(), // area tap sopra la × disegnata
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              widget.onEdgeDelete?.call(edgeId, CLGraphEdgeKind.prerequisite);
+              setState(() {
+                _hoveredEdgeId = null;
+                _selectedEdgeId = null;
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(color: theme.danger, shape: BoxShape.circle, boxShadow: theme.cardShadowSoft),
+              child: const Icon(Icons.delete_outline, size: 15, color: Colors.white),
+            ),
+          ),
         ),
       ),
     ];
@@ -333,63 +368,73 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     // dal DragTarget unico che avvolge il canvas (vedi build/_resolveTargetId):
     // la card NON è più un DragTarget. `hovering` = questa card è sotto il ghost.
     final hovering = n.id == _dragHoverId;
-    // Ghost geometricamente identico al child (kCardW×kCardH) + anchor esplicito
-    // `childDragAnchorStrategy` ⇒ top-left del feedback = pointer - grabPoint, così
-    // il ghost segue il cursore sotto il punto di presa (fix "ghost sfasato").
-    final body = Draggable<String>(
-      data: n.id,
-      dragAnchorStrategy: childDragAnchorStrategy,
-      feedback: Material(color: Colors.transparent, child: Opacity(opacity: 0.85, child: SizedBox(width: kCardW, height: kCardH, child: card))),
-      childWhenDragging: Opacity(opacity: 0.4, child: card),
-      child: GestureDetector(
-        onTap: () {
-          // Con connessione pending: il tap sul CORPO di una card completa (se
-          // connettibile e diversa dalla sorgente) o annulla. Senza pending:
-          // selezione nodo (comportamento storico).
-          if (_pendingFromId != null) {
-            if (n.id != _pendingFromId && widget.canConnect?.call(n) == true) {
-              widget.onEdgeCreate?.call(_pendingFromId!, n.id, CLGraphEdgeKind.prerequisite);
-            }
-            setState(() {
-              _pendingFromId = null;
-              _pendingCursor = null;
-            });
-            return;
-          }
-          setState(() => _selectedEdgeId = null);
-          widget.onNodeTap?.call(n.id);
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(theme.radiusCard),
-            border: Border.all(color: hovering ? theme.primary : Colors.transparent, width: 2),
-          ),
-          child: card,
+    final tappable = GestureDetector(
+      onTap: () {
+        // La connessione ora è drag-su-porta: il tap sul corpo seleziona il nodo.
+        setState(() => _selectedEdgeId = null);
+        widget.onNodeTap?.call(n.id);
+      },
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(theme.radiusCard),
+          border: Border.all(color: hovering ? theme.primary : Colors.transparent, width: 2),
         ),
+        child: card,
       ),
     );
+    // Draggable per reparent SOLO se `canDrag` lo consente (default: trascinabile
+    // = comportamento storico). Se non trascinabile, il drag sul corpo diventa
+    // pan (InteractiveViewer vince l'arena) e resta il tap-select. Ghost identico
+    // al child (kCardW×kCardH) + `childDragAnchorStrategy` ⇒ segue il cursore.
+    final body = widget.canDrag?.call(n) == false
+        ? tappable
+        : Draggable<String>(
+            data: n.id,
+            dragAnchorStrategy: childDragAnchorStrategy,
+            feedback: Material(color: Colors.transparent, child: Opacity(opacity: 0.85, child: SizedBox(width: kCardW, height: kCardH, child: card))),
+            childWhenDragging: Opacity(opacity: 0.4, child: card),
+            child: tappable,
+          );
 
-    // Solo i nodi connettibili espongono il pallino di connessione prereq.
+    // Solo i nodi connettibili espongono le due porte di connessione prereq.
     // NOTA layout: il Positioned esterno (build) vincola la card a kCardW×kCardH.
-    // Il pallino è inset DENTRO tale box (bottom = _kDotInset) — NON in overflow
-    // negativo — così resta interamente hit-testabile (un RenderStack non testa i
-    // figli oltre i propri bounds anche con Clip.none). kCardW/kCardH invariati.
-    // Il pallino è l'ULTIMO figlio dello Stack (sopra il corpo) e opaco ⇒ il suo
-    // tap vince su quello del corpo sottostante nella stessa area.
+    // Le porte sono inset DENTRO tale box (right/left = _kDotInset) — NON in
+    // overflow negativo — così restano interamente hit-testabili (un RenderStack
+    // non testa i figli oltre i propri bounds anche con Clip.none). kCardW/kCardH
+    // invariati. Sono gli ULTIMI figli dello Stack (sopra il corpo) e opache ⇒ il
+    // loro gesto vince su quello del corpo sottostante nella stessa area.
     Widget content = widget.canConnect?.call(n) != true
         ? body
         : Stack(
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(child: body),
+              // Porta OUT (destra, "sblocca"): avvia il drag-connect; la linea
+              // pending segue il cursore fino al rilascio su una porta IN.
               Positioned(
-                bottom: _kDotInset,
-                left: (kCardW - _kDotSize) / 2,
+                right: _kDotInset,
+                top: (kCardH - _kDotSize) / 2,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => _onDotTap(n, rects),
+                  onPanStart: (_) => setState(() {
+                    _pendingFromId = n.id;
+                    _pendingCursor = _outAnchor(rects[n.id]!);
+                    _selectedEdgeId = null;
+                  }),
+                  onPanUpdate: (d) {
+                    final box = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+                    if (box != null) setState(() => _pendingCursor = box.globalToLocal(d.globalPosition));
+                  },
+                  onPanEnd: (_) => _completeConnectAtCursor(rects),
                   child: _connDot(theme, active: n.id == _pendingFromId),
                 ),
+              ),
+              // Porta IN (sinistra, "richiede"): solo bersaglio visivo — il drop è
+              // risolto per-Rect da _completeConnectAtCursor.
+              Positioned(
+                left: _kDotInset,
+                top: (kCardH - _kDotSize) / 2,
+                child: _connDot(theme, active: false),
               ),
             ],
           );
@@ -422,9 +467,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     return content;
   }
 
-  /// Pallino di connessione prereq: bottom-center della card, ~16px, tinta
-  /// `danger`. [active] = questa card è la sorgente pending ⇒ evidenziato
-  /// (bordo forte). Usa `secondaryBackground`/`danger`/`primaryText`.
+  /// Porta di connessione prereq (sx IN / dx OUT): ~16px, tinta `danger`.
+  /// [active] = questa card è la sorgente pending ⇒ evidenziato (bordo forte).
+  /// Usa `secondaryBackground`/`danger`/`primaryText`.
   Widget _connDot(CLTheme theme, {required bool active}) => Container(
         width: _kDotSize,
         height: _kDotSize,
@@ -439,31 +484,42 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         ),
       );
 
-  /// Tap sul pallino: macchina a stati della connessione pending.
-  /// - nessun pending → avvia da [n] (inizializza il cursore all'ancora del
-  ///   pallino così la linea appare subito; deseleziona eventuale arco).
-  /// - pending da [n] stesso → annulla.
-  /// - pending da altro nodo → crea l'arco prereq (sorgente→[n]) e azzera.
-  void _onDotTap(CLGraphNode n, Map<String, Rect> rects) {
-    if (_pendingFromId == null) {
-      final r = rects[n.id];
-      setState(() {
-        _pendingFromId = n.id;
-        _pendingCursor = r != null ? _dotAnchor(r) : null;
-        _selectedEdgeId = null;
-      });
-    } else if (_pendingFromId == n.id) {
+  /// Rilascio del drag-connect: se il cursore è sopra un nodo connettibile diverso
+  /// dalla sorgente, crea l'arco prereq (source OUT → target IN). Altrimenti annulla.
+  void _completeConnectAtCursor(Map<String, Rect> rects) {
+    final from = _pendingFromId, cursor = _pendingCursor;
+    if (from == null || cursor == null) {
       setState(() {
         _pendingFromId = null;
         _pendingCursor = null;
       });
-    } else {
-      widget.onEdgeCreate?.call(_pendingFromId!, n.id, CLGraphEdgeKind.prerequisite);
-      setState(() {
-        _pendingFromId = null;
-        _pendingCursor = null;
-      });
+      return;
     }
+    String? targetId;
+    for (final e in rects.entries) {
+      if (e.key == from) continue;
+      if (e.value.contains(cursor)) {
+        targetId = e.key;
+        break;
+      }
+    }
+    if (targetId != null) {
+      final target = _nodeById(targetId);
+      if (target != null && widget.canConnect?.call(target) == true) {
+        widget.onEdgeCreate?.call(from, targetId, CLGraphEdgeKind.prerequisite);
+      }
+    }
+    setState(() {
+      _pendingFromId = null;
+      _pendingCursor = null;
+    });
+  }
+
+  CLGraphNode? _nodeById(String id) {
+    for (final n in widget.nodes) {
+      if (n.id == id) return n;
+    }
+    return null;
   }
 
   /// [sourceId] trascinato col CORPO su [target]. Unico effetto: reparent
