@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:genai_components/cl_theme.dart';
 import 'cl_graph_models.dart';
+import 'cl_graph_collapse.dart';
 import 'cl_graph_layout.dart';
 import 'cl_graph_edge_painter.dart';
 import 'cl_graph_geometry.dart';
@@ -30,6 +31,9 @@ class CLNodeGraph extends StatefulWidget {
   final Future<bool> Function(String childNodeId, String newParentNodeId)? onReparent;
   final bool Function(CLGraphNode node)? canConnect; // true ⇒ mostra il pallino di connessione prereq
   final CLGraphLayout? layout;
+  final Set<String>? collapsedNodeIds; // nodi collassati ⇒ discendenti nascosti, archi re-anchored
+  final void Function(String nodeId)? onToggleCollapse; // tap sul chevron
+  final bool Function(CLGraphNode node)? canCollapse; // true ⇒ mostra il chevron di collasso
 
   const CLNodeGraph({
     super.key,
@@ -42,6 +46,9 @@ class CLNodeGraph extends StatefulWidget {
     this.onReparent,
     this.canConnect,
     this.layout,
+    this.collapsedNodeIds,
+    this.onToggleCollapse,
+    this.canCollapse,
   });
 
   @override
@@ -92,13 +99,34 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final byId = {for (final n in widget.nodes) n.id: n};
-    final positions = _layout(widget.nodes, widget.edges); // top-left per clId
 
-    // Rect di ogni card + bounding box del canvas.
+    // --- Collasso sottoalberi: pruning nodi nascosti + re-anchor archi. ---
+    // Con `collapsedNodeIds` null/vuoto: `hidden` vuoto ⇒ visibleNodes == nodes
+    // ed effectiveEdges == edges (stesse istanze per containment, copie 1:1 per
+    // prereq/order) → grafo identico al comportamento storico.
+    final hidden = hiddenNodeIds(widget.edges, widget.collapsedNodeIds ?? const {});
+    final visibleNodes = [for (final n in widget.nodes) if (!hidden.contains(n.id)) n];
+    final parents = containmentParents(widget.edges);
+    String vis(String id) => resolveVisibleEndpoint(id, hidden, parents);
+    final effectiveEdges = <CLGraphEdge>[];
+    for (final e in widget.edges) {
+      if (e.kind == CLGraphEdgeKind.containment) {
+        if (hidden.contains(e.fromNodeId) || hidden.contains(e.toNodeId)) continue;
+        effectiveEdges.add(e);
+        continue;
+      }
+      final a = vis(e.fromNodeId), b = vis(e.toNodeId);
+      if (a == b) continue; // entrambi gli estremi collassati nello stesso antenato
+      effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind));
+    }
+
+    final byId = {for (final n in visibleNodes) n.id: n};
+    final positions = _layout(visibleNodes, effectiveEdges); // top-left per clId
+
+    // Rect di ogni card + bounding box del canvas (solo nodi visibili).
     final rects = <String, Rect>{};
     var maxX = 0.0, maxY = 0.0;
-    for (final n in widget.nodes) {
+    for (final n in visibleNodes) {
       final p = positions[n.id];
       if (p == null) continue;
       final r = Rect.fromLTWH(p.dx, p.dy, kCardW, kCardH);
@@ -107,7 +135,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       maxY = maxY > r.bottom ? maxY : r.bottom;
     }
     final canvasSize = Size(maxX + _pad, maxY + _pad);
-    final segments = prereqSegments(rects, widget.edges);
+    final segments = prereqSegments(rects, effectiveEdges);
 
     // Un SOLO DragTarget avvolge l'intero canvas: il bersaglio del drop non è
     // deciso dall'hit-test per-card (fragile dentro lo scroll + ghost sfasato)
@@ -169,7 +197,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                     child: CustomPaint(
                       painter: CLGraphEdgePainter(
                         nodeRects: rects,
-                        edges: widget.edges,
+                        edges: effectiveEdges,
                         containmentColor: theme.borderColor,
                         linkColor: theme.primary,
                         orderColor: theme.mutedForeground,
@@ -193,7 +221,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                     ),
                   ),
                 // card nodo sopra (solo Draggable: nessun DragTarget per-card)
-                for (final n in widget.nodes)
+                for (final n in visibleNodes)
                   if (rects[n.id] != null)
                     Positioned(
                       left: rects[n.id]!.left,
@@ -342,29 +370,56 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     );
 
     // Solo i nodi connettibili espongono il pallino di connessione prereq.
-    if (widget.canConnect?.call(n) != true) return body;
-
     // NOTA layout: il Positioned esterno (build) vincola la card a kCardW×kCardH.
     // Il pallino è inset DENTRO tale box (bottom = _kDotInset) — NON in overflow
     // negativo — così resta interamente hit-testabile (un RenderStack non testa i
     // figli oltre i propri bounds anche con Clip.none). kCardW/kCardH invariati.
     // Il pallino è l'ULTIMO figlio dello Stack (sopra il corpo) e opaco ⇒ il suo
     // tap vince su quello del corpo sottostante nella stessa area.
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned.fill(child: body),
-        Positioned(
-          bottom: _kDotInset,
-          left: (kCardW - _kDotSize) / 2,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _onDotTap(n, rects),
-            child: _connDot(theme, active: n.id == _pendingFromId),
+    Widget content = widget.canConnect?.call(n) != true
+        ? body
+        : Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(child: body),
+              Positioned(
+                bottom: _kDotInset,
+                left: (kCardW - _kDotSize) / 2,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _onDotTap(n, rects),
+                  child: _connDot(theme, active: n.id == _pendingFromId),
+                ),
+              ),
+            ],
+          );
+
+    // Chevron di collasso (top-left): non collide col pallino prereq (in basso)
+    // né col tap-select del corpo (GestureDetector opaco sopra la card). Espanso
+    // ⇒ expand_more; collassato ⇒ chevron_right.
+    if (widget.canCollapse?.call(n) == true) {
+      final collapsed = widget.collapsedNodeIds?.contains(n.id) == true;
+      content = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: content),
+          Positioned(
+            top: _kDotInset,
+            left: _kDotInset,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => widget.onToggleCollapse?.call(n.id),
+              child: Icon(
+                collapsed ? Icons.chevron_right : Icons.expand_more,
+                size: theme.iconSizeCompact,
+                color: theme.mutedForeground,
+              ),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    }
+    return content;
   }
 
   /// Pallino di connessione prereq: bottom-center della card, ~16px, tinta
