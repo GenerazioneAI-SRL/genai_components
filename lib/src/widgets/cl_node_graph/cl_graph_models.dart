@@ -8,6 +8,8 @@ class CLGraphNode {
   final String? subtitle;
   final IconData? icon;
   final Color? accent;
+  final String? badge; // pill in alto (es. nome modulo)
+  final Color? badgeColor; // colore della pill (default: accent)
   final Object? data; // payload opaco per il consumer
 
   const CLGraphNode({
@@ -17,6 +19,8 @@ class CLGraphNode {
     this.subtitle,
     this.icon,
     this.accent,
+    this.badge,
+    this.badgeColor,
     this.data,
   });
 }
