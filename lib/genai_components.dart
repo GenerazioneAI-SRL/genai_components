@@ -71,6 +71,7 @@ export 'widgets/cl_universal_repeatable.widget.dart';
 // Navigation
 export 'widgets/cl_pagination.widget.dart';
 export 'widgets/cl_popup_menu.widget.dart';
+export 'widgets/cl_context_menu.widget.dart';
 export 'widgets/cl_view_toggle.widget.dart';
 export 'widgets/cl_tabs/cl_tab_view.widget.dart';
 export 'widgets/cl_tabs/cl_tab_item.model.dart';
