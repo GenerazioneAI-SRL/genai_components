@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.9.0
+
+- **Widgets:** Updated 8 components
+- **Layout:** Updated Cl Graph Layout Test, Cl Prereq Flow Layout Test
+- **Core:** Updated  Sdd-Diff-Rebuild-Report Md, Genai Components
+- **Package:** Updated Pubspec Yaml
+- **Tests:** Updated 4 components
+
+
 ## 5.8.0
 
 - **Foundation:** Added CLToneStyle recipe (single resolver for tone × variant × interaction-state colors) and CLSurface primitive (card/soft/recessed/panel/tint surface presets)

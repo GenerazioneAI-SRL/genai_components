@@ -71,6 +71,7 @@ export 'widgets/cl_universal_repeatable.widget.dart';
 // Navigation
 export 'widgets/cl_pagination.widget.dart';
 export 'widgets/cl_popup_menu.widget.dart';
+export 'widgets/cl_context_menu.widget.dart';
 export 'widgets/cl_view_toggle.widget.dart';
 export 'widgets/cl_tabs/cl_tab_view.widget.dart';
 export 'widgets/cl_tabs/cl_tab_item.model.dart';
@@ -120,6 +121,11 @@ export 'widgets/cl_survey/cl_survey_viewer.widget.dart';
 export 'widgets/cl_survey/cl_survey_result_viewer.widget.dart';
 export 'widgets/cl_survey/models/question.dart';
 export 'widgets/cl_survey/models/question_result.dart';
+
+// Node graph (widget data-driven custom: Stack + CustomPaint)
+export 'src/widgets/cl_node_graph/cl_graph_models.dart';
+export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, clPrereqFlowLayout, clModuleFlowLayout, classifyGraphLink, CLGraphLinkRole;
+export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
 
 // Grid
 export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';

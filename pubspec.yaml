@@ -1,6 +1,6 @@
 name: genai_components
 description: A comprehensive Flutter UI component library with theming, routing, state management, charts, and 30+ reusable widgets. Built for rapid app development with sensible defaults.
-version: 5.8.0
+version: 5.9.0
 homepage: https://github.com/generazione-ai/genai_components
 repository: https://github.com/generazione-ai/genai_components
 issue_tracker: https://github.com/generazione-ai/genai_components/issues
@@ -13,7 +13,7 @@ topics:
   - design-system
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.5.0 <4.0.0'
   flutter: '>=3.10.0'
 
 dependencies:
@@ -70,9 +70,6 @@ dependencies:
 
   # Interactive
   custom_interactive_viewer: '>=0.0.9 <1.0.0'
-
-
-
 
   timeago: '>=3.0.0 <4.0.0'
 

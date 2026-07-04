@@ -105,6 +105,34 @@ class CLPopupMenu extends StatefulWidget {
     );
   }
 
+  /// Mostra il popup a una posizione GLOBALE arbitraria (cursore), non ancorato
+  /// a un widget. Usato dai menu contestuali (tasto destro). Riusa `_showPopup`
+  /// con `anchorSize: Size.zero`; su mobile (<600) resta il bottom sheet.
+  static Future<void> showAt({
+    required BuildContext context,
+    required Offset globalPosition,
+    required List<CLPopupMenuItem> items,
+    String? title,
+    double minWidth = 0,
+    double maxWidth = 280,
+  }) async {
+    if (MediaQuery.of(context).size.width < 600) {
+      return _showSheet(context: context, items: items, title: title, titleWidget: null);
+    }
+    await _showPopup(
+      context: context,
+      position: globalPosition,
+      anchorSize: Size.zero,
+      screenSize: MediaQuery.of(context).size,
+      items: items,
+      title: title,
+      titleWidget: null,
+      alignment: CLPopupAlignment.start, // apre verso destra/basso dal cursore
+      minWidth: minWidth,
+      maxWidth: maxWidth,
+    );
+  }
+
   /// Mobile: stesse voci in un bottom sheet full-width (handle + header opzionale
   /// + righe). Tap voce → pop sheet + onTap (gestito da [_CLPopupMenuItemWidget]).
   static Future<void> _showSheet({
