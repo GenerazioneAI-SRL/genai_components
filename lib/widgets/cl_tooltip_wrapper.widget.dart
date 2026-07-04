@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../cl_theme.dart';
+import '../layout/constants/sizes.constant.dart';
 
 /// Wrapper tooltip con delay di 500ms e stile coerente con il tema.
 class CLTooltipWrapper extends StatelessWidget {
@@ -24,7 +25,7 @@ class CLTooltipWrapper extends StatelessWidget {
       triggerMode: triggerMode,
       decoration: BoxDecoration(
         color: isDark ? theme.secondaryBackground : theme.accentForeground,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(Sizes.radiusSurface),
         border: Border.all(color: theme.cardBorder),
       ),
       textStyle: theme.smallText.copyWith(

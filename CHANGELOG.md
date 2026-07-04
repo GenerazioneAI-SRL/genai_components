@@ -1,5 +1,84 @@
 # Changelog
 
+## 5.9.0
+
+- **Widgets:** Updated 8 components
+- **Layout:** Updated Cl Graph Layout Test, Cl Prereq Flow Layout Test
+- **Core:** Updated  Sdd-Diff-Rebuild-Report Md, Genai Components
+- **Package:** Updated Pubspec Yaml
+- **Tests:** Updated 4 components
+
+
+## 5.8.0
+
+- **Foundation:** Added CLToneStyle recipe (single resolver for tone × variant × interaction-state colors) and CLSurface primitive (card/soft/recessed/panel/tint surface presets)
+- **Buttons:** CLGhostButton now reads its `color` param via CLToneStyle — tone factories (primary/success/info/warning/danger) render tinted hover/press/foreground; `secondary` and raw constructor stay neutral (fix ignored `color`, same bug class as 5.7.3 outline/soft fix); icons/spinner now follow the foreground color (neutral ghost icons shift from secondaryText to primaryText, and a caller-supplied foregroundColor now recolors the icon too)
+- **Fixes:** hardcoded disabled opacities in CLIconButton (0.5) and CLPagination (0.4) replaced with `theme.opacityDisabled`
+
+## 5.7.3
+
+- **Foundation:** Added CLPressable shared interaction primitive (hover/press/focus/disabled + keyboard activation)
+- **Buttons:** CLActionChip and CLActionText migrated onto CLPressable; CLOutlineButton and CLSoftButton tone factories now render colored (fix ignored `color` param — secondary and raw constructor stay neutral)
+- **Widgets:** Updated Cl Tab View, Cl Nav List, Cl Nav Rail
+
+## 5.7.2
+
+- **Widgets:** Updated 18 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Changelog Md
+
+
+## 5.7.1
+
+- **Widgets:** Updated 18 components (incl. Paged Datatable Controller, Paged Datatable State)
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+
+
+## 5.7.0
+
+- **Widgets:** Updated 22 components
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Genai Components
+- **Tests:** Updated Cl Adaptive Shell Frosted Test
+
+
+## 5.6.0
+
+- **Widgets:** Updated 5 components
+
+
+## 5.5.1
+
+- **Widgets:** Updated 4 components
+
+
+## 5.5.0
+
+- **Widgets:** CLEntityTabs gained `groupByDomain` — when true, entries are grouped by `EntityDomain` into one tab per domain (Anagrafica, Risorse Umane, ...), each tab stacking that domain's cards vertically. Keeps the tab count bounded by the number of domains (max 6) instead of the number of cards; moving a card across domains (via `EntityTab.domain`) re-homes it to the right tab. Default false (one tab per entry, unchanged).
+
+
+## 5.4.0
+
+- **Widgets:** Added CLEntityTabs — domain-tagged, gated tab registry over CLTabView. Declares a list of `EntityTab` (key/label/`EntityDomain`/icon/guard/lazy builder), filters by per-tab `guard`, and renders the survivors through CLTabView preserving lazy content mount.
+- **Enums:** Added EntityDomain (`id`, `hr`, `atlas`, `lms`, `certet`, `bill`) with it_IT labels and a per-domain theme accent color.
+
+
+## 5.3.0
+
+- **Widgets:** Updated 90 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated Genai Components
+
+
+## 5.2.5
+
+- **Widgets:** Updated 14 components
+- **Core:** Updated Genai Components
+
+
 ## 5.2.4
 
 - **Widgets:** Updated CLCommand, CLDropdown, Dropdown State

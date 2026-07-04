@@ -94,4 +94,27 @@ class AiChatMessage {
     this.buttonsDisabled = false,
     this.tappedButtonIndex = -1,
   });
+
+  /// Serializzazione per la persistenza conversazioni. Volutamente MINIMALE:
+  /// id, role, content, timestamp, isVoice. [actions]/[richContent] (rendering
+  /// transitorio: card tool, bottoni) NON persistono → al reload il messaggio
+  /// si rende come testo semplice.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'role': role.name,
+        'content': content,
+        'timestamp': timestamp.toIso8601String(),
+        'isVoice': isVoice,
+      };
+
+  factory AiChatMessage.fromJson(Map<String, dynamic> json) => AiChatMessage(
+        id: json['id'] as String,
+        role: AiMessageRole.values.firstWhere(
+          (r) => r.name == json['role'],
+          orElse: () => AiMessageRole.assistant,
+        ),
+        content: (json['content'] as String?) ?? '',
+        timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+        isVoice: json['isVoice'] as bool? ?? false,
+      );
 }

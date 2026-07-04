@@ -28,10 +28,10 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
         onTap: () => _showActionsMenu(context),
         child: Container(
           key: iconKey,
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(Sizes.gapSm),
           child: Icon(
             Icons.more_vert_rounded,
-            size: 18,
+            size: theme.iconSizeCompact,
             color: theme.secondaryText,
           ),
         ),
@@ -80,7 +80,7 @@ class _RowSelectorCheckbox<TResultId extends Comparable, TResult extends Object>
             width: states.contains(WidgetState.selected) ? 0 : 1,
           ),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusChip)),
         tristate: false,
         onChanged: (newValue) => setSelected(newValue ?? false),
       ),

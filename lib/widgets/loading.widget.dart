@@ -76,7 +76,7 @@ class _LoadingWidgetState extends State<LoadingWidget> with TickerProviderStateM
                         angle: -_rotationAnimation.value * 0.7,
                         child: CustomPaint(
                           size: Size(widget.size * 0.6, widget.size * 0.6),
-                          painter: _ArcPainter(color: color.withValues(alpha: 0.5), strokeWidth: 2, startAngle: math.pi, sweepAngle: math.pi * 0.8),
+                          painter: _ArcPainter(color: color.withValues(alpha: theme.opacityDisabled), strokeWidth: 2, startAngle: math.pi, sweepAngle: math.pi * 0.8),
                         ),
                       ),
                       // Center dot
@@ -97,7 +97,7 @@ class _LoadingWidgetState extends State<LoadingWidget> with TickerProviderStateM
 
           // Text with animated dots
           if (widget.showText) ...[
-            SizedBox(height: Sizes.padding),
+            SizedBox(height: Sizes.gapMd),
             AnimatedBuilder(
               animation: _dotsController,
               builder: (context, child) {

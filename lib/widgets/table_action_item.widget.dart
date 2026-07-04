@@ -25,8 +25,8 @@ class _TableActionItemState extends State<TableActionItem> {
             ? widget
                 .iconData // Se è un Widget (HugeIcon), lo usa direttamente
             : Icon(widget.iconData, color: widget.iconColor ?? CLTheme.of(context).secondaryText, size: Sizes.medium),
-        SizedBox(width: Sizes.padding / 2),
-        Text(widget.name, style: CLTheme.of(context).bodyText),
+        SizedBox(width: Sizes.gapSm),
+        Text(widget.name, style: CLTheme.of(context).title),
       ],
     );
   }

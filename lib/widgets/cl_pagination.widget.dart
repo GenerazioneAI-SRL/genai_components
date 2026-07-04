@@ -115,7 +115,6 @@ class CLPagination extends StatelessWidget {
                       child: Text(
                         '${tok + 1}',
                         style: theme.smallText.copyWith(
-                          fontSize: 12,
                           fontWeight: tok == currentPage ? FontWeight.w700 : FontWeight.w500,
                           color: tok == currentPage ? Colors.white : theme.primaryText,
                         ),
@@ -222,7 +221,7 @@ class _PageTileState extends State<_PageTile> {
     );
 
     if (disabled) {
-      tile = Opacity(opacity: 0.4, child: tile);
+      tile = Opacity(opacity: t.opacityDisabled, child: tile);
     }
 
     return Focus(

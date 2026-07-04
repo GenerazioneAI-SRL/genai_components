@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
+import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
 
 // ── Costanti micro-interazione ──────────────────────────────────────
@@ -46,7 +47,7 @@ class CLButton extends StatefulWidget {
   /// Se `true` (default), emette un `HapticFeedback.selectionClick()` al press (iOS/Android).
   final bool haptic;
 
-  /// Override del raggio di angolo. Se `null` usa `Sizes.radiusControl` (6, scala shadcn).
+  /// Override del raggio di angolo. Se `null` usa `theme.radiusControl` (12).
   final double? borderRadius;
 
   /// Ombra esterna opzionale. Se `null` il bottone resta piatto (default DS).
@@ -444,18 +445,31 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
   late final WidgetStatesController _statesController;
   bool _wasPressed = false;
 
+  // Modalità di highlight del focus (touch vs tastiera/direzionale). Il focus
+  // ring va mostrato SOLO per focus da tastiera (traversal): dopo un tap che
+  // apre/chiude un overlay il focus torna al bottone e, senza questo filtro,
+  // il ring resterebbe disegnato anche se l'utente non usa la tastiera.
+  FocusHighlightMode _highlightMode = FocusManager.instance.highlightMode;
+
   @override
   void initState() {
     super.initState();
     _statesController = WidgetStatesController();
     _statesController.addListener(_onStatesChanged);
+    FocusManager.instance.addHighlightModeListener(_onHighlightModeChanged);
   }
 
   @override
   void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_onHighlightModeChanged);
     _statesController.removeListener(_onStatesChanged);
     _statesController.dispose();
     super.dispose();
+  }
+
+  void _onHighlightModeChanged(FocusHighlightMode mode) {
+    if (!mounted || mode == _highlightMode) return;
+    setState(() => _highlightMode = mode);
   }
 
   void _onStatesChanged() {
@@ -483,6 +497,11 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
+    final forceIconOnly = CLCompactActionScope.iconOnlyOf(context) &&
+        (widget.iconData != null || widget.hugeIcon != null) &&
+        !widget.fullWidth &&
+        widget.width == null;
+    final showText = widget.text.isNotEmpty && !forceIconOnly;
     final isLoading = widget.loading ?? loading;
     final isInteractive = widget.enabled && !isLoading;
 
@@ -503,7 +522,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     // Altezze fisse da design tokens: 32 compact, 40 default. Niente +/- mobile.
     final minHeight = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final iconOnlySide = minHeight;
-    final radius = widget.borderRadius ?? theme.radiusControl;
+    final radius = forceIconOnly ? iconOnlySide / 2 : (widget.borderRadius ?? theme.radiusControl);
 
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
     Widget buildIconSlot(double size) {
@@ -538,7 +557,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final iconTextGap = theme.gapSm;
 
     Widget content;
-    if (widget.text.isNotEmpty) {
+    if (showText) {
       // Label con fade durante loading per comunicare stato "in corso".
       final labelWidget = AnimatedOpacity(
         opacity: isLoading ? 0.7 : 1.0,
@@ -572,7 +591,7 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     }
 
     // ── Superficie animata (bg + padding insieme: niente gap trasparente) ─
-    final BoxConstraints constraints = widget.text.isNotEmpty
+    final BoxConstraints constraints = showText
         ? BoxConstraints(minHeight: minHeight, minWidth: isMobile ? 0 : 64)
         : BoxConstraints(minWidth: iconOnlySide, minHeight: iconOnlySide);
 
@@ -604,12 +623,14 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
           child: AnimatedContainer(
             duration: _hoverDuration,
             curve: Curves.easeOut,
-            padding: widget.text.isNotEmpty ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
+            padding: showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
             constraints: constraints,
             decoration: BoxDecoration(
               color: currentBg,
               borderRadius: BorderRadius.circular(radius),
-              border: isFocused ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2) : widget.border,
+              border: (isFocused && _highlightMode == FocusHighlightMode.traditional)
+                  ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2)
+                  : widget.border,
               // Ombra attenuata su press per dare profondità coerente con lo scale-down.
               boxShadow: (widget.boxShadow != null && !isPressed) ? widget.boxShadow : null,
             ),
@@ -654,20 +675,19 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
 
     // ── Disabled: fade opacità ───────────────────────────────────────
     button = AnimatedOpacity(
-      opacity: widget.enabled ? 1.0 : 0.5,
+      opacity: widget.enabled ? 1.0 : theme.opacityDisabled,
       duration: const Duration(milliseconds: 150),
       child: button,
     );
 
-    if (widget.tooltip != null && widget.tooltip!.isNotEmpty) {
-      button = Tooltip(message: widget.tooltip!, child: button);
-    }
-
-    if (widget.semanticLabel != null && widget.semanticLabel!.isNotEmpty) {
+    // Niente Tooltip automatico (scelta di prodotto: si aggiunge a mano dove serve).
+    // `tooltip` resta come fallback per la label di accessibilità.
+    final a11yLabel = widget.semanticLabel ?? widget.tooltip;
+    if (a11yLabel != null && a11yLabel.isNotEmpty) {
       button = Semantics(
         button: true,
         enabled: isInteractive,
-        label: widget.semanticLabel,
+        label: a11yLabel,
         child: ExcludeSemantics(child: button),
       );
     }

@@ -224,12 +224,12 @@ class _ClFilePickerState extends State<ClFilePicker> {
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: CLTheme.of(context).primary.withAlpha(10),
-                          borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                          borderRadius: BorderRadius.circular(Sizes.radiusCard),
                         ),
                         child: CustomPaint(
                           painter: _DashedBorderPainter(
                             color: CLTheme.of(context).primary.withAlpha(100),
-                            borderRadius: Sizes.borderRadius,
+                            borderRadius: Sizes.radiusCard,
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -272,7 +272,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: CLTheme.of(context).primary.withAlpha(40),
-                          borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                          borderRadius: BorderRadius.circular(Sizes.radiusCard),
                           border: Border.all(
                             color: CLTheme.of(context).primary,
                             width: 2,
@@ -335,12 +335,12 @@ class _ClFilePickerState extends State<ClFilePicker> {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: CLTheme.of(context).primary.withAlpha(10),
-                        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                        borderRadius: BorderRadius.circular(Sizes.radiusCard),
                       ),
                       child: CustomPaint(
                         painter: _DashedBorderPainter(
                           color: CLTheme.of(context).primary.withAlpha(100),
-                          borderRadius: Sizes.borderRadius,
+                          borderRadius: Sizes.radiusCard,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -385,7 +385,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: CLTheme.of(context).primary.withAlpha(40),
-                      borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                      borderRadius: BorderRadius.circular(Sizes.radiusCard),
                       border: Border.all(
                         color: CLTheme.of(context).primary,
                         width: 2,

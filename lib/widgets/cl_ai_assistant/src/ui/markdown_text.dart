@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../layout/constants/sizes.constant.dart';
+
 /// Parses inline markdown (**bold**, *italic*, `code`) into [TextSpan]s
 /// and renders them via [RichText].
 ///
@@ -83,7 +85,7 @@ class MarkdownText extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(Sizes.radiusChip),
               ),
               child: Text(
                 match.group(7)!,

@@ -7,8 +7,14 @@ export 'cl_theme.dart';
 // Layout
 export 'layout/constants/sizes.constant.dart';
 
+// Foundation (Tier 0 — primitivi di base condivisi)
+export 'widgets/foundation/cl_pressable.widget.dart';
+export 'widgets/foundation/cl_tone_style.dart';
+export 'widgets/foundation/cl_surface.widget.dart';
+
 // Buttons
 export 'widgets/buttons/cl_button.widget.dart';
+export 'widgets/buttons/cl_compact_action_scope.dart';
 export 'widgets/buttons/cl_icon_button.widget.dart';
 export 'widgets/buttons/cl_outline_button.widget.dart';
 export 'widgets/buttons/cl_ghost_button.widget.dart';
@@ -20,11 +26,19 @@ export 'widgets/buttons/cl_confirm_dialog.dart';
 // Layout widgets
 export 'widgets/cl_card.widget.dart';
 export 'widgets/cl_container.widget.dart';
+export 'widgets/cl_label_value.widget.dart';
 export 'widgets/cl_input_group.widget.dart';
 export 'widgets/cl_popup_surface.widget.dart';
+export 'widgets/layout/cl_adaptive_shell.widget.dart';
+export 'widgets/layout/cl_bottom_bar.widget.dart';
+export 'widgets/layout/cl_destination.dart';
+export 'widgets/layout/cl_nav_list.widget.dart';
+export 'widgets/layout/cl_nav_rail.widget.dart';
 export 'widgets/layout/cl_page_container.widget.dart';
-export 'widgets/layout/cl_responsive_stack.widget.dart';
 export 'widgets/layout/cl_responsive_grid_shadcn.widget.dart';
+export 'widgets/layout/cl_responsive_stack.widget.dart';
+export 'widgets/layout/cl_shell_config.dart';
+export 'widgets/layout/cl_shell_slots.dart';
 export 'widgets/cl_divider.widget.dart';
 export 'widgets/cl_separator.widget.dart';
 export 'widgets/cl_section_card.widget.dart';
@@ -57,9 +71,13 @@ export 'widgets/cl_universal_repeatable.widget.dart';
 // Navigation
 export 'widgets/cl_pagination.widget.dart';
 export 'widgets/cl_popup_menu.widget.dart';
+export 'widgets/cl_context_menu.widget.dart';
 export 'widgets/cl_view_toggle.widget.dart';
 export 'widgets/cl_tabs/cl_tab_view.widget.dart';
 export 'widgets/cl_tabs/cl_tab_item.model.dart';
+export 'widgets/cl_entity_tabs/entity_domain.dart';
+export 'widgets/cl_entity_tabs/entity_tab.model.dart';
+export 'widgets/cl_entity_tabs/cl_entity_tabs.widget.dart';
 export 'widgets/cl_sheet.widget.dart';
 
 // Feedback
@@ -103,6 +121,11 @@ export 'widgets/cl_survey/cl_survey_result_viewer.widget.dart';
 export 'widgets/cl_survey/models/question.dart';
 export 'widgets/cl_survey/models/question_result.dart';
 
+// Node graph (widget data-driven custom: Stack + CustomPaint)
+export 'src/widgets/cl_node_graph/cl_graph_models.dart';
+export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, clPrereqFlowLayout, clModuleFlowLayout, classifyGraphLink, CLGraphLinkRole;
+export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
+
 // Grid
 export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';
 
@@ -124,6 +147,7 @@ export 'enums/tool_name.enum.dart';
 
 // AI Assistant
 export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
+export 'widgets/cl_ai_assistant/src/core/ai_conversation_store.dart';
 export 'widgets/cl_ai_assistant/src/llm/providers/openai_provider.dart';
 export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
 

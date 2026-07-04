@@ -124,16 +124,22 @@ class _TextFieldUiHelper extends _Helper {
       duration: const Duration(milliseconds: 120),
       height: inputH,
       decoration: BoxDecoration(
+        // recessed (L2): fill grigio `tertiaryBackground`, nessun bordo a riposo.
+        // L'incasso è dato dal tono più scuro (Flutter non ha inset-shadow
+        // nativa). Ring focus mantenuto per a11y. Default: bianco L1 + bordo.
         color: w.isEnabled
-            ? (w.fillColor ?? theme.secondaryBackground)
-            : (w.fillColor ?? theme.secondaryBackground).withValues(alpha: 0.6),
+            ? (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
+            : (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
+                .withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(w.isRounded ? inputH / 2 : theme.radiusControl),
-        border: Border.all(
-          color: s.isFocusedRef
-              ? theme.primary
-              : (w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)),
-          width: 1,
-        ),
+        border: w.recessed
+            ? null
+            : Border.all(
+                color: s.isFocusedRef
+                    ? theme.primary
+                    : (w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)),
+                width: 1,
+              ),
         boxShadow: s.isFocusedRef ? [BoxShadow(color: theme.primary, spreadRadius: 1, blurRadius: 0)] : null,
       ),
       child: Row(
@@ -228,9 +234,9 @@ class _TextFieldUiHelper extends _Helper {
       filled: true,
       fillColor: w.fillColor ?? theme.secondaryBackground,
       enabledBorder: b(theme.cardBorder, 1.0),
-      focusedBorder: b(theme.primary, 2.0),
+      focusedBorder: b(theme.primary, 1.0),
       errorBorder: b(theme.danger, 1.0),
-      focusedErrorBorder: b(theme.danger, 2.0),
+      focusedErrorBorder: b(theme.danger, 1.0),
       disabledBorder: b(theme.cardBorder.withValues(alpha: 0.5), 1.0),
       errorStyle: theme.smallLabel.copyWith(color: theme.danger, fontSize: 11, height: 1.3),
     );
@@ -251,7 +257,7 @@ class _TextFieldUiHelper extends _Helper {
     }
     if (w.onColorPicked != null) {
       // Swatch 20px in compact (gapXl): 24px lascerebbe solo 4px di aria nel box da 32.
-      final double swatchSide = w.isCompact ? theme.gapXl : 24;
+      final double swatchSide = w.isCompact ? theme.gapXl : Sizes.iconSizeLarge;
       return Padding(
         padding: const EdgeInsets.only(right: 10),
         child: Container(

@@ -112,7 +112,7 @@ class _ToggleButton extends StatelessWidget {
             vertical: vPad,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? theme.primary.withValues(alpha: 0.14) : Colors.transparent,
+            color: isSelected ? theme.primary.withValues(alpha: theme.opacityMuted) : Colors.transparent,
             borderRadius: BorderRadius.circular(innerR),
           ),
           child: Row(

@@ -54,7 +54,6 @@ class RepeatableFieldConfig {
     priceRequired: true,
     showInfoBox: true,
     infoBoxText: 'I prodotti inclusi compongono un PACCHETTO. Il prezzo finale sarà CALCOLATO AUTOMATICAMENTE dalla somma dei loro prezzi. Puoi personalizzare il prezzo di ogni prodotto.',
-    infoBoxColor: Color(0xFFFFF3E0),
     infoBoxIcon: Icons.warning_amber_rounded,
     showTotalBox: true,
     totalBoxLabel: 'Prezzo Totale Calcolato:',
@@ -207,7 +206,7 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
           Text(
             desc,
             style: Theme.of(context).textTheme.bodySmall?.merge(
-              TextStyle(color: Colors.grey.shade600),
+              TextStyle(color: CLTheme.of(context).secondaryText),
             ),
           ),
         );
@@ -234,12 +233,15 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
               bottom: Sizes.padding,
             ),
             decoration: BoxDecoration(
-              color: widget.config.infoBoxColor ?? Colors.blue.shade50,
+              color: widget.config.infoBoxColor ??
+                  (widget.config.infoBoxIcon == Icons.warning_amber_rounded
+                      ? CLTheme.of(context).warning.withValues(alpha: CLTheme.of(context).opacitySoft)
+                      : CLTheme.of(context).info.withValues(alpha: CLTheme.of(context).opacitySoft)),
               borderRadius: BorderRadius.circular(Sizes.borderRadius),
               border: Border.all(
                 color: widget.config.infoBoxIcon == Icons.warning_amber_rounded
-                    ? Colors.orange.shade300
-                    : Colors.blue.shade200,
+                    ? CLTheme.of(context).warning.withValues(alpha: CLTheme.of(context).opacityMuted)
+                    : CLTheme.of(context).info.withValues(alpha: CLTheme.of(context).opacityMuted),
               ),
             ),
             child: Row(
@@ -247,19 +249,19 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
                 Icon(
                   widget.config.infoBoxIcon ?? Icons.info_outline,
                   color: widget.config.infoBoxIcon == Icons.warning_amber_rounded
-                      ? Colors.orange.shade700
-                      : Colors.blue.shade700,
-                  size: 20,
+                      ? CLTheme.of(context).warning
+                      : CLTheme.of(context).info,
+                  size: Sizes.iconSizeDefault,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: Sizes.gapSm),
                 Expanded(
                   child: Text(
                     widget.config.infoBoxText!,
                     style: TextStyle(
                       fontSize: 13,
                       color: widget.config.infoBoxIcon == Icons.warning_amber_rounded
-                          ? Colors.orange.shade900
-                          : Colors.blue.shade900,
+                          ? CLTheme.of(context).warning
+                          : CLTheme.of(context).info,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -269,7 +271,7 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(Sizes.padding, Sizes.padding, 0, 0),
-          child: Text(widget.label, style: CLTheme.of(context).bodyText),
+          child: Text(widget.label, style: CLTheme.of(context).bodyLabel),
         ),
         ListView.builder(
           itemCount: widget.items.length,
@@ -403,10 +405,10 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
             ),
             padding: const EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: CLTheme.of(context).success.withValues(alpha: CLTheme.of(context).opacitySoft),
               borderRadius: BorderRadius.circular(Sizes.borderRadius),
               border: Border.all(
-                color: Colors.green.shade300,
+                color: CLTheme.of(context).success.withValues(alpha: CLTheme.of(context).opacityMuted),
                 width: 2,
               ),
             ),
@@ -418,7 +420,7 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade900,
+                    color: CLTheme.of(context).success,
                   ),
                 ),
                 Text(
@@ -426,7 +428,7 @@ class _CLUniversalRepeatableState<T extends Object> extends State<CLUniversalRep
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade700,
+                    color: CLTheme.of(context).success,
                   ),
                 ),
               ],

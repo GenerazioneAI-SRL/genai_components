@@ -24,8 +24,8 @@ class CLLifecycleProgress extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: Sizes.padding, horizontal: Sizes.padding),
       decoration: BoxDecoration(
-        color: isDark ? theme.secondaryBackground : Colors.white,
-        borderRadius: BorderRadius.circular(Sizes.borderRadius),
+        color: theme.secondaryBackground,
+        borderRadius: BorderRadius.circular(Sizes.radiusCard),
         border: Border.all(color: theme.borderColor),
       ),
       child: Row(
@@ -106,11 +106,11 @@ class _StepDot extends StatelessWidget {
           ),
           child: Center(
             child: isDone
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+                ? Icon(Icons.check_rounded, color: Colors.white, size: Sizes.iconSizeCompact)
                 : HugeIcon(icon: step.icon, color: color, size: isCurrent ? 18 : 14),
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: theme.gapIconText),
         Text(
           step.label,
           style: TextStyle(

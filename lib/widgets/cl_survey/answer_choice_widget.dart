@@ -95,8 +95,8 @@ class _SingleChoiceAnswerState extends State<SingleChoiceAnswer> {
           child: GestureDetector(
             onTap: () => _onSelect(option.id),
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: Sizes.padding),
+              margin: const EdgeInsets.symmetric(horizontal: Sizes.gapSm),
+              padding: const EdgeInsets.symmetric(vertical: Sizes.gapMd),
               decoration: BoxDecoration(
                 color: isSelected ? CLTheme.of(context).primary : CLTheme.of(context).secondaryBackground,
                 borderRadius: BorderRadius.circular(Sizes.borderRadius),
@@ -238,7 +238,7 @@ class _OptionTileState extends State<_OptionTile> {
               color: widget.isSelected
                   ? CLTheme.of(context).primary
                   : _isHovered
-                      ? CLTheme.of(context).primary.withValues(alpha: 0.5)
+                      ? CLTheme.of(context).primary.withValues(alpha: CLTheme.of(context).opacityDisabled)
                       : CLTheme.of(context).borderColor,
               width: widget.isSelected ? 1.5 : 1,
             ),
@@ -413,7 +413,7 @@ class _RatingAnswerState extends State<RatingAnswer> {
             mainAxisAlignment: MainAxisAlignment.center,
             length: 5,
             rating: rating,
-            between: 12,
+            between: Sizes.gapMd,
             starSize: 40,
             color: CLTheme.of(context).primary,
             onRaitingTap: (newRating) {
@@ -431,8 +431,8 @@ class _RatingAnswerState extends State<RatingAnswer> {
                 vertical: Sizes.padding / 2,
               ),
               decoration: BoxDecoration(
-                color: CLTheme.of(context).primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                color: CLTheme.of(context).primary.withValues(alpha: CLTheme.of(context).opacitySoft),
+                borderRadius: BorderRadius.circular(Sizes.radiusChip),
               ),
               child: Text(
                 "${_selectedAnswer!.values.first}/5 stelle",

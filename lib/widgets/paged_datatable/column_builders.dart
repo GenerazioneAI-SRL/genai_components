@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../layout/constants/sizes.constant.dart';
 import 'paged_datatable.dart';
 
 /// Lightweight action descriptor consumed by [TableColumnBuilder.actionColumn].
@@ -67,7 +68,7 @@ extension TableColumnBuilder on BuildContext {
       cellBuilder: (item) {
         final c = color(item);
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: Sizes.gapSm, vertical: Sizes.gapXs),
           decoration: BoxDecoration(
             color: c.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),

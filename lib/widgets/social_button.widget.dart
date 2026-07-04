@@ -24,11 +24,11 @@ class _SocialButtonState extends State<SocialButton> {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: CLTheme.of(context).secondaryText.withValues(alpha: 0.2),
+            backgroundColor: CLTheme.of(context).secondaryText.withValues(alpha: CLTheme.of(context).opacityMedium),
             child: SvgPicture.asset(widget.svgName, height: 18, colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn)),
           ),
           SizedBox(height: 5),
-          Text(widget.name, style: CLTheme.of(context).smallText.copyWith(fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(widget.name, style: CLTheme.of(context).smallText.override(fontWeight: FontWeight.bold)),
         ],
       ),
     );

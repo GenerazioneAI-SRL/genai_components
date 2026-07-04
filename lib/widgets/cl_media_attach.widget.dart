@@ -136,7 +136,7 @@ class _CLMediaAttachWidgetState extends State<CLMediaAttachWidget> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Elimina', style: TextStyle(color: Colors.red)),
+            child: Text('Elimina', style: TextStyle(color: CLTheme.of(ctx).danger)),
           ),
         ],
       ),

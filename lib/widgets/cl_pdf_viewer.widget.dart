@@ -43,7 +43,7 @@ class CLPdfViewer extends StatelessWidget {
                         }
                       },
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: Sizes.gapXs),
                     _PdfActionButton(
                       icon: HugeIcons.strokeRoundedArrowRight01,
                       tooltip: 'Ultima pagina',
@@ -53,7 +53,7 @@ class CLPdfViewer extends StatelessWidget {
                         }
                       },
                     ),
-                    const SizedBox(width: Sizes.small),
+                    const SizedBox(width: Sizes.gapSm),
                     _PdfActionButton(
                       icon: HugeIcons.strokeRoundedZoomOutArea,
                       tooltip: 'Zoom out',
@@ -61,7 +61,7 @@ class CLPdfViewer extends StatelessWidget {
                         if (pdfController.isReady) pdfController.zoomDown();
                       },
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: Sizes.gapXs),
                     _PdfActionButton(
                       icon: HugeIcons.strokeRoundedZoomInArea,
                       tooltip: 'Zoom in',
@@ -82,7 +82,7 @@ class CLPdfViewer extends StatelessWidget {
                         if (onDownload != null) await onDownload!();
                       },
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: Sizes.gapXs),
                     _PdfActionButton(
                       icon: HugeIcons.strokeRoundedCancel01,
                       tooltip: 'Chiudi',
@@ -143,12 +143,12 @@ class _PdfActionButtonState extends State<_PdfActionButton> {
           onTap: widget.onPressed,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.all(Sizes.small / 2),
+            padding: const EdgeInsets.all(Sizes.gapSm),
             decoration: BoxDecoration(
               color: isHovered
                   ? (widget.isDestructive ? CLTheme.of(context).danger.withAlpha(26) : CLTheme.of(context).primary.withAlpha(26))
-                  : CLTheme.of(context).primaryBackground,
-              borderRadius: BorderRadius.circular(Sizes.borderRadius / 2),
+                  : CLTheme.of(context).controlFill,
+              borderRadius: BorderRadius.circular(Sizes.radiusControl),
               border: Border.all(
                 color: isHovered
                     ? (widget.isDestructive ? CLTheme.of(context).danger : CLTheme.of(context).primary)
@@ -161,7 +161,7 @@ class _PdfActionButtonState extends State<_PdfActionButton> {
               color: isHovered
                   ? (widget.isDestructive ? CLTheme.of(context).danger : CLTheme.of(context).primary)
                   : CLTheme.of(context).primaryText,
-              size: Sizes.medium,
+              size: Sizes.iconSizeDefault,
             ),
           ),
         ),

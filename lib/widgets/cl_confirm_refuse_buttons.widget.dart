@@ -17,6 +17,7 @@ class CLConfirmRejectButtons extends StatefulWidget {
 class _CLConfirmRejectButtonsState extends State<CLConfirmRejectButtons> {
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -27,12 +28,12 @@ class _CLConfirmRejectButtonsState extends State<CLConfirmRejectButtons> {
             message: 'Approva',
             child: CircleAvatar(
               radius: Sizes.small,
-              backgroundColor: CLTheme.of(context).success.withAlpha(71),
-              child: HugeIcon(icon: HugeIcons.strokeRoundedTick02, color: CLTheme.of(context).success, size: Sizes.small),
+              backgroundColor: CLTheme.of(context).success.withValues(alpha: theme.opacityStrong),
+              child: HugeIcon(icon: HugeIcons.strokeRoundedTick02, color: CLTheme.of(context).success, size: Sizes.iconSizeCompact),
             ),
           ),
         ),
-        SizedBox(width: Sizes.padding/2),
+        SizedBox(width: Sizes.gapSm),
         InkWell(
           mouseCursor: SystemMouseCursors.click,
           onTap: () async => await widget.onReject(),
@@ -40,8 +41,8 @@ class _CLConfirmRejectButtonsState extends State<CLConfirmRejectButtons> {
             message: 'Rifiuta',
             child: CircleAvatar(
               radius: Sizes.small,
-              backgroundColor: CLTheme.of(context).danger.withAlpha(71),
-              child: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: CLTheme.of(context).danger, size: Sizes.small),
+              backgroundColor: CLTheme.of(context).danger.withValues(alpha: theme.opacityStrong),
+              child: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: CLTheme.of(context).danger, size: Sizes.iconSizeCompact),
             ),
           ),
         ),

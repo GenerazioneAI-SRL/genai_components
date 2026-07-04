@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
+import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
 
 class CLOutlineButton extends StatefulWidget {
@@ -17,6 +18,12 @@ class CLOutlineButton extends StatefulWidget {
   final String? confirmationMessage;
   final bool isCompact;
 
+  /// Interno: `true` → tono semantico colorato (primary/success/info/warning/
+  /// danger): testo/bordo/hover derivano da [color]. `false` → neutro
+  /// (secondary + costruttore raw): testo `primaryText`, bordo `cardBorder`.
+  /// Prima [color] non veniva mai letto in `build()` e ogni tono rendeva neutro.
+  final bool _colored;
+
   const CLOutlineButton({
     super.key,
     required this.color,
@@ -30,7 +37,21 @@ class CLOutlineButton extends StatefulWidget {
     this.confirmationMessage,
     this.width,
     this.isCompact = false,
-  });
+  }) : _colored = false;
+
+  const CLOutlineButton._colored({
+    required this.color,
+    required this.text,
+    required this.onTap,
+    required this.context,
+    required this.iconAlignment,
+    this.iconData,
+    this.hugeIcon,
+    this.needConfirmation = false,
+    this.confirmationMessage,
+    this.width,
+    this.isCompact = false,
+  }) : _colored = true;
 
   factory CLOutlineButton.primary({
     required String text,
@@ -44,7 +65,7 @@ class CLOutlineButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLOutlineButton(
+    return CLOutlineButton._colored(
       text: text,
       color: CLTheme.of(context).primary,
       onTap: onTap,
@@ -98,7 +119,7 @@ class CLOutlineButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLOutlineButton(
+    return CLOutlineButton._colored(
       text: text,
       color: CLTheme.of(context).success,
       onTap: onTap,
@@ -125,7 +146,7 @@ class CLOutlineButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLOutlineButton(
+    return CLOutlineButton._colored(
       text: text,
       color: CLTheme.of(context).info,
       onTap: onTap,
@@ -152,7 +173,7 @@ class CLOutlineButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLOutlineButton(
+    return CLOutlineButton._colored(
       text: text,
       color: CLTheme.of(context).warning,
       onTap: onTap,
@@ -179,7 +200,7 @@ class CLOutlineButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLOutlineButton(
+    return CLOutlineButton._colored(
       text: text,
       color: CLTheme.of(context).danger,
       onTap: onTap,
@@ -211,16 +232,24 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
+    final forceIconOnly = CLCompactActionScope.iconOnlyOf(context) &&
+        (widget.iconData != null || widget.hugeIcon != null) &&
+        widget.width == null;
+    final showText = widget.text.isNotEmpty && !forceIconOnly;
     // Padding orizzontale da token; verticale 0 — minimumSize governa l'altezza.
     final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
     const vPad = 0.0;
-    final fgColor = theme.primaryText;
+    final colored = widget._colored;
+    final fgColor = colored ? widget.color : theme.primaryText;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final spinnerColor = fgColor;
-    final hoverBg = theme.accent;
-    final pressedBg = Color.lerp(hoverBg, Colors.black, 0.08)!;
-    final focusBorder = theme.primary;
+    final hoverBg = colored ? widget.color.withValues(alpha: theme.opacitySoft) : theme.accent;
+    final pressedBg =
+        colored ? widget.color.withValues(alpha: theme.opacityMuted) : Color.lerp(theme.accent, Colors.black, 0.08)!;
+    final defaultBorder =
+        colored ? BorderSide(color: widget.color, width: 1.0) : BorderSide(color: theme.cardBorder, width: 1.0);
+    final focusBorder = colored ? widget.color : theme.primary;
     final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
 
     return Theme(
@@ -231,7 +260,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
       ),
       child: SizedBox(
       width: widget.width,
-      child: widget.text.isNotEmpty
+      child: showText
           ? OutlinedButton.icon(
               iconAlignment: widget.iconAlignment,
                icon: (widget.iconData != null || widget.hugeIcon != null || loading)
@@ -252,7 +281,7 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                    if (states.contains(WidgetState.focused)) {
                      return BorderSide(color: focusBorder, width: 2);
                    }
-                   return BorderSide(color: theme.cardBorder, width: 1.0);
+                   return defaultBorder;
                  }),
                  foregroundColor: WidgetStateProperty.all(fgColor),
                  backgroundColor: WidgetStateProperty.resolveWith((states) {
@@ -292,8 +321,8 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
                 }),
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(theme.radiusControl),
-                  side: BorderSide(color: theme.cardBorder, width: 1.0),
+                  borderRadius: BorderRadius.circular(forceIconOnly ? btnH / 2 : theme.radiusControl),
+                  side: defaultBorder,
                 )),
                 minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
                 fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),

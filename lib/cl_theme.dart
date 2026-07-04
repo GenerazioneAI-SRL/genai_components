@@ -105,7 +105,39 @@ abstract class CLTheme {
   final Color cardBorder; // Card and panel border
   final Color controlFill; // Fill controlli neutri su superficie (es. icon button su L1)
 
+  /// Accento viola decorativo (categorie/CTA secondari NON semantici — es. badge
+  /// CERT, bottoni "Aggiungi" di contesto). Non è success/warning/danger/info:
+  /// è una tinta brand-adiacente. Light violet-600, override dark violet-400.
+  Color get accentPurple => const Color(0xFF7C3AED);
+
   List<BoxShadow> get cardShadow;
+
+  /// Ombra leggera per card statiche (Foundation L1 raised): sottile, quasi
+  /// hairline. Da preferire su superfici NON transitorie. [cardShadow] resta
+  /// (più marcata) per retrocompat dei consumer esistenti.
+  List<BoxShadow> get cardShadowSoft;
+
+  /// Ombra marcata per superfici transitorie: popover, menu, dropdown, sheet.
+  List<BoxShadow> get popoverShadow;
+
+  // ═══════════════════════════════════════════════════════════
+  // MOTION — durate ed easing canonici. Concreti (uguali in light/dark:
+  // l'animazione non cambia col tema). Easing = Material standard
+  // ≈ cubic-bezier(.4, 0, .2, 1), già esposto da Flutter come
+  // Curves.fastOutSlowIn (lo stesso identico Cubic).
+  // ═══════════════════════════════════════════════════════════
+
+  /// 150ms — hover/press di bottoni e controlli.
+  Duration get durationFast => const Duration(milliseconds: 150);
+
+  /// 200ms — toggle, tab, cambi di stato.
+  Duration get durationBase => const Duration(milliseconds: 200);
+
+  /// 300ms — popover, sheet, elevazione.
+  Duration get durationSlow => const Duration(milliseconds: 300);
+
+  /// cubic-bezier(.4, 0, .2, 1) — easing standard del DS.
+  Curve get easingStandard => Curves.fastOutSlowIn;
 
   // --------- Design token dimensionali ----------
   // Default = valori storici di CLSizes. Override nel tema di progetto per
@@ -194,20 +226,20 @@ abstract class CLTheme {
   /// 80px — offset verticale header pagina.
   double get pageTop => 80.0;
 
-  /// 4px — radius chip/badge.
-  double get radiusChip => 4.0;
+  /// 6px — radius chip/badge.
+  double get radiusChip => 6.0;
 
-  /// 8px — radius controlli (bottoni, input).
-  double get radiusControl => 8.0;
+  /// 12px — radius controlli (bottoni, input).
+  double get radiusControl => 12.0;
 
-  /// 10px — radius superfici (popup, dropdown).
-  double get radiusSurface => 10.0;
+  /// 14px — radius superfici (popup, dropdown).
+  double get radiusSurface => 14.0;
 
-  /// 14px — radius card.
-  double get radiusCard => 14.0;
+  /// 18px — radius card.
+  double get radiusCard => 18.0;
 
-  /// 24px — radius modali.
-  double get radiusModal => 24.0;
+  /// 28px — radius modali.
+  double get radiusModal => 28.0;
 
   /// 9999px — radius pill.
   double get radiusPill => 9999.0;
@@ -296,64 +328,97 @@ const _kDarkCardShadow = <BoxShadow>[
   BoxShadow(color: Color(0x4C000000), blurRadius: 8, offset: Offset(0, 2)),
 ];
 
+// Card statiche (Foundation L1): sottile. Popover/menu: marcata, spread negativo.
+const _kLightCardShadowSoft = <BoxShadow>[
+  BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 1)),
+];
+const _kLightPopoverShadow = <BoxShadow>[
+  BoxShadow(color: Color(0x38000000), blurRadius: 28, spreadRadius: -6, offset: Offset(0, 12)),
+];
+const _kDarkCardShadowSoft = <BoxShadow>[
+  BoxShadow(color: Color(0x80000000), blurRadius: 6, offset: Offset(0, 2)),
+];
+const _kDarkPopoverShadow = <BoxShadow>[
+  BoxShadow(color: Color(0xB3000000), blurRadius: 34, spreadRadius: -6, offset: Offset(0, 16)),
+];
+
 class LightModeTheme extends CLTheme {
   const LightModeTheme({
     super.primary = const Color(0xFF0C8EC7),
     super.secondary = const Color(0xFF0A7AAD),
-    super.alternate = const Color(0xFFE8EBF0),
+    // Rampa neutra quasi-neutra (filo di freddo, Apple-like): accent-agnostica,
+    // niente beige caldo né blu marcato. Blu brand #0C8EC7 invariato.
+    super.alternate = const Color(0xFFECEEF0),
     super.primaryText = const Color(0xF2000000),
-    super.secondaryText = const Color(0xFF615D59),
-    super.primaryBackground = const Color(0xFFFDFDFC),
+    super.secondaryText = const Color(0xFF5D6066),
+    super.primaryBackground = const Color(0xFFF4F6FA),
     super.secondaryBackground = const Color(0xFFFFFFFF),
-    super.tertiaryBackground = const Color(0xFFECEBE9),
+    super.tertiaryBackground = const Color(0xFFECEEF0), // = controlFill (palette a 2 grigi)
     super.success = const Color(0xFF16A34A),
     super.warning = const Color(0xFFD97706),
     super.danger = const Color(0xFFDC2626),
     super.info = const Color(0xFF0C8EC7),
     super.borderColor = const Color(0x1A000000),
-    super.background = const Color(0xFFF6F5F4),
-    super.fillColor = const Color(0xFFF6F5F4),
-    super.muted = const Color(0xFFF2F1EF),
-    super.mutedForeground = const Color(0xFFA39E98),
-    super.accent = const Color(0xFFF2F1EF),
+    super.background = const Color(0xFFF4F5F6),
+    super.fillColor = const Color(0xFFF4F5F6),
+    super.muted = const Color(0xFFECEEF0), // = controlFill (palette a 2 grigi)
+    super.mutedForeground = const Color(0xFF9CA0A6),
+    super.accent = const Color(0xFFECEEF0), // = controlFill
     super.accentForeground = const Color(0xFF31302E),
     super.ring = const Color(0xFF097FE8),
     super.cardBorder = const Color(0x1A000000),
-    super.controlFill = const Color(0xFFEEF1F5),
+    super.controlFill = const Color(0xFFECEEF0),
   });
 
   @override
   List<BoxShadow> get cardShadow => _kLightCardShadow;
+
+  @override
+  List<BoxShadow> get cardShadowSoft => _kLightCardShadowSoft;
+
+  @override
+  List<BoxShadow> get popoverShadow => _kLightPopoverShadow;
 }
 
 class DarkModeTheme extends CLTheme {
   const DarkModeTheme({
     super.primary = const Color(0xFF3BA8D8),
     super.secondary = const Color(0xFF0C8EC7),
-    super.alternate = const Color(0xFF2A2A34),
+    // Rampa neutra quasi-neutra (filo di freddo, Apple-like): niente blu marcato
+    // (#2A2A34) né caldo. Superfici grigio-neutro a livelli. Blu brand invariato.
+    super.alternate = const Color(0xFF2E2F33),
     super.primaryText = const Color(0xFFE8E8EC),
-    super.secondaryText = const Color(0xFF8B8FA0),
-    super.primaryBackground = const Color(0xFF1A1A18),
-    super.secondaryBackground = const Color(0xFF242421),
-    super.tertiaryBackground = const Color(0xFF2E2E2A),
+    super.secondaryText = const Color(0xFF8B8F98),
+    super.primaryBackground = const Color(0xFF1A1B1E),
+    super.secondaryBackground = const Color(0xFF232427),
+    super.tertiaryBackground = const Color(0xFF2E2F33), // = controlFill (palette a 2 grigi)
     super.success = const Color(0xFF4ADE80),
     super.warning = const Color(0xFFFBBF24),
     super.danger = const Color(0xFFF87171),
     super.info = const Color(0xFF3BA8D8),
-    super.borderColor = const Color(0xFF2A2A34),
-    super.background = const Color(0xFF121218),
-    super.fillColor = const Color(0xFF1E1E26),
-    super.muted = const Color(0xFF27272A),
-    super.mutedForeground = const Color(0xFFA1A1AA),
-    super.accent = const Color(0xFF27272A),
+    super.borderColor = const Color(0xFF313338),
+    super.background = const Color(0xFF131417),
+    super.fillColor = const Color(0xFF1E1F22),
+    super.muted = const Color(0xFF2E2F33), // = controlFill (palette a 2 grigi)
+    super.mutedForeground = const Color(0xFF9A9DA4),
+    super.accent = const Color(0xFF2E2F33), // = controlFill
     super.accentForeground = const Color(0xFFFAFAFA),
     super.ring = const Color(0xFF3BA8D8),
-    super.cardBorder = const Color(0xFF27272A),
-    super.controlFill = const Color(0xFF2A2A34),
+    super.cardBorder = const Color(0xFF2A2B2F),
+    super.controlFill = const Color(0xFF2E2F33),
   });
 
   @override
+  Color get accentPurple => const Color(0xFFA78BFA);
+
+  @override
   List<BoxShadow> get cardShadow => _kDarkCardShadow;
+
+  @override
+  List<BoxShadow> get cardShadowSoft => _kDarkCardShadowSoft;
+
+  @override
+  List<BoxShadow> get popoverShadow => _kDarkPopoverShadow;
 }
 
 /// --- Typography ----------------------------------------------------------
@@ -391,7 +456,11 @@ class ThemeTypography extends Typography {
 
   final CLTheme theme;
   static const _bodyFamily = 'Inter';
-  static const _displayFamily = 'Satoshi';
+
+  /// Cifre tabulari: ogni cifra stessa larghezza → colonne numeriche allineate
+  /// e nessun jitter agli update (tabelle dati: ore, importi, date). Applicato
+  /// ai soli stili "dato" (body/small/label/tablehead), non agli heading.
+  static const _tnum = [FontFeature.tabularFigures()];
 
   /// Body/UI text helper (Inter — variable font locale con asse opsz)
   TextStyle _text(
@@ -402,6 +471,7 @@ class ThemeTypography extends Typography {
     FontStyle? fontStyle,
     TextDecoration? decoration,
     double? lineHeight,
+    List<FontFeature>? fontFeatures,
   }) {
     return TextStyle(
       fontFamily: _bodyFamily,
@@ -414,44 +484,27 @@ class ThemeTypography extends Typography {
       fontStyle: fontStyle,
       decoration: decoration,
       height: lineHeight,
+      fontFeatures: fontFeatures,
     );
   }
 
-  /// Display/heading text helper (Satoshi — font locale)
-  TextStyle _display(
-    double size, {
-    FontWeight? weight,
-    Color? color,
-    double? letterSpacing,
-    double? lineHeight,
-  }) {
-    return TextStyle(
-      fontFamily: _displayFamily,
-      color: color ?? theme.primaryText,
-      fontSize: size,
-      letterSpacing: letterSpacing ?? 0,
-      fontWeight: weight,
-      height: lineHeight,
-    );
-  }
+  // ── Headings — Inter (Foundation: un solo carattere) ────────────────────
 
-  // ── Headings — tutti Satoshi per scala visiva coerente ──────────────────
-
-  /// H1: hero titles, page intro — Satoshi Bold 32px
+  /// H1: hero titles, page intro — Inter Bold 32px (Foundation: -0.6 / lh 1.1)
   @override
-  TextStyle get heading1 => _display(32, weight: FontWeight.w700, letterSpacing: -1.0, lineHeight: 1.15);
+  TextStyle get heading1 => _text(32, weight: FontWeight.w700, letterSpacing: -0.6, lineHeight: 1.1);
 
-  /// H2: sezioni principali — Satoshi SemiBold 24px
+  /// H2: sezioni principali — Inter SemiBold 24px
   @override
-  TextStyle get heading2 => _display(24, weight: FontWeight.w600, letterSpacing: -0.5, lineHeight: 1.2);
+  TextStyle get heading2 => _text(24, weight: FontWeight.w600, letterSpacing: -0.5, lineHeight: 1.2);
 
-  /// H3: sottosezioni — Satoshi SemiBold 20px
+  /// H3: sottosezioni — Inter SemiBold 20px
   @override
-  TextStyle get heading3 => _display(20, weight: FontWeight.w600, letterSpacing: -0.25, lineHeight: 1.25);
+  TextStyle get heading3 => _text(20, weight: FontWeight.w600, letterSpacing: -0.25, lineHeight: 1.25);
 
-  /// H4: card headers, dialog titles — Satoshi Medium 17px
+  /// H4: card headers, dialog titles — Inter Medium 17px
   @override
-  TextStyle get heading4 => _display(17, weight: FontWeight.w500, letterSpacing: -0.15, lineHeight: 1.3);
+  TextStyle get heading4 => _text(17, weight: FontWeight.w500, letterSpacing: -0.15, lineHeight: 1.3);
 
   /// H5: etichette di sezione — Inter Medium 14px
   @override
@@ -463,9 +516,9 @@ class ThemeTypography extends Typography {
 
   // ── Body / UI ────────────────────────────────────────────────────────────
 
-  /// Titolo UI (pulsanti, tab, menu item) — Inter Medium 15px
+  /// Titolo UI (pulsanti, tab, menu item) — Inter Medium 15px (Foundation: no tracking)
   @override
-  TextStyle get title => _text(15, weight: FontWeight.w500, letterSpacing: -0.05, lineHeight: 1.4);
+  TextStyle get title => _text(15, weight: FontWeight.w500, lineHeight: 1.4);
 
   /// Sottotitolo descrittivo — Inter Regular 14px
   @override
@@ -473,20 +526,21 @@ class ThemeTypography extends Typography {
 
   /// Corpo testo principale — Inter Regular 14px, interlinea aperta
   @override
-  TextStyle get bodyText => _text(14, weight: FontWeight.w400, lineHeight: 1.6);
+  TextStyle get bodyText => _text(14, weight: FontWeight.w400, lineHeight: 1.6, fontFeatures: _tnum);
 
   /// Testo piccolo — Inter Regular 12px
   @override
-  TextStyle get smallText => _text(12, weight: FontWeight.w400, lineHeight: 1.5);
+  TextStyle get smallText => _text(12, weight: FontWeight.w400, lineHeight: 1.5, fontFeatures: _tnum);
 
   /// Label UI secondaria — Inter Regular 13px, colore secondario
   @override
-  TextStyle get bodyLabel => _text(13, weight: FontWeight.w400, color: theme.secondaryText, lineHeight: 1.5);
+  TextStyle get bodyLabel =>
+      _text(13, weight: FontWeight.w400, color: theme.secondaryText, lineHeight: 1.5, fontFeatures: _tnum);
 
   /// Intestazione colonna tabella — Inter Medium 11px, spaziatura lettere positiva
   @override
-  TextStyle get bodyLabelTableHead =>
-      _text(11, weight: FontWeight.w500, color: theme.secondaryText, letterSpacing: 0.3, lineHeight: 1.4);
+  TextStyle get bodyLabelTableHead => _text(11,
+      weight: FontWeight.w500, color: theme.secondaryText, letterSpacing: 0.3, lineHeight: 1.4, fontFeatures: _tnum);
 
   /// Label piccola — Inter Regular 12px, colore secondario
   @override

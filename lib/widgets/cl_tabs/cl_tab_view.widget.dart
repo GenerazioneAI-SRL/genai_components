@@ -6,25 +6,37 @@ import 'cl_tab_item.model.dart';
 /// quando attiva. Divider 1px continuo sotto la riga delle tab; l'indicatore
 /// 3px del tab attivo sovrascrive il divider creando l'effetto "active rail".
 ///
-/// API pubblica invariata:
+/// API pubblica:
 /// - [clTabItems] elenco tab
-/// - [title] titolo opzionale sopra la tab bar
+/// - [title] titolo testo opzionale sopra la tab bar
+/// - [titleWidget] header ricco opzionale (ha precedenza su [title])
 /// - [showDivider] mostra/nasconde un secondo divider sotto la tab bar
 class CLTabView extends StatefulWidget {
   final List<CLTabItem> clTabItems;
   final String? title;
+
+  /// Header persistente reso sopra la tab bar, al posto di [title], quando
+  /// fornito (es. nome entità + sottotitolo). Resta visibile al cambio tab.
+  final Widget? titleWidget;
   final bool showDivider;
 
   /// Colore dell'indicator (sottolineato 3px) del tab attivo.
   /// Default: `theme.primary`.
   final Color? indicatorColor;
 
+  /// Notificato quando cambia la tab attiva (indice), a transizione conclusa,
+  /// e una volta dopo il primo frame per sincronizzare la tab iniziale. Utile
+  /// per contenuti renderizzati FUORI da CLTabView ma scoped alla tab attiva.
+  final ValueChanged<int>? onTabChanged;
+
   const CLTabView({
     super.key,
     required this.clTabItems,
     this.title,
+    this.titleWidget,
     this.showDivider = false,
     this.indicatorColor,
+    this.onTabChanged,
   });
 
   @override
@@ -50,6 +62,12 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
     super.initState();
     _controller = TabController(length: widget.clTabItems.length, vsync: this);
     _controller.addListener(_onTabChanged);
+    // Sincronizza la tab iniziale col chiamante (per contenuti scoped esterni).
+    if (widget.onTabChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onTabChanged!(_controller.index);
+      });
+    }
   }
 
   @override
@@ -67,6 +85,7 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
     if (!_controller.indexIsChanging) {
       _builtIndexes.add(_controller.index);
       setState(() {});
+      widget.onTabChanged?.call(_controller.index);
     }
   }
 
@@ -90,38 +109,49 @@ class _CLTabViewState extends State<CLTabView> with SingleTickerProviderStateMix
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Titolo opzionale
-        if (widget.title != null) ...[
+        // Header persistente: titleWidget ricco se fornito, altrimenti title testo.
+        if (widget.titleWidget != null) ...[
           Padding(
             padding: EdgeInsets.only(bottom: theme.gapSm),
-            child: Text(widget.title!, style: theme.bodyLabel),
+            child: widget.titleWidget!,
+          ),
+        ] else if (widget.title != null) ...[
+          Padding(
+            padding: EdgeInsets.only(bottom: theme.gapSm),
+            child: Text(widget.title!, style: theme.heading6),
           ),
         ],
 
-        // Tab row — solo underline del tab attivo, nessun rail continuo
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(widget.clTabItems.length, (index) {
-            final item = widget.clTabItems[index];
-            final isActive = _controller.index == index;
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == widget.clTabItems.length - 1 ? 0 : theme.gapLg,
-              ),
-              child: _CLTabUnderlineItem(
-                item: item,
-                isActive: isActive,
-                onTap: () => _selectIndex(index),
-                theme: theme,
-                animDuration: _kAnimDuration,
-                animCurve: _kAnimCurve,
-                activeUnderline: _kActiveUnderline,
-                height: _kTabHeight,
-                showRail: widget.showDivider,
-                indicatorColor: widget.indicatorColor,
-              ),
-            );
-          }),
+        // Tab row — solo underline del tab attivo, nessun rail continuo.
+        // Scroll orizzontale: su larghezze strette (mobile, molte tab) la riga
+        // scorre invece di overfloware.
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(widget.clTabItems.length, (index) {
+              final item = widget.clTabItems[index];
+              final isActive = _controller.index == index;
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == widget.clTabItems.length - 1 ? 0 : theme.gapLg,
+                ),
+                child: _CLTabUnderlineItem(
+                  item: item,
+                  isActive: isActive,
+                  onTap: () => _selectIndex(index),
+                  theme: theme,
+                  animDuration: _kAnimDuration,
+                  animCurve: _kAnimCurve,
+                  activeUnderline: _kActiveUnderline,
+                  height: _kTabHeight,
+                  showRail: widget.showDivider,
+                  indicatorColor: widget.indicatorColor,
+                ),
+              );
+            }),
+          ),
         ),
 
         // Divider opzionale sotto la tab bar (oltre a quello di default)
@@ -220,34 +250,49 @@ class _CLTabUnderlineItemState extends State<_CLTabUnderlineItem> {
           curve: widget.animCurve,
           height: widget.height,
           padding: EdgeInsets.symmetric(horizontal: theme.gapLg),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: underlineColor,
-                width: underlineThickness,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          // Indicatore = barra centrata lunga metà del tab (non più border full-width).
+          child: Stack(
             children: [
-              if (widget.item.icon != null) ...[
-                AnimatedSwitcher(
-                  duration: widget.animDuration,
-                  child: Icon(
-                    widget.item.icon,
-                    key: ValueKey<Color>(textColor),
-                    size: theme.iconSizeCompact,
-                    color: textColor,
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.item.icon != null) ...[
+                      AnimatedSwitcher(
+                        duration: widget.animDuration,
+                        child: Icon(
+                          widget.item.icon,
+                          key: ValueKey<Color>(textColor),
+                          size: theme.iconSizeCompact,
+                          color: textColor,
+                        ),
+                      ),
+                      SizedBox(width: theme.gapIconText),
+                    ],
+                    AnimatedDefaultTextStyle(
+                      duration: widget.animDuration,
+                      curve: widget.animCurve,
+                      style: baseStyle,
+                      child: Text(widget.item.tabName),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: AnimatedContainer(
+                      duration: widget.animDuration,
+                      curve: widget.animCurve,
+                      height: underlineThickness,
+                      color: underlineColor,
+                    ),
                   ),
                 ),
-                SizedBox(width: theme.gapSm),
-              ],
-              AnimatedDefaultTextStyle(
-                duration: widget.animDuration,
-                curve: widget.animCurve,
-                style: baseStyle,
-                child: Text(widget.item.tabName),
               ),
             ],
           ),

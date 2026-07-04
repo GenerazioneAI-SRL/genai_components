@@ -227,9 +227,9 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: Sizes.gapMd, vertical: Sizes.gapSm),
                     decoration: BoxDecoration(
-                      color: theme.primary.withValues(alpha: 0.1),
+                      color: theme.primary.withValues(alpha: theme.opacitySoft),
                       borderRadius: BorderRadius.circular(Sizes.borderRadius),
                     ),
                     child: Text(
@@ -237,7 +237,6 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
                       style: theme.bodyLabel.copyWith(
                         color: theme.primary,
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -270,7 +269,7 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
-                  color: theme.primary.withValues(alpha: 0.1),
+                  color: theme.primary.withValues(alpha: theme.opacitySoft),
                   borderRadius: BorderRadius.circular(Sizes.borderRadius),
                 ),
                 child: Text(
@@ -458,12 +457,12 @@ class _NavButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Sizes.radiusControl),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(Sizes.gapSm),
           decoration: BoxDecoration(
             color: theme.primaryBackground,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(Sizes.radiusControl),
             border: Border.all(color: theme.borderColor),
           ),
           child: HugeIcon(icon: icon, color: theme.primary, size: 18),
@@ -489,25 +488,24 @@ class _TodayButton extends StatelessWidget {
       message: 'Vai ad oggi',
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Sizes.radiusControl),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: Sizes.gapMd, vertical: Sizes.gapSm),
           decoration: BoxDecoration(
             color: theme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: theme.primary.withValues(alpha: 0.2)),
+            borderRadius: BorderRadius.circular(Sizes.radiusControl),
+            border: Border.all(color: theme.primary.withValues(alpha: theme.opacityMedium)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, color: theme.primary, size: 14),
-              const SizedBox(width: 6),
+              SizedBox(width: theme.gapIconText),
               Text(
                 label,
                 style: theme.smallLabel.copyWith(
                   color: theme.primary,
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
                 ),
               ),
             ],
@@ -561,7 +559,7 @@ class _DayCell extends StatelessWidget {
       borderColor = theme.primary;
     } else if (isToday) {
       bgColor = theme.primary.withValues(alpha: 0.08);
-      borderColor = theme.primary.withValues(alpha: 0.5);
+      borderColor = theme.primary.withValues(alpha: theme.opacityDisabled);
     } else if (hasWarning) {
       bgColor = warningColor.withValues(alpha: 0.08);
     }
@@ -674,7 +672,7 @@ class _DayCell extends StatelessWidget {
                             width: 3,
                             height: 3,
                             decoration: BoxDecoration(
-                              color: theme.secondaryText.withValues(alpha: 0.2),
+                              color: theme.secondaryText.withValues(alpha: theme.opacityMedium),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -705,13 +703,14 @@ class _CountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 3 : 5,
         vertical: compact ? 1 : 2,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
+        color: color.withValues(alpha: theme.opacityMedium),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(

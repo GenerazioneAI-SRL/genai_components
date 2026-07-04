@@ -7,6 +7,13 @@ class PagedDataTableController<TKey extends Comparable,
     TResultId extends Comparable, TResult extends Object> {
   late _PagedDataTableState<TKey, TResultId, TResult> _state;
 
+  /// True quando il controller è agganciato a un table montato (`_state`
+  /// inizializzato). Col lazy-mount dei tab (CLTabView) un table non ancora
+  /// visitato non è montato: chiamare metodi che toccano `_state` lancerebbe
+  /// LateInitializationError. Usare questa guardia prima di `refresh()` & co.
+  bool _attached = false;
+  bool get isAttached => _attached;
+
   /// Returns the current showing dataset elements as an unmodifiable list.
   List<TResult> get currentDataset => UnmodifiableListView(_state._items);
 
@@ -24,14 +31,38 @@ class PagedDataTableController<TKey extends Comparable,
   /// it will start from page 1.
   ///
   /// The future completes when the fetch is done.
-  Future<void> refresh({bool currentDataset = true}) =>
-      _state._refresh(initial: !currentDataset);
+  Future<void> refresh({bool currentDataset = true}) {
+    // No-op se il table non è montato (tab lazy non ancora aperto): al primo
+    // mount farà comunque la sua fetch iniziale, quindi non c'è nulla da
+    // rinfrescare e si evita il LateInitializationError su `_state`.
+    if (!_attached) return Future.value();
+    return _state._refresh(initial: !currentDataset);
+  }
 
   /// Advances to the next page.
   ///
   /// If there is no next page, this method will fail.
   /// The future completes when the fetch is done.
   Future<void> advancePage() => _state.nextPage();
+
+  /// True se esiste un'altra pagina dopo quella corrente.
+  bool get hasNextPage => _state.hasNextPage;
+
+  /// True mentre è in corso un fetch.
+  bool get isLoading => _state.tableState == _TableState.loading;
+
+  /// Notifica a ogni cambio di stato della tabella (fetch start/end, append,
+  /// filtro, selezione). Utile all'esterno per reagire ai reload (es. auto-fill
+  /// infinite scroll dopo una ricerca, quando la pagina non si ricostruisce).
+  Listenable get changes => _state;
+
+  /// Carica la pagina successiva in APPEND (infinite scroll guidato dall'esterno,
+  /// es. la pagina che possiede lo scroll). No-op se non c'è next page o è già in
+  /// caricamento → safe da chiamare a ogni evento di scroll.
+  Future<void> loadNextPage() async {
+    if (!_state.hasNextPage || _state.tableState == _TableState.loading) return;
+    await _state.nextPage(isInfiniteScroll: true);
+  }
 
   /// Backs off to the previous page.
   ///
@@ -157,6 +188,8 @@ class PagedDataTableController<TKey extends Comparable,
   ///
   /// After this method is called, the DataTable is disposed and cannot be used.
   void dispose() {
+    if (!_attached) return;
+    _attached = false;
     _state.dispose();
   }
 }

@@ -43,7 +43,8 @@ class CLIconButton extends StatefulWidget {
   /// Bordo opzionale. Se `null` nessun bordo (focus ring a parte).
   final BoxBorder? border;
 
-  /// Override del raggio di angolo. Se `null` usa `theme.radiusControl`.
+  /// Override del raggio di angolo. Se `null` default 999 (cerchio/pill):
+  /// i bottoni icona isolati di chrome sono tondi per design (DS: quadrati→cerchio).
   final double? borderRadius;
 
   /// Tooltip mostrato al hover/long-press.
@@ -245,20 +246,19 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
 
     // ── Disabled: fade opacità ───────────────────────────────────────
     button = AnimatedOpacity(
-      opacity: widget.enabled ? 1.0 : 0.5,
+      opacity: widget.enabled ? 1.0 : theme.opacityDisabled,
       duration: const Duration(milliseconds: 150),
       child: button,
     );
 
-    if (widget.tooltip != null && widget.tooltip!.isNotEmpty) {
-      button = Tooltip(message: widget.tooltip!, child: button);
-    }
-
-    if (widget.semanticLabel != null && widget.semanticLabel!.isNotEmpty) {
+    // Niente Tooltip automatico (scelta di prodotto: si aggiunge a mano dove serve).
+    // `tooltip` resta come fallback per la label di accessibilità.
+    final a11yLabel = widget.semanticLabel ?? widget.tooltip;
+    if (a11yLabel != null && a11yLabel.isNotEmpty) {
       button = Semantics(
         button: true,
         enabled: isInteractive,
-        label: widget.semanticLabel,
+        label: a11yLabel,
         child: ExcludeSemantics(child: button),
       );
     }

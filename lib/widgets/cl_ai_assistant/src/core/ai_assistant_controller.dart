@@ -24,6 +24,7 @@ import '../tools/tool_registry.dart';
 import '../voice/voice_input_service.dart';
 import '../voice/voice_output_service.dart';
 import 'ai_assistant_config.dart';
+import 'ai_conversation_store.dart';
 import 'ai_event.dart';
 import 'ai_logger.dart';
 
@@ -72,6 +73,10 @@ class AiAssistantController extends ChangeNotifier {
 
   // Public state.
   final List<AiChatMessage> _messages = [];
+
+  // Persistenza conversazioni (opt-in via config.conversationStore).
+  String? _activeConversationId;
+  String? _loadedScope;
   bool _isProcessing = false;
   bool _isOverlayVisible = false;
 
@@ -185,6 +190,7 @@ class AiAssistantController extends ChangeNotifier {
       _screenshotCapture = ScreenshotCapture(appContentKey: appContentKey);
     }
     _init();
+    if (_config.conversationStore != null) unawaited(_restoreLastConversation());
   }
 
   // ---------------------------------------------------------------------------
@@ -419,6 +425,93 @@ class AiAssistantController extends ChangeNotifier {
 
   /// Request the agent to stop execution.
   void requestStop() => _requestStopImpl();
+
+  // ── Persistenza conversazioni ──────────────────────────────────────────────
+
+  String get _convScope => _config.conversationScopeProvider?.call() ?? 'default';
+
+  /// Sostituisce l'intera lista messaggi (caricamento di una conversazione).
+  void replaceMessages(List<AiChatMessage> messages) {
+    _messages
+      ..clear()
+      ..addAll(messages);
+    _safeNotify();
+  }
+
+  /// Conversazioni salvate (history). Vuota se nessuno store configurato.
+  Future<List<AiConversationSummary>> listConversations() async {
+    final store = _config.conversationStore;
+    if (store == null) return const [];
+    return store.list(_convScope);
+  }
+
+  /// Carica una conversazione salvata nella UI.
+  Future<void> loadConversation(String id) async {
+    final store = _config.conversationStore;
+    if (store == null) return;
+    final msgs = await store.load(_convScope, id);
+    _activeConversationId = id;
+    replaceMessages(msgs);
+  }
+
+  /// Elimina una conversazione salvata. Se è quella attiva, riparte pulito.
+  Future<void> deleteConversation(String id) async {
+    final store = _config.conversationStore;
+    if (store == null) return;
+    await store.delete(_convScope, id);
+    if (id == _activeConversationId) newConversation();
+  }
+
+  /// Nuova conversazione: svuota la UI ma NON tocca le conversazioni salvate.
+  void newConversation() {
+    _activeConversationId = null;
+    _clearConversationImpl();
+  }
+
+  /// Salva la conversazione corrente (no-op senza store o senza messaggi).
+  Future<void> _persistConversation() async {
+    final store = _config.conversationStore;
+    if (store == null || _messages.isEmpty) return;
+    final id = _activeConversationId ??= _uuid.v4();
+    final firstUser = _messages.firstWhere(
+      (m) => m.role == AiMessageRole.user,
+      orElse: () => _messages.first,
+    );
+    var title = firstUser.content.trim().replaceAll('\n', ' ');
+    if (title.length > 60) title = '${title.substring(0, 60)}…';
+    if (title.isEmpty) title = 'Conversazione';
+    _loadedScope = _convScope;
+    await store.save(_convScope, id, title, _messages);
+  }
+
+  /// Ripristina l'ultima conversazione dello scope corrente (all'avvio).
+  Future<void> _restoreLastConversation() async {
+    final store = _config.conversationStore;
+    if (store == null) return;
+    _loadedScope = _convScope;
+    final convs = await store.list(_convScope);
+    if (convs.isEmpty) return;
+    await loadConversation(convs.first.id);
+  }
+
+  /// Da chiamare dalla UI: se lo scope (tenant) è cambiato, resetta e ricarica
+  /// → niente leak di conversazioni cross-tenant.
+  void syncScope() {
+    if (_config.conversationStore == null) return;
+    final s = _convScope;
+    if (_loadedScope == s) return;
+    // _loadedScope subito (sincrono) per evitare ri-trigger; mutazione + notify
+    // deferiti: syncScope è chiamato da didChangeDependencies (fase di build),
+    // notificare in sincrono → "setState during build".
+    _loadedScope = s;
+    _activeConversationId = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed) return;
+      _messages.clear();
+      _safeNotify();
+      unawaited(_restoreLastConversation());
+    });
+  }
 
   // Handoff — public UI hooks.
   /// Resolve handoff from the UI — user tapped "Done" on the indicator.

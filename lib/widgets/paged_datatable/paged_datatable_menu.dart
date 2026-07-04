@@ -7,9 +7,13 @@ class _PagedDataTableMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
     return AnimatedContainer(
-      decoration:
-          BoxDecoration(color: Colors.white, border: Border.all(color: Colors.black12, width: 1), borderRadius: BorderRadius.all(Radius.circular(4))),
+      decoration: BoxDecoration(
+          color: theme.secondaryBackground,
+          border: Border.all(color: theme.cardBorder, width: 1),
+          borderRadius: BorderRadius.all(Radius.circular(theme.radiusSurface)),
+          boxShadow: theme.popoverShadow),
       duration: const Duration(milliseconds: 500),
       child: Material(
           color: Colors.transparent,
@@ -204,7 +208,7 @@ class _AutoAnimatedSizeState extends State<_AutoAnimatedSize> with SingleTickerP
     return AnimatedSize(
       alignment: widget.alignment,
       curve: Curves.fastLinearToSlowEaseIn,
-      duration: const Duration(milliseconds: 300),
+      duration: CLTheme.of(context).durationSlow,
       child: showChild ? widget.child : const SizedBox(width: 1, height: 1),
     );
   }

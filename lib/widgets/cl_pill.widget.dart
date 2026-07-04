@@ -5,7 +5,8 @@ import '../cl_theme.dart';
 /// CLPill — chip/pill atomico per stati, conteggi, tag.
 ///
 /// Linguaggio Skillera Refined Editorial:
-/// - bg soft tint (color × 0.08), border tonale 1px (color × 0.22)
+/// - filled (default): bg soft tint (color × 0.08), NESSUN bordo
+/// - outline: bg trasparente + bordo 1px color
 /// - pill radius (`CLTheme.radiusPill`)
 /// - tipografia Inter SemiBold (`smallLabel` con peso w600)
 /// - icona opzionale `CLTheme.iconSizeCompact` (16) — riducibile inline a 14
@@ -34,7 +35,6 @@ class CLPill extends StatelessWidget {
     );
 
     final Color softBg = pillColor.withValues(alpha: 0.08);
-    final Color tonalBorder = pillColor.withValues(alpha: 0.22);
 
     return IntrinsicWidth(
       child: Container(
@@ -45,10 +45,8 @@ class CLPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: outline ? Colors.transparent : softBg,
           borderRadius: BorderRadius.circular(theme.radiusPill),
-          border: Border.all(
-            color: outline ? pillColor : tonalBorder,
-            width: 1,
-          ),
+          // Filled: solo soft tint, niente bordo colorato. Outline: bordo color.
+          border: outline ? Border.all(color: pillColor, width: 1) : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -57,11 +55,13 @@ class CLPill extends StatelessWidget {
               Icon(icon, size: 14, color: pillColor),
               SizedBox(width: theme.gapXs),
             ],
-            Text(
-              pillText,
-              style: textStyle,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+            Flexible(
+              child: Text(
+                pillText,
+                style: textStyle,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
           ],
         ),

@@ -85,18 +85,8 @@ class _CLPopupSurfaceState extends State<CLPopupSurface> with SingleTickerProvid
         color: bg,
         borderRadius: radius,
         border: Border.all(color: border, width: 1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
+        // Superficie transitoria (fuori-pila) → ombra marcata del token dedicato.
+        boxShadow: theme.popoverShadow,
       ),
       child: ClipRRect(
         borderRadius: radius,

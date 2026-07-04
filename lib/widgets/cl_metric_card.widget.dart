@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../cl_theme.dart';
+import 'cl_container.widget.dart';
 
 /// Hero-style KPI card for dashboards.
 ///
 /// Public API preserved: same constructor, same required/optional params.
-/// Internally upgraded with optional trend chip, count-up animation,
-/// gradient accent, and hover lift.
+/// Count-up animation sui valori numerici; superficie delegata a [CLContainer]
+/// (card Foundation L1: ombra soft, no border).
 class CLMetricCard extends StatefulWidget {
   final String value;
   final String label;
@@ -30,9 +31,6 @@ class CLMetricCard extends StatefulWidget {
 }
 
 class _CLMetricCardState extends State<CLMetricCard> {
-  bool _hovering = false;
-
-  static const Duration _kHoverAnim = Duration(milliseconds: 160);
   static const Duration _kCountAnim = Duration(milliseconds: 600);
   static const Curve _kCurve = Curves.easeOutCubic;
 
@@ -56,51 +54,24 @@ class _CLMetricCardState extends State<CLMetricCard> {
     }
   }
 
-  void _setHover(bool v) {
-    if (widget.onTap == null) return;
-    if (_hovering == v) return;
-    setState(() => _hovering = v);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    final clickable = widget.onTap != null;
 
-    // Hover lift via boxShadow growth.
-
-    final EdgeInsets cardPadding = EdgeInsets.all(
-      theme.gapLg,
-    );
-
-    final card = AnimatedContainer(
-      duration: _kHoverAnim,
-      curve: _kCurve,
-      padding: cardPadding,
-      decoration: BoxDecoration(
-        color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(theme.radiusCard),
-      ),
+    // Surface = CLContainer (default Foundation: L1 + ombra soft, no border).
+    final card = CLContainer(
+      contentPadding: EdgeInsets.all(theme.gapLg),
       child: _buildContent(theme),
     );
 
-    final scaled = AnimatedScale(
-      duration: _kHoverAnim,
-      curve: _kCurve,
-      scale: clickable && _hovering ? 1.005 : 1.0,
-      child: card,
-    );
-
-    if (!clickable) return scaled;
+    if (widget.onTap == null) return card;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => _setHover(true),
-      onExit: (_) => _setHover(false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
-        child: scaled,
+        child: card,
       ),
     );
   }
@@ -109,7 +80,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
     final double iconBoxPad = widget.compact ? theme.gapSm : theme.gapMd;
     final double iconSize = widget.compact ? theme.iconSizeCompact : theme.iconSizeDefault;
 
-    // Hero number style — Satoshi medium-bold, restrained.
+    // Hero number style — Inter medium-bold, restrained.
     final TextStyle valueStyle = (widget.compact ? theme.heading4 : theme.heading3).copyWith(
       color: theme.primaryText,
       fontWeight: FontWeight.w600,
@@ -142,7 +113,7 @@ class _CLMetricCardState extends State<CLMetricCard> {
             if (clickable) ...[
               const Spacer(),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(theme.gapIconText),
                 decoration: BoxDecoration(
                   color: widget.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,

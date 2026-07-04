@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../cl_theme.dart';
+import '../../layout/constants/sizes.constant.dart';
 import '../cl_text_field.widget.dart';
 import 'dropdown_state.dart';
 
@@ -291,9 +292,9 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                           left: 10, right: 4, top: 4, bottom: 4),
                       decoration: BoxDecoration(
                         color: theme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(Sizes.radiusControl),
                         border: Border.all(
-                            color: theme.primary.withValues(alpha: 0.2)),
+                            color: theme.primary.withValues(alpha: theme.opacityMedium)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -303,8 +304,7 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                               widget.valueToShow(item),
                               style: theme.smallLabel.override(
                                   color: theme.primary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12),
+                                  fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -314,8 +314,8 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
-                                color: theme.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
+                                color: theme.primary.withValues(alpha: theme.opacitySoft),
+                                borderRadius: BorderRadius.circular(Sizes.radiusChip),
                               ),
                               child: Icon(Icons.close_rounded,
                                   size: 14, color: theme.primary),
@@ -336,9 +336,9 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: theme.danger.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(Sizes.radiusControl),
                           border: Border.all(
-                              color: theme.danger.withValues(alpha: 0.2)),
+                              color: theme.danger.withValues(alpha: theme.opacityMedium)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -349,8 +349,7 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                             Text('Svuota',
                                 style: theme.smallLabel.override(
                                     color: theme.danger,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 12)),
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -375,7 +374,10 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
                 isReadOnly: lockTyping,
                 validators: widget.validators,
                 fillColor: widget.fillColor,
-                isCompact: widget.isCompact,
+                // Trigger field SEMPRE ad altezza standard input (40px = theme.inputHeight),
+                // come il campo ricerca. widget.isCompact governa solo la densità degli
+                // item del menu (via state.isCompact), non l'altezza del campo.
+                isCompact: false,
                 onTap: (widget.isEnabled && !lockTyping) ? () => state.openOverlay() : null,
                 onChanged: (widget.isEnabled && !lockTyping)
                     ? (value) async => state.onTriggerChanged(value)

@@ -51,7 +51,7 @@ class ConfirmationDialog extends StatelessWidget {
                   color: cl.secondaryBackground,
                   borderRadius: BorderRadius.circular(cl.radiusModal),
                   border: Border.all(color: cl.cardBorder, width: 1),
-                  boxShadow: cl.cardShadow,
+                  boxShadow: cl.popoverShadow,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -150,20 +150,21 @@ class _LegacyIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cl = CLTheme.of(context);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.7, end: 1.0),
       duration: const Duration(milliseconds: 360),
       curve: Curves.easeOutBack,
       builder: (context, t, child) => Transform.scale(scale: t, child: child),
       child: Container(
-        width: 48,
-        height: 48,
+        width: CLSizes.gap4Xl,
+        height: CLSizes.gap4Xl,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color.withValues(alpha: 0.10),
+          color: color.withValues(alpha: cl.opacitySoft),
           border: Border.all(color: color.withValues(alpha: 0.22), width: 1.5),
         ),
-        child: Icon(icon, size: 24, color: color),
+        child: Icon(icon, size: CLSizes.iconSizeLarge, color: color),
       ),
     );
   }
@@ -206,7 +207,7 @@ class _LegacyDialogButtonState extends State<_LegacyDialogButton> {
         background = disabled
             ? cl.muted
             : Color.alphaBlend(
-                Colors.black.withValues(alpha: _hover ? 0.10 : 0),
+                Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0),
                 cl.primary,
               );
         foreground = disabled ? cl.mutedForeground : Colors.white;

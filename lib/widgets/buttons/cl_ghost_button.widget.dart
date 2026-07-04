@@ -4,6 +4,8 @@ import 'package:responsive_framework/responsive_framework.dart';
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
+import '../foundation/cl_pressable.widget.dart';
+import '../foundation/cl_tone_style.dart';
 
 class CLGhostButton extends StatefulWidget {
   final Color color;
@@ -20,6 +22,12 @@ class CLGhostButton extends StatefulWidget {
   final Color? foregroundColor;
   final bool isCompact;
 
+  /// Interno: `true` → tono semantico colorato (primary/success/info/warning/
+  /// danger): testo/hover derivano da [color] via CLToneStyle. `false` → neutro
+  /// (secondary + costruttore raw): hover `accent`, testo `primaryText`.
+  /// Prima [color] non veniva mai letto in `build()` e ogni tono rendeva neutro.
+  final bool _colored;
+
   const CLGhostButton({
     super.key,
     required this.color,
@@ -35,7 +43,22 @@ class CLGhostButton extends StatefulWidget {
     this.width,
     this.foregroundColor,
     this.isCompact = false,
-  });
+  }) : _colored = false;
+
+  const CLGhostButton._colored({
+    required this.color,
+    required this.text,
+    required this.onTap,
+    required this.context,
+    required this.iconAlignment,
+    this.iconData,
+    this.hugeIcon,
+    this.needConfirmation = false,
+    this.confirmationMessage,
+    this.width,
+    this.foregroundColor,
+    this.isCompact = false,
+  }) : buttonStyle = null, _colored = true;
 
   factory CLGhostButton.primary({
     required String text,
@@ -50,7 +73,7 @@ class CLGhostButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLGhostButton(
+    return CLGhostButton._colored(
       text: text,
       color: CLTheme.of(context).primary,
       onTap: onTap,
@@ -108,7 +131,7 @@ class CLGhostButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLGhostButton(
+    return CLGhostButton._colored(
       text: text,
       color: CLTheme.of(context).success,
       onTap: onTap,
@@ -137,7 +160,7 @@ class CLGhostButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLGhostButton(
+    return CLGhostButton._colored(
       text: text,
       color: CLTheme.of(context).info,
       context: context,
@@ -166,7 +189,7 @@ class CLGhostButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLGhostButton(
+    return CLGhostButton._colored(
       context: context,
       text: text,
       color: CLTheme.of(context).warning,
@@ -195,7 +218,7 @@ class CLGhostButton extends StatefulWidget {
     double? width,
     bool isCompact = false,
   }) {
-    return CLGhostButton(
+    return CLGhostButton._colored(
       context: context,
       text: text,
       color: CLTheme.of(context).danger,
@@ -230,12 +253,19 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
     final theme = CLTheme.of(context);
     final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
     const vPad = 0.0;
-    final fgColor = widget.foregroundColor ?? theme.primaryText;
+    final colored = widget._colored;
+    CLToneColors chrome(CLPressableState state) => CLToneStyle.resolve(theme,
+        color: widget.color,
+        variant: CLVariant.ghost,
+        colored: colored,
+        state: state);
+    final idle = chrome(const CLPressableState());
+    final fgColor = widget.foregroundColor ?? idle.fg;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
-    final hoverBg = theme.accent;
-    final pressedBg = Color.lerp(hoverBg, Colors.black, 0.08)!;
-    final focusBorder = theme.primary;
+    final hoverBg = chrome(const CLPressableState(hovered: true)).bg;
+    final pressedBg = chrome(const CLPressableState(pressed: true)).bg;
+    final focusBorder = colored ? widget.color : theme.primary;
     final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
 
     return Theme(
@@ -254,9 +284,9 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                           alignment: Alignment.center,
                           firstChild: widget.hugeIcon ??
                               (widget.iconData != null
-                                  ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz)
+                                  ? Icon(widget.iconData, color: fgColor, size: iconSz)
                                   : SizedBox(width: iconSz, height: iconSz)),
-                          secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
+                          secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
                           crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                           duration: const Duration(milliseconds: 200),
                         )
@@ -316,9 +346,9 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                   icon: AnimatedCrossFade(
                     firstChild: widget.hugeIcon ??
                         (widget.iconData != null
-                            ? Icon(widget.iconData, color: theme.secondaryText, size: iconSz)
+                            ? Icon(widget.iconData, color: fgColor, size: iconSz)
                             : const SizedBox.shrink()),
-                    secondChild: CLLoadingSpinner(size: iconSz, color: theme.secondaryText),
+                    secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
                     crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                     duration: const Duration(milliseconds: 200),
                   ),

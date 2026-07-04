@@ -321,10 +321,10 @@ class _DropdownSegmentState<T> extends State<_DropdownSegment<T>> {
       children: [
         if (widget.selected.icon != null) ...[
           Icon(widget.selected.icon, size: 14, color: theme.secondaryText),
-          const SizedBox(width: 8),
+          SizedBox(width: Sizes.gapSm),
         ],
         Text(widget.selected.label, style: theme.bodyText.copyWith(color: fg)),
-        const SizedBox(width: 6),
+        SizedBox(width: theme.gapIconText),
         Icon(
           LucideIcons.chevronDown,
           size: 14,
@@ -351,7 +351,7 @@ class _DropdownSegmentState<T> extends State<_DropdownSegment<T>> {
                 left: Radius.circular(theme.radiusControl),
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: Sizes.gapMd),
             alignment: Alignment.center,
             child: label,
           ),
@@ -389,7 +389,7 @@ class _MenuItemState<T> extends State<_MenuItem<T>> {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
 
-    final Color bg = widget.isSelected ? theme.primary.withValues(alpha: 0.10) : (_hovered ? theme.muted : Colors.transparent);
+    final Color bg = widget.isSelected ? theme.primary.withValues(alpha: theme.opacitySoft) : (_hovered ? theme.muted : Colors.transparent);
     final Color fg = widget.isSelected ? theme.primary : theme.primaryText;
     final FontWeight weight = widget.isSelected ? FontWeight.w600 : FontWeight.w400;
 
@@ -403,13 +403,13 @@ class _MenuItemState<T> extends State<_MenuItem<T>> {
         child: Container(
           height: 36,
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: Sizes.gapMd),
           color: bg,
           child: Row(
             children: [
               if (widget.item.icon != null) ...[
                 Icon(widget.item.icon, size: 14, color: fg),
-                const SizedBox(width: 8),
+                SizedBox(width: Sizes.gapSm),
               ],
               Expanded(
                 child: Text(
@@ -419,7 +419,7 @@ class _MenuItemState<T> extends State<_MenuItem<T>> {
                 ),
               ),
               if (widget.isSelected) ...[
-                const SizedBox(width: 8),
+                SizedBox(width: Sizes.gapSm),
                 Icon(LucideIcons.check, size: 14, color: theme.primary),
               ],
             ],

@@ -27,10 +27,10 @@ class _TextFieldTimeHelper extends _Helper {
         ),
         timePickerTheme: TimePickerThemeData(
           backgroundColor: theme.secondaryBackground,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.borderRadius)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusControl)),
           hourMinuteShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
-          dialBackgroundColor: theme.primary.withAlpha(26),
+              borderRadius: BorderRadius.circular(Sizes.radiusChip)),
+          dialBackgroundColor: theme.primary.withValues(alpha: theme.opacitySoft),
           dialHandColor: theme.primary,
           dialTextColor: WidgetStateColor.resolveWith(
               (st) => st.contains(WidgetState.selected) ? Colors.white : theme.primaryText),
@@ -40,7 +40,7 @@ class _TextFieldTimeHelper extends _Helper {
           dayPeriodColor: WidgetStateColor.resolveWith((st) => st.contains(WidgetState.selected)
               ? theme.primary.withAlpha(50)
               : Colors.transparent),
-          cancelButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(theme.danger)),
+          cancelButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(theme.mutedForeground)),
           confirmButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(theme.primary)),
         ),
       );

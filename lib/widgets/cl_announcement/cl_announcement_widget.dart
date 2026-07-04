@@ -98,7 +98,7 @@ class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementW
                           onPressed: (state.hasPreviousPage && state._announcementState != _AnnouncementState.loading) ? state.previousPage : null,
                         ),
                         ...pageNumbers.map((page) => Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                              padding: const EdgeInsets.symmetric(horizontal: Sizes.gapXs),
                               child: CircleAvatar(
                                 backgroundColor: state.currentPage == page ? CLTheme.of(context).primary : Colors.transparent,
                                 radius: 20,
@@ -215,11 +215,11 @@ class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementW
                                                 ],
                                               ),
                                               SizedBox(
-                                                height: 10,
+                                                height: Sizes.gapMd,
                                               ),
                                               Text(
                                                 state.announcementList[index].title.capitalize,
-                                                style: CLTheme.of(context).subTitle.copyWith(fontWeight: FontWeight.bold),
+                                                style: CLTheme.of(context).heading4,
                                                 overflow: TextOverflow.visible,
                                                 maxLines: null,
                                               ),
@@ -230,7 +230,7 @@ class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementW
                                                 maxLines: null,
                                               ),
                                               SizedBox(
-                                                height: 10,
+                                                height: Sizes.gapMd,
                                               ),
                                               ExcerptText<CLAnnouncement>(
                                                   text: state.announcementList[index].subtitle,
@@ -240,7 +240,7 @@ class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementW
                                             ],
                                           ),
                                         )),
-                                    SizedBox(height: 4),
+                                    SizedBox(height: Sizes.gapXs),
                                     if (state.announcementList[index].mediaUrls.isNotEmpty) ...[
                                       Theme(
                                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -259,11 +259,11 @@ class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementW
                                                   'Allegati',
                                                   style: CLTheme.of(context).bodyLabel.copyWith(color: CLTheme.of(context).primary),
                                                 ),
-                                                SizedBox(width: 4),
+                                                SizedBox(width: Sizes.gapXs),
                                                 Icon(
                                                   Icons.keyboard_arrow_down_rounded,
                                                   color: CLTheme.of(context).primary,
-                                                  size: Sizes.medium,
+                                                  size: Sizes.iconSizeCompact,
                                                 ),
                                               ],
                                             ),
@@ -275,7 +275,7 @@ class _ClAnnouncementWidgetState<T extends Object> extends State<ClAnnouncementW
                                               ),
                                             ],
                                           )),
-                                      SizedBox(height: 4),
+                                      SizedBox(height: Sizes.gapXs),
                                     ]
                                   ],
                                 );

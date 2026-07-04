@@ -93,8 +93,8 @@ class _CLToastWidgetState extends State<_CLToastWidget>
     final accent = _accentColor(theme);
 
     return Positioned(
-      bottom: 24,
-      right: 24,
+      bottom: Sizes.gap2Xl,
+      right: Sizes.gap2Xl,
       child: FadeTransition(
         opacity: _opacity,
         child: Material(
@@ -104,7 +104,7 @@ class _CLToastWidgetState extends State<_CLToastWidget>
             padding: const EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
               color: theme.secondaryBackground,
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
+              borderRadius: BorderRadius.circular(Sizes.radiusSurface),
               border: Border.all(color: theme.cardBorder),
               boxShadow: [
                 BoxShadow(
@@ -120,7 +120,7 @@ class _CLToastWidgetState extends State<_CLToastWidget>
                 Container(
                   width: 3,
                   height: widget.title != null ? 44 : 20,
-                  margin: const EdgeInsets.only(right: 12),
+                  margin: const EdgeInsets.only(right: Sizes.gapMd),
                   decoration: BoxDecoration(
                     color: accent,
                     borderRadius: BorderRadius.circular(2),
@@ -133,18 +133,18 @@ class _CLToastWidgetState extends State<_CLToastWidget>
                     children: [
                       if (widget.title != null)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.only(bottom: Sizes.gapXs),
                           child: Text(widget.title!, style: theme.title),
                         ),
                       Text(widget.message, style: theme.bodyText),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: Sizes.gapSm),
                 InkWell(
                   onTap: _dismiss,
-                  borderRadius: BorderRadius.circular(4),
-                  child: Icon(Icons.close, size: 16, color: theme.mutedForeground),
+                  borderRadius: BorderRadius.circular(Sizes.radiusChip),
+                  child: Icon(Icons.close, size: Sizes.iconSizeCompact, color: theme.mutedForeground),
                 ),
               ],
             ),
