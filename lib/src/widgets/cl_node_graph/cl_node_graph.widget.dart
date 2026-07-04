@@ -8,7 +8,7 @@ import 'cl_graph_edge_painter.dart';
 import 'cl_graph_geometry.dart';
 
 const double kCardW = 220;
-const double kCardH = 84;
+const double kCardH = 96; // include la pill badge (modulo) sopra titolo+sottotitolo
 const double _pad = 60; // margine attorno al bounding box
 const double _kDotSize = 16; // diametro del pallino di connessione prereq
 const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
@@ -344,21 +344,40 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         border: Border.all(color: selected ? accent : theme.cardBorder, width: selected ? 2 : 1),
         boxShadow: theme.cardShadow,
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(width: 10, height: 10, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
-          SizedBox(width: theme.gapIconText),
-          if (n.icon != null) ...[Icon(n.icon, size: theme.iconSizeCompact, color: accent), SizedBox(width: theme.gapIconText)],
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(n.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.bodyText),
-                if (n.subtitle != null && n.subtitle!.isNotEmpty)
-                  Text(n.subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.smallText.copyWith(color: theme.mutedForeground)),
-              ],
+          // Pill del modulo (tag): colore = badgeColor ?? accent, fondo tonale soft.
+          if (n.badge != null && n.badge!.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(bottom: theme.gapXs),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (n.badgeColor ?? n.accent ?? theme.primary).withValues(alpha: theme.opacitySoft),
+                  borderRadius: BorderRadius.circular(theme.radiusChip),
+                ),
+                child: Text(n.badge!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.smallText.copyWith(color: n.badgeColor ?? n.accent ?? theme.primary)),
+              ),
             ),
+          Row(
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
+              SizedBox(width: theme.gapIconText),
+              if (n.icon != null) ...[Icon(n.icon, size: theme.iconSizeCompact, color: accent), SizedBox(width: theme.gapIconText)],
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(n.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.bodyText),
+                    if (n.subtitle != null && n.subtitle!.isNotEmpty)
+                      Text(n.subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.smallText.copyWith(color: theme.mutedForeground)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

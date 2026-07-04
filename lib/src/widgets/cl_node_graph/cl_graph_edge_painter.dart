@@ -2,7 +2,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'cl_graph_models.dart';
 
-/// Estremi (centri card) di ogni arco `prerequisite`, per painter e hit-test.
+/// Ancora porta OUT (destra, "sblocca") del source. 12 ≈ _kDotInset + _kDotSize/2
+/// del widget → coerente con la porta renderizzata.
+Offset _outAnchor(Rect r) => Offset(r.right - 12, r.center.dy);
+/// Ancora porta IN (sinistra, "richiede") del target.
+Offset _inAnchor(Rect r) => Offset(r.left + 12, r.center.dy);
+
+/// Estremi (porta OUT del source → porta IN del target) di ogni arco
+/// `prerequisite`, per painter e hit-test del cestino.
 List<({String id, Offset a, Offset b})> prereqSegments(
   Map<String, Rect> nodeRects,
   List<CLGraphEdge> edges,
@@ -12,7 +19,7 @@ List<({String id, Offset a, Offset b})> prereqSegments(
     if (e.kind != CLGraphEdgeKind.prerequisite) continue;
     final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
     if (from == null || to == null) continue;
-    out.add((id: e.id, a: from.center, b: to.center));
+    out.add((id: e.id, a: _outAnchor(from), b: _inAnchor(to)));
   }
   return out;
 }
@@ -71,10 +78,9 @@ class CLGraphEdgePainter extends CustomPainter {
         ..color = selected ? selectedColor : linkColor
         ..strokeWidth = selected ? 2.5 : 1.8
         ..style = PaintingStyle.stroke;
-      final a = from.center, b = to.center;
+      final a = _outAnchor(from), b = _inAnchor(to);
       canvas.drawLine(a, b, paint);
       _drawArrowHead(canvas, a, b, paint);
-      if (selected) _drawDeleteX(canvas, Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2), selectedColor);
     }
   }
 
@@ -101,18 +107,6 @@ class CLGraphEdgePainter extends CustomPainter {
     final p2 = Offset(tip.dx - size * math.cos(angle + math.pi / 7), tip.dy - size * math.sin(angle + math.pi / 7));
     canvas.drawLine(tip, p1, paint);
     canvas.drawLine(tip, p2, paint);
-  }
-
-  void _drawDeleteX(Canvas canvas, Offset c, Color color) {
-    const r = 9.0;
-    final bg = Paint()..color = color;
-    canvas.drawCircle(c, r + 2, bg);
-    final x = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(c + const Offset(-4, -4), c + const Offset(4, 4), x);
-    canvas.drawLine(c + const Offset(-4, 4), c + const Offset(4, -4), x);
   }
 
   @override
