@@ -17,9 +17,10 @@ const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
 /// Sorgente della linea pending. Stesso spazio-coordinate di `rects` (canvas-local).
 Offset _outAnchor(Rect r) => Offset(r.right - _kDotInset - _kDotSize / 2, r.center.dy);
 
-/// Canvas a nodi data-driven (MVP): render nodi+archi da `nodes`/`edges`,
-/// tap→select, drag nodo→nodo per propedeuticità/reparent, tap arco→× per
-/// eliminare. Nessun motore imperativo: si ridisegna dalle props.
+/// Canvas a nodi data-driven: render nodi+archi da `nodes`/`edges`, tap→select,
+/// drag-porta (dx→sx) per creare prereq, drag-corpo per spostare il nodo
+/// (effimero), hover arco→cestino per eliminare, "Ordina" per risnappare al
+/// layout. Nessun motore imperativo: si ridisegna dalle props.
 class CLNodeGraph extends StatefulWidget {
   final List<CLGraphNode> nodes;
   final List<CLGraphEdge> edges;
@@ -27,10 +28,11 @@ class CLNodeGraph extends StatefulWidget {
   final void Function(String nodeId)? onNodeTap;
   final void Function(String fromNodeId, String toNodeId, CLGraphEdgeKind kind)? onEdgeCreate; // from=sorgente handle
   final void Function(String edgeId, CLGraphEdgeKind kind)? onEdgeDelete;
-  final Future<bool> Function(String childNodeId, String newParentNodeId)? onReparent;
-  final bool Function(CLGraphNode node)? canDrag; // false ⇒ card NON trascinabile per reparent (default: trascinabile)
-  final bool Function(CLGraphNode node)? canConnect; // true ⇒ mostra il pallino di connessione prereq
+  final Future<bool> Function(String childNodeId, String newParentNodeId)? onReparent; // DEPRECATO: reparent rimosso, no-op (compat consumer)
+  final bool Function(CLGraphNode node)? canDrag; // DEPRECATO: il corpo ora sposta il nodo, no-op (compat consumer)
+  final bool Function(CLGraphNode node)? canConnect; // true ⇒ mostra le porte di connessione prereq
   final CLGraphLayout? layout;
+  final bool showArrangeButton; // true ⇒ pulsante "Ordina" (svuota le posizioni manuali → snap al layout)
   final Set<String>? collapsedNodeIds; // nodi collassati ⇒ discendenti nascosti, archi re-anchored
   final void Function(String nodeId)? onToggleCollapse; // tap sul chevron
   final bool Function(CLGraphNode node)? canCollapse; // true ⇒ mostra il chevron di collasso
@@ -47,6 +49,7 @@ class CLNodeGraph extends StatefulWidget {
     this.canDrag,
     this.canConnect,
     this.layout,
+    this.showArrangeButton = false,
     this.collapsedNodeIds,
     this.onToggleCollapse,
     this.canCollapse,
@@ -59,15 +62,18 @@ class CLNodeGraph extends StatefulWidget {
 class _CLNodeGraphState extends State<CLNodeGraph> {
   String? _selectedEdgeId;
   String? _hoveredEdgeId; // arco prereq sotto il cursore ⇒ evidenziato + cestino
-  String? _dragHoverId; // nodo bersaglio corrente sotto il ghost (highlight)
-  // Connessione CLICK-TO-CONNECT (prereq): tap sul pallino di A → pending da A;
-  // la linea segue il cursore fino al secondo tap (card/pallino B) che crea
-  // l'arco, o al tap nel vuoto/su A che annulla. Coord canvas-local (post-transform).
+  // Connessione DRAG-TO-CONNECT (prereq): drag dalla porta OUT (dx) di A → pending
+  // da A; la linea segue il cursore fino al rilascio sulla porta IN (sx) di B che
+  // crea l'arco, o al rilascio nel vuoto che annulla. Coord canvas-local (post-transform).
   String? _pendingFromId; // sorgente della connessione in corso
   Offset? _pendingCursor; // posizione cursore canvas-local (destinazione linea pending)
+  final Map<String, Offset> _manualPos = {}; // override effimero del layout (drag-move)
   final GlobalKey _canvasKey = GlobalKey(); // per global→canvas-local del drop
   final TransformationController _tc = TransformationController(); // pan/zoom
   bool _fitApplied = false; // fit iniziale applicato una sola volta
+
+  /// "Ordina": svuota le posizioni manuali → i nodi tornano al layout calcolato.
+  void _arrange() => setState(() => _manualPos.clear());
 
   CLGraphLayout get _layout => widget.layout ?? clHierarchicalLayout;
 
@@ -122,14 +128,14 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind));
     }
 
-    final byId = {for (final n in visibleNodes) n.id: n};
     final positions = _layout(visibleNodes, effectiveEdges); // top-left per clId
 
-    // Rect di ogni card + bounding box del canvas (solo nodi visibili).
+    // Rect di ogni card + bounding box del canvas (solo nodi visibili). La
+    // posizione manuale (drag-move effimero) fa override del layout calcolato.
     final rects = <String, Rect>{};
     var maxX = 0.0, maxY = 0.0;
     for (final n in visibleNodes) {
-      final p = positions[n.id];
+      final p = _manualPos[n.id] ?? positions[n.id];
       if (p == null) continue;
       final r = Rect.fromLTWH(p.dx, p.dy, kCardW, kCardH);
       rects[n.id] = r;
@@ -139,33 +145,14 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final canvasSize = Size(maxX + _pad, maxY + _pad);
     final segments = prereqSegments(rects, effectiveEdges);
 
-    // Un SOLO DragTarget avvolge l'intero canvas: il bersaglio del drop non è
-    // deciso dall'hit-test per-card (fragile dentro lo scroll + ghost sfasato)
-    // ma calcolato dal Rect che CONTIENE il centro del ghost, convertito in
-    // coordinate canvas-local via [_canvasKey]. Deterministico, immune all'offset.
+    // Il canvas: box a dimensione naturale (via [_canvasKey] per global→local del
+    // drag-connect). Il reparent-via-DragTarget è stato rimosso: il drag del corpo
+    // sposta il nodo (posizione effimera in _manualPos), il drag-porta connette.
     final canvas = SizedBox(
       key: _canvasKey,
       width: canvasSize.width,
       height: canvasSize.height,
-      child: DragTarget<String>(
-        onWillAcceptWithDetails: (_) => true, // il bersaglio reale è risolto per-Rect
-        onMove: (d) {
-          final id = _resolveTargetId(d.offset, rects, d.data);
-          if (id != _dragHoverId) setState(() => _dragHoverId = id);
-        },
-        onLeave: (_) {
-          if (_dragHoverId != null) setState(() => _dragHoverId = null);
-        },
-        onAcceptWithDetails: (d) {
-          // Solo reparent (payload String): logica invariata via _onDrop.
-          final sourceId = d.data;
-          final id = _resolveTargetId(d.offset, rects, sourceId);
-          if (_dragHoverId != null) setState(() => _dragHoverId = null);
-          if (id == null) return; // drop nel vuoto o sul sorgente stesso
-          final target = byId[id];
-          if (target != null) _onDrop(sourceId, target, byId);
-        },
-        builder: (context, cand, rej) => Listener(
+      child: Listener(
           // translucent ⇒ il Listener resta nel hit-path anche sopra i "vuoti"
           // tra le card (dove il GestureDetector figlio, pur translucent,
           // ritorna false): senza questo, onPointerHover NON scatta proprio
@@ -255,7 +242,6 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
             ),
           ),
         ),
-      ),
     );
 
     // Pan + zoom per navigare (InteractiveViewer). Fit iniziale automatico
@@ -267,13 +253,42 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _applyInitialFit(constraints.biggest, canvasSize);
-        return InteractiveViewer(
-          transformationController: _tc,
-          constrained: false,
-          minScale: 0.2,
-          maxScale: 3.0,
-          boundaryMargin: const EdgeInsets.all(double.infinity),
-          child: canvas,
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                transformationController: _tc,
+                constrained: false,
+                minScale: 0.2,
+                maxScale: 3.0,
+                boundaryMargin: const EdgeInsets.all(double.infinity),
+                child: canvas,
+              ),
+            ),
+            // "Ordina": snap dei nodi al layout calcolato (svuota _manualPos).
+            if (widget.showArrangeButton)
+              Positioned(
+                top: theme.gapMd,
+                right: theme.gapMd,
+                child: Material(
+                  color: theme.secondaryBackground,
+                  borderRadius: BorderRadius.circular(theme.radiusControl),
+                  elevation: 0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(theme.radiusControl),
+                    onTap: _arrange,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: theme.gapMd, vertical: theme.gapSm),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.auto_awesome_motion_outlined, size: theme.iconSizeCompact, color: theme.primaryText),
+                        SizedBox(width: theme.gapIconText),
+                        Text('Ordina', style: theme.smallText),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );
@@ -318,21 +333,6 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     ];
   }
 
-  /// Risolve il nodo bersaglio da [feedbackTopLeftGlobal] (= `DragTargetDetails.offset`,
-  /// che Flutter calcola come `pointerGlobal - dragStartPoint` ⇒ top-left GLOBALE del
-  /// feedback kCardW×kCardH). Uso il CENTRO del ghost così il bersaglio coincide con la
-  /// card che l'utente vede trascinare, indipendentemente da dove ha afferrato.
-  String? _resolveTargetId(Offset feedbackTopLeftGlobal, Map<String, Rect> rects, String sourceId) {
-    final box = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return null;
-    final centerLocal = box.globalToLocal(feedbackTopLeftGlobal + const Offset(kCardW / 2, kCardH / 2));
-    for (final e in rects.entries) {
-      if (e.key == sourceId) continue; // mai il sorgente stesso
-      if (e.value.contains(centerLocal)) return e.key;
-    }
-    return null; // nessun Rect colpito
-  }
-
   Widget _nodeCard(BuildContext context, CLTheme theme, CLGraphNode n, Map<String, Rect> rects) {
     final accent = n.accent ?? theme.primary;
     final selected = n.id == widget.selectedNodeId;
@@ -364,37 +364,21 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       ),
     );
 
-    // Draggable payload = clId sorgente. Il bersaglio del drop è risolto per-Rect
-    // dal DragTarget unico che avvolge il canvas (vedi build/_resolveTargetId):
-    // la card NON è più un DragTarget. `hovering` = questa card è sotto il ghost.
-    final hovering = n.id == _dragHoverId;
-    final tappable = GestureDetector(
+    // Corpo del nodo: tap = seleziona; drag = sposta liberamente (posizione
+    // effimera in _manualPos, override del layout). Il reparent-via-Draggable è
+    // stato rimosso. `d.delta` è in coord canvas-local (post-transform
+    // InteractiveViewer) → si somma direttamente alla top-left del Rect.
+    final body = GestureDetector(
       onTap: () {
-        // La connessione ora è drag-su-porta: il tap sul corpo seleziona il nodo.
         setState(() => _selectedEdgeId = null);
         widget.onNodeTap?.call(n.id);
       },
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(theme.radiusCard),
-          border: Border.all(color: hovering ? theme.primary : Colors.transparent, width: 2),
-        ),
-        child: card,
-      ),
+      onPanUpdate: (d) => setState(() {
+        final cur = _manualPos[n.id] ?? rects[n.id]!.topLeft;
+        _manualPos[n.id] = cur + d.delta;
+      }),
+      child: card,
     );
-    // Draggable per reparent SOLO se `canDrag` lo consente (default: trascinabile
-    // = comportamento storico). Se non trascinabile, il drag sul corpo diventa
-    // pan (InteractiveViewer vince l'arena) e resta il tap-select. Ghost identico
-    // al child (kCardW×kCardH) + `childDragAnchorStrategy` ⇒ segue il cursore.
-    final body = widget.canDrag?.call(n) == false
-        ? tappable
-        : Draggable<String>(
-            data: n.id,
-            dragAnchorStrategy: childDragAnchorStrategy,
-            feedback: Material(color: Colors.transparent, child: Opacity(opacity: 0.85, child: SizedBox(width: kCardW, height: kCardH, child: card))),
-            childWhenDragging: Opacity(opacity: 0.4, child: card),
-            child: tappable,
-          );
 
     // Solo i nodi connettibili espongono le due porte di connessione prereq.
     // NOTA layout: il Positioned esterno (build) vincola la card a kCardW×kCardH.
@@ -522,17 +506,6 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     return null;
   }
 
-  /// [sourceId] trascinato col CORPO su [target]. Unico effetto: reparent
-  /// (il consumer decide la validità via onReparent). Le frecce prereq si
-  /// creano SOLO via click-to-connect sul pallino → il body-drag non crea
-  /// link (niente ambiguità col pan).
-  void _onDrop(String sourceId, CLGraphNode target, Map<String, CLGraphNode> byId) {
-    final source = byId[sourceId];
-    if (source == null || source.id == target.id) return;
-    // Reparent domain-agnostico: il widget non conosce i 'type' del dominio.
-    // Il consumer valida via onReparent (→ Future<bool>) e rifiuta se non lecito.
-    widget.onReparent?.call(source.id, target.id);
-  }
 }
 
 /// Linea della connessione prereq in corso: dal pallino sorgente [from] al
