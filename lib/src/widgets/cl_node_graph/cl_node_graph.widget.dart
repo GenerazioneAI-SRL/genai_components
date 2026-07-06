@@ -13,7 +13,9 @@ const double _pad = 60; // margine attorno al bounding box
 const double _kDotSize = 16; // diametro del pallino di connessione prereq
 const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
 const double _kChevron = 24; // area cliccabile chevron collasso (top-left card)
-const double _kTriDy = 26; // offset verticale (sotto il centro) del triangolino link-lezione
+const double _kActionSize = 24; // area cliccabile di ogni icona azione (top-right card) — mirror _kChevron
+const double _kActionGap = 4; // gap orizzontale tra icone azione adiacenti
+// _kTriDy vive in cl_graph_models.dart (kTriDy) — condiviso col painter.
 const double _kTrashR = 14; // raggio hit del cestino attorno al midpoint dell'arco
 
 /// Ancora porta OUT (destra, "sblocca"): sul bordo destro della card (il pallino
@@ -21,11 +23,18 @@ const double _kTrashR = 14; // raggio hit del cestino attorno al midpoint dell'a
 /// spazio-coordinate di `rects` (canvas-local).
 Offset _outAnchor(Rect r) => Offset(r.right, r.center.dy);
 
+/// X (card-local, dal bordo sinistro) dello slot dell'azione `i` su `n` azioni,
+/// ancorate a destra: le icone formano una riga in alto a destra. Unica formula
+/// per render (in `_nodeCard`) e hit-test (in `_hitTest`) ⇒ allineamento
+/// pixel-perfetto, come il chevron condivide `_kDotInset`/`_kChevron`.
+double _actionSlotLeft(int i, int n) =>
+    kCardW - _kDotInset - _kActionSize - (n - 1 - i) * (_kActionSize + _kActionGap);
+
 /// Cosa c'è sotto il pointer al momento del down. Determina l'interazione:
 /// una sola pipeline pointer-raw hit-testa e smista — nessun GestureDetector
 /// annidato, quindi nessuna arena da vincere (era la causa del "a volte muove
 /// la card, a volte tutto il canvas").
-enum _Mode { none, node, port, chevron, edge, trash, pan }
+enum _Mode { none, node, port, chevron, action, edge, trash, pan }
 
 /// Canvas a nodi data-driven: render nodi+archi da `nodes`/`edges`, tap→select,
 /// drag-porta (dx→sx) per creare prereq, drag-corpo per spostare il nodo
@@ -53,6 +62,9 @@ class CLNodeGraph extends StatefulWidget {
   final Set<String>? collapsedNodeIds; // nodi collassati ⇒ discendenti nascosti, archi re-anchored
   final void Function(String nodeId)? onToggleCollapse; // tap sul chevron
   final bool Function(CLGraphNode node)? canCollapse; // true ⇒ mostra il chevron di collasso
+  /// Tap su un'icona azione della card (`CLGraphNode.actions`). `globalPos` = la
+  /// posizione globale del pointer al rilascio (per ancorare un popup lato host).
+  final void Function(String nodeId, String actionId, Offset globalPos)? onNodeAction;
 
   const CLNodeGraph({
     super.key,
@@ -72,6 +84,7 @@ class CLNodeGraph extends StatefulWidget {
     this.collapsedNodeIds,
     this.onToggleCollapse,
     this.canCollapse,
+    this.onNodeAction,
   });
 
   @override
@@ -92,7 +105,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   // --- Stato della pipeline pointer-raw (nessuna arena) ---
   _Mode _mode = _Mode.none;
-  String? _targetId; // nodo (node/chevron) o arco (edge/trash) del gesto corrente
+  String? _targetId; // nodo (node/chevron/action) o arco (edge/trash) del gesto corrente
+  String? _pendingActionId; // azione colpita dall'hit-test (per _Mode.action) → callback su pointer-up
   int? _activePointer; // pointer che ha iniziato il gesto (ignora i secondari)
   Offset _downViewport = Offset.zero; // per la soglia tap↔drag
   Offset _lastViewport = Offset.zero; // per il delta di pan (screen space)
@@ -167,6 +181,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   // solo cosa fare in base a `_hitTest`. Nessun altro recognizer compete.
 
   ({_Mode mode, String? id}) _hitTest(Offset cp) {
+    _pendingActionId = null; // azzera: verrà settato solo se colpita un'azione
     // 1) Cestino dell'arco attivo (hover o selezione): ha priorità perché è
     //    reso sopra le card e piccolo.
     final active = _hoveredEdgeId ?? _selectedEdgeId;
@@ -191,6 +206,23 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       if (widget.canCollapse?.call(n) == true) {
         final ch = Rect.fromLTWH(r.left + _kDotInset, r.top + _kDotInset, _kChevron, _kChevron);
         if (ch.contains(cp)) return (mode: _Mode.chevron, id: n.id);
+      }
+      // Icone azione (top-right): stessa formula del render (`_actionSlotLeft`),
+      // testate PRIMA del corpo così il tap sull'icona non fa scattare onNodeTap.
+      if (n.actions.isNotEmpty) {
+        for (var a = 0; a < n.actions.length; a++) {
+          if (!n.actions[a].interactive) continue; // indicatore display-only (es. numero ordine)
+          final ar = Rect.fromLTWH(
+            r.left + _actionSlotLeft(a, n.actions.length),
+            r.top + _kDotInset,
+            _kActionSize,
+            _kActionSize,
+          );
+          if (ar.contains(cp)) {
+            _pendingActionId = n.actions[a].id;
+            return (mode: _Mode.action, id: n.id);
+          }
+        }
       }
       if (r.contains(cp)) return (mode: _Mode.node, id: n.id);
     }
@@ -246,6 +278,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         final d = vp - _lastViewport;
         setState(() => _matrix = Matrix4.translationValues(d.dx, d.dy, 0)..multiply(_matrix));
       case _Mode.chevron:
+      case _Mode.action:
       case _Mode.edge:
       case _Mode.trash:
       case _Mode.none:
@@ -270,6 +303,12 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         if (moved) _completeConnectAtCursor(_rects);
       case _Mode.chevron:
         if (!moved) widget.onToggleCollapse?.call(_targetId!);
+      case _Mode.action:
+        // Tap su icona azione: `e.position` è la posizione globale del pointer
+        // (l'host la usa per ancorare un popup). Ha precedenza sul tap-nodo.
+        if (!moved && _pendingActionId != null) {
+          widget.onNodeAction?.call(_targetId!, _pendingActionId!, e.position);
+        }
       case _Mode.edge:
         if (!moved) setState(() => _selectedEdgeId = _targetId);
       case _Mode.trash:
@@ -302,6 +341,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   void _resetGesture() {
     _mode = _Mode.none;
     _targetId = null;
+    _pendingActionId = null;
     _activePointer = null;
     _moved = false;
   }
@@ -625,12 +665,13 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         child: _connDot(theme, active: false),
       ));
     }
-    // Triangolino handle link-lezione (dx, sotto il pallino OUT). Visuale per ora;
-    // la connessione verso i nodi-lezione verrà cablata quando esisteranno.
+    // Triangolino handle link-lezione (dx, sotto il pallino OUT): è l'ancora degli
+    // archi CLGraphEdgeKind.lessonLink verso i nodi-lezione (il painter usa lo stesso
+    // kTriDy). Il pallino OUT sopra resta riservato alla propedeuticità.
     if (widget.showLessonPort?.call(n) == true) {
       children.add(Positioned(
         right: -_kDotSize / 2,
-        top: kCardH / 2 + _kTriDy - _kDotSize / 2,
+        top: kCardH / 2 + kTriDy - _kDotSize / 2,
         child: Icon(Icons.play_arrow, size: _kDotSize + 2, color: theme.danger),
       ));
     }
@@ -647,6 +688,28 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
           color: theme.mutedForeground,
         ),
       ));
+    }
+
+    // Icone azione (top-right): riga orizzontale di icone tappabili (es. frecce
+    // ordine ▲▼) — visuali pure, il tap passa dal Listener (hit-test _Mode.action)
+    // con la STESSA formula `_actionSlotLeft`. Angolo libero: il badge è
+    // left-aligned, il chevron è top-left, le porte OUT/IN e il triangolino
+    // link-lezione stanno a metà/sotto sul bordo destro.
+    if (n.actions.isNotEmpty) {
+      for (var i = 0; i < n.actions.length; i++) {
+        final a = n.actions[i];
+        Widget ic = a.label != null
+            ? Text(a.label!, style: theme.smallText.copyWith(color: theme.mutedForeground, fontWeight: FontWeight.w700))
+            : Icon(a.icon, size: theme.iconSizeCompact, color: theme.mutedForeground);
+        if (a.tooltip != null) ic = Tooltip(message: a.tooltip!, child: ic);
+        children.add(Positioned(
+          left: _actionSlotLeft(i, n.actions.length),
+          top: _kDotInset,
+          width: _kActionSize,
+          height: _kActionSize,
+          child: Center(child: ic),
+        ));
+      }
     }
 
     if (children.length == 1) return card;

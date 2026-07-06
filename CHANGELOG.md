@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.9.1
+
+- **Widgets:** Updated 8 components
+- **Layout:** Updated Cl Graph Layout Test, Cl Prereq Flow Layout Test
+- **Core:** Updated  Sdd-Diff-Rebuild-Report Md, Changelog Md, Genai Components
+- **Package:** Updated Pubspec Yaml
+- **Tests:** Updated 4 components
+
+
 ## 5.9.0
 
 - **Widgets:** Updated 8 components

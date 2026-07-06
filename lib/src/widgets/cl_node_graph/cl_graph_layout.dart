@@ -132,9 +132,12 @@ Map<String, Offset> clModuleFlowLayout(List<CLGraphNode> nodes, List<CLGraphEdge
     if (!byId.containsKey(e.fromNodeId) || !byId.containsKey(e.toNodeId)) continue;
     (childrenOf[e.fromNodeId] ??= []).add(e.toNodeId);
   }
+  // Profondità di colonna: sia i prereq (risorsa→risorsa) sia i link-lezione
+  // (corso→lezione) spingono il target a destra del source. Il link-lezione parte
+  // da una porta diversa (triangolino) ma per il layout conta come una catena.
   final incoming = <String, List<String>>{for (final n in nodes) n.id: <String>[]};
   for (final e in edges) {
-    if (e.kind != CLGraphEdgeKind.prerequisite) continue;
+    if (e.kind != CLGraphEdgeKind.prerequisite && e.kind != CLGraphEdgeKind.lessonLink) continue;
     if (!byId.containsKey(e.fromNodeId) || !byId.containsKey(e.toNodeId)) continue;
     incoming[e.toNodeId]!.add(e.fromNodeId);
   }
