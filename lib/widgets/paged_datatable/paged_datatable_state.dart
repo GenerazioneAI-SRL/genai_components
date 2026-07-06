@@ -384,10 +384,10 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
       // Gestione speciale per CLDropdownTableFilterAsync e CLDropdownTableFilterSync
       var filterValue = value.value;
       if (value._filter is CLDropdownTableFilterAsync) {
-        final dropdownFilter = value._filter as CLDropdownTableFilterAsync;
+        final CLDropdownTableFilterAsync dropdownFilter = value._filter;
         filterValue = dropdownFilter.getValueForBackend(value.value);
       } else if (value._filter is CLDropdownTableFilterSync) {
-        final dropdownFilter = value._filter as CLDropdownTableFilterSync;
+        final CLDropdownTableFilterSync dropdownFilter = value._filter;
         filterValue = dropdownFilter.getValueForBackend(value.value);
       }
 
