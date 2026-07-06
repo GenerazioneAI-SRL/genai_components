@@ -1,5 +1,13 @@
 import 'package:flutter/widgets.dart';
 
+/// Azione immediata su una card del grafo (icona tappabile, es. frecce ordine).
+class CLGraphNodeAction {
+  final String id;
+  final IconData icon;
+  final String? tooltip;
+  const CLGraphNodeAction({required this.id, required this.icon, this.tooltip});
+}
+
 /// Nodo del grafo, indipendente dal motore di rendering.
 class CLGraphNode {
   final String id;
@@ -11,6 +19,10 @@ class CLGraphNode {
   final String? badge; // pill in alto (es. nome modulo)
   final Color? badgeColor; // colore della pill (default: accent)
   final Object? data; // payload opaco per il consumer
+  /// Azioni immediate: icone tappabili in alto a destra della card (es. frecce
+  /// ordine ▲▼). Vuoto ⇒ nessuna icona. L'host cabla il comportamento via
+  /// `CLNodeGraph.onNodeAction`.
+  final List<CLGraphNodeAction> actions;
 
   const CLGraphNode({
     required this.id,
@@ -22,6 +34,7 @@ class CLGraphNode {
     this.badge,
     this.badgeColor,
     this.data,
+    this.actions = const [],
   });
 }
 
