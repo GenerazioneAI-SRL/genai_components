@@ -25,8 +25,16 @@ class CLGraphNode {
   });
 }
 
-/// Tipo di arco: contenimento (gerarchia), propedeuticità o ordine.
-enum CLGraphEdgeKind { containment, prerequisite, order }
+/// Offset verticale (sotto il centro del bordo destro) della porta triangolino
+/// "link-lezione". Condiviso tra il widget (che disegna il triangolino) e il
+/// painter (che ancora gli archi [CLGraphEdgeKind.lessonLink] a quel punto), così
+/// la porta e l'arco restano allineati da un'unica sorgente di verità.
+const double kTriDy = 26;
+
+/// Tipo di arco: contenimento (gerarchia), propedeuticità, ordine, o link-lezione.
+/// [lessonLink] parte dalla porta triangolino (non dal pallino prereq): il pallino
+/// resta riservato alla propedeuticità.
+enum CLGraphEdgeKind { containment, prerequisite, order, lessonLink }
 
 class CLGraphEdge {
   final String id;

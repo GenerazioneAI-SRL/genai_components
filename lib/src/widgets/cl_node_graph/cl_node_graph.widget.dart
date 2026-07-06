@@ -13,7 +13,7 @@ const double _pad = 60; // margine attorno al bounding box
 const double _kDotSize = 16; // diametro del pallino di connessione prereq
 const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
 const double _kChevron = 24; // area cliccabile chevron collasso (top-left card)
-const double _kTriDy = 26; // offset verticale (sotto il centro) del triangolino link-lezione
+// _kTriDy vive in cl_graph_models.dart (kTriDy) — condiviso col painter.
 const double _kTrashR = 14; // raggio hit del cestino attorno al midpoint dell'arco
 
 /// Ancora porta OUT (destra, "sblocca"): sul bordo destro della card (il pallino
@@ -625,12 +625,13 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         child: _connDot(theme, active: false),
       ));
     }
-    // Triangolino handle link-lezione (dx, sotto il pallino OUT). Visuale per ora;
-    // la connessione verso i nodi-lezione verrà cablata quando esisteranno.
+    // Triangolino handle link-lezione (dx, sotto il pallino OUT): è l'ancora degli
+    // archi CLGraphEdgeKind.lessonLink verso i nodi-lezione (il painter usa lo stesso
+    // kTriDy). Il pallino OUT sopra resta riservato alla propedeuticità.
     if (widget.showLessonPort?.call(n) == true) {
       children.add(Positioned(
         right: -_kDotSize / 2,
-        top: kCardH / 2 + _kTriDy - _kDotSize / 2,
+        top: kCardH / 2 + kTriDy - _kDotSize / 2,
         child: Icon(Icons.play_arrow, size: _kDotSize + 2, color: theme.danger),
       ));
     }

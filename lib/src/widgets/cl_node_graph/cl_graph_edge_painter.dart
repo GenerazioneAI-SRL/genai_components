@@ -7,6 +7,10 @@ import 'cl_graph_models.dart';
 Offset _outAnchor(Rect r) => Offset(r.right, r.center.dy);
 /// Ancora porta IN (sinistra, "richiede") del target — sul bordo sinistro.
 Offset _inAnchor(Rect r) => Offset(r.left, r.center.dy);
+/// Ancora porta triangolino "link-lezione" del source — bordo destro, [kTriDy]px
+/// sotto il centro (allineata al triangolino renderizzato dal widget). Il pallino
+/// OUT (centro) resta per la propedeuticità; il link-lezione parte da qui.
+Offset _lessonAnchor(Rect r) => Offset(r.right, r.center.dy + kTriDy);
 
 /// Offset di controllo del bezier: adattivo alla distanza (stile fl_nodes),
 /// clamp 40–320. OUT esce verso destra, IN entra da sinistra.
@@ -99,6 +103,18 @@ class CLGraphEdgePainter extends CustomPainter {
         ..style = PaintingStyle.stroke;
       final a = _outAnchor(from), b = _inAnchor(to);
       canvas.drawPath(clLinkPath(a, b), paint);
+    }
+    // 4) link-lezione (curva piena rossa come il prereq, ma dalla porta triangolino
+    // del source — non dal pallino OUT). Non selezionabile (no cestino).
+    for (final e in edges) {
+      if (e.kind != CLGraphEdgeKind.lessonLink || e.hidden) continue;
+      final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
+      if (from == null || to == null) continue;
+      final paint = Paint()
+        ..color = linkColor
+        ..strokeWidth = 1.8
+        ..style = PaintingStyle.stroke;
+      canvas.drawPath(clLinkPath(_lessonAnchor(from), _inAnchor(to)), paint);
     }
   }
 
