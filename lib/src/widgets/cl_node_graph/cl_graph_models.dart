@@ -1,11 +1,22 @@
 import 'package:flutter/widgets.dart';
 
-/// Azione immediata su una card del grafo (icona tappabile, es. frecce ordine).
+/// Azione/indicatore su una card del grafo, resa come slot in alto a destra.
+/// Di norma un'icona tappabile (es. frecce ordine ▲▼); con [label] mostra invece
+/// un testo (es. numero d'ordine corrente) e con [interactive] `false` diventa
+/// puro display (nessun hotspot, non tappabile).
 class CLGraphNodeAction {
   final String id;
-  final IconData icon;
+  final IconData? icon; // usato quando [label] è null
+  final String? label; // testo al posto dell'icona (es. posizione corrente)
   final String? tooltip;
-  const CLGraphNodeAction({required this.id, required this.icon, this.tooltip});
+  final bool interactive; // false ⇒ solo visuale, nessun hit-test (non tappabile)
+  const CLGraphNodeAction({
+    required this.id,
+    this.icon,
+    this.label,
+    this.tooltip,
+    this.interactive = true,
+  }) : assert(icon != null || label != null, 'CLGraphNodeAction richiede icon o label');
 }
 
 /// Nodo del grafo, indipendente dal motore di rendering.

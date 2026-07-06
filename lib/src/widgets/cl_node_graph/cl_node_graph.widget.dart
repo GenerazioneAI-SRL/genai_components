@@ -211,6 +211,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       // testate PRIMA del corpo così il tap sull'icona non fa scattare onNodeTap.
       if (n.actions.isNotEmpty) {
         for (var a = 0; a < n.actions.length; a++) {
+          if (!n.actions[a].interactive) continue; // indicatore display-only (es. numero ordine)
           final ar = Rect.fromLTWH(
             r.left + _actionSlotLeft(a, n.actions.length),
             r.top + _kDotInset,
@@ -697,7 +698,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     if (n.actions.isNotEmpty) {
       for (var i = 0; i < n.actions.length; i++) {
         final a = n.actions[i];
-        Widget ic = Icon(a.icon, size: theme.iconSizeCompact, color: theme.mutedForeground);
+        Widget ic = a.label != null
+            ? Text(a.label!, style: theme.smallText.copyWith(color: theme.mutedForeground, fontWeight: FontWeight.w700))
+            : Icon(a.icon, size: theme.iconSizeCompact, color: theme.mutedForeground);
         if (a.tooltip != null) ic = Tooltip(message: a.tooltip!, child: ic);
         children.add(Positioned(
           left: _actionSlotLeft(i, n.actions.length),
