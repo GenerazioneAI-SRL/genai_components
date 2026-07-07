@@ -183,13 +183,12 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
   }
 
   void previewFile(CLMedia media, String mimeType) {
+    final content = _MediaPreviewContent(media: media, mimeType: mimeType, isDownloadEnabled: widget.isDownloadEnabled);
     !ResponsiveBreakpoints.of(context).isDesktop
         ? showModalBottomSheet(
           context: context,
           backgroundColor: CLTheme.of(context).secondaryBackground,
-          builder: (context) {
-            return StatefulBuilder(builder: (dialogContext, dialogSetState) => dialogContent(dialogContext, media, mimeType, dialogSetState));
-          },
+          builder: (context) => content,
         )
         : showDialog(
           context: context,
@@ -197,28 +196,140 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
             return Dialog(
               backgroundColor: CLTheme.of(context).secondaryBackground,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              child: StatefulBuilder(builder: (dialogContext, dialogSetState) => dialogContent(dialogContext, media, mimeType, dialogSetState)),
+              child: content,
             );
           },
         );
   }
 
-  Widget dialogContent(BuildContext context, CLMedia media, String mimeType, Function(void Function()) dialogSetState) {
-    final fileColor = _FileTypeHelper.getColor(mimeType);
-    final fileName = media.fileUrl != null ? getFileName(media.fileUrl!) : getFileName(media.file!.name);
-    final isPdf = mimeType == 'application/pdf';
+  String getFileName(String url) {
+    Uri uri = Uri.parse(url);
+    String fileName = uri.path.split("/").last;
+    return fileName;
+  }
+}
+
+/// Contenuto del dialog di anteprima file. StatefulWidget dedicato per gestire
+/// i controller (zoom PDF/immagine) con un ciclo di vita proprio. La toolbar è
+/// CONTESTUALE al mimetype: PDF → pagine + zoom; immagini → zoom/pan; video e
+/// altri tipi → nessun controllo extra (Chewie ha i suoi, gli altri solo scarica).
+class _MediaPreviewContent extends StatefulWidget {
+  const _MediaPreviewContent({required this.media, required this.mimeType, required this.isDownloadEnabled});
+
+  final CLMedia media;
+  final String mimeType;
+  final bool isDownloadEnabled;
+
+  @override
+  State<_MediaPreviewContent> createState() => _MediaPreviewContentState();
+}
+
+class _MediaPreviewContentState extends State<_MediaPreviewContent> {
+  final PdfViewerController _pdfController = PdfViewerController();
+  final TransformationController _imageController = TransformationController();
+  bool _downloadHovered = false;
+  bool _closeHovered = false;
+
+  bool get _isPdf => widget.mimeType == 'application/pdf';
+  bool get _isImage => widget.mimeType.startsWith('image/');
+
+  @override
+  void dispose() {
+    _imageController.dispose();
+    super.dispose();
+  }
+
+  String _fileName() {
+    final source = widget.media.fileUrl ?? widget.media.file?.name ?? '';
+    return source.isEmpty ? '' : Uri.parse(source).path.split('/').last;
+  }
+
+  // Zoom immagine: scala attorno al centro del viewport mantenendo il pan.
+  void _zoomImage(double factor) {
+    final current = _imageController.value.getMaxScaleOnAxis();
+    final target = (current * factor).clamp(0.5, 6.0);
+    _imageController.value = Matrix4.diagonal3Values(target, target, 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final fileColor = _FileTypeHelper.getColor(widget.mimeType);
+    final hasControls = _isPdf || _isImage;
 
     return Container(
       clipBehavior: Clip.antiAlias,
-      width: MediaQuery.of(context).size.width * (isPdf ? 0.55 : 0.6),
-      height: isPdf ? MediaQuery.of(context).size.height * 0.85 : null,
-      constraints: BoxConstraints(maxWidth: isPdf ? 850 : 900),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.borderRadius), color: CLTheme.of(context).secondaryBackground),
+      width: MediaQuery.of(context).size.width * (_isPdf ? 0.55 : 0.6),
+      height: _isPdf ? MediaQuery.of(context).size.height * 0.85 : null,
+      constraints: BoxConstraints(maxWidth: _isPdf ? 850 : 900),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.borderRadius), color: theme.secondaryBackground),
       child: Column(
-        mainAxisSize: isPdf ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisSize: _isPdf ? MainAxisSize.max : MainAxisSize.min,
         children: [
+          // Toolbar contestuale (solo PDF e immagini).
+          if (hasControls)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.gapSm),
+              child: Row(
+                children: [
+                  if (_isPdf) ...[
+                    _MediaControlButton(
+                      icon: HugeIcons.strokeRoundedArrowLeft01,
+                      tooltip: 'Pagina precedente',
+                      onPressed: () {
+                        if (!_pdfController.isReady) return;
+                        final current = _pdfController.pageNumber ?? 1;
+                        if (current > 1) _pdfController.goToPage(pageNumber: current - 1);
+                      },
+                    ),
+                    const SizedBox(width: Sizes.gapXs),
+                    _MediaControlButton(
+                      icon: HugeIcons.strokeRoundedArrowRight01,
+                      tooltip: 'Pagina successiva',
+                      onPressed: () {
+                        if (!_pdfController.isReady) return;
+                        final current = _pdfController.pageNumber ?? 1;
+                        if (current < _pdfController.pageCount) _pdfController.goToPage(pageNumber: current + 1);
+                      },
+                    ),
+                    const SizedBox(width: Sizes.gapSm),
+                  ],
+                  _MediaControlButton(
+                    icon: HugeIcons.strokeRoundedZoomOutArea,
+                    tooltip: 'Zoom out',
+                    onPressed: () {
+                      if (_isPdf) {
+                        if (_pdfController.isReady) _pdfController.zoomDown();
+                      } else {
+                        _zoomImage(0.8);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: Sizes.gapXs),
+                  _MediaControlButton(
+                    icon: HugeIcons.strokeRoundedZoomInArea,
+                    tooltip: 'Zoom in',
+                    onPressed: () {
+                      if (_isPdf) {
+                        if (_pdfController.isReady) _pdfController.zoomUp();
+                      } else {
+                        _zoomImage(1.25);
+                      }
+                    },
+                  ),
+                  if (_isImage) ...[
+                    const SizedBox(width: Sizes.gapXs),
+                    _MediaControlButton(
+                      icon: HugeIcons.strokeRoundedRefresh,
+                      tooltip: 'Reset zoom',
+                      onPressed: () => _imageController.value = Matrix4.identity(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           // Preview area
-          isPdf
+          _isPdf
               ? Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -227,17 +338,17 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.only(topLeft: Radius.circular(Sizes.borderRadius), topRight: Radius.circular(Sizes.borderRadius)),
-                    child: media.fileUrl != null
-                        ? PdfViewer.uri(Uri.parse(media.fileUrl!))
-                        : (media.file?.bytes != null
-                            ? PdfViewer.data(media.file!.bytes!, sourceName: media.fileName ?? 'document.pdf')
+                    child: widget.media.fileUrl != null
+                        ? PdfViewer.uri(Uri.parse(widget.media.fileUrl!), controller: _pdfController)
+                        : (widget.media.file?.bytes != null
+                            ? PdfViewer.data(widget.media.file!.bytes!, sourceName: widget.media.fileName ?? 'document.pdf', controller: _pdfController)
                             : Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    HugeIcon(icon: _FileTypeHelper.getIcon(mimeType), color: fileColor, size: 64),
+                                    HugeIcon(icon: _FileTypeHelper.getIcon(widget.mimeType), color: fileColor, size: 64),
                                     const SizedBox(height: Sizes.small),
-                                    Text('Impossibile caricare il PDF', style: CLTheme.of(context).heading6.override(color: fileColor)),
+                                    Text('Impossibile caricare il PDF', style: theme.heading6.override(color: fileColor)),
                                   ],
                                 ),
                               )),
@@ -250,18 +361,23 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
                   color: fileColor.withAlpha(20),
                 ),
                 child:
-                    mimeType.startsWith("image/")
+                    _isImage
                         ? AspectRatio(
                           aspectRatio: 16 / 9,
-                          child:
-                              media.fileUrl != null
-                                  ? Image.network(media.fileUrl!, fit: BoxFit.contain)
-                                  : Image.memory(media.file!.bytes!, fit: BoxFit.contain),
+                          // Pan + zoom (pinch/scroll) oltre ai pulsanti della toolbar.
+                          child: InteractiveViewer(
+                            transformationController: _imageController,
+                            minScale: 0.5,
+                            maxScale: 6,
+                            child: widget.media.fileUrl != null
+                                ? Image.network(widget.media.fileUrl!, fit: BoxFit.contain)
+                                : Image.memory(widget.media.file!.bytes!, fit: BoxFit.contain),
+                          ),
                         )
-                        : mimeType.startsWith("video/")
+                        : widget.mimeType.startsWith("video/")
                         ? AspectRatio(
                           aspectRatio: 16 / 9,
-                          child: media.fileUrl != null ? ChewieVideoPlayerWidget(file: media.fileUrl) : ChewieVideoPlayerWidget(file: media.file),
+                          child: widget.media.fileUrl != null ? ChewieVideoPlayerWidget(file: widget.media.fileUrl) : ChewieVideoPlayerWidget(file: widget.media.file),
                         )
                         : AspectRatio(
                           aspectRatio: 16 / 9,
@@ -272,10 +388,10 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
                                 Container(
                                   padding: const EdgeInsets.all(Sizes.large),
                                   decoration: BoxDecoration(color: fileColor.withAlpha(30), shape: BoxShape.circle),
-                                  child: HugeIcon(icon: _FileTypeHelper.getIcon(mimeType), color: fileColor, size: 64),
+                                  child: HugeIcon(icon: _FileTypeHelper.getIcon(widget.mimeType), color: fileColor, size: 64),
                                 ),
                                 const SizedBox(height: Sizes.small),
-                                Text(_FileTypeHelper.getLabel(mimeType), style: CLTheme.of(context).heading6.override(color: fileColor)),
+                                Text(_FileTypeHelper.getLabel(widget.mimeType), style: theme.heading6.override(color: fileColor)),
                               ],
                             ),
                           ),
@@ -285,58 +401,55 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
           Container(
             padding: const EdgeInsets.all(Sizes.padding),
             decoration: BoxDecoration(
-              color: CLTheme.of(context).primaryBackground,
+              color: theme.primaryBackground,
               borderRadius: BorderRadius.only(bottomLeft: Radius.circular(Sizes.borderRadius), bottomRight: Radius.circular(Sizes.borderRadius)),
             ),
             child: Row(
               children: [
-                // Icona tipo file
                 Container(
                   padding: const EdgeInsets.all(Sizes.small / 1.5),
                   decoration: BoxDecoration(color: fileColor.withAlpha(26), borderRadius: BorderRadius.circular(Sizes.borderRadius / 2)),
-                  child: HugeIcon(icon: _FileTypeHelper.getIcon(mimeType), color: fileColor, size: Sizes.medium),
+                  child: HugeIcon(icon: _FileTypeHelper.getIcon(widget.mimeType), color: fileColor, size: Sizes.medium),
                 ),
                 const SizedBox(width: Sizes.small),
-                // Info file
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        fileName,
+                        _fileName(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CLTheme.of(context).bodyText.override(fontWeight: FontWeight.w600),
+                        style: theme.bodyText.override(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: Sizes.padding / 4),
-                      Text(media.fileSize ?? "0 KB", style: CLTheme.of(context).bodyLabel.override(color: CLTheme.of(context).secondaryText)),
+                      Text(widget.media.fileSize ?? "0 KB", style: theme.bodyLabel.override(color: theme.secondaryText)),
                     ],
                   ),
                 ),
-                // Azioni
                 if (widget.isDownloadEnabled) ...[
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
-                    onEnter: (_) => dialogSetState(() => downloadHovered = true),
-                    onExit: (_) => dialogSetState(() => downloadHovered = false),
+                    onEnter: (_) => setState(() => _downloadHovered = true),
+                    onExit: (_) => setState(() => _downloadHovered = false),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.all(Sizes.small),
                       decoration: BoxDecoration(
-                        color: downloadHovered ? CLTheme.of(context).primary.withAlpha(26) : Colors.transparent,
+                        color: _downloadHovered ? theme.primary.withAlpha(26) : Colors.transparent,
                         borderRadius: BorderRadius.circular(Sizes.borderRadius / 2),
                       ),
                       child: GestureDetector(
                         onTap: () async {
-                          if (media.fileUrl != null) {
-                            await context.downloadFile(media.fileUrl!);
+                          if (widget.media.fileUrl != null) {
+                            await context.downloadFile(widget.media.fileUrl!);
                           } else {
-                            await context.downloadFile(media.file!);
+                            await context.downloadFile(widget.media.file!);
                           }
                         },
                         child: HugeIcon(
                           icon: HugeIcons.strokeRoundedDownload04,
-                          color: downloadHovered ? CLTheme.of(context).primary : CLTheme.of(context).primaryText,
+                          color: _downloadHovered ? theme.primary : theme.primaryText,
                           size: Sizes.medium,
                         ),
                       ),
@@ -346,20 +459,20 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
                 ],
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
-                  onEnter: (_) => dialogSetState(() => closeHovered = true),
-                  onExit: (_) => dialogSetState(() => closeHovered = false),
+                  onEnter: (_) => setState(() => _closeHovered = true),
+                  onExit: (_) => setState(() => _closeHovered = false),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.all(Sizes.small),
                     decoration: BoxDecoration(
-                      color: closeHovered ? CLTheme.of(context).danger.withAlpha(26) : Colors.transparent,
+                      color: _closeHovered ? theme.danger.withAlpha(26) : Colors.transparent,
                       borderRadius: BorderRadius.circular(Sizes.borderRadius / 2),
                     ),
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: HugeIcon(
                         icon: HugeIcons.strokeRoundedCancel01,
-                        color: closeHovered ? CLTheme.of(context).danger : CLTheme.of(context).primaryText,
+                        color: _closeHovered ? theme.danger : theme.primaryText,
                         size: Sizes.medium,
                       ),
                     ),
@@ -372,11 +485,52 @@ class _CLMediaViewerState extends State<CLMediaViewer> {
       ),
     );
   }
+}
 
-  String getFileName(String url) {
-    Uri uri = Uri.parse(url);
-    String fileName = uri.path.split("/").last;
-    return fileName;
+/// Pulsante della toolbar di anteprima (zoom, pagine). Hover + tooltip.
+class _MediaControlButton extends StatefulWidget {
+  const _MediaControlButton({required this.icon, required this.tooltip, required this.onPressed});
+
+  final dynamic icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  State<_MediaControlButton> createState() => _MediaControlButtonState();
+}
+
+class _MediaControlButtonState extends State<_MediaControlButton> {
+  bool isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final accent = theme.primary;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => isHovered = true),
+      onExit: (_) => setState(() => isHovered = false),
+      child: Tooltip(
+        message: widget.tooltip,
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(Sizes.gapSm),
+            decoration: BoxDecoration(
+              color: isHovered ? accent.withAlpha(26) : theme.controlFill,
+              borderRadius: BorderRadius.circular(Sizes.radiusControl),
+              border: Border.all(color: isHovered ? accent : theme.borderColor, width: 1),
+            ),
+            child: HugeIcon(
+              icon: widget.icon,
+              color: isHovered ? accent : theme.primaryText,
+              size: Sizes.iconSizeDefault,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
