@@ -40,6 +40,14 @@ abstract class CLDialog<T> extends StatelessWidget {
   /// Label of the cancel button.
   final String cancelLabel;
 
+  /// Larghezza massima assoluta del dialog (px). Se null (e [maxWidthFraction]
+  /// null) DialogShell usa il suo default (480).
+  final double? maxWidth;
+
+  /// Larghezza massima come frazione della larghezza schermo (es. `0.6` = 60%).
+  /// Ha precedenza su [maxWidth]. Per dialog "larghi" (es. tabelle embedded).
+  final double? maxWidthFraction;
+
   /// Creates a [CLDialog].
   const CLDialog({
     super.key,
@@ -49,6 +57,8 @@ abstract class CLDialog<T> extends StatelessWidget {
     this.onConfirm,
     this.confirmLabel = 'Conferma',
     this.cancelLabel = 'Annulla',
+    this.maxWidth,
+    this.maxWidthFraction,
   });
 
   /// Builds the body of the dialog. Subclasses must override.
@@ -57,7 +67,11 @@ abstract class CLDialog<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = CLTheme.of(context);
+    final double? resolvedMaxWidth = maxWidthFraction != null
+        ? MediaQuery.sizeOf(context).width * maxWidthFraction!
+        : maxWidth;
     return DialogShell(
+      maxWidth: resolvedMaxWidth ?? 480,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

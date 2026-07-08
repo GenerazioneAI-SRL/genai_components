@@ -112,6 +112,10 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   Offset _lastViewport = Offset.zero; // per il delta di pan (screen space)
   Offset _lastCanvas = Offset.zero; // per il delta di drag-nodo (canvas space)
   bool _moved = false; // superata la soglia ⇒ è un drag, non un tap
+  // Discrimine tap↔drag robusto per trackpad force-touch: la sola soglia
+  // kTouchSlop scarta un "click" che sul force-touch può viaggiare decine di px
+  // (drift della pressione). Un tap è un rilascio RAPIDO o con spostamento netto
+  // contenuto — non solo `!_moved`.
   double _lastPinchScale = 1.0; // scala cumulativa dell'ultimo campione pinch (trackpad)
 
   // Geometria dell'ultimo frame, letta dagli handler pointer per l'hit-test.
@@ -293,10 +297,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final moved = _moved;
     switch (_mode) {
       case _Mode.node:
-        if (!moved) {
-          setState(() => _selectedEdgeId = null);
-          widget.onNodeTap?.call(_targetId!);
-        }
+        break; // il tap-selezione è del GestureDetector sulla card; qui solo il drag
       case _Mode.port:
         // Drag-connect: chiude al rilascio. Click semplice (nessun drag): lascia
         // la sorgente ARMATA → il prossimo click sul bersaglio chiude (click-to-connect).
@@ -645,7 +646,19 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       ),
     );
 
-    final children = <Widget>[Positioned.fill(child: card)];
+    final children = <Widget>[
+      Positioned.fill(
+        // Tap = selezione via gesture STANDARD (non la pipeline pointer-raw):
+        // onTapDown scatta alla pressione ed è affidabile su web, dove il "click"
+        // del trackpad può derivare oltre kTouchSlop e la rilevazione manuale lo
+        // scarterebbe (visto come drag). Il drag/pan resta gestito dal Listener.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => widget.onNodeTap?.call(n.id),
+          child: card,
+        ),
+      ),
+    ];
 
     // Porte di connessione prereq, a cavallo del bordo (metà dentro/fuori) come
     // in fl_nodes. I nodi connettibili hanno OUT (dx) + IN (sx); i nodi con solo
