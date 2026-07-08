@@ -101,6 +101,37 @@ class CLMediaViewer extends StatefulWidget {
   final Function(int)? onRemove;
   final String resourceName;
 
+  /// Apre DIRETTAMENTE l'anteprima di un singolo media (senza mostrare la lista
+  /// di card). Deriva il mime dal nome file e usa lo stesso viewer unico della
+  /// lista (immagini/video/PDF con toolbar contestuale). Da usare quando si vuole
+  /// aprire un documento al volo — es. schede ADA, allegati singoli — così tutta
+  /// la visualizzazione documentale passa da un solo componente.
+  static Future<void> showPreview(
+    BuildContext context,
+    CLMedia media, {
+    bool isDownloadEnabled = true,
+  }) {
+    final name = media.fileUrl != null
+        ? Uri.parse(media.fileUrl!).path.split('/').last
+        : (media.file?.name ?? '');
+    final mimeType = lookupMimeType(name) ?? '';
+    final content = _MediaPreviewContent(media: media, mimeType: mimeType, isDownloadEnabled: isDownloadEnabled);
+    return !ResponsiveBreakpoints.of(context).isDesktop
+        ? showModalBottomSheet(
+            context: context,
+            backgroundColor: CLTheme.of(context).secondaryBackground,
+            builder: (_) => content,
+          )
+        : showDialog(
+            context: context,
+            builder: (_) => Dialog(
+              backgroundColor: CLTheme.of(context).secondaryBackground,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              child: content,
+            ),
+          );
+  }
+
   @override
   State<CLMediaViewer> createState() => _CLMediaViewerState();
 }
