@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.9.2
+
+- **Widgets:** Updated 22 components
+- **Core:** Updated  Sdd-Diff-Rebuild-Report Md, Genai Components
+
+
 ## 5.9.1
 
 - **Widgets:** Updated 8 components

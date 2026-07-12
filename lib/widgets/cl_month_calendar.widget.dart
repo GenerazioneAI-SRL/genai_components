@@ -316,48 +316,70 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
         child: Center(child: CircularProgressIndicator()),
       );
     } else {
-      gridContent = GridView.builder(
-        shrinkWrap: !hasBoundedHeight,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                childAspectRatio: 1.4,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: 42,
-              itemBuilder: (context, index) {
-                final dayOffset = index - (firstDayWeekday - 1);
-                if (dayOffset < 0 || dayOffset >= daysInMonth) {
-                  return const SizedBox();
-                }
+      final leadingBlanks = firstDayWeekday - 1;
+      final weeks = ((leadingBlanks + daysInMonth) / 7).ceil();
 
-                final day = dayOffset + 1;
-                final dateKey = '$_currentMonth-${day.toString().padLeft(2, '0')}';
-                final date = DateTime.parse(dateKey);
-                final isWeekend = date.weekday == 6 || date.weekday == 7;
-                final isToday = dateKey == todayKey;
-                final isSelected = widget.selectedDay != null &&
-                    DateFormat('yyyy-MM-dd').format(widget.selectedDay!) == dateKey;
+      // Costruisce la cella per l'indice lineare (0 = lunedì della 1ª settimana).
+      // Fuori dal mese -> cella vuota.
+      Widget buildCell(int index) {
+        final dayOffset = index - leadingBlanks;
+        if (dayOffset < 0 || dayOffset >= daysInMonth) {
+          return const SizedBox.shrink();
+        }
 
-                final dayData = widget.dayDataBuilder(dateKey);
+        final day = dayOffset + 1;
+        final dateKey = '$_currentMonth-${day.toString().padLeft(2, '0')}';
+        final date = DateTime.parse(dateKey);
+        final isWeekend = date.weekday == 6 || date.weekday == 7;
+        final isToday = dateKey == todayKey;
+        final isSelected = widget.selectedDay != null &&
+            DateFormat('yyyy-MM-dd').format(widget.selectedDay!) == dateKey;
 
-                return _DayCell(
-                  day: day,
-                  dateKey: dateKey,
-                  isWeekend: isWeekend,
-                  isToday: isToday,
-                  isSelected: isSelected,
-                  dayData: dayData,
-                  primaryColor: primaryColor,
-                  secondaryColor: secondaryColor,
-                  warningColor: warningColor,
-                  emptyTooltip: widget.emptyDayTooltip,
-                  tooltipBuilder: widget.tooltipBuilder,
-                  onTap: () => widget.onDayTap?.call(date),
-                );
-              },
+        final dayData = widget.dayDataBuilder(dateKey);
+
+        return _DayCell(
+          day: day,
+          dateKey: dateKey,
+          isWeekend: isWeekend,
+          isToday: isToday,
+          isSelected: isSelected,
+          dayData: dayData,
+          primaryColor: primaryColor,
+          secondaryColor: secondaryColor,
+          warningColor: warningColor,
+          emptyTooltip: widget.emptyDayTooltip,
+          tooltipBuilder: widget.tooltipBuilder,
+          onTap: () => widget.onDayTap?.call(date),
+        );
+      }
+
+      // Griglia con Column/Row di Expanded (niente GridView + aspect ratio):
+      // - altezza vincolata -> righe Expanded che riempiono ESATTAMENTE lo
+      //   spazio: nessuna settimana o giorno selezionato viene mai tagliato e
+      //   le celle si adattano da sole al resize (es. apertura pannello dettaglio).
+      // - altezza libera -> ogni cella usa un AspectRatio fisso e la Column si
+      //   dimensiona sul contenuto.
+      Widget buildWeekRow(int week) {
+        final row = Row(
+          crossAxisAlignment:
+              hasBoundedHeight ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
+          children: List.generate(7, (col) {
+            final cell = Padding(
+              padding: const EdgeInsets.all(2),
+              child: buildCell(week * 7 + col),
             );
+            return Expanded(
+              child: hasBoundedHeight ? cell : AspectRatio(aspectRatio: 1.4, child: cell),
+            );
+          }),
+        );
+        return hasBoundedHeight ? Expanded(child: row) : row;
+      }
+
+      gridContent = Column(
+        mainAxisSize: hasBoundedHeight ? MainAxisSize.max : MainAxisSize.min,
+        children: List.generate(weeks, buildWeekRow),
+      );
     }
 
     return CLContainer(
@@ -603,6 +625,7 @@ class _DayCell extends StatelessWidget {
               return ClipRect(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: constraints.maxWidth,

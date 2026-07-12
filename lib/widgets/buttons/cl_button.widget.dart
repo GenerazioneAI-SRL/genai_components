@@ -5,13 +5,14 @@ import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
+import '../foundation/cl_pressable.widget.dart';
+import '../foundation/cl_tone_style.dart';
+import '../foundation/cl_focus_ring.dart';
 
-// ── Costanti micro-interazione ──────────────────────────────────────
-const double _pressScale = 0.97;
-const double _pressYOffset = 1.0;
-const Duration _pressDuration = Duration(milliseconds: 110);
-const Duration _hoverDuration = Duration(milliseconds: 140);
+// ── Durate micro-interazione ────────────────────────────────────────
+const Duration _colorDuration = Duration(milliseconds: 150);
 const Duration _iconSwapDuration = Duration(milliseconds: 180);
+const Duration _opacityDuration = Duration(milliseconds: 150);
 
 class CLButton extends StatefulWidget {
   final Color? backgroundColor;
@@ -440,50 +441,8 @@ class CLButton extends StatefulWidget {
 }
 
 class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
-  // Stato "umano" tracciato via controller: evitiamo gli overlay Material
-  // e animiamo noi scala, offset e sfondo per un feedback tattile.
-  late final WidgetStatesController _statesController;
-  bool _wasPressed = false;
-
-  // Modalità di highlight del focus (touch vs tastiera/direzionale). Il focus
-  // ring va mostrato SOLO per focus da tastiera (traversal): dopo un tap che
-  // apre/chiude un overlay il focus torna al bottone e, senza questo filtro,
-  // il ring resterebbe disegnato anche se l'utente non usa la tastiera.
-  FocusHighlightMode _highlightMode = FocusManager.instance.highlightMode;
-
-  @override
-  void initState() {
-    super.initState();
-    _statesController = WidgetStatesController();
-    _statesController.addListener(_onStatesChanged);
-    FocusManager.instance.addHighlightModeListener(_onHighlightModeChanged);
-  }
-
-  @override
-  void dispose() {
-    FocusManager.instance.removeHighlightModeListener(_onHighlightModeChanged);
-    _statesController.removeListener(_onStatesChanged);
-    _statesController.dispose();
-    super.dispose();
-  }
-
-  void _onHighlightModeChanged(FocusHighlightMode mode) {
-    if (!mounted || mode == _highlightMode) return;
-    setState(() => _highlightMode = mode);
-  }
-
-  void _onStatesChanged() {
-    // Gli aggiornamenti visivi (hover/press/focus) passano attraverso
-    // `ValueListenableBuilder` in `build`: nessun `setState` qui, altrimenti
-    // si rischia "setState during build" quando Material aggiorna il
-    // controller all'interno del suo `build` (es. onPressed che diventa null).
-    if (!mounted) return;
-    final nowPressed = _statesController.value.contains(WidgetState.pressed);
-    if (nowPressed && !_wasPressed && widget.haptic && widget.enabled) {
-      HapticFeedback.selectionClick();
-    }
-    _wasPressed = nowPressed;
-  }
+  // Interazione + stato delegati a CLPressable (foundation): niente hand-roll
+  // di focus/hover/press qui. Colori per stato da CLToneStyle.
 
   Future<void> _handleTap() async {
     await handleAsyncTap(
@@ -492,6 +451,8 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
       confirmationMessage: widget.confirmationMessage,
     );
   }
+
+  void _fireHaptic() => HapticFeedback.selectionClick();
 
   @override
   Widget build(BuildContext context) {
@@ -505,14 +466,11 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final isLoading = widget.loading ?? loading;
     final isInteractive = widget.enabled && !isLoading;
 
-    // ── Colori ────────────────────────────────────────────────────────
+    // ── Colori (da CLToneStyle, variante solid: hover/press 0.08/0.16,
+    // fg per luminanza). Unico posto della matematica chrome. ──────────
     final bgColor = widget.backgroundColor ?? theme.primary;
-    final isLightBg = bgColor.computeLuminance() > 0.5;
-    final fgColor = isLightBg ? Colors.black : Colors.white;
-
-    // Hover/press: alpha-blend uniforme nero 0.08/0.16 (no glow, no colored shadow).
-    final hoverBg = Color.lerp(bgColor, Colors.black, 0.08)!;
-    final pressedBg = Color.lerp(bgColor, Colors.black, 0.16)!;
+    final fgColor =
+        CLToneStyle.resolve(theme, color: bgColor, variant: CLVariant.solid).fg;
 
     // ── Padding orizzontale: gapMd (12) compact, gapLg (16) default. Vertical
     // 0 — l'altezza è governata da minHeight per garantire 32/40/48 esatti.
@@ -590,83 +548,66 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
           Center(child: buildIconSlot(widget.iconSize ?? (widget.isCompact ? theme.iconSizeCompact : theme.gapXl)));
     }
 
-    // ── Superficie animata (bg + padding insieme: niente gap trasparente) ─
+    // ── Vincoli dimensione (altezza fissa da token) ──────────────────
     final BoxConstraints constraints = showText
         ? BoxConstraints(minHeight: minHeight, minWidth: isMobile ? 0 : 64)
         : BoxConstraints(minWidth: iconOnlySide, minHeight: iconOnlySide);
 
-    // La surface animata (bg, border focus, press scale+offset) reagisce agli
-    // stati tramite UN SOLO ValueListenableBuilder posto COME DESCENDANT
-    // dell'ElevatedButton. Se fosse ancestor, quando Material aggiorna il
-    // controller in `didUpdateWidget` spareremmo "setState during build" su
-    // un ancestor già processato nel frame corrente.
-    final surface = ValueListenableBuilder<Set<WidgetState>>(
-      valueListenable: _statesController,
-      builder: (context, states, stableChild) {
-        final isHovered = states.contains(WidgetState.hovered);
-        final isPressed = states.contains(WidgetState.pressed);
-        final isFocused = states.contains(WidgetState.focused);
-        final currentBg = isPressed
-            ? pressedBg
-            : isHovered
-                ? hoverBg
-                : bgColor;
-        final transform = Matrix4.identity()
-          ..translateByDouble(0.0, isPressed ? _pressYOffset : 0.0, 0.0, 1.0)
-          ..scaleByDouble(isPressed ? _pressScale : 1.0, isPressed ? _pressScale : 1.0, 1.0, 1.0);
+    // ── Label accessibile ────────────────────────────────────────────
+    // Esplicita quando: override manuale, oppure testo nascosto (icon-only)
+    // per non lasciare il bottone senza nome per gli screen reader.
+    final needsExplicitLabel =
+        widget.semanticLabel != null || widget.tooltip != null || !showText;
+    final a11yLabel = widget.semanticLabel ?? widget.tooltip ?? widget.text;
+    final Widget semanticContent =
+        needsExplicitLabel ? ExcludeSemantics(child: content) : content;
 
-        return AnimatedContainer(
-          duration: _pressDuration,
-          curve: Curves.easeOut,
-          transform: transform,
-          transformAlignment: Alignment.center,
-          child: AnimatedContainer(
-            duration: _hoverDuration,
-            curve: Curves.easeOut,
-            padding: showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
-            constraints: constraints,
-            decoration: BoxDecoration(
-              color: currentBg,
-              borderRadius: BorderRadius.circular(radius),
-              border: (isFocused && _highlightMode == FocusHighlightMode.traditional)
-                  ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2)
-                  : widget.border,
-              // Ombra attenuata su press per dare profondità coerente con lo scale-down.
-              boxShadow: (widget.boxShadow != null && !isPressed) ? widget.boxShadow : null,
-            ),
-            child: stableChild,
-          ),
+    // ── Interazione: CLPressable (foundation) — hover/press/focus,
+    // keyboard (Enter/Space) e semantica bottone. Colori per stato dal
+    // motore CLToneStyle. ──────────────────────────────────────────────
+    Widget button = CLPressable(
+      enabled: isInteractive,
+      onTap: _handleTap,
+      onTapDown: widget.haptic ? _fireHaptic : null,
+      semanticLabel:
+          needsExplicitLabel && a11yLabel.isNotEmpty ? a11yLabel : null,
+      builder: (context, state) {
+        final colors = CLToneStyle.resolve(
+          theme,
+          color: bgColor,
+          variant: CLVariant.solid,
+          state: state,
         );
+
+        Widget surface = AnimatedContainer(
+          duration: _colorDuration,
+          curve: Curves.easeOut,
+          padding:
+              showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
+          constraints: constraints,
+          decoration: BoxDecoration(
+            color: colors.bg,
+            borderRadius: BorderRadius.circular(radius),
+            border: widget.border,
+            boxShadow: widget.boxShadow,
+          ),
+          child: semanticContent,
+        );
+
+        // Focus ring shadcn: anello verso l'esterno con `theme.ring`, fuori dal
+        // layout → nessun salto. Solo su focus da tastiera (traversal).
+        // CustomPaint sempre presente (painter null off-focus) → albero stabile.
+        surface = CustomPaint(
+          foregroundPainter: state.focused
+              ? CLFocusRingPainter(color: theme.ring, radius: radius)
+              : null,
+          child: surface,
+        );
+        return surface;
       },
-      child: content,
     );
 
-    // ── Style Material "invisibile" (solo tap/focus/semantics, niente chrome) ─
-    final buttonStyle = ButtonStyle(
-      padding: WidgetStateProperty.all(EdgeInsets.zero),
-      backgroundColor: WidgetStateProperty.all(Colors.transparent),
-      foregroundColor: WidgetStateProperty.all(fgColor),
-      overlayColor: WidgetStateProperty.all(Colors.transparent),
-      shadowColor: WidgetStateProperty.all(Colors.transparent),
-      surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
-      elevation: WidgetStateProperty.all(0),
-      splashFactory: NoSplash.splashFactory,
-      animationDuration: Duration.zero,
-      shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius))),
-      side: WidgetStateProperty.all(BorderSide.none),
-      minimumSize: WidgetStateProperty.all(Size.zero),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      iconSize: WidgetStateProperty.all(iconSz),
-    );
-
-    Widget button = ElevatedButton(
-      statesController: _statesController,
-      onPressed: isInteractive ? _handleTap : null,
-      style: buttonStyle,
-      child: surface,
-    );
-
-    // ── Width (fullWidth ha precedenza su width null) ────────────────
+    // ── Width (fullWidth ha precedenza su width) ─────────────────────
     if (widget.fullWidth) {
       button = SizedBox(width: double.infinity, child: button);
     } else if (widget.width != null) {
@@ -676,22 +617,11 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     // ── Disabled: fade opacità ───────────────────────────────────────
     button = AnimatedOpacity(
       opacity: widget.enabled ? 1.0 : theme.opacityDisabled,
-      duration: const Duration(milliseconds: 150),
+      duration: _opacityDuration,
       child: button,
     );
-
-    // Niente Tooltip automatico (scelta di prodotto: si aggiunge a mano dove serve).
-    // `tooltip` resta come fallback per la label di accessibilità.
-    final a11yLabel = widget.semanticLabel ?? widget.tooltip;
-    if (a11yLabel != null && a11yLabel.isNotEmpty) {
-      button = Semantics(
-        button: true,
-        enabled: isInteractive,
-        label: a11yLabel,
-        child: ExcludeSemantics(child: button),
-      );
-    }
 
     return button;
   }
 }
+

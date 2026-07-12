@@ -12,6 +12,7 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'buttons/cl_soft_button.widget.dart';
 import 'formatters/date_mask_formatter.dart';
 import 'textfield_validator.dart';
+import 'foundation/cl_focus_ring.dart';
 
 part 'cl_text_field/_helper_base.part.dart';
 part 'cl_text_field/_ui_helper.part.dart';
@@ -26,7 +27,15 @@ part 'cl_text_field/_file_helper.part.dart';
 
 class CLTextField extends StatefulWidget {
   final TextEditingController controller;
+
+  /// Label PERSISTENTE mostrata SOPRA il campo (stile shadcn). In errore
+  /// diventa `danger`. Non è più il placeholder interno (usa [hintText]).
   final String labelText;
+
+  /// Placeholder INTERNO al campo (muted), separato dalla [labelText]. Se null
+  /// il campo resta vuoto finché non si digita.
+  final String? hintText;
+
   final FocusNode? focusNode;
   final int? maxLines;
   final TextInputType inputType;
@@ -70,6 +79,7 @@ class CLTextField extends StatefulWidget {
     super.key,
     required this.controller,
     required this.labelText,
+    this.hintText,
     this.focusNode,
     this.maxLines = 1,
     this.inputType = TextInputType.text,
@@ -144,21 +154,28 @@ class CLTextField extends StatefulWidget {
     dynamic suffix,
     List<FormFieldValidator<String>>? validators,
     bool isCompact = false,
-  }) =>
-      CLTextField(
-        key: key,
-        controller: controller,
-        labelText: labelText,
-        isObscured: true,
-        isReadOnly: isReadOnly,
-        isRequired: isRequired,
-        isRounded: isRounded,
-        isEnabled: isEnabled,
-        validators: validators,
-        prefixIcon: prefix,
-        suffixIcon: suffix,
-        isCompact: isCompact,
-      );
+  }) {
+    Widget? toIconWidget(dynamic ic) {
+      if (ic == null) return null;
+      if (ic is IconData) return Icon(ic);
+      return ic as Widget;
+    }
+
+    return CLTextField(
+      key: key,
+      controller: controller,
+      labelText: labelText,
+      isObscured: true,
+      isReadOnly: isReadOnly,
+      isRequired: isRequired,
+      isRounded: isRounded,
+      isEnabled: isEnabled,
+      validators: validators,
+      prefixIcon: toIconWidget(prefix),
+      suffixIcon: toIconWidget(suffix),
+      isCompact: isCompact,
+    );
+  }
 
   factory CLTextField.time({
     Key? key,
@@ -387,6 +404,7 @@ class CLTextField extends StatefulWidget {
     Key? key,
     required TextEditingController controller,
     required String labelText,
+    String? hintText,
     GestureTapCallback? onTap,
     bool isReadOnly = false,
     bool isRequired = false,
@@ -400,6 +418,7 @@ class CLTextField extends StatefulWidget {
         key: key,
         controller: controller,
         labelText: labelText,
+        hintText: hintText,
         maxLines: 5,
         isTextArea: true,
         onTap: onTap,
@@ -434,10 +453,10 @@ class CLTextField extends StatefulWidget {
         labelText: labelText,
         isRequired: isRequired,
         prefixIcon:
-            iconAlignment == IconAlignment.start ? const Icon(Icons.payments, size: 14, color: Colors.grey) : null,
+            iconAlignment == IconAlignment.start ? const Icon(Icons.payments) : null,
         inputType: const TextInputType.numberWithOptions(decimal: true),
         suffixIcon:
-            iconAlignment == IconAlignment.end ? const Icon(Icons.payments, size: 14, color: Colors.grey) : null,
+            iconAlignment == IconAlignment.end ? const Icon(Icons.payments) : null,
         onChanged: onChanged,
         focusNode: focusNode,
         onTap: onTap,
@@ -502,7 +521,7 @@ class CLTextField extends StatefulWidget {
   }) {
     Widget? toIconWidget(dynamic ic) {
       if (ic == null) return null;
-      if (ic is IconData) return Icon(ic, size: 16, color: Colors.grey);
+      if (ic is IconData) return Icon(ic);
       return ic as Widget;
     }
 
@@ -543,7 +562,7 @@ class CLTextField extends StatefulWidget {
     bool isCompact = false,
   }) {
     Widget? toIconWidget(dynamic ic) {
-      if (ic is IconData) return Icon(ic, size: 16, color: Colors.grey);
+      if (ic is IconData) return Icon(ic);
       return ic as Widget;
     }
 
@@ -617,7 +636,7 @@ class CLTextField extends StatefulWidget {
         isCompact: isCompact,
         isRounded: isRounded,
         recessed: true,
-        prefixIcon: const Icon(Icons.search, size: 16, color: Colors.grey),
+        prefixIcon: const Icon(Icons.search),
       );
 }
 
@@ -634,6 +653,11 @@ class CLTextFieldState extends State<CLTextField> {
   bool isFilePicked = false;
   bool isDatePicked = false;
   bool isPicking = false;
+
+  /// Key del FormField che avvolge il campo: espone hasError/errorText allo
+  /// stack (label sopra + error sotto) e sincronizza il valore col controller.
+  final GlobalKey<FormFieldState<String>> fieldKey =
+      GlobalKey<FormFieldState<String>>();
 
   late final _TextFieldDateHelper _dateHelper;
   late final _TextFieldTimeHelper _timeHelper;
@@ -657,6 +681,7 @@ class CLTextFieldState extends State<CLTextField> {
   void initState() {
     super.initState();
     _controller = widget.controller;
+    _controller.addListener(_syncFormField);
     if (widget.focusNode != null) {
       _focusNode = widget.focusNode!;
     } else {
@@ -692,7 +717,32 @@ class CLTextFieldState extends State<CLTextField> {
   }
 
   @override
+  void didUpdateWidget(covariant CLTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Swap del controller a runtime: sposta il listener sul nuovo.
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_syncFormField);
+      _controller = widget.controller;
+      _controller.addListener(_syncFormField);
+    }
+    // Swap del focusNode a runtime: ricollega listener, dispose del vecchio own.
+    if (oldWidget.focusNode != widget.focusNode) {
+      _focusNode.removeListener(_onFocusChanged);
+      if (_ownsFocusNode) _focusNode.dispose();
+      if (widget.focusNode != null) {
+        _focusNode = widget.focusNode!;
+        _ownsFocusNode = false;
+      } else {
+        _focusNode = FocusNode();
+        _ownsFocusNode = true;
+      }
+      _focusNode.addListener(_onFocusChanged);
+    }
+  }
+
+  @override
   void dispose() {
+    _controller.removeListener(_syncFormField);
     _focusNode.removeListener(_onFocusChanged);
     if (_ownsFocusNode) _focusNode.dispose();
     super.dispose();
@@ -702,12 +752,31 @@ class CLTextFieldState extends State<CLTextField> {
     if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
   }
 
+  /// Propaga i cambi del controller (typing E programmatici: date/color/file
+  /// picker) nel FormField, così validazione ed error text restano allineati.
+  void _syncFormField() {
+    final st = fieldKey.currentState;
+    if (st != null && st.value != _controller.text) {
+      st.didChange(_controller.text);
+    }
+  }
+
   // Bridges to helpers (same library scope).
   TextEditingController get controllerRef => _controller;
   FocusNode get focusNodeRef => _focusNode;
   bool get isFocusedRef => _isFocused;
   bool get isPasswordVisibleRef => _isPasswordVisible;
   void togglePasswordVisibility() => setState(() => _isPasswordVisible = !_isPasswordVisible);
+
+  // ── TextArea resize (grip drag) ──────────────────────────────────────
+  double? _textAreaHeight;
+  double? get textAreaHeight => _textAreaHeight;
+  void setTextAreaHeight(double h) {
+    final clamped = h.clamp(_kTextAreaMinHeight, _kTextAreaMaxHeight);
+    if (_textAreaHeight != clamped) {
+      setState(() => _textAreaHeight = clamped);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => _uiHelper.build(context);

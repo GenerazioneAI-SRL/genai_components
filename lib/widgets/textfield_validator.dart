@@ -21,9 +21,9 @@ class Validators {
     if (value == null || value.trim().isEmpty) {
       return null; // Email non obbligatoria
     }
-    // Regex semplice per validare l'email
-    String pattern = r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@"
-        r"[a-zA-Z0-9]+\.[a-zA-Z]+";
+    // Ancorata (^...$) → niente coda spuria; domini con sottodomini e hyphen.
+    String pattern = r"^[\w.!#$%&'*+/=?^_`{|}~-]+@"
+        r"[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$";
     RegExp regex = RegExp(pattern);
     if (!regex.hasMatch(value)) {
       return 'Inserisci un\'email valida';
@@ -36,11 +36,12 @@ class Validators {
       return 'La password non può essere vuota';
     }
 
-    // Espressione regolare per almeno una lettera maiuscola, un numero e un simbolo
-    String pattern = r'^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).+$';
+    // Min 8 caratteri, almeno una minuscola, una maiuscola, un numero e un simbolo.
+    String pattern =
+        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$';
     RegExp regex = RegExp(pattern);
     if (!regex.hasMatch(value)) {
-      return 'La password deve contenere almeno una lettera maiuscola, un numero e un simbolo';
+      return 'La password deve avere almeno 8 caratteri, una maiuscola, una minuscola, un numero e un simbolo';
     }
 
     return null;

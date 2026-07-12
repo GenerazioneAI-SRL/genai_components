@@ -66,6 +66,7 @@ class CLPressable extends StatefulWidget {
     required this.builder,
     this.onTap,
     this.onLongPress,
+    this.onTapDown,
     this.enabled = true,
     this.cursor,
     this.focusNode,
@@ -78,6 +79,10 @@ class CLPressable extends StatefulWidget {
   final CLPressableBuilder builder;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+
+  /// Chiamato al press-down (prima del tap), solo se `enabled`. Utile per un
+  /// feedback immediato (es. `HapticFeedback`). Non implica attivazione.
+  final VoidCallback? onTapDown;
 
   /// Quando `false` lo stato è `disabled`: niente hover/press/tap, cursore neutro.
   final bool enabled;
@@ -150,7 +155,12 @@ class _CLPressableState extends State<CLPressable> {
       behavior: widget.behavior,
       onTap: _enabled && widget.onTap != null ? _handleTap : null,
       onLongPress: _enabled && widget.onLongPress != null ? _handleLongPress : null,
-      onTapDown: _enabled ? (_) => _setPressed(true) : null,
+      onTapDown: _enabled
+          ? (_) {
+              _setPressed(true);
+              widget.onTapDown?.call();
+            }
+          : null,
       onTapUp: _enabled ? (_) => _setPressed(false) : null,
       onTapCancel: _enabled ? () => _setPressed(false) : null,
       child: widget.builder(context, state),

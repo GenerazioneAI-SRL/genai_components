@@ -36,21 +36,21 @@ class CLPdfViewer extends StatelessWidget {
                   children: [
                     _PdfActionButton(
                       icon: HugeIcons.strokeRoundedArrowLeft01,
-                      tooltip: 'Prima pagina',
+                      tooltip: 'Pagina precedente',
                       onPressed: () {
-                        if (pdfController.isReady) {
-                          pdfController.goToPage(pageNumber: 1);
-                        }
+                        if (!pdfController.isReady) return;
+                        final current = pdfController.pageNumber ?? 1;
+                        if (current > 1) pdfController.goToPage(pageNumber: current - 1);
                       },
                     ),
                     const SizedBox(width: Sizes.gapXs),
                     _PdfActionButton(
                       icon: HugeIcons.strokeRoundedArrowRight01,
-                      tooltip: 'Ultima pagina',
+                      tooltip: 'Pagina successiva',
                       onPressed: () {
-                        if (pdfController.isReady) {
-                          pdfController.goToPage(pageNumber: pdfController.pageCount);
-                        }
+                        if (!pdfController.isReady) return;
+                        final current = pdfController.pageNumber ?? 1;
+                        if (current < pdfController.pageCount) pdfController.goToPage(pageNumber: current + 1);
                       },
                     ),
                     const SizedBox(width: Sizes.gapSm),

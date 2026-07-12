@@ -30,6 +30,14 @@ class CLPopupSurface extends StatefulWidget {
   final bool animateUpward;
   final bool animate;
 
+  /// Quando passa da `true` a `false` il popover fa il reverse (animate-out)
+  /// e a fine reverse chiama [onDismissed]. Default `true` (aperto).
+  final bool visible;
+
+  /// Chiamato a fine animazione di uscita (reverse completo): il chiamante
+  /// rimuove qui l'OverlayEntry.
+  final VoidCallback? onDismissed;
+
   const CLPopupSurface({
     super.key,
     required this.child,
@@ -39,6 +47,8 @@ class CLPopupSurface extends StatefulWidget {
     this.borderColor,
     this.animateUpward = false,
     this.animate = true,
+    this.visible = true,
+    this.onDismissed,
   });
 
   @override
@@ -49,21 +59,43 @@ class _CLPopupSurfaceState extends State<CLPopupSurface> with SingleTickerProvid
   AnimationController? _ctrl;
   Animation<double>? _opacity;
   Animation<Offset>? _slide;
+  Animation<double>? _scale;
 
   @override
   void initState() {
     super.initState();
     if (!widget.animate) return;
+    // shadcn: durata 150ms (Animate.defaultDuration), reverse un filo più corto.
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 140),
-    )..forward();
+      duration: const Duration(milliseconds: 150),
+      reverseDuration: const Duration(milliseconds: 120),
+    );
+    // A fine reverse (uscita completata) notifica il chiamante per la rimozione.
+    _ctrl!.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed && !widget.visible) {
+        widget.onDismissed?.call();
+      }
+    });
+    if (widget.visible) _ctrl!.forward();
     final curve = CurvedAnimation(parent: _ctrl!, curve: Curves.easeOutCubic);
     _opacity = curve;
-    _slide = Tween<Offset>(
-      begin: Offset(0, widget.animateUpward ? 0.025 : -0.025),
-      end: Offset.zero,
-    ).animate(curve);
+    // shadcn: MoveEffect(begin Offset(0,2) → 0) — traslazione FISSA 2px.
+    _slide = Tween<Offset>(begin: const Offset(0, 2), end: Offset.zero)
+        .animate(curve);
+    // shadcn: ScaleEffect(begin .95 → 1), origine CENTRO.
+    _scale = Tween<double>(begin: 0.95, end: 1.0).animate(curve);
+  }
+
+  @override
+  void didUpdateWidget(covariant CLPopupSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_ctrl == null) return;
+    if (oldWidget.visible && !widget.visible) {
+      _ctrl!.reverse();
+    } else if (!oldWidget.visible && widget.visible) {
+      _ctrl!.forward();
+    }
   }
 
   @override
@@ -106,7 +138,16 @@ class _CLPopupSurfaceState extends State<CLPopupSurface> with SingleTickerProvid
 
     return FadeTransition(
       opacity: _opacity!,
-      child: SlideTransition(position: _slide!, child: surface),
+      // shadcn: Scale origine centro (default flutter_animate) + Move 2px fissi.
+      child: ScaleTransition(
+        scale: _scale!,
+        child: AnimatedBuilder(
+          animation: _slide!,
+          builder: (context, child) =>
+              Transform.translate(offset: _slide!.value, child: child),
+          child: surface,
+        ),
+      ),
     );
   }
 }

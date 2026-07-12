@@ -298,7 +298,7 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                         backgroundColor: WidgetStateProperty.resolveWith((states) {
                           if (states.contains(WidgetState.pressed)) return pressedBg;
                           if (states.contains(WidgetState.hovered)) return hoverBg;
-                          return Colors.transparent;
+                          return idle.bg;
                         }),
                         overlayColor: WidgetStateProperty.all(Colors.transparent),
                         splashFactory: NoSplash.splashFactory,
@@ -333,7 +333,7 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
                     backgroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.pressed)) return pressedBg;
                       if (states.contains(WidgetState.hovered)) return hoverBg;
-                      return Colors.transparent;
+                      return idle.bg;
                     }),
                     overlayColor: WidgetStateProperty.all(Colors.transparent),
                     shape: WidgetStateProperty.all(

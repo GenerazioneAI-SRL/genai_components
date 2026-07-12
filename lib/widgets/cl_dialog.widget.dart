@@ -49,6 +49,10 @@ abstract class CLDialog<T> extends StatelessWidget {
   /// Max dialog width. Default `480`.
   final double maxWidth;
 
+  /// Larghezza massima come frazione della larghezza schermo (es. `0.6` = 60%).
+  /// Ha precedenza su [maxWidth]. Per dialog "larghi" (es. tabelle embedded).
+  final double? maxWidthFraction;
+
   /// When `true` (default) the body is wrapped in a scroll view. Set `false`
   /// when the content manages its own scrolling (e.g. an inner list/table).
   final bool scrollableBody;
@@ -65,6 +69,7 @@ abstract class CLDialog<T> extends StatelessWidget {
     this.headerLeading,
     this.showCloseButton = true,
     this.maxWidth = 480,
+    this.maxWidthFraction,
     this.scrollableBody = true,
   });
 
@@ -74,8 +79,11 @@ abstract class CLDialog<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cl = CLTheme.of(context);
+    final double resolvedMaxWidth = maxWidthFraction != null
+        ? MediaQuery.sizeOf(context).width * maxWidthFraction!
+        : maxWidth;
     return DialogShell(
-      maxWidth: maxWidth,
+      maxWidth: resolvedMaxWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

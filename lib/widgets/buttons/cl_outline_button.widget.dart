@@ -4,6 +4,9 @@ import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
+import '../foundation/cl_pressable.widget.dart';
+import '../foundation/cl_tone_style.dart';
+import '../foundation/cl_focus_ring.dart';
 
 class CLOutlineButton extends StatefulWidget {
   final Color color;
@@ -230,115 +233,119 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
+    final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final forceIconOnly = CLCompactActionScope.iconOnlyOf(context) &&
         (widget.iconData != null || widget.hugeIcon != null) &&
         widget.width == null;
     final showText = widget.text.isNotEmpty && !forceIconOnly;
-    // Padding orizzontale da token; verticale 0 — minimumSize governa l'altezza.
-    final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
-    const vPad = 0.0;
-    final colored = widget._colored;
-    final fgColor = colored ? widget.color : theme.primaryText;
+    final isLoading = loading;
+    final isInteractive = !isLoading;
+
+    final padH = widget.isCompact ? theme.gapMd : theme.gapLg;
     final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
     final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
-    final spinnerColor = fgColor;
-    final hoverBg = colored ? widget.color.withValues(alpha: theme.opacitySoft) : theme.accent;
-    final pressedBg =
-        colored ? widget.color.withValues(alpha: theme.opacityMuted) : Color.lerp(theme.accent, Colors.black, 0.08)!;
-    final defaultBorder =
-        colored ? BorderSide(color: widget.color, width: 1.0) : BorderSide(color: theme.cardBorder, width: 1.0);
-    final focusBorder = colored ? widget.color : theme.primary;
-    final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
+    final iconOnlySide = btnH;
+    final radius = forceIconOnly ? iconOnlySide / 2 : theme.radiusControl;
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        splashFactory: NoSplash.splashFactory,
-      ),
-      child: SizedBox(
-      width: widget.width,
-      child: showText
-          ? OutlinedButton.icon(
-              iconAlignment: widget.iconAlignment,
-               icon: (widget.iconData != null || widget.hugeIcon != null || loading)
-                  ? AnimatedCrossFade(
-                      alignment: Alignment.center,
-                      firstChild: widget.hugeIcon ??
-                          (widget.iconData != null
-                            ? Icon(widget.iconData, color: fgColor, size: iconSz)
-                            : SizedBox(width: iconSz, height: iconSz)),
-                      secondChild: CLLoadingSpinner(size: iconSz, color: spinnerColor),
-                      crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 200),
-                    )
-                  : null,
-               onPressed: _handleTap,
-               style: ButtonStyle(
-                 side: WidgetStateProperty.resolveWith((states) {
-                   if (states.contains(WidgetState.focused)) {
-                     return BorderSide(color: focusBorder, width: 2);
-                   }
-                   return defaultBorder;
-                 }),
-                 foregroundColor: WidgetStateProperty.all(fgColor),
-                 backgroundColor: WidgetStateProperty.resolveWith((states) {
-                   if (states.contains(WidgetState.pressed)) return pressedBg;
-                   if (states.contains(WidgetState.hovered)) return hoverBg;
-                   return Colors.transparent;
-                 }),
-                 overlayColor: WidgetStateProperty.all(Colors.transparent),
-                 splashFactory: NoSplash.splashFactory,
-                 animationDuration: const Duration(milliseconds: 150),
-                 padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
-                 shape: WidgetStateProperty.all(
-                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl)),
-                 ),
-                 minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
-                 fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
-                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                 visualDensity: VisualDensity.standard,
-                 iconSize: WidgetStateProperty.all(iconSz),
-               ),
-              label: Text(
-                widget.text,
+    // fg = tono nel testo/icona (per outline è costante rispetto allo stato).
+    final fgColor = CLToneStyle.resolve(theme,
+            color: widget.color,
+            variant: CLVariant.outline,
+            colored: widget._colored)
+        .fg;
+    final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
+    final hasInlineIcon = widget.iconData != null || widget.hugeIcon != null || isLoading;
+
+    Widget buildIconSlot(double size) {
+      final iconChild = widget.hugeIcon ??
+          (widget.iconData != null
+              ? Icon(widget.iconData, color: fgColor, size: size)
+              : SizedBox(width: size, height: size));
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: isLoading
+            ? SizedBox(
+                key: const ValueKey('spinner'),
+                width: size,
+                height: size,
+                child: CLLoadingSpinner(size: size, color: fgColor))
+            : KeyedSubtree(key: const ValueKey('icon'), child: iconChild),
+      );
+    }
+
+    Widget content;
+    if (showText) {
+      content = Row(
+        mainAxisSize: widget.width != null ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
+            buildIconSlot(iconSz),
+            SizedBox(width: theme.gapSm),
+          ],
+          Flexible(
+            child: Text(widget.text,
                 style: labelStyle,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
-              ),
-            )
-          : IconButton(
-              onPressed: _handleTap,
-              iconSize: iconSz,
-              style: ButtonStyle(
-                foregroundColor: WidgetStateProperty.all(fgColor),
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.pressed)) return pressedBg;
-                  if (states.contains(WidgetState.hovered)) return hoverBg;
-                  return Colors.transparent;
-                }),
-                overlayColor: WidgetStateProperty.all(Colors.transparent),
-                shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(forceIconOnly ? btnH / 2 : theme.radiusControl),
-                  side: defaultBorder,
-                )),
-                minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
-                fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.standard,
-              ),
-              icon: AnimatedCrossFade(
-                firstChild: widget.hugeIcon ??
-                    (widget.iconData != null
-                      ? Icon(widget.iconData, color: fgColor, size: iconSz)
-                      : const SizedBox.shrink()),
-                secondChild: CLLoadingSpinner(size: iconSz, color: spinnerColor),
-                crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 200),
-              ),
-            ),
-    ));
+                textAlign: TextAlign.center),
+          ),
+          if (hasInlineIcon && widget.iconAlignment == IconAlignment.end) ...[
+            SizedBox(width: theme.gapSm),
+            buildIconSlot(iconSz),
+          ],
+        ],
+      );
+    } else {
+      content = Center(child: buildIconSlot(iconSz));
+    }
+
+    final needsExplicitLabel = !showText && widget.text.isNotEmpty;
+    final Widget semanticContent =
+        needsExplicitLabel ? ExcludeSemantics(child: content) : content;
+
+    final constraints = showText
+        ? BoxConstraints(minHeight: btnH, minWidth: isMobile ? 0 : 64)
+        : BoxConstraints(minWidth: iconOnlySide, minHeight: iconOnlySide);
+
+    Widget button = CLPressable(
+      enabled: isInteractive,
+      onTap: _handleTap,
+      semanticLabel: needsExplicitLabel ? widget.text : null,
+      builder: (context, state) {
+        final colors = CLToneStyle.resolve(theme,
+            color: widget.color,
+            variant: CLVariant.outline,
+            state: state,
+            colored: widget._colored);
+        Widget surface = AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          padding: showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
+          constraints: constraints,
+          decoration: BoxDecoration(
+            color: colors.bg,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: colors.border ?? theme.cardBorder, width: 1),
+          ),
+          child: semanticContent,
+        );
+        // CustomPaint sempre presente (painter null off-focus) → albero stabile.
+        surface = CustomPaint(
+          foregroundPainter:
+              state.focused ? CLFocusRingPainter(color: theme.ring, radius: radius) : null,
+          child: surface,
+        );
+        return surface;
+      },
+    );
+
+    if (widget.width != null) {
+      button = SizedBox(width: widget.width, child: button);
+    }
+    return button;
   }
 }
