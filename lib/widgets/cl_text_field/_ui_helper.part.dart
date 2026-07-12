@@ -1,5 +1,9 @@
 part of '../cl_text_field.widget.dart';
 
+/// Altezza min/max della textArea ridimensionabile via grip (shadcn: 80/500).
+const double _kTextAreaMinHeight = 88.0;
+const double _kTextAreaMaxHeight = 320.0;
+
 /// UI rendering: build, decoration, suffix dispatch, small widgets, formatters.
 class _TextFieldUiHelper extends _Helper {
   _TextFieldUiHelper(super.s);
@@ -9,10 +13,14 @@ class _TextFieldUiHelper extends _Helper {
   /// fontSize × lineHeight (≈22px con bodyText 14/1.6) e sforerebbe.
   static const double _kCompactCursorHeight = 16.0;
 
+  /// Altezza cursore default (box 40). Il testo forza `height: 1.0` → la riga
+  /// vale solo il fontSize (14px) e un cursore `null` risulterebbe corto nel box
+  /// alto. 18px = cursore normale per font 14, proporzionato al compact (16/32).
+  static const double _kCursorHeight = 18.0;
+
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final bool isInline = w.dateFieldType != null;
-    final String? semanticLabelText = w.isTextArea ? null : (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
 
     final VoidCallback? gestureTap = w.onColorPicked != null
         ? () => s._colorHelper.pick(context)
@@ -34,211 +42,225 @@ class _TextFieldUiHelper extends _Helper {
                 ? s.isDatePicked
                 : w.isReadOnly;
 
-    // ─── textArea path: untouched (uses Material InputDecorator) ────────
-    if (w.isTextArea) {
-      final formField = TextFormField(
-        textAlignVertical: TextAlignVertical.center,
-        textCapitalization: w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
-        cursorColor: theme.primary,
-        cursorWidth: 1.5,
-        cursorRadius: const Radius.circular(1),
-        readOnly: readOnly,
-        onTap: w.onTap,
-        controller: s.controllerRef,
-        focusNode: s.focusNodeRef,
-        maxLines: w.maxLines,
-        keyboardType: w.inputType,
-        obscureText: false,
-        enabled: w.isEnabled,
-        onChanged: w.onChanged,
-        inputFormatters: w.inputFormatters ?? _defaultInputFormatters(),
-        style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
-        decoration: _decoration(context, theme),
-        validator: _combineValidators(_effectiveValidators),
-      );
-      return MouseRegion(
-        cursor: !w.isEnabled ? SystemMouseCursors.forbidden : SystemMouseCursors.text,
-        child: formField,
-      );
-    }
+    final double inputH = w.isCompact ? theme.inputHeightCompact : theme.inputHeight;
+    final double radius =
+        w.isRounded ? (w.isTextArea ? theme.radiusControl : inputH / 2) : theme.radiusControl;
 
-    // ─── non-textArea: custom Container chrome — exact 40px (32 compact) ─
-    // Bypass InputDecorator entirely. Material's InputDecorator reserves
-    // vertical space for label + helper + error + tap-target floor that
-    // forces the field above 40px even with isDense, hintText, and
-    // shrinkWrap. By rendering chrome ourselves we get pixel-perfect 40.
-    final inputH = w.isCompact ? theme.inputHeightCompact : theme.inputHeight;
-    final hintText = w.dateFieldType?.hint ?? (s.shouldShowRequired ? '${w.labelText}*' : w.labelText);
+    // Recessed (search/toolbar) = campo inline: NESSUNA label sopra, `labelText`
+    // resta placeholder interno (comportamento storico). Altrimenti stack shadcn:
+    // label sopra + placeholder interno da `hintText`.
+    final bool showLabel = w.labelText.isNotEmpty && !w.recessed;
+    final String? placeholder =
+        w.hintText ?? w.dateFieldType?.hint ?? (w.recessed ? w.labelText : null);
+    final String labelStr = s.shouldShowRequired ? '${w.labelText} *' : w.labelText;
 
-    final innerField = TextFormField(
-      textAlignVertical: TextAlignVertical.center,
-      textCapitalization: w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
-      cursorColor: theme.primary,
-      cursorWidth: 1.5,
-      cursorHeight: w.isCompact ? _kCompactCursorHeight : null,
-      cursorRadius: const Radius.circular(1),
-      readOnly: readOnly,
-      onTap: w.onTap,
-      controller: s.controllerRef,
-      focusNode: s.focusNodeRef,
-      maxLines: 1,
-      keyboardType: isInline ? TextInputType.number : w.inputType,
-      obscureText: w.isObscured && !s.isPasswordVisibleRef,
-      enabled: w.isEnabled,
-      onChanged: isInline
-          ? (value) {
+    // FormField avvolge il campo: espone hasError/errorText allo stack.
+    return FormField<String>(
+      key: s.fieldKey,
+      initialValue: s.controllerRef.text,
+      validator: _combineValidators(_effectiveValidators),
+      builder: (fieldState) {
+        final bool hasError = fieldState.hasError;
+        final String? errorText = fieldState.errorText;
+
+        // Campo nudo: nessun border/error di Material, tutto disegnato dal chrome.
+        // (didChange sul FormField è gestito dal listener del controller in State.)
+        final Widget innerField = TextField(
+          textAlignVertical:
+              w.isTextArea ? TextAlignVertical.top : TextAlignVertical.center,
+          textCapitalization: w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
+          cursorColor: theme.primary,
+          cursorWidth: 1.5,
+          cursorHeight: w.isTextArea
+              ? null
+              : (w.isCompact ? _kCompactCursorHeight : _kCursorHeight),
+          cursorRadius: const Radius.circular(1),
+          readOnly: readOnly,
+          onTap: w.onTap,
+          controller: s.controllerRef,
+          focusNode: s.focusNodeRef,
+          maxLines: w.isTextArea ? null : 1,
+          minLines: null,
+          expands: w.isTextArea,
+          keyboardType: isInline ? TextInputType.number : w.inputType,
+          obscureText: w.isObscured && !s.isPasswordVisibleRef,
+          enabled: w.isEnabled,
+          onChanged: (value) {
+            if (isInline) {
               // ignore: invalid_use_of_protected_member
               s.setState(() {});
               _handleDateFieldParsing(value);
-              w.onChanged?.call(value);
             }
-          : w.onChanged,
-      inputFormatters:
-          isInline ? [DateMaskFormatter(w.dateFieldType!)] : (w.inputFormatters ?? _defaultInputFormatters()),
-      // line-height 1.0 (sempre): la 1.6 di bodyText (~22px) supera il box testo
-      // e sfasa testo/hint verso l'alto nel Container ad altezza fissa. height 1.0
-      // riporta la riga al solo glyph e textAlignVertical.center la centra
-      // (stesso trattamento del campo ricerca custom).
-      style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
-      // Full InputDecoration with border.none + isDense + symmetric vertical
-      // padding tuned to center text in the 40px Container.
-      decoration: InputDecoration(
-        isDense: true,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        errorBorder: InputBorder.none,
-        focusedErrorBorder: InputBorder.none,
-        disabledBorder: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(vertical: w.isCompact ? theme.gapSm * 0.75 : theme.gapMd),
-        hintText: hintText,
-        hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: 1.0),
-      ),
-      validator: _combineValidators(_effectiveValidators),
-    );
-
-    final hasPrefix = w.prefixIcon != null;
-    final suffix = _suffixIcon(context, theme);
-
-    final Widget chrome = AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      height: inputH,
-      decoration: BoxDecoration(
-        // recessed (L2): fill grigio `tertiaryBackground`, nessun bordo a riposo.
-        // L'incasso è dato dal tono più scuro (Flutter non ha inset-shadow
-        // nativa). Ring focus mantenuto per a11y. Default: bianco L1 + bordo.
-        color: w.isEnabled
-            ? (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
-            : (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
-                .withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(w.isRounded ? inputH / 2 : theme.radiusControl),
-        border: w.recessed
-            ? null
-            : Border.all(
-                color: s.isFocusedRef
-                    ? theme.primary
-                    : (w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5)),
-                width: 1,
-              ),
-        boxShadow: s.isFocusedRef ? [BoxShadow(color: theme.primary, spreadRadius: 1, blurRadius: 0)] : null,
-      ),
-      child: Row(
-        children: [
-          if (hasPrefix)
-            Padding(
-              padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
-              child: w.prefixIcon,
-            )
-          else
-            SizedBox(width: theme.gapMd),
-          Expanded(child: innerField),
-          if (suffix != null) suffix else SizedBox(width: theme.gapMd),
-        ],
-      ),
-    );
-
-    // Material ancestor still required for TextFormField internals
-    // (selection, IME, ripple). Force shrinkWrap to neutralize any
-    // residual tap-target floor inherited from app theme.
-    final themedChrome = Theme(
-      data: Theme.of(context).copyWith(
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: chrome,
-      ),
-    );
-
-    final field = MouseRegion(
-      cursor: !w.isEnabled
-          ? SystemMouseCursors.forbidden
-          : gestureTap != null
-              ? SystemMouseCursors.click
-              : SystemMouseCursors.text,
-      child: GestureDetector(
-        onTap: gestureTap,
-        child: AbsorbPointer(
-          absorbing: absorb,
-          child: themedChrome,
-        ),
-      ),
-    );
-
-    return semanticLabelText == null ? field : Semantics(label: semanticLabelText, textField: true, child: field);
-  }
-
-  InputDecoration _decoration(BuildContext context, CLTheme theme) {
-    OutlineInputBorder b(Color c, double bw) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusControl),
-          borderSide: BorderSide(color: c, width: bw),
+            w.onChanged?.call(value);
+          },
+          inputFormatters:
+              isInline ? [DateMaskFormatter(w.dateFieldType!)] : (w.inputFormatters ?? _defaultInputFormatters()),
+          style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
+          decoration: InputDecoration(
+            isDense: true,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(
+                vertical: w.isTextArea ? theme.gapMd : (w.isCompact ? theme.gapSm * 0.75 : theme.gapMd)),
+            hintText: placeholder,
+            hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: 1.0),
+          ),
         );
-    final String labelOrHint = s.shouldShowRequired ? '${w.labelText}*' : w.labelText;
-    // For non-textArea fields we render the label as hintText (placeholder)
-    // instead of labelText. labelText reserves vertical space above the input
-    // for floating-label position, pushing intrinsic height to ~48 even with
-    // isDense:true. hintText does NOT reserve that space, so the field
-    // collapses to ~36-38 intrinsic and fits CLSizes.inputHeight (40) cleanly.
-    // Accessibility: an outer Semantics(label:...) preserves screen-reader
-    // announcement of the field name.
-    final bool useHintForLabel = !w.isTextArea;
-    return InputDecoration(
-      isDense: true,
-      floatingLabelBehavior: w.isTextArea ? FloatingLabelBehavior.auto : FloatingLabelBehavior.never,
-      floatingLabelStyle: w.isTextArea
-          ? theme.smallText.copyWith(
-              color: s.isFocusedRef ? theme.primary : theme.secondaryText,
-              fontWeight: s.isFocusedRef ? FontWeight.w500 : FontWeight.w400,
-              height: 1,
-            )
-          : null,
-      labelStyle: w.isTextArea ? theme.bodyLabel : null,
-      alignLabelWithHint: w.isTextArea,
-      errorMaxLines: 200,
-      // Vertical padding tuned so that border(1+1) + text(~14 @ fs13/h1.0) +
-      // pad(10+10) ≈ 36 ≤ CLSizes.inputHeight (40). InputDecorator centers the
-      // content vertically inside the SizedBox(40) outer wrap → exact 40px slot
-      // matching CLButton.primary.
-      contentPadding: EdgeInsets.symmetric(horizontal: theme.gapMd, vertical: 10), // v:10 = tuning (no token) per centrare in inputHeight
-      labelText: w.isTextArea ? labelOrHint : null,
-      hintText: useHintForLabel ? (w.dateFieldType?.hint ?? labelOrHint) : w.dateFieldType?.hint,
-      hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
-      prefixIcon: w.prefixIcon != null
-          ? Padding(padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm), child: w.prefixIcon)
-          : null,
-      prefixIconConstraints:
-          w.prefixIconConstraints ?? (w.prefixIcon != null ? const BoxConstraints(minWidth: 0, minHeight: 0) : null),
-      suffixIcon: _suffixIcon(context, theme),
-      suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-      hoverColor: Colors.transparent,
-      filled: true,
-      fillColor: w.fillColor ?? theme.secondaryBackground,
-      enabledBorder: b(theme.cardBorder, 1.0),
-      focusedBorder: b(theme.primary, 1.0),
-      errorBorder: b(theme.danger, 1.0),
-      focusedErrorBorder: b(theme.danger, 1.0),
-      disabledBorder: b(theme.cardBorder.withValues(alpha: 0.5), 1.0),
-      errorStyle: theme.smallLabel.copyWith(color: theme.danger, fontSize: 11, height: 1.3),
+
+        final bool hasPrefix = w.prefixIcon != null;
+        final Widget? suffix = _suffixIcon(context, theme);
+
+        // Icone uniformi: colore focus-aware + size da token. Prefix/suffix
+        // (anche quelli passati dai factory, ora senza colore) ereditano via
+        // IconTheme e reagiscono al focus come le icone interne.
+        final IconThemeData iconTheme = IconThemeData(
+          color: !w.isEnabled
+              ? theme.secondaryText.withValues(alpha: 0.5)
+              : (s.isFocusedRef ? theme.primary : theme.secondaryText),
+          size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
+        );
+
+        // Altezza textArea: gestita da stato (resize via grip), clamp min/max.
+        final double taHeight = (s.textAreaHeight ?? _kTextAreaMinHeight)
+            .clamp(_kTextAreaMinHeight, _kTextAreaMaxHeight);
+
+        final Widget rowContent = Row(
+          crossAxisAlignment:
+              w.isTextArea ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+          children: [
+            if (hasPrefix)
+              Padding(
+                padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
+                child: IconTheme.merge(data: iconTheme, child: w.prefixIcon!),
+              )
+            else
+              SizedBox(width: theme.gapMd),
+            Expanded(child: innerField),
+            if (suffix != null)
+              IconTheme.merge(data: iconTheme, child: suffix)
+            else
+              SizedBox(width: theme.gapMd),
+          ],
+        );
+
+        // Chrome: bordo NEUTRO sempre (shadcn: nessun bordo rosso in errore; il
+        // focus è dato dal ring esterno). TextArea: altezza fissa (resize grip),
+        // niente animazione sull'altezza (drag istantaneo).
+        final Widget chrome = AnimatedContainer(
+          duration: w.isTextArea ? Duration.zero : const Duration(milliseconds: 120),
+          height: w.isTextArea ? taHeight : inputH,
+          decoration: BoxDecoration(
+            color: w.isEnabled
+                ? (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
+                : (w.fillColor ?? (w.recessed ? theme.tertiaryBackground : theme.secondaryBackground))
+                    .withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(radius),
+            border: w.recessed
+                ? null
+                : Border.all(
+                    color: w.isEnabled ? theme.cardBorder : theme.cardBorder.withValues(alpha: 0.5),
+                    width: 1,
+                  ),
+          ),
+          child: w.isTextArea
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    rowContent,
+                    if (w.isEnabled)
+                      Positioned(
+                        right: 3,
+                        bottom: 3,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.resizeUpDown,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanUpdate: (d) =>
+                                s.setTextAreaHeight(taHeight + d.delta.dy),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CustomPaint(
+                                painter: _ResizeGripPainter(theme.borderColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              : rowContent,
+        );
+
+        // Focus ring shadcn: anello esterno offset (theme.ring), fuori dal
+        // layout → nessun salto. CustomPaint SEMPRE presente (painter null
+        // off-focus): togglarne la presenza cambierebbe l'albero e rimonterebbe
+        // l'EditableText → perdita del focus/gesto al primo click.
+        // Ring esterno shadcn (halo offset). Sborda ~4px: se il campo è a filo
+        // dentro un pannello che SCROLLA, il viewport lo ritaglia a sinistra.
+        // Fix a monte: il contenitore scrollabile dà respiro ai campi mettendo
+        // il proprio padding DENTRO lo scroll (vedi pagine playground).
+        final Widget ringed = CustomPaint(
+          foregroundPainter: s.isFocusedRef
+              ? CLFocusRingPainter(color: theme.ring, radius: radius)
+              : null,
+          child: chrome,
+        );
+
+        // Material ancestor per gli internal di TextField (selezione, IME).
+        final Widget themedChrome = Theme(
+          data: Theme.of(context).copyWith(materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+          child: Material(type: MaterialType.transparency, child: ringed),
+        );
+
+        Widget field = MouseRegion(
+          cursor: !w.isEnabled
+              ? SystemMouseCursors.forbidden
+              : gestureTap != null
+                  ? SystemMouseCursors.click
+                  : SystemMouseCursors.text,
+          child: GestureDetector(
+            onTap: gestureTap,
+            child: AbsorbPointer(absorbing: absorb, child: themedChrome),
+          ),
+        );
+
+        // A11y: nome del campo sempre (anche quando la label non è mostrata sopra,
+        // es. recessed → labelText è il placeholder ma serve comunque a SR).
+        if (w.labelText.isNotEmpty) {
+          field = Semantics(label: labelStr, textField: true, child: field);
+        }
+
+        // Stack shadcn: label sopra · campo · error sotto (danger, no bordo rosso).
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showLabel) ...[
+              Text(
+                labelStr,
+                style: theme.smallText.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: hasError ? theme.danger : theme.secondaryText,
+                ),
+              ),
+              SizedBox(height: theme.gapSm),
+            ],
+            field,
+            if (hasError && errorText != null && errorText.isNotEmpty) ...[
+              SizedBox(height: theme.gapSm),
+              Text(
+                errorText,
+                style: theme.smallLabel.copyWith(color: theme.danger, height: 1.3),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -259,7 +281,7 @@ class _TextFieldUiHelper extends _Helper {
       // Swatch 20px in compact (gapXl): 24px lascerebbe solo 4px di aria nel box da 32.
       final double swatchSide = w.isCompact ? theme.gapXl : Sizes.iconSizeLarge;
       return Padding(
-        padding: const EdgeInsets.only(right: 10),
+        padding: EdgeInsets.only(right: theme.gapMd),
         child: Container(
           width: swatchSide,
           height: swatchSide,
@@ -304,7 +326,7 @@ class _TextFieldUiHelper extends _Helper {
     if (w.isObscured) return _passwordToggle(theme);
     if (w.inputType == TextInputType.datetime) return _calendarIcon(theme);
     if (w.suffixIcon != null) {
-      return Padding(padding: const EdgeInsets.only(right: 10), child: w.suffixIcon);
+      return Padding(padding: EdgeInsets.only(right: theme.gapMd), child: w.suffixIcon);
     }
     return null;
   }
@@ -345,7 +367,7 @@ class _TextFieldUiHelper extends _Helper {
   Widget _dateFieldTypeIcon(CLTheme theme) {
     final isTime = w.dateFieldType == CLDateFieldType.time;
     return Padding(
-      padding: const EdgeInsets.only(right: 10),
+      padding: EdgeInsets.only(right: theme.gapMd),
       child: HugeIcon(
         icon: isTime ? HugeIcons.strokeRoundedClock01 : HugeIcons.strokeRoundedCalendar03,
         size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
@@ -360,14 +382,14 @@ class _TextFieldUiHelper extends _Helper {
         // tutta l'altezza del campo (16 icona + 8+8 = 32 in compact).
         behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: EdgeInsets.only(right: 10, top: theme.gapSm, bottom: theme.gapSm),
+          padding: EdgeInsets.only(right: theme.gapMd, top: theme.gapSm, bottom: theme.gapSm),
           child: Icon(Icons.close_rounded,
               size: w.isCompact ? theme.iconSizeCompact : 18, color: theme.danger.withValues(alpha: 0.8)),
         ),
       );
 
   Widget _calendarIcon(CLTheme theme) => Padding(
-        padding: const EdgeInsets.only(right: 10),
+        padding: EdgeInsets.only(right: theme.gapMd),
         child: HugeIcon(
           icon: HugeIcons.strokeRoundedCalendar03,
           size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
@@ -378,7 +400,7 @@ class _TextFieldUiHelper extends _Helper {
   Widget _passwordToggle(CLTheme theme) => GestureDetector(
         onTap: s.togglePasswordVisibility,
         child: Padding(
-          padding: const EdgeInsets.only(right: 10),
+          padding: EdgeInsets.only(right: theme.gapMd),
           child: Icon(
             s.isPasswordVisibleRef ? Icons.visibility : Icons.visibility_off,
             size: w.isCompact ? theme.iconSizeCompact : CLTextFieldState.kIconSize,
@@ -398,4 +420,26 @@ class _TextFieldUiHelper extends _Helper {
       return errors.isEmpty ? null : errors.join('\n');
     };
   }
+}
+
+/// Grip di resize (angolo basso-destra) della textArea: due linee diagonali,
+/// stile shadcn.
+class _ResizeGripPainter extends CustomPainter {
+  const _ResizeGripPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(size.width, size.height * 0.35),
+        Offset(size.width * 0.35, size.height), p);
+    canvas.drawLine(Offset(size.width, size.height * 0.7),
+        Offset(size.width * 0.7, size.height), p);
+  }
+
+  @override
+  bool shouldRepaint(_ResizeGripPainter old) => old.color != color;
 }

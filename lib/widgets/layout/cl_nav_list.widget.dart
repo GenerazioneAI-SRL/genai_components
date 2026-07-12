@@ -10,6 +10,12 @@ const double _kRailWidth = 1.5;
 /// rail (centro icona parent + mezzo rail + un gap).
 const double _kGroupIndent = Sizes.gapMd + Sizes.iconSizeDefault / 2 + _kRailWidth / 2 + Sizes.gapLg;
 
+/// Voci menu compatte (unico punto di tuning): pill = `buttonHeightCompact` (32),
+/// spazio tra voci = `gapSm` (8) → riga alta 40 (prima 40+8=48). Icone/geometria
+/// gruppi invariate → nessun disallineamento del rail.
+const double _kNavRowBox = Sizes.buttonHeightCompact;
+const double _kNavRowGap = Sizes.gapSm;
+
 /// Lista navigazione condivisa da sidebar (desktop) e drawer (tablet/mobile).
 /// Scrollabile, rende l'albero `CLDestination` con gruppi/sezioni espandibili.
 class CLNavList extends StatelessWidget {
@@ -121,9 +127,9 @@ class _CLNavTileState extends State<_CLNavTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
-    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
-    final box = Sizes.buttonHeightDefault;
+    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
+    final h = _kNavRowBox + _kNavRowGap;
+    final box = _kNavRowBox;
     final iconWidget = widget.destination.buildIcon(
       widget.selected ? theme.primary : theme.primaryText,
       Sizes.iconSizeDefault,
@@ -208,9 +214,9 @@ class _CLNavSubTileState extends State<_CLNavSubTile> {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
-    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
-    final box = Sizes.buttonHeightDefault;
+    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
+    final h = _kNavRowBox + _kNavRowGap;
+    final box = _kNavRowBox;
     const double boxLeftMargin = _kGroupIndent;
 
     return RepaintBoundary(
@@ -359,9 +365,9 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   Widget _buildTopLevel(CLTheme theme) {
-    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
-    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
-    final box = Sizes.buttonHeightDefault;
+    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
+    final h = _kNavRowBox + _kNavRowGap;
+    final box = _kNavRowBox;
     final iconWidget = widget.destination.buildIcon(
       _isSelected ? theme.primary : theme.primaryText,
       Sizes.iconSizeDefault,
@@ -456,9 +462,9 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
   }
 
   Widget _buildNested(CLTheme theme) {
-    // Altezza riga = box + gapSm → spazio tra due voci = gapSm (era buttonHeightLarge → gapMd).
-    final h = Sizes.buttonHeightDefault + Sizes.gapSm;
-    final box = Sizes.buttonHeightDefault;
+    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
+    final h = _kNavRowBox + _kNavRowGap;
+    final box = _kNavRowBox;
     // 38 ≈ _kGroupIndent arrotondato (indent 1° livello); poi +16 per livello.
     final nestedPadding = widget.depth == 1 ? 38.0 : Sizes.gapLg;
 

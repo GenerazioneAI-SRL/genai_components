@@ -5,13 +5,14 @@ import 'package:provider/provider.dart';
 
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
-import '../cl_text_field.widget.dart';
+import '../buttons/cl_loading_spinner.widget.dart';
+import '../foundation/cl_pressable.widget.dart';
+import '../foundation/cl_focus_ring.dart';
 import 'dropdown_state.dart';
 
 class CLDropdown<T extends Object> extends StatefulWidget {
   const CLDropdown({
     super.key,
-    required this.controller,
     required this.itemBuilder,
     required this.valueToShow,
     required this.hint,
@@ -28,10 +29,9 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     this.onSelectItems,
     this.onClearItem,
     this.fillColor,
-    this.isCompact = true,
+    this.isCompact = false,
   });
 
-  final TextEditingController controller;
   final List<T> items;
   final Widget Function(BuildContext, T) itemBuilder;
   final int length;
@@ -72,7 +72,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     T? selectedValues,
     Function()? onClearItem,
     Color? fillColor,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     List<T> previousvalueToShows = [];
     if (selectedValues != null) {
@@ -80,7 +80,6 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     }
     return CLDropdown(
       key: key,
-      controller: TextEditingController(),
       items: items,
       isMultiple: false,
       itemBuilder: itemBuilder,
@@ -115,7 +114,7 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     required Function(T?)? onSelectItem,
     Function()? onClearItem,
     Color? fillColor,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     List<T> previousvalueToShows = [];
     if (selectedValues != null) {
@@ -123,7 +122,6 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     }
     return CLDropdown(
       key: key,
-      controller: TextEditingController(),
       itemBuilder: itemBuilder,
       hint: hint,
       isMultiple: false,
@@ -152,11 +150,10 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     final List<FormFieldValidator<String>>? validators,
     List<T> selectedValues = const [],
     int length = 10,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLDropdown(
       key: key,
-      controller: TextEditingController(),
       items: items,
       isMultiple: true,
       itemBuilder: itemBuilder,
@@ -187,11 +184,10 @@ class CLDropdown<T extends Object> extends StatefulWidget {
     final List<FormFieldValidator<String>>? validators,
     List<T> selectedValues = const [],
     int length = 10,
-    bool isCompact = true,
+    bool isCompact = false,
   }) {
     return CLDropdown(
       key: key,
-      controller: TextEditingController(),
       itemBuilder: itemBuilder,
       valueToShow: valueToShow,
       hint: hint,
@@ -274,141 +270,204 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
         }
 
         final theme = CLTheme.of(context);
-        // Single-select con valore scelto → input BLOCCATO: per cercare di nuovo
-        // bisogna prima svuotare con la ✕ (no typing diretto sulla selezione).
-        final lockTyping = !widget.isMultiple && state.selectedItem != null;
+        // Trigger a BOTTONE (stile shadcn): placeholder o valore selezionato +
+        // chevron. La ricerca vive nel popover, non nel trigger.
+        final bool hasSingleValue =
+            !widget.isMultiple && state.selectedItem != null;
+        final String triggerText = hasSingleValue
+            ? widget.valueToShow(state.selectedItem!)
+            : 'Seleziona…';
+        // Valore per la validazione form (label selezionata / vuoto).
+        final String formValue = widget.isMultiple
+            ? (state.selectedItems.isEmpty
+                ? ''
+                : state.selectedItems.map(widget.valueToShow).join(', '))
+            : (state.selectedItem != null
+                ? widget.valueToShow(state.selectedItem!)
+                : '');
+        final bool multiFilled =
+            widget.isMultiple && state.selectedItems.isNotEmpty;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Chip selezionati (sopra il campo) ──
-            if (widget.isMultiple && state.selectedItems.isNotEmpty) ...[
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  ...state.selectedItems.map(
-                    (item) => Container(
-                      padding: const EdgeInsets.only(
-                          left: 10, right: 4, top: 4, bottom: 4),
-                      decoration: BoxDecoration(
-                        color: theme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                        border: Border.all(
-                            color: theme.primary.withValues(alpha: theme.opacityMedium)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              widget.valueToShow(item),
-                              style: theme.smallLabel.override(
-                                  color: theme.primary,
-                                  fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          GestureDetector(
-                            onTap: () => state.removeItem(item),
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: theme.primary.withValues(alpha: theme.opacitySoft),
-                                borderRadius: BorderRadius.circular(Sizes.radiusChip),
-                              ),
-                              child: Icon(Icons.close_rounded,
-                                  size: 14, color: theme.primary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Pulsante "svuota tutto"
-                  if (state.selectedItems.length > 1)
-                    GestureDetector(
-                      onTap: () {
-                        state.clearAll();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+            // ── Label (hint) sopra, come i campi input ──
+            if (widget.hint.isNotEmpty) ...[
+              Text(
+                widget.hint,
+                style: theme.smallText.copyWith(
+                    fontWeight: FontWeight.w500, color: theme.secondaryText),
+              ),
+              SizedBox(height: theme.gapSm),
+            ],
+            // ── Trigger a BOTTONE (search nel popover). FormField preserva la
+            //    validazione del form + mostra l'error sotto (come l'input). ──
+            FormField<String>(
+              initialValue: formValue,
+              validator: (widget.validators == null || widget.validators!.isEmpty)
+                  ? null
+                  : (value) {
+                      for (final v in widget.validators!) {
+                        final r = v(value);
+                        if (r != null) return r;
+                      }
+                      return null;
+                    },
+              builder: (fstate) {
+                // Allinea il valore del FormField alla selezione corrente.
+                if (fstate.value != formValue) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) fstate.didChange(formValue);
+                  });
+                }
+                final bool hasError = fstate.hasError;
+
+                final Widget suffix = state.loading
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CLLoadingSpinner(
+                            size: 16, color: theme.secondaryText))
+                    : hasSingleValue
+                        ? GestureDetector(
+                            onTap: () => state.removeItem(state.selectedItem!),
+                            child: Icon(LucideIcons.x400,
+                                size: 18,
+                                color: theme.danger.withValues(alpha: 0.8)),
+                          )
+                        : Icon(
+                            state.isOverlayOpen
+                                ? LucideIcons.chevronUp400
+                                : LucideIcons.chevronDown400,
+                            color: theme.secondaryText,
+                            size: theme.iconSizeCompact,
+                          );
+
+                final Widget trigger = CompositedTransformTarget(
+                  link: state.layerLink,
+                  child: CLPressable(
+                    key: state.textFormFieldKey,
+                    enabled: widget.isEnabled,
+                    focusNode: _focusNode,
+                    semanticLabel: widget.hint,
+                    onTap: widget.isEnabled ? () => state.openOverlay() : null,
+                    builder: (context, pstate) {
+                      final double h = widget.isCompact
+                          ? theme.inputHeightCompact
+                          : theme.inputHeight;
+                      Widget box = Container(
+                        // Multi con selezioni: altezza auto (i badge vanno a capo);
+                        // altrimenti altezza fissa input.
+                        height: multiFilled ? null : h,
+                        constraints:
+                            multiFilled ? BoxConstraints(minHeight: h) : null,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: theme.gapMd,
+                            vertical: multiFilled ? theme.gapXs : 0),
                         decoration: BoxDecoration(
-                          color: theme.danger.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                          border: Border.all(
-                              color: theme.danger.withValues(alpha: theme.opacityMedium)),
+                          color: widget.isEnabled
+                              ? (widget.fillColor ?? theme.secondaryBackground)
+                              : (widget.fillColor ?? theme.secondaryBackground)
+                                  .withValues(alpha: 0.6),
+                          borderRadius:
+                              BorderRadius.circular(theme.radiusControl),
+                          border:
+                              Border.all(color: theme.cardBorder, width: 1),
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.clear_all_rounded,
-                                size: 14, color: theme.danger),
-                            const SizedBox(width: 4),
-                            Text('Svuota',
-                                style: theme.smallLabel.override(
-                                    color: theme.danger,
-                                    fontWeight: FontWeight.w500)),
+                            Expanded(
+                              child: multiFilled
+                                  // Badge selezionati INLINE nel trigger (shadcn).
+                                  ? Wrap(
+                                      spacing: theme.gapXs,
+                                      runSpacing: theme.gapXs,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        for (final item in state.selectedItems)
+                                          Container(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                8, 2, 3, 2),
+                                            decoration: BoxDecoration(
+                                              color: theme.primary
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      Sizes.radiusChip),
+                                              border: Border.all(
+                                                  color: theme.primary
+                                                      .withValues(
+                                                          alpha: theme
+                                                              .opacityMedium)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  widget.valueToShow(item),
+                                                  style: theme.smallLabel
+                                                      .override(
+                                                          color: theme.primary,
+                                                          fontWeight:
+                                                              FontWeight.w500),
+                                                ),
+                                                const SizedBox(width: 2),
+                                                GestureDetector(
+                                                  onTap: () =>
+                                                      state.removeItem(item),
+                                                  child: Icon(LucideIcons.x400,
+                                                      size: 13,
+                                                      color: theme.primary),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    )
+                                  : Text(
+                                      triggerText,
+                                      style: theme.bodyText.copyWith(
+                                          color: hasSingleValue
+                                              ? theme.primaryText
+                                              : theme.mutedForeground),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                            ),
+                            SizedBox(width: theme.gapSm),
+                            suffix,
                           ],
                         ),
-                      ),
+                      );
+                      // Ring SOLO su focus da tastiera (traversal), come input/
+                      // bottoni. Non appare col mouse né dopo un select (unfocus).
+                      if (pstate.focused) {
+                        box = CustomPaint(
+                          foregroundPainter: CLFocusRingPainter(
+                              color: theme.ring, radius: theme.radiusControl),
+                          child: box,
+                        );
+                      }
+                      return box;
+                    },
+                  ),
+                );
+
+                if (!hasError) return trigger;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    trigger,
+                    SizedBox(height: theme.gapSm),
+                    Text(
+                      fstate.errorText ?? '',
+                      style: theme.smallLabel
+                          .copyWith(color: theme.danger, height: 1.3),
                     ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-            // ── Campo di testo ──
-            CompositedTransformTarget(
-              link: state.layerLink,
-              child: CLTextField(
-                key: state.textFormFieldKey,
-                controller: state.textEditingController,
-                focusNode: _focusNode,
-                labelText: widget.hint,
-                isRequired: false,
-                isEnabled: widget.isEnabled,
-                // Ricerca nel campo (non più in un box dell'overlay). Ma con un
-                // valore già selezionato (single) il campo è BLOCCATO: per
-                // cercare di nuovo si svuota prima con la ✕.
-                isReadOnly: lockTyping,
-                validators: widget.validators,
-                fillColor: widget.fillColor,
-                // Trigger field SEMPRE ad altezza standard input (40px = theme.inputHeight),
-                // come il campo ricerca. widget.isCompact governa solo la densità degli
-                // item del menu (via state.isCompact), non l'altezza del campo.
-                isCompact: false,
-                onTap: (widget.isEnabled && !lockTyping) ? () => state.openOverlay() : null,
-                onChanged: (widget.isEnabled && !lockTyping)
-                    ? (value) async => state.onTriggerChanged(value)
-                    : null,
-                suffixIcon: !widget.isEnabled
-                    ? null
-                    : state.loading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : state.selectedItem != null
-                            ? GestureDetector(
-                                onTap: () =>
-                                    state.removeItem(state.selectedItem!),
-                                child: Icon(LucideIcons.x400,
-                                    size: widget.isCompact
-                                        ? theme.iconSizeCompact
-                                        : 18,
-                                    color: CLTheme.of(context)
-                                        .danger
-                                        .withValues(alpha: 0.8)),
-                              )
-                            : Icon(
-                                state.isOverlayOpen
-                                    ? LucideIcons.chevronUp400
-                                    : LucideIcons.chevronDown400,
-                                color: CLTheme.of(context).secondaryText,
-                                size: theme.iconSizeCompact,
-                              ),
-              ),
+                  ],
+                );
+              },
             ),
           ],
         );

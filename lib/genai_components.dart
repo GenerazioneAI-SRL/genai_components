@@ -10,6 +10,7 @@ export 'layout/constants/sizes.constant.dart';
 // Foundation (Tier 0 — primitivi di base condivisi)
 export 'widgets/foundation/cl_pressable.widget.dart';
 export 'widgets/foundation/cl_tone_style.dart';
+export 'widgets/foundation/cl_focus_ring.dart';
 export 'widgets/foundation/cl_surface.widget.dart';
 
 // Buttons
@@ -19,6 +20,7 @@ export 'widgets/buttons/cl_icon_button.widget.dart';
 export 'widgets/buttons/cl_outline_button.widget.dart';
 export 'widgets/buttons/cl_ghost_button.widget.dart';
 export 'widgets/buttons/cl_soft_button.widget.dart';
+export 'widgets/buttons/cl_link_button.widget.dart';
 export 'widgets/buttons/cl_action_text.widget.dart';
 export 'widgets/buttons/cl_action_chip.widget.dart';
 export 'widgets/buttons/cl_confirm_dialog.dart';
@@ -102,6 +104,8 @@ export 'widgets/cl_pdf_viewer.widget.dart';
 
 // Calendar
 export 'widgets/cl_month_calendar.widget.dart';
+export 'widgets/cl_calendar.widget.dart';
+export 'widgets/cl_date_picker.widget.dart';
 
 // Charts
 export 'widgets/charts/cl_bar_chart.widget.dart';

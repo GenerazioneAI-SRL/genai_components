@@ -22,12 +22,13 @@ class CLToneColors {
 
 /// Recipe **L2** — l'unico posto dove vive la matematica del chrome tonale.
 ///
-/// Scala canonica per le varianti tinta (soft/outline/ghost):
-/// base = `opacitySoft` (0.10) · hover = `opacityMuted` (0.14) · press = `opacityMedium` (0.20).
-/// Per `solid`: hover/press scuriscono con `Color.lerp(bg, black, 0.08/0.16)`.
+/// Scala canonica:
+/// - `soft` (tinta): base `opacitySoft` (0.10) · hover `opacityMuted` (0.14) · press `opacityMedium` (0.20), colore = tono.
+/// - `outline`/`ghost` (stile shadcn): bg SEMPRE neutro (trasparente → grigio `accent` hover → accent scurito press); outline ha bordo SEMPRE grigio `cardBorder`. Il tono vive SOLO nel testo/icona (`fg`), mai in bordo/bg.
+/// - `solid`: hover/press scuriscono con `Color.lerp(bg, black, 0.08/0.16)`.
+/// - `link`: solo testo = tono (hover scurito), nessun bg/bordo.
 ///
-/// `colored: false` è il percorso neutro (tono secondary + costruttori raw dei
-/// bottoni): ghost/outline/link neutri → hover `accent`, press `accent` scurito; **soft neutro → scala su `muted`** (idle `muted`, hover/press scuriti con lerp 0.08/0.16); testo sempre `primaryText`.
+/// `colored: false` = percorso neutro (tono secondary + costruttori raw): testo `primaryText`; soft → scala `muted`; outline/ghost → overlay neutro + bordo `cardBorder` (outline).
 ///
 /// Con `state.disabled` restituisce i colori idle: l'opacità disabled
 /// (`theme.opacityDisabled`) la applica il consumer sull'intero widget.
@@ -82,13 +83,16 @@ abstract final class CLToneStyle {
                 : theme.opacitySoft;
         return CLToneColors(bg: color.withValues(alpha: alpha), fg: color);
       case CLVariant.outline:
+        // shadcn: bordo grigio neutro + bg grigio `accent` su hover/press; il
+        // tono vive SOLO nel testo/icona.
         return CLToneColors(
-          bg: _tintOverlay(theme, color, s),
+          bg: _neutralOverlay(theme, s),
           fg: color,
-          border: color,
+          border: theme.cardBorder,
         );
       case CLVariant.ghost:
-        return CLToneColors(bg: _tintOverlay(theme, color, s), fg: color);
+        // Come outline ma senza bordo.
+        return CLToneColors(bg: _neutralOverlay(theme, s), fg: color);
       case CLVariant.link:
         return CLToneColors(
           bg: Colors.transparent,
@@ -97,11 +101,17 @@ abstract final class CLToneStyle {
     }
   }
 
-  /// Overlay per varianti trasparenti a riposo (outline/ghost).
-  static Color _tintOverlay(CLTheme theme, Color color, CLPressableState s) {
-    if (s.pressed) return color.withValues(alpha: theme.opacityMuted);
-    if (s.hovered) return color.withValues(alpha: theme.opacitySoft);
-    return Colors.transparent;
+  /// Overlay neutro per varianti trasparenti (outline/ghost), stile shadcn:
+  /// trasparente a riposo, grigio `accent` su hover, accent scurito su press.
+  /// Indipendente dal tono (il tono resta solo nel testo).
+  ///
+  /// A riposo torna `accent` con alpha 0 (NON `Colors.transparent`): così
+  /// l'`AnimatedContainer` che interpola il bg resta nell'hue di accent invece
+  /// di passare per il nero semi-trasparente (flash scuro su hover-in).
+  static Color _neutralOverlay(CLTheme theme, CLPressableState s) {
+    if (s.pressed) return Color.lerp(theme.accent, Colors.black, 0.08)!;
+    if (s.hovered) return theme.accent;
+    return theme.accent.withValues(alpha: 0.0);
   }
 
   /// Percorso neutro: replica il chrome storico dei bottoni non colorati.
@@ -123,14 +133,8 @@ abstract final class CLToneStyle {
       }
       border = null;
     } else {
-      // Ghost/outline/link: usa accent (comportamento storico)
-      if (s.pressed) {
-        bg = Color.lerp(theme.accent, Colors.black, 0.08)!;
-      } else if (s.hovered) {
-        bg = theme.accent;
-      } else {
-        bg = Colors.transparent;
-      }
+      // Ghost/outline/link neutri: overlay grigio neutro, bordo grigio su outline.
+      bg = _neutralOverlay(theme, s);
       border = variant == CLVariant.outline ? theme.cardBorder : null;
     }
 
