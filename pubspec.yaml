@@ -13,8 +13,8 @@ topics:
   - design-system
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
-  flutter: '>=3.10.0'
+  sdk: '>=3.8.0 <4.0.0'
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:
@@ -76,6 +76,9 @@ dependencies:
   # Localization
   flutter_localizations:
     sdk: flutter
+
+  # Gen wrappers: thin Gen* typedefs over shadcn_ui + GenTheme token config.
+  shadcn_ui: ^0.55.0
 
   # Misc
   universal_html: '>=2.0.0 <3.0.0'

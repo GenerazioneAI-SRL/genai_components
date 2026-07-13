@@ -1,0 +1,45 @@
+name: example
+description: "Official example + dev vehicle for genai_components (MVVC + adaptive shell)."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The library under test — consumed by path (not pub) so the example always
+  # exercises the working tree.
+  genai_components:
+    path: ../
+
+  # Routing / state
+  go_router: ^14.0.0
+  provider: ">=6.0.0 <7.0.0"
+
+  # Required by CL widgets (ResponsiveBreakpoints.of) — same as skillera_admin
+  responsive_framework: ">=1.1.0 <2.0.0"
+
+  # Icons
+  lucide_icons_flutter: ^3.1.13
+
+  # HTTP (direct import in core/api — declared to satisfy depend_on_referenced_packages)
+  http: ">=1.0.0 <2.0.0"
+
+  # Helpers used by the ported showcase pages (BaseScaffold `.separatedBy`).
+  awesome_flutter_extensions: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter.ttf
