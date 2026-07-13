@@ -292,7 +292,6 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                         right: 0,
                         child: _NavHeaderHandle(
                           key: const Key('gen-nav-header-resize-handle'),
-                          grabberColor: theme.secondaryText,
                           onDrag: (dy) => setState(() {
                             _navHeaderFraction = (frac + dy / avail).clamp(0.15, 0.85);
                           }),
@@ -1585,11 +1584,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
 /// visibile SOLO su hover (discoverability senza cromatura fissa). Il drag resta
 /// attivo su tutta la strip anche senza hover.
 class _NavHeaderHandle extends StatefulWidget {
-  const _NavHeaderHandle({super.key, required this.onDrag, required this.grabberColor});
+  const _NavHeaderHandle({super.key, required this.onDrag});
 
   /// Delta verticale (px) di ogni update di drag.
   final ValueChanged<double> onDrag;
-  final Color grabberColor;
 
   @override
   State<_NavHeaderHandle> createState() => _NavHeaderHandleState();
@@ -1600,6 +1598,7 @@ class _NavHeaderHandleState extends State<_NavHeaderHandle> {
 
   @override
   Widget build(BuildContext context) {
+    final t = GenTokens.of(context);
     return MouseRegion(
       cursor: SystemMouseCursors.resizeUpDown,
       onEnter: (_) => setState(() => _hover = true),
@@ -1613,13 +1612,15 @@ class _NavHeaderHandleState extends State<_NavHeaderHandle> {
             child: AnimatedOpacity(
               opacity: _hover ? 1 : 0,
               duration: const Duration(milliseconds: 120),
+              // Grabber identico a GenResizable: pill borderColor (radius 4,
+              // padding H3/V1) con icona gripHorizontal (asse verticale).
               child: Container(
-                width: 32,
-                height: 4,
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                 decoration: BoxDecoration(
-                  color: widget.grabberColor.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
+                  color: t.borderColor,
+                  borderRadius: BorderRadius.circular(4),
                 ),
+                child: GenIcon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
               ),
             ),
           ),
