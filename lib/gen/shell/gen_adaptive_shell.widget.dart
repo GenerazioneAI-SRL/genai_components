@@ -28,6 +28,7 @@ class GenAdaptiveShell extends StatefulWidget {
     required this.body,
     this.headerLeading,
     this.navHeader,
+    this.navSecondary,
     this.navFooter,
     this.trailing,
     this.endDrawer,
@@ -68,6 +69,12 @@ class GenAdaptiveShell extends StatefulWidget {
   final Widget? headerLeading;
   final Widget body;
   final Widget? navHeader;
+
+  /// Voci secondarie del menu (es. "Gestione cliente") sotto l'azienda. Con
+  /// `config.resizableNavHeader` diventano la parte SCROLLABILE del pannello
+  /// header (azienda pinnata sopra, queste scrollano fino al divider). Senza
+  /// resize, impilate sotto navHeader nella barra frosted.
+  final Widget? navSecondary;
   final Widget? navFooter;
   final Widget? trailing; // pannello AI desktop (full-height)
   final Widget? endDrawer; // AI drawer: solo tier drawer/bottom-bar; ignorato su desktop
@@ -113,10 +120,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// basso dell'header; clamp [0.15, 0.85]. Stato di sessione (no persistenza).
   double _navHeaderFraction = 0.4;
 
-  /// Altezza intrinseca misurata del contenuto header (azienda + voci cliente).
-  /// L'altezza dell'header resizable è cappata a questo valore → niente spazio
-  /// vuoto sotto l'ultima voce.
-  double _navHeaderContentH = 0;
+  /// Altezze intrinseche misurate: blocco azienda (pinnato) e voci cliente
+  /// (scrollabili). Servono al cap dell'header resizable (min = azienda+1 voce,
+  /// max = azienda+cliente) → azienda sempre visibile, niente vuoto sotto l'ultima.
+  double _navCompanyH = 0;
+  double _navClientH = 0;
 
   /// Ultimo `trailing` non-null: ritenuto durante l'animazione di CHIUSURA della
   /// bolla assistente (quando `widget.trailing` torna null) così il contenuto
@@ -204,33 +212,47 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
       bool frosted = false,
       bool showRightBorder = true,
       bool collapsed = false}) {
-    // Header/footer del menu: in collapsed usa gli slot icon-only rail*, altrimenti
-    // i navHeader/navFooter estesi.
-    final Widget? headerContent = collapsed
-        ? widget.railHeader
-        : (widget.headerLeading != null || widget.navHeader != null)
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.headerLeading != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(GenSizes.gapLg, GenSizes.gapLg, GenSizes.gapLg, 0),
-                      child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
-                    ),
-                  if (widget.navHeader != null) widget.navHeader!,
-                ],
-              )
-            : null;
+    // Blocco AZIENDA (logo/headerLeading + navHeader): in resizable è la parte
+    // FISSA in cima al pannello header (non scrolla).
+    final Widget? companyContent = (widget.headerLeading != null || widget.navHeader != null)
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.headerLeading != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(GenSizes.gapLg, GenSizes.gapLg, GenSizes.gapLg, 0),
+                  child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
+                ),
+              if (widget.navHeader != null) widget.navHeader!,
+            ],
+          )
+        : null;
+
+    // Header espanso (non collassato) = azienda + navSecondary (voci cliente)
+    // IMPILATI. È il contenuto della barra frosted floating nel ramo non-resizable;
+    // nel ramo resizable azienda e navSecondary vengono splittati (fisso vs scroll).
+    final Widget? expandedHeader = (companyContent != null || widget.navSecondary != null)
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (companyContent != null) companyContent,
+              if (widget.navSecondary != null) widget.navSecondary!,
+            ],
+          )
+        : null;
+
+    final Widget? headerContent = collapsed ? widget.railHeader : expandedHeader;
     final Widget? footerContent = collapsed ? widget.railFooter : widget.navFooter;
     final hasHeader = headerContent != null;
     final hasFooter = footerContent != null;
 
     // Resize dell'header attivo solo in sidebar espansa (no rail/compact) e con
-    // header presente. In quel caso: header = Panel A (frosted, scroll), lista
-    // destinations = Panel B; la maniglia tra i due È il bordo basso dell'header.
+    // navSecondary presente (la parte scrollabile). Header = azienda fissa +
+    // voci cliente scroll fino al divider; lista destinations sotto la maniglia.
     final resizableHeader =
-        !isCompact && !collapsed && widget.config.resizableNavHeader && hasHeader;
+        !isCompact && !collapsed && widget.config.resizableNavHeader && widget.navSecondary != null;
 
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
@@ -258,14 +280,13 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
               child: LayoutBuilder(
                 builder: (context, c) {
                   final avail = c.maxHeight;
-                  // Cap altezza header al contenuto misurato (+gap) → niente spazio
-                  // vuoto sotto l'ultima voce. Se il contenuto supera il viewport,
-                  // cap a 0.85 (l'header scrolla dentro).
-                  // contentMax = altezza contenuto misurata (include già il gapLg
-                  // bottom di NavHeader) → l'header non cresce oltre l'ultima voce.
-                  final contentMax = _navHeaderContentH > 0 ? _navHeaderContentH : avail;
-                  final maxFrac = (contentMax / avail).clamp(0.0, 0.85);
-                  final minFrac = maxFrac < 0.15 ? maxFrac : 0.15;
+                  // Cap: header non oltre azienda+cliente misurati (niente vuoto sotto
+                  // l'ultima voce). Min: azienda + ~1 voce (azienda sempre visibile,
+                  // no overflow). Tra i due, il cliente scrolla nell'area residua.
+                  final contentTotal =
+                      (_navCompanyH + _navClientH) > 0 ? (_navCompanyH + _navClientH) : avail;
+                  final minFrac = ((_navCompanyH + GenSizes.buttonHeightCompact) / avail).clamp(0.0, 0.85);
+                  final maxFrac = (contentTotal / avail).clamp(minFrac, 0.85);
                   final frac = _navHeaderFraction.clamp(minFrac, maxFrac);
                   final headerH = frac * avail;
                   return Stack(
@@ -285,9 +306,9 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           ),
                         ),
                       ),
-                      // Header frosted galleggiante ad altezza fissa: il contenuto
-                      // (azienda + voci cliente) scrolla dentro; il vetro sfoca la
-                      // lista che scorre sotto.
+                      // Header frosted ad altezza fissa: AZIENDA pinnata in cima +
+                      // voci CLIENTE (navSecondary) scrollabili nell'area residua fino
+                      // al divider. Il vetro sfoca la lista che scorre sotto.
                       Positioned(
                         top: 0,
                         left: 0,
@@ -295,25 +316,33 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                         height: headerH,
                         child: _frostedMenuBar(
                           theme,
-                          child: SingleChildScrollView(
-                            // Misura l'altezza intrinseca del contenuto (lo scroll dà
-                            // vincolo verticale illimitato al figlio) → serve al cap.
-                            child: _MeasureSize(
-                              onChange: (s) {
-                                if (s.height != _navHeaderContentH) {
-                                  setState(() => _navHeaderContentH = s.height);
-                                }
-                              },
-                              // NavHeader avvolge già il contenuto in Padding(all: gapLg)
-                              // → lo spazio Lg sotto l'ultima voce c'è di suo; niente
-                              // padding aggiuntivo qui (si sommerebbe).
-                              child: headerContent,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (companyContent != null)
+                                _MeasureSize(
+                                  onChange: (s) {
+                                    if (s.height != _navCompanyH) setState(() => _navCompanyH = s.height);
+                                  },
+                                  child: companyContent,
+                                ),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  // Misura l'altezza intrinseca delle voci cliente (lo
+                                  // scroll dà vincolo verticale illimitato) → serve al cap.
+                                  child: _MeasureSize(
+                                    onChange: (s) {
+                                      if (s.height != _navClientH) setState(() => _navClientH = s.height);
+                                    },
+                                    child: widget.navSecondary!,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      // Maniglia sul bordo basso dell'header: drag verticale regola
-                      // la frazione; grabber visibile solo su hover.
+                      // Maniglia sul bordo basso dell'header.
                       Positioned(
                         top: headerH - 8,
                         left: 0,

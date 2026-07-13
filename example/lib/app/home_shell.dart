@@ -130,7 +130,10 @@ class _HomeShellState extends State<HomeShell> {
       ],
       selectedKey: _selectedKey,
       onSelect: (d) => context.go(d.key),
-      navHeader: const NavHeader(extra: ClientContextMenu()),
+      navHeader: const NavHeader(),
+      // Voci cliente in slot dedicato: con resizableNavHeader diventano la parte
+      // scrollabile del pannello header (azienda pinnata sopra).
+      navSecondary: const ClientContextMenu(),
       navFooter: const NavFooter(),
       railHeader: const NavHeaderRail(),
       railFooter: const NavFooterRail(),

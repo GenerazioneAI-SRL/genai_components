@@ -23,6 +23,11 @@ Widget _harness({required bool resizable, bool bubbleBody = false}) {
           padding: EdgeInsets.all(16),
           child: Text('Azienda'),
         ),
+        // navSecondary presente → il resize si attiva (parte scrollabile).
+        navSecondary: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Voci cliente'),
+        ),
         body: const SizedBox.shrink(),
       ),
     ),
