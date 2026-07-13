@@ -261,8 +261,9 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                   // Cap altezza header al contenuto misurato (+gap) → niente spazio
                   // vuoto sotto l'ultima voce. Se il contenuto supera il viewport,
                   // cap a 0.85 (l'header scrolla dentro).
-                  final contentMax =
-                      _navHeaderContentH > 0 ? _navHeaderContentH + GenSizes.gapSm : avail;
+                  // contentMax include già il padding bottom Lg del contenuto (vedi
+                  // _MeasureSize sotto) → l'ultima voce ha spazio Lg prima del bordo.
+                  final contentMax = _navHeaderContentH > 0 ? _navHeaderContentH : avail;
                   final maxFrac = (contentMax / avail).clamp(0.0, 0.85);
                   final minFrac = maxFrac < 0.15 ? maxFrac : 0.15;
                   final frac = _navHeaderFraction.clamp(minFrac, maxFrac);
@@ -278,7 +279,8 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           collapsed: false,
                           onExpandRequest: () => setState(() => _collapsed = false),
                           padding: EdgeInsets.only(
-                            top: headerH,
+                            // Lg tra il bordo basso dell'header e la prima voce lista.
+                            top: headerH + GenSizes.gapLg,
                             bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
                           ),
                         ),
@@ -302,7 +304,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                                   setState(() => _navHeaderContentH = s.height);
                                 }
                               },
-                              child: headerContent,
+                              // Lg sotto l'ultima voce cliente prima del bordo/maniglia.
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
+                                child: headerContent,
+                              ),
                             ),
                           ),
                         ),
