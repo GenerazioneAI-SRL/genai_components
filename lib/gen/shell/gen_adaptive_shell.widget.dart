@@ -35,6 +35,7 @@ class GenAdaptiveShell extends StatefulWidget {
     this.config = const GenShellConfig(),
     this.slotsController,
     this.railHeader,
+    this.railSecondary,
     this.railFooter,
     this.bottomDestinations,
     this.bottomBarItems,
@@ -88,6 +89,12 @@ class GenAdaptiveShell extends StatefulWidget {
   /// Slot in cima/in fondo alla rail (tier tablet), icon-only. Es. icona tenant
   /// in alto, help + avatar utente in basso. Ignorati su sidebar/bottom-bar.
   final Widget? railHeader;
+
+  /// Voci secondarie ICON-ONLY per il tier collassato (rail/tablet): con
+  /// `resizableNavHeader` diventano la parte scrollabile della bolla header
+  /// (icone cliente sotto l'azienda, con drag sul bordo). Analogo rail di
+  /// [navSecondary]. Se null, in rail la bolla non si estende con le voci cliente.
+  final Widget? railSecondary;
   final Widget? railFooter;
 
   @override
@@ -229,9 +236,8 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
           )
         : null;
 
-    // Separator tra azienda e voci secondarie (visibile in entrambi i rami). In
-    // resizable fa parte della zona FISSA (pinnato con l'azienda).
-    final bool hasSep = companyContent != null && widget.navSecondary != null;
+    // Separator azienda↔voci nello stack ESPANSO non-resizable.
+    final bool expandedHasSep = companyContent != null && widget.navSecondary != null;
 
     // Header espanso (non collassato) = azienda + separator + navSecondary
     // IMPILATI. È il contenuto della barra frosted floating nel ramo non-resizable;
@@ -242,7 +248,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (companyContent != null) companyContent,
-              if (hasSep) _navHeaderSeparator(theme),
+              if (expandedHasSep) _navHeaderSeparator(theme),
               if (widget.navSecondary != null) widget.navSecondary!,
             ],
           )
@@ -253,11 +259,17 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     final hasHeader = headerContent != null;
     final hasFooter = footerContent != null;
 
-    // Resize dell'header attivo solo in sidebar espansa (no rail/compact) e con
-    // navSecondary presente (la parte scrollabile). Header = azienda fissa +
-    // voci cliente scroll fino al divider; lista destinations sotto la maniglia.
+    // Zona FISSA + parte SCROLL del pannello resizable, adattate al tier:
+    // - espanso (sidebar): azienda (companyContent) + voci cliente (navSecondary).
+    // - collassato (rail/tablet): azienda icone (railHeader) + voci cliente icone
+    //   (railSecondary). La bolla bianca si allunga con le icone cliente + drag.
+    final Widget? pinnedCompany = collapsed ? widget.railHeader : companyContent;
+    final Widget? scrollSecondary = collapsed ? widget.railSecondary : widget.navSecondary;
+    final bool hasSep = pinnedCompany != null && scrollSecondary != null;
+
+    // Resize attivo (sidebar espansa E rail/tablet) quando c'è la parte scrollabile.
     final resizableHeader =
-        !isCompact && !collapsed && widget.config.resizableNavHeader && widget.navSecondary != null;
+        !isCompact && widget.config.resizableNavHeader && scrollSecondary != null;
 
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
@@ -306,7 +318,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           selectedKey: widget.selectedKey,
                           onSelect: _onSelect,
                           isCompact: false,
-                          collapsed: false,
+                          collapsed: collapsed,
                           onExpandRequest: () => setState(() => _collapsed = false),
                           padding: EdgeInsets.only(
                             // Lg ESATTO tra bordo basso header e pill prima voce: la
@@ -331,7 +343,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // Zona FISSA: azienda + separator (misurata insieme).
-                              if (companyContent != null)
+                              if (pinnedCompany != null)
                                 _MeasureSize(
                                   onChange: (s) {
                                     if (s.height != _navCompanyH) setState(() => _navCompanyH = s.height);
@@ -340,7 +352,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                                     crossAxisAlignment: CrossAxisAlignment.stretch,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      companyContent,
+                                      pinnedCompany,
                                       if (hasSep) _navHeaderSeparator(theme),
                                     ],
                                   ),
@@ -356,7 +368,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                                     onChange: (s) {
                                       if (s.height != _navClientH) setState(() => _navClientH = s.height);
                                     },
-                                    child: widget.navSecondary!,
+                                    child: scrollSecondary,
                                   ),
                                 ),
                               ),

@@ -136,6 +136,9 @@ class _HomeShellState extends State<HomeShell> {
       navSecondary: const ClientContextMenu(),
       navFooter: const NavFooter(),
       railHeader: const NavHeaderRail(),
+      // Voci cliente icon-only nel rail: con resizableNavHeader la bolla header
+      // si allunga con queste icone (scroll + drag) anche su tablet.
+      railSecondary: const ClientContextMenuRail(),
       railFooter: const NavFooterRail(),
       header: AppHeader(onToggleAi: _toggleAi),
       // Bolla assistente AI accanto al body (solo desktop bubble). Aperta/chiusa

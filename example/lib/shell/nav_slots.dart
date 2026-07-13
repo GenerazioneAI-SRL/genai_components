@@ -132,6 +132,46 @@ class _ClientMenuTileState extends State<_ClientMenuTile> {
   }
 }
 
+/// Voci cliente ICON-ONLY per il rail (slot railSecondary): stesse voci di
+/// [ClientContextMenu] come icone centrate con tooltip. Con resizableNavHeader
+/// diventano la parte scrollabile della bolla header rail (sotto l'azienda).
+class ClientContextMenuRail extends StatelessWidget {
+  const ClientContextMenuRail({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = GenTokens.of(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: t.gapSm),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          for (final (icon, label) in ClientContextMenu._items)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: t.gapXs),
+              child: GenTooltip(
+                anchor: const GenAnchor(
+                  childAlignment: Alignment.centerLeft,
+                  overlayAlignment: Alignment.centerRight,
+                  offset: Offset(4, 0),
+                ),
+                builder: (_) => Text(label),
+                child: GenIconButton.ghost(
+                  onPressed: () {},
+                  width: t.buttonHeightCompact,
+                  height: t.buttonHeightCompact,
+                  iconSize: t.iconSizeCompact,
+                  icon: GenIcon(icon),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Header sidebar COLLASSATA (slot railHeader): Placeholder logo azienda +
 /// sotto il pulsante "Cambia azienda" icon-only (con tooltip).
 class NavHeaderRail extends StatelessWidget {

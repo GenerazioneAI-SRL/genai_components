@@ -28,6 +28,9 @@ Widget _harness({required bool resizable, bool bubbleBody = false}) {
           padding: EdgeInsets.all(16),
           child: Text('Voci cliente'),
         ),
+        // railSecondary → resize attivo anche nel rail (tablet).
+        railHeader: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.business)),
+        railSecondary: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.folder)),
         body: const SizedBox.shrink(),
       ),
     ),
@@ -75,6 +78,22 @@ void main() {
     // bubbleBody: true è il path realmente usato dall'esempio (_bubbleDesktop →
     // AnimatedContainer/OverflowBox). Se il gruppo verticale ricevesse altezza
     // unbounded, pumpWidget lancerebbe l'assertion di layout → il test fallirebbe.
+    await tester.pumpWidget(_harness(resizable: true, bubbleBody: true));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('gen-nav-header-resize-handle')), findsOneWidget);
+  });
+
+  testWidgets('flag ON + bubbleBody a larghezza tablet (rail) → maniglia presente',
+      (tester) async {
+    // 800px ∈ [600, 1079) → tier rail (collassato di default). Con bubbleBody +
+    // railSecondary la bolla header rail è resizable → maniglia presente.
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(_harness(resizable: true, bubbleBody: true));
     await tester.pump();
 
