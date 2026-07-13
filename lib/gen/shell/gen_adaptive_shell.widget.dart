@@ -241,42 +241,26 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
         children: [
           if (resizableHeader)
             Positioned.fill(
-              child: GenResizablePanelGroup(
-                axis: Axis.vertical,
-                showHandle: true,
-                dividerColor: theme.borderColor,
-                children: [
-                  GenResizablePanel(
-                    id: 'nav-header',
-                    defaultSize: 0.4,
-                    minSize: 0.15,
-                    maxSize: 0.85,
-                    // Frosted come la barra header odierna, ma ora ad altezza
-                    // regolabile; scrollabile perché con minSize basso le voci
-                    // cliente devono scorrere dentro il pannello.
-                    child: _frostedMenuBar(
-                      theme,
-                      margin: const EdgeInsets.only(bottom: GenSizes.gapSm),
-                      child: SingleChildScrollView(child: headerContent),
-                    ),
+              child: _ResizableNav(
+                borderColor: theme.borderColor,
+                // Panel A: card frosted SENZA margin sotto → il suo bordo basso
+                // coincide col divider (linea 1px borderColor) = maniglia. Scroll
+                // interno perché con minSize basso le voci cliente scrollano dentro.
+                header: _frostedMenuBar(
+                  theme,
+                  child: SingleChildScrollView(child: headerContent),
+                ),
+                list: GenNavList(
+                  destinations: widget.destinations,
+                  selectedKey: widget.selectedKey,
+                  onSelect: _onSelect,
+                  isCompact: false,
+                  collapsed: false,
+                  onExpandRequest: () => setState(() => _collapsed = false),
+                  padding: EdgeInsets.only(
+                    bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
                   ),
-                  GenResizablePanel(
-                    id: 'nav-primary',
-                    defaultSize: 0.6,
-                    minSize: 0.15,
-                    child: GenNavList(
-                      destinations: widget.destinations,
-                      selectedKey: widget.selectedKey,
-                      onSelect: _onSelect,
-                      isCompact: false,
-                      collapsed: false,
-                      onExpandRequest: () => setState(() => _collapsed = false),
-                      padding: EdgeInsets.only(
-                        bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             )
           else ...[
@@ -1556,6 +1540,54 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
 /// Riporta la dimensione renderizzata del [child] via [onChange] dopo il layout.
 /// Usato dallo shell per misurare le barre frosted del menu e riservare il
 /// padding della lista.
+/// Nav sidebar resizable: header (Panel A, frosted, scroll) sopra la lista voci
+/// (Panel B), maniglia = bordo basso della card header. Il divider Shad è già
+/// una linea 1px (`borderColor`) → legge come bordo; il drag è sempre attivo
+/// (hit area del divider). La pill grabber (`showHandle`) appare SOLO su hover
+/// del menu, per discoverability senza aggiungere cromatura fissa.
+class _ResizableNav extends StatefulWidget {
+  const _ResizableNav({required this.header, required this.list, required this.borderColor});
+
+  final Widget header;
+  final Widget list;
+  final Color borderColor;
+
+  @override
+  State<_ResizableNav> createState() => _ResizableNavState();
+}
+
+class _ResizableNavState extends State<_ResizableNav> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GenResizablePanelGroup(
+        axis: Axis.vertical,
+        showHandle: _hover, // grabber solo su hover; il bordo resta trascinabile
+        dividerColor: widget.borderColor,
+        children: [
+          GenResizablePanel(
+            id: 'nav-header',
+            defaultSize: 0.4,
+            minSize: 0.15,
+            maxSize: 0.85,
+            child: widget.header,
+          ),
+          GenResizablePanel(
+            id: 'nav-primary',
+            defaultSize: 0.6,
+            minSize: 0.15,
+            child: widget.list,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MeasureSize extends StatefulWidget {
   const _MeasureSize({required this.onChange, required this.child});
 
