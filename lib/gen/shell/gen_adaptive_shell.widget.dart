@@ -229,15 +229,20 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
           )
         : null;
 
-    // Header espanso (non collassato) = azienda + navSecondary (voci cliente)
+    // Separator tra azienda e voci secondarie (visibile in entrambi i rami). In
+    // resizable fa parte della zona FISSA (pinnato con l'azienda).
+    final bool hasSep = companyContent != null && widget.navSecondary != null;
+
+    // Header espanso (non collassato) = azienda + separator + navSecondary
     // IMPILATI. È il contenuto della barra frosted floating nel ramo non-resizable;
-    // nel ramo resizable azienda e navSecondary vengono splittati (fisso vs scroll).
+    // nel ramo resizable azienda+separator restano fissi e navSecondary scrolla.
     final Widget? expandedHeader = (companyContent != null || widget.navSecondary != null)
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
               if (companyContent != null) companyContent,
+              if (hasSep) _navHeaderSeparator(theme),
               if (widget.navSecondary != null) widget.navSecondary!,
             ],
           )
@@ -283,8 +288,9 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                   // Cap: header non oltre azienda+cliente misurati (niente vuoto sotto
                   // l'ultima voce). Min: azienda + ~1 voce (azienda sempre visibile,
                   // no overflow). Tra i due, il cliente scrolla nell'area residua.
-                  // +gapLg = clearance bottom della scroll cliente → l'ultima voce
-                  // si ferma sopra il divider (divider sempre visibile durante lo scroll).
+                  // _navCompanyH = zona FISSA (azienda + separator, misurata insieme).
+                  // Cap max = fissa + voci + clearance (niente vuoto). Min = fissa +
+                  // ~1 voce (fissa sempre visibile). +gapLg = clearance bottom scroll.
                   final contentTotal = (_navCompanyH + _navClientH) > 0
                       ? _navCompanyH + _navClientH + GenSizes.gapLg
                       : avail;
@@ -322,12 +328,20 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              // Zona FISSA: azienda + separator (misurata insieme).
                               if (companyContent != null)
                                 _MeasureSize(
                                   onChange: (s) {
                                     if (s.height != _navCompanyH) setState(() => _navCompanyH = s.height);
                                   },
-                                  child: companyContent,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      companyContent,
+                                      if (hasSep) _navHeaderSeparator(theme),
+                                    ],
+                                  ),
                                 ),
                               Expanded(
                                 child: SingleChildScrollView(
@@ -423,6 +437,17 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// Bolla vetro smerigliato per header/footer del menu: margin gapSm (galleggia
   /// sulla lista trasparente) + card arrotondata `secondaryBackground` traslucida
   /// + BackdropFilter. La lista dietro scorre sotto il vetro nei gutter.
+  /// Separator tra azienda e voci secondarie ("Gestione cliente"): gapLg + linea
+  /// 1px borderColor. In resizable è pinnato con l'azienda (non scrolla).
+  Widget _navHeaderSeparator(GenTokens theme) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SizedBox(height: GenSizes.gapLg),
+      Container(height: 1, color: theme.borderColor),
+    ],
+  );
+
   Widget _frostedMenuBar(GenTokens theme, {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
     final radius = BorderRadius.circular(GenSizes.radiusSurface);
     return Padding(
