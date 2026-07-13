@@ -1606,45 +1606,32 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
 /// verticale (cursore resizeUpDown) che notifica il delta dy; grabber pill
 /// visibile SOLO su hover (discoverability senza cromatura fissa). Il drag resta
 /// attivo su tutta la strip anche senza hover.
-class _NavHeaderHandle extends StatefulWidget {
+class _NavHeaderHandle extends StatelessWidget {
   const _NavHeaderHandle({super.key, required this.onDrag});
 
   /// Delta verticale (px) di ogni update di drag.
   final ValueChanged<double> onDrag;
 
   @override
-  State<_NavHeaderHandle> createState() => _NavHeaderHandleState();
-}
-
-class _NavHeaderHandleState extends State<_NavHeaderHandle> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final t = GenTokens.of(context);
     return MouseRegion(
       cursor: SystemMouseCursors.resizeUpDown,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onVerticalDragUpdate: (d) => widget.onDrag(d.delta.dy),
+        onVerticalDragUpdate: (d) => onDrag(d.delta.dy),
         child: SizedBox(
           height: 16,
           child: Center(
-            child: AnimatedOpacity(
-              opacity: _hover ? 1 : 0,
-              duration: const Duration(milliseconds: 120),
-              // Grabber identico a GenResizable: pill borderColor (radius 4,
-              // padding H3/V1) con icona gripHorizontal (asse verticale).
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                decoration: BoxDecoration(
-                  color: t.borderColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: GenIcon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
+            // Grabber sempre visibile, identico a GenResizable: pill borderColor
+            // (radius 4, padding H3/V1) con icona gripHorizontal (asse verticale).
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              decoration: BoxDecoration(
+                color: t.borderColor,
+                borderRadius: BorderRadius.circular(4),
               ),
+              child: GenIcon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
             ),
           ),
         ),
