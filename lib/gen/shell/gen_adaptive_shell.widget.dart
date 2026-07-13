@@ -437,16 +437,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// Bolla vetro smerigliato per header/footer del menu: margin gapSm (galleggia
   /// sulla lista trasparente) + card arrotondata `secondaryBackground` traslucida
   /// + BackdropFilter. La lista dietro scorre sotto il vetro nei gutter.
-  /// Separator tra azienda e voci secondarie ("Gestione cliente"): gapLg + linea
-  /// 1px borderColor. In resizable è pinnato con l'azienda (non scrolla).
-  Widget _navHeaderSeparator(GenTokens theme) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      const SizedBox(height: GenSizes.gapLg),
-      Container(height: 1, color: theme.borderColor),
-    ],
-  );
+  /// Separator tra azienda e voci secondarie ("Gestione cliente"): linea 1px
+  /// borderColor. Niente gap proprio: il gap sopra lo dà il padding bottom del
+  /// blocco azienda (es. NavHeader ha Padding all gapLg) → un solo Lg, non due.
+  /// In resizable è pinnato con l'azienda (non scrolla).
+  Widget _navHeaderSeparator(GenTokens theme) => Container(height: 1, color: theme.borderColor);
 
   Widget _frostedMenuBar(GenTokens theme, {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
     final radius = BorderRadius.circular(GenSizes.radiusSurface);
