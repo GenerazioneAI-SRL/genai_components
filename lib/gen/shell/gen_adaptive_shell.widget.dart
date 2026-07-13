@@ -113,6 +113,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// basso dell'header; clamp [0.15, 0.85]. Stato di sessione (no persistenza).
   double _navHeaderFraction = 0.4;
 
+  /// Altezza intrinseca misurata del contenuto header (azienda + voci cliente).
+  /// L'altezza dell'header resizable è cappata a questo valore → niente spazio
+  /// vuoto sotto l'ultima voce.
+  double _navHeaderContentH = 0;
+
   /// Ultimo `trailing` non-null: ritenuto durante l'animazione di CHIUSURA della
   /// bolla assistente (quando `widget.trailing` torna null) così il contenuto
   /// resta montato mentre la bolla collassa. Azzerato a collasso completo.
@@ -253,7 +258,14 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
               child: LayoutBuilder(
                 builder: (context, c) {
                   final avail = c.maxHeight;
-                  final frac = _navHeaderFraction.clamp(0.15, 0.85);
+                  // Cap altezza header al contenuto misurato (+gap) → niente spazio
+                  // vuoto sotto l'ultima voce. Se il contenuto supera il viewport,
+                  // cap a 0.85 (l'header scrolla dentro).
+                  final contentMax =
+                      _navHeaderContentH > 0 ? _navHeaderContentH + GenSizes.gapSm : avail;
+                  final maxFrac = (contentMax / avail).clamp(0.0, 0.85);
+                  final minFrac = maxFrac < 0.15 ? maxFrac : 0.15;
+                  final frac = _navHeaderFraction.clamp(minFrac, maxFrac);
                   final headerH = frac * avail;
                   return Stack(
                     children: [
@@ -281,7 +293,18 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                         height: headerH,
                         child: _frostedMenuBar(
                           theme,
-                          child: SingleChildScrollView(child: headerContent),
+                          child: SingleChildScrollView(
+                            // Misura l'altezza intrinseca del contenuto (lo scroll dà
+                            // vincolo verticale illimitato al figlio) → serve al cap.
+                            child: _MeasureSize(
+                              onChange: (s) {
+                                if (s.height != _navHeaderContentH) {
+                                  setState(() => _navHeaderContentH = s.height);
+                                }
+                              },
+                              child: headerContent,
+                            ),
+                          ),
                         ),
                       ),
                       // Maniglia sul bordo basso dell'header: drag verticale regola
@@ -293,7 +316,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                         child: _NavHeaderHandle(
                           key: const Key('gen-nav-header-resize-handle'),
                           onDrag: (dy) => setState(() {
-                            _navHeaderFraction = (frac + dy / avail).clamp(0.15, 0.85);
+                            _navHeaderFraction = (frac + dy / avail).clamp(minFrac, maxFrac);
                           }),
                         ),
                       ),
