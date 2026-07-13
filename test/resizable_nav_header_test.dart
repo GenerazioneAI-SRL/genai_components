@@ -4,14 +4,14 @@ import 'package:genai_components/gen/gen.dart';
 
 /// Wrappa lo shell nel tema Gen + forza una larghezza desktop (>= 1079) così il
 /// tier risolto è `sidebar` (dove il resize è attivo).
-Widget _harness({required bool resizable}) {
+Widget _harness({required bool resizable, bool bubbleBody = false}) {
   return GenApp(
     debugShowCheckedModeBanner: false,
     theme: GenThemeData.light().toShad(),
     home: GenTheme(
       data: GenThemeData.light(),
       child: GenAdaptiveShell(
-        config: GenShellConfig(resizableNavHeader: resizable),
+        config: GenShellConfig(resizableNavHeader: resizable, bubbleBody: bubbleBody),
         destinations: const [
           GenDestination(key: 'a', label: 'Alpha', icon: Icons.circle),
           GenDestination(key: 'b', label: 'Beta', icon: Icons.square),
@@ -58,5 +58,22 @@ void main() {
     await tester.pump();
 
     expect(find.byType(GenResizablePanelGroup), findsNothing);
+  });
+
+  testWidgets('flag ON + bubbleBody (path shipping) → panel group senza errori di layout',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // bubbleBody: true è il path realmente usato dall'esempio (_bubbleDesktop →
+    // AnimatedContainer/OverflowBox). Se il gruppo verticale ricevesse altezza
+    // unbounded, pumpWidget lancerebbe l'assertion di layout → il test fallirebbe.
+    await tester.pumpWidget(_harness(resizable: true, bubbleBody: true));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(GenResizablePanelGroup), findsOneWidget);
   });
 }
