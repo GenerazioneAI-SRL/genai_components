@@ -309,8 +309,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           collapsed: false,
                           onExpandRequest: () => setState(() => _collapsed = false),
                           padding: EdgeInsets.only(
-                            // Lg tra il bordo basso dell'header e la prima voce lista.
-                            top: headerH + GenSizes.gapLg,
+                            // Lg ESATTO tra bordo basso header e pill prima voce: la
+                            // voce ha già padding vertical gapXs (gen_nav_list) → lo
+                            // sottraggo per non sommare (gapLg + gapXs).
+                            top: headerH + GenSizes.gapLg - GenSizes.gapXs,
                             bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
                           ),
                         ),
