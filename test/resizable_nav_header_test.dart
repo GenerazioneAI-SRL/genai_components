@@ -35,7 +35,7 @@ void main() {
     // no-op: la size si imposta per-test via tester.view sotto.
   });
 
-  testWidgets('flag ON in sidebar espansa → mostra il panel group resizable',
+  testWidgets('flag ON in sidebar espansa → mostra la maniglia di resize',
       (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -45,10 +45,10 @@ void main() {
     await tester.pumpWidget(_harness(resizable: true));
     await tester.pump();
 
-    expect(find.byType(GenResizablePanelGroup), findsOneWidget);
+    expect(find.byKey(const Key('gen-nav-header-resize-handle')), findsOneWidget);
   });
 
-  testWidgets('flag OFF → nessun panel group (layout odierno)', (tester) async {
+  testWidgets('flag OFF → nessuna maniglia (layout odierno)', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -57,10 +57,10 @@ void main() {
     await tester.pumpWidget(_harness(resizable: false));
     await tester.pump();
 
-    expect(find.byType(GenResizablePanelGroup), findsNothing);
+    expect(find.byKey(const Key('gen-nav-header-resize-handle')), findsNothing);
   });
 
-  testWidgets('flag ON + bubbleBody (path shipping) → panel group senza errori di layout',
+  testWidgets('flag ON + bubbleBody (path shipping) → maniglia senza errori di layout',
       (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -74,6 +74,6 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(GenResizablePanelGroup), findsOneWidget);
+    expect(find.byKey(const Key('gen-nav-header-resize-handle')), findsOneWidget);
   });
 }

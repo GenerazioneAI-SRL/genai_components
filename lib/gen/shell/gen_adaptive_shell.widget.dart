@@ -108,6 +108,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   bool? _collapsed;
   GenNavMode? _prevMode;
 
+  /// Frazione (0..1) dell'altezza disponibile occupata dall'header nav quando
+  /// `config.resizableNavHeader` è attivo. Regolata dalla maniglia sul bordo
+  /// basso dell'header; clamp [0.15, 0.85]. Stato di sessione (no persistenza).
+  double _navHeaderFraction = 0.4;
+
   /// Ultimo `trailing` non-null: ritenuto durante l'animazione di CHIUSURA della
   /// bolla assistente (quando `widget.trailing` torna null) così il contenuto
   /// resta montato mentre la bolla collassa. Azzerato a collasso completo.
@@ -240,27 +245,62 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
       child: Stack(
         children: [
           if (resizableHeader)
+            // Overlay resizable: la lista scorre SOTTO l'header frosted (frost
+            // preservato: il vetro sfoca la lista dietro). L'header ha altezza =
+            // frazione regolabile via maniglia custom sul suo bordo basso. Nessun
+            // divider Shad → niente hairline staccata.
             Positioned.fill(
-              child: _ResizableNav(
-                borderColor: theme.borderColor,
-                // Panel A: card frosted SENZA margin sotto → il suo bordo basso
-                // coincide col divider (linea 1px borderColor) = maniglia. Scroll
-                // interno perché con minSize basso le voci cliente scrollano dentro.
-                header: _frostedMenuBar(
-                  theme,
-                  child: SingleChildScrollView(child: headerContent),
-                ),
-                list: GenNavList(
-                  destinations: widget.destinations,
-                  selectedKey: widget.selectedKey,
-                  onSelect: _onSelect,
-                  isCompact: false,
-                  collapsed: false,
-                  onExpandRequest: () => setState(() => _collapsed = false),
-                  padding: EdgeInsets.only(
-                    bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
-                  ),
-                ),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final avail = c.maxHeight;
+                  final frac = _navHeaderFraction.clamp(0.15, 0.85);
+                  final headerH = frac * avail;
+                  return Stack(
+                    children: [
+                      Positioned.fill(
+                        child: GenNavList(
+                          destinations: widget.destinations,
+                          selectedKey: widget.selectedKey,
+                          onSelect: _onSelect,
+                          isCompact: false,
+                          collapsed: false,
+                          onExpandRequest: () => setState(() => _collapsed = false),
+                          padding: EdgeInsets.only(
+                            top: headerH,
+                            bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
+                          ),
+                        ),
+                      ),
+                      // Header frosted galleggiante ad altezza fissa: il contenuto
+                      // (azienda + voci cliente) scrolla dentro; il vetro sfoca la
+                      // lista che scorre sotto.
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: headerH,
+                        child: _frostedMenuBar(
+                          theme,
+                          child: SingleChildScrollView(child: headerContent),
+                        ),
+                      ),
+                      // Maniglia sul bordo basso dell'header: drag verticale regola
+                      // la frazione; grabber visibile solo su hover.
+                      Positioned(
+                        top: headerH - 8,
+                        left: 0,
+                        right: 0,
+                        child: _NavHeaderHandle(
+                          key: const Key('gen-nav-header-resize-handle'),
+                          grabberColor: theme.secondaryText,
+                          onDrag: (dy) => setState(() {
+                            _navHeaderFraction = (frac + dy / avail).clamp(0.15, 0.85);
+                          }),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             )
           else ...[
@@ -1540,49 +1580,50 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
 /// Riporta la dimensione renderizzata del [child] via [onChange] dopo il layout.
 /// Usato dallo shell per misurare le barre frosted del menu e riservare il
 /// padding della lista.
-/// Nav sidebar resizable: header (Panel A, frosted, scroll) sopra la lista voci
-/// (Panel B), maniglia = bordo basso della card header. Il divider Shad è già
-/// una linea 1px (`borderColor`) → legge come bordo; il drag è sempre attivo
-/// (hit area del divider). La pill grabber (`showHandle`) appare SOLO su hover
-/// del menu, per discoverability senza aggiungere cromatura fissa.
-class _ResizableNav extends StatefulWidget {
-  const _ResizableNav({required this.header, required this.list, required this.borderColor});
+/// Maniglia di resize sul bordo basso dell'header nav: strip full-width con drag
+/// verticale (cursore resizeUpDown) che notifica il delta dy; grabber pill
+/// visibile SOLO su hover (discoverability senza cromatura fissa). Il drag resta
+/// attivo su tutta la strip anche senza hover.
+class _NavHeaderHandle extends StatefulWidget {
+  const _NavHeaderHandle({super.key, required this.onDrag, required this.grabberColor});
 
-  final Widget header;
-  final Widget list;
-  final Color borderColor;
+  /// Delta verticale (px) di ogni update di drag.
+  final ValueChanged<double> onDrag;
+  final Color grabberColor;
 
   @override
-  State<_ResizableNav> createState() => _ResizableNavState();
+  State<_NavHeaderHandle> createState() => _NavHeaderHandleState();
 }
 
-class _ResizableNavState extends State<_ResizableNav> {
+class _NavHeaderHandleState extends State<_NavHeaderHandle> {
   bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+      cursor: SystemMouseCursors.resizeUpDown,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
-      child: GenResizablePanelGroup(
-        axis: Axis.vertical,
-        showHandle: _hover, // grabber solo su hover; il bordo resta trascinabile
-        dividerColor: widget.borderColor,
-        children: [
-          GenResizablePanel(
-            id: 'nav-header',
-            defaultSize: 0.4,
-            minSize: 0.15,
-            maxSize: 0.85,
-            child: widget.header,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onVerticalDragUpdate: (d) => widget.onDrag(d.delta.dy),
+        child: SizedBox(
+          height: 16,
+          child: Center(
+            child: AnimatedOpacity(
+              opacity: _hover ? 1 : 0,
+              duration: const Duration(milliseconds: 120),
+              child: Container(
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: widget.grabberColor.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
           ),
-          GenResizablePanel(
-            id: 'nav-primary',
-            defaultSize: 0.6,
-            minSize: 0.15,
-            child: widget.list,
-          ),
-        ],
+        ),
       ),
     );
   }
