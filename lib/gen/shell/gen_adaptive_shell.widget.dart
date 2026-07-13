@@ -261,8 +261,8 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                   // Cap altezza header al contenuto misurato (+gap) → niente spazio
                   // vuoto sotto l'ultima voce. Se il contenuto supera il viewport,
                   // cap a 0.85 (l'header scrolla dentro).
-                  // contentMax include già il padding bottom Lg del contenuto (vedi
-                  // _MeasureSize sotto) → l'ultima voce ha spazio Lg prima del bordo.
+                  // contentMax = altezza contenuto misurata (include già il gapLg
+                  // bottom di NavHeader) → l'header non cresce oltre l'ultima voce.
                   final contentMax = _navHeaderContentH > 0 ? _navHeaderContentH : avail;
                   final maxFrac = (contentMax / avail).clamp(0.0, 0.85);
                   final minFrac = maxFrac < 0.15 ? maxFrac : 0.15;
@@ -304,11 +304,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                                   setState(() => _navHeaderContentH = s.height);
                                 }
                               },
-                              // Lg sotto l'ultima voce cliente prima del bordo/maniglia.
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
-                                child: headerContent,
-                              ),
+                              // NavHeader avvolge già il contenuto in Padding(all: gapLg)
+                              // → lo spazio Lg sotto l'ultima voce c'è di suo; niente
+                              // padding aggiuntivo qui (si sommerebbe).
+                              child: headerContent,
                             ),
                           ),
                         ),
