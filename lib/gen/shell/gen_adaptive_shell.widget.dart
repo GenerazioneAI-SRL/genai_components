@@ -283,8 +283,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                   // Cap: header non oltre azienda+cliente misurati (niente vuoto sotto
                   // l'ultima voce). Min: azienda + ~1 voce (azienda sempre visibile,
                   // no overflow). Tra i due, il cliente scrolla nell'area residua.
-                  final contentTotal =
-                      (_navCompanyH + _navClientH) > 0 ? (_navCompanyH + _navClientH) : avail;
+                  // +gapLg = clearance bottom della scroll cliente → l'ultima voce
+                  // si ferma sopra il divider (divider sempre visibile durante lo scroll).
+                  final contentTotal = (_navCompanyH + _navClientH) > 0
+                      ? _navCompanyH + _navClientH + GenSizes.gapLg
+                      : avail;
                   final minFrac = ((_navCompanyH + GenSizes.buttonHeightCompact) / avail).clamp(0.0, 0.85);
                   final maxFrac = (contentTotal / avail).clamp(minFrac, 0.85);
                   final frac = _navHeaderFraction.clamp(minFrac, maxFrac);
@@ -328,6 +331,9 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                                 ),
                               Expanded(
                                 child: SingleChildScrollView(
+                                  // Clearance bottom → l'ultima voce si ferma sopra il
+                                  // divider, che resta visibile mentre scorri.
+                                  padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
                                   // Misura l'altezza intrinseca delle voci cliente (lo
                                   // scroll dà vincolo verticale illimitato) → serve al cap.
                                   child: _MeasureSize(
