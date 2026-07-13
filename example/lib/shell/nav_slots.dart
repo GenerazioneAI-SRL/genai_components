@@ -59,19 +59,22 @@ class ClientContextMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = GenTokens.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Separator sopra è ora pinnato dallo shell (navSecondary): qui solo
-        // label + voci (tutto scrollabile sotto il separator fisso).
-        SizedBox(height: t.gapLg),
-        Padding(
-          padding: EdgeInsets.only(left: t.gapSm, bottom: t.gapXs),
-          child: Text('Gestione cliente', style: t.smallLabel.copyWith(color: t.secondaryText)),
-        ),
-        for (final (icon, label) in _items) _ClientMenuTile(icon: icon, label: label, onTap: () {}),
-      ],
+    // horizontal gapLg: allinea voci/pill all'inset dell'azienda (NavHeader ha
+    // Padding all gapLg). Il separator sopra è pinnato dallo shell (full-width).
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: t.gapLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(height: t.gapLg),
+          Padding(
+            padding: EdgeInsets.only(left: t.gapSm, bottom: t.gapXs),
+            child: Text('Gestione cliente', style: t.smallLabel.copyWith(color: t.secondaryText)),
+          ),
+          for (final (icon, label) in _items) _ClientMenuTile(icon: icon, label: label, onTap: () {}),
+        ],
+      ),
     );
   }
 }
