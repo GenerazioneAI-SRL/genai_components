@@ -54,7 +54,7 @@ class BreadcrumbShowcase extends StatelessWidget {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        GenIcon(LucideIcons.house, size: 14),
+                        Icon(LucideIcons.house, size: 14),
                         SizedBox(width: 6),
                         Text('Home'),
                       ],
@@ -65,7 +65,7 @@ class BreadcrumbShowcase extends StatelessWidget {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        GenIcon(LucideIcons.folder, size: 14),
+                        Icon(LucideIcons.folder, size: 14),
                         SizedBox(width: 6),
                         Text('Progetti'),
                       ],
@@ -74,7 +74,7 @@ class BreadcrumbShowcase extends StatelessWidget {
                   const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      GenIcon(LucideIcons.file, size: 14),
+                      Icon(LucideIcons.file, size: 14),
                       SizedBox(width: 6),
                       Text('README'),
                     ],
@@ -187,7 +187,7 @@ class BreadcrumbShowcase extends StatelessWidget {
               label: 'slash /',
               width: 520,
               child: GenBreadcrumb(
-                separator: const GenIcon(LucideIcons.slash, size: 14),
+                separator: const Icon(LucideIcons.slash, size: 14),
                 children: [
                   GenBreadcrumbLink(onPressed: () {}, child: const Text('Home')),
                   GenBreadcrumbLink(onPressed: () {}, child: const Text('Sezione')),
@@ -199,7 +199,7 @@ class BreadcrumbShowcase extends StatelessWidget {
               label: 'chevron custom (colore primary, size 18)',
               width: 520,
               child: GenBreadcrumb(
-                separator: GenIcon(LucideIcons.chevronRight, size: 18, color: t.primary),
+                separator: Icon(LucideIcons.chevronRight, size: 18, color: t.primary),
                 children: [
                   GenBreadcrumbLink(onPressed: () {}, child: const Text('Home')),
                   GenBreadcrumbLink(onPressed: () {}, child: const Text('Sezione')),

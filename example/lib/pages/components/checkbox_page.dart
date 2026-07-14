@@ -165,7 +165,7 @@ class _CheckboxShowcaseState extends State<CheckboxShowcase> {
               child: GenCheckbox(
                 value: _customIcon,
                 onChanged: (v) => setState(() => _customIcon = v),
-                icon: const GenIcon(LucideIcons.heart, size: 16),
+                icon: const Icon(LucideIcons.heart, size: 16),
               ),
             ),
             DemoTile(

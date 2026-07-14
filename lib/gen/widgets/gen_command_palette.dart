@@ -6,7 +6,6 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../theme/gen_tokens.dart';
 import '../theme/gen_sizes.dart';
-import '../theme/gen_icon.dart';
 import '../primitives/gen_primitives.dart';
 import '../primitives/gen_overlays.dart';
 
@@ -250,7 +249,7 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
                       ),
                       leading: Padding(
                         padding: EdgeInsets.only(right: t.gapSm),
-                        child: GenIcon(LucideIcons.search, size: t.iconSizeCompact, color: t.secondaryText),
+                        child: Icon(LucideIcons.search, size: t.iconSizeCompact, color: t.secondaryText),
                       ),
                       trailing: _loading
                           ? Padding(
@@ -330,7 +329,7 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
         child: Row(
           children: [
             if (it.icon != null) ...[
-              GenIcon(it.icon!, size: t.iconSizeDefault, color: t.secondaryText),
+              Icon(it.icon!, size: t.iconSizeDefault, color: t.secondaryText),
               SizedBox(width: t.gapMd),
             ],
             Expanded(
@@ -354,7 +353,7 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
         onTap: () => _activate(index),
         child: Row(
           children: [
-            GenIcon(LucideIcons.sparkles, size: t.iconSizeDefault, color: t.primary),
+            Icon(LucideIcons.sparkles, size: t.iconSizeDefault, color: t.primary),
             SizedBox(width: t.gapMd),
             Expanded(
               child: Text('${widget.askAiLabel}: "$_query"',

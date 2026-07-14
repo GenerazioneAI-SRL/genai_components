@@ -8,7 +8,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shadcn_ui/shadcn_ui.dart' show ShadDecoration, ShadBorder;
 
 import '../theme/gen_tokens.dart';
-import '../theme/gen_icon.dart';
 import '../primitives/gen_primitives.dart';
 import '../primitives/gen_overlays.dart';
 
@@ -209,7 +208,7 @@ class _GenAiAssistantState extends State<GenAiAssistant> {
                   Navigator.of(dctx).pop();
                   widget.onNewChat?.call();
                 },
-                leading: const GenIcon(LucideIcons.plus),
+                leading: const Icon(LucideIcons.plus),
                 child: const Text('Nuova conversazione'),
               ),
             ],
@@ -317,7 +316,7 @@ class _GenAiAssistantState extends State<GenAiAssistant> {
         if (widget.onClose != null)
           GenIconButton.ghost(
             onPressed: widget.onClose,
-            icon: GenIcon(LucideIcons.x400, size: t.iconSizeDefault),
+            icon: Icon(LucideIcons.x400, size: t.iconSizeDefault),
           ),
       ],
     ),
@@ -455,12 +454,12 @@ class _GenAiAssistantState extends State<GenAiAssistant> {
           children: [
             GenIconButton.outline(
               onPressed: widget.onAttach,
-              icon: const GenIcon(LucideIcons.paperclip),
+              icon: const Icon(LucideIcons.paperclip),
             ),
             const Spacer(),
             widget.isProcessing && widget.onStop != null
-                ? GenIconButton.destructive(onPressed: widget.onStop, icon: const GenIcon(LucideIcons.square))
-                : GenIconButton(onPressed: _canSend ? _send : null, icon: const GenIcon(LucideIcons.arrowUp)),
+                ? GenIconButton.destructive(onPressed: widget.onStop, icon: const Icon(LucideIcons.square))
+                : GenIconButton(onPressed: _canSend ? _send : null, icon: const Icon(LucideIcons.arrowUp)),
           ],
         ),
         SizedBox(height: t.gapLg),
@@ -518,7 +517,7 @@ class _ConvTileState extends State<_ConvTile> {
           ),
           child: Row(
             children: [
-              GenIcon(LucideIcons.messageSquare, size: t.iconSizeCompact, color: t.secondaryText),
+              Icon(LucideIcons.messageSquare, size: t.iconSizeCompact, color: t.secondaryText),
               SizedBox(width: t.gapSm),
               Expanded(
                 child: Column(
@@ -547,7 +546,7 @@ class _ConvTileState extends State<_ConvTile> {
                   onPressed: widget.onDelete,
                   iconSize: t.iconSizeCompact,
                   padding: EdgeInsets.all(t.gapXs),
-                  icon: GenIcon(LucideIcons.trash2, color: t.danger),
+                  icon: Icon(LucideIcons.trash2, color: t.danger),
                 ),
               ],
             ],
@@ -692,7 +691,7 @@ class _ChatTitleButtonState extends State<_ChatTitleButton> {
                 ),
               ),
               SizedBox(width: t.gapSm),
-              GenIcon(LucideIcons.chevronDown, size: t.iconSizeCompact, color: t.primaryText),
+              Icon(LucideIcons.chevronDown, size: t.iconSizeCompact, color: t.primaryText),
             ],
           ),
         ),

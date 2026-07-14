@@ -50,7 +50,7 @@ class BadgeShowcase extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const GenIcon(LucideIcons.check, size: 12),
+                    const Icon(LucideIcons.check, size: 12),
                     SizedBox(width: t.gapSm / 2),
                     const Text('Verified'),
                   ],
@@ -63,7 +63,7 @@ class BadgeShowcase extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const GenIcon(LucideIcons.triangleAlert, size: 12),
+                    const Icon(LucideIcons.triangleAlert, size: 12),
                     SizedBox(width: t.gapSm / 2),
                     const Text('Error'),
                   ],
@@ -78,7 +78,7 @@ class BadgeShowcase extends StatelessWidget {
                   children: [
                     const Text('Tag'),
                     SizedBox(width: t.gapSm / 2),
-                    const GenIcon(LucideIcons.x, size: 12),
+                    const Icon(LucideIcons.x, size: 12),
                   ],
                 ),
               ),

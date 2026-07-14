@@ -113,7 +113,7 @@ class PagedDataTableRowMetrics {
       checkboxSlot: t.iconSizeDefault, // box stretto sul checkbox; Lg dx lo dà il padding cella
       expandSlot: 24.0,
       searchPrefixLeftPad: t.gapMd,
-      searchPrefixIconSize: 18.0,
+      searchPrefixIconSize: t.iconSizeCompact,
       pagePadX: t.gapLg, // table horizontal content inset = Lg (16)
       gap: t.gapMd,
       popupButtonSlot: 40.0,

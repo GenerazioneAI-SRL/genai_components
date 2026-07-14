@@ -23,7 +23,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'Primary (default)',
               width: 380,
               child: GenAlert(
-                icon: GenIcon(LucideIcons.info),
+                icon: Icon(LucideIcons.info),
                 title: Text('Aggiornamento disponibile'),
                 description: Text('Una nuova versione dei componenti e\' pronta da installare.'),
               ),
@@ -32,7 +32,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'Destructive (.destructive)',
               width: 380,
               child: GenAlert.destructive(
-                icon: GenIcon(LucideIcons.circleAlert),
+                icon: Icon(LucideIcons.circleAlert),
                 title: Text('Errore di salvataggio'),
                 description: Text('Impossibile salvare le modifiche. Riprova piu\' tardi.'),
               ),
@@ -41,13 +41,13 @@ class AlertShowcase extends StatelessWidget {
         ),
         DemoGroup(
           title: 'Con e senza icona',
-          description: 'icon: GenIcon(...) opzionale. Senza icona il testo occupa tutta la riga.',
+          description: 'icon: Icon(...) opzionale. Senza icona il testo occupa tutta la riga.',
           items: [
             DemoTile(
               label: 'Con icona',
               width: 380,
               child: GenAlert(
-                icon: GenIcon(LucideIcons.rocket),
+                icon: Icon(LucideIcons.rocket),
                 title: Text('Deploy completato'),
                 description: Text('Il rilascio in produzione e\' andato a buon fine.'),
               ),
@@ -70,7 +70,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'Solo title',
               width: 380,
               child: GenAlert(
-                icon: GenIcon(LucideIcons.check),
+                icon: Icon(LucideIcons.check),
                 title: Text('Operazione completata'),
               ),
             ),
@@ -78,7 +78,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'title + description',
               width: 380,
               child: GenAlert(
-                icon: GenIcon(LucideIcons.bell),
+                icon: Icon(LucideIcons.bell),
                 title: Text('Promemoria'),
                 description: Text('La sessione scade tra 5 minuti. Salva il lavoro in corso.'),
               ),
@@ -87,7 +87,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'Solo description',
               width: 380,
               child: GenAlert(
-                icon: GenIcon(LucideIcons.messageSquare),
+                icon: Icon(LucideIcons.messageSquare),
                 description: Text('Testo informativo senza titolo, utile per note inline discrete.'),
               ),
             ),
@@ -101,7 +101,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'Solo title',
               width: 380,
               child: GenAlert.destructive(
-                icon: GenIcon(LucideIcons.triangleAlert),
+                icon: Icon(LucideIcons.triangleAlert),
                 title: Text('Azione irreversibile'),
               ),
             ),
@@ -109,7 +109,7 @@ class AlertShowcase extends StatelessWidget {
               label: 'title + description',
               width: 380,
               child: GenAlert.destructive(
-                icon: GenIcon(LucideIcons.trash2),
+                icon: Icon(LucideIcons.trash2),
                 title: Text('Eliminazione account'),
                 description: Text('Tutti i dati verranno rimossi definitivamente e non recuperabili.'),
               ),

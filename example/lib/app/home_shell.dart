@@ -166,8 +166,29 @@ class _HomeShellState extends State<HomeShell> {
     _slots.setNav(back: back, breadcrumbs: crumbs);
   }
 
+  /// Assistente AI (demo echo). Riusato in due contenitori: bolla `trailing`
+  /// (desktop/tablet) ed `endDrawer` (mobile). [onClose] chiude il contenitore.
+  Widget _aiAssistant({required VoidCallback onClose}) => GenAiAssistant(
+        messages: _messages,
+        onSend: _onSendAi,
+        isProcessing: _aiProcessing,
+        onClose: onClose,
+        onNewChat: _newChat,
+        conversationTitle: _convTitle,
+        conversations: _conversations,
+        onOpenConversation: _openConv,
+        onDeleteConversation: (id) => setState(() => _conversations.removeWhere((c) => c.id == id)),
+        greetingName: 'Davide',
+        suggestions: const [
+          GenChatSuggestion(icon: LucideIcons.fileText, label: 'Riepilogo', message: 'Fammi un riepilogo.'),
+          GenChatSuggestion(icon: LucideIcons.listChecks, label: 'To-do', message: 'Crea una to-do list.'),
+          GenChatSuggestion(icon: LucideIcons.sparkles, label: 'Idee', message: 'Dammi 3 idee.'),
+        ],
+      );
+
   @override
   Widget build(BuildContext context) {
+    final t = GenTokens.of(context);
     return GenAdaptiveShell(
       config: const GenShellConfig(bubbleBody: true, resizableNavHeader: true),
       slotsController: _slots,
@@ -185,27 +206,28 @@ class _HomeShellState extends State<HomeShell> {
       railSecondary: const ClientContextMenuRail(),
       railFooter: const NavFooterRail(),
       header: AppHeader(onToggleAi: _toggleAi),
-      // Bolla assistente AI accanto al body (solo desktop bubble). Aperta/chiusa
+      // Mobile: azioni globali nella bottom bar → [Menu · AI (centrale, gradient
+      // brand) · Cerca]. Menu apre il drawer nav, AI l'endDrawer, Cerca la palette.
+      bottomBarItems: [
+        GenBottomBarItem(icon: LucideIcons.menu, label: 'Menu', onTap: _slots.openMenu),
+        GenBottomBarItem(
+          icon: LucideIcons.sparkles,
+          label: 'AI',
+          onTap: _slots.openAi,
+          iconGradient: LinearGradient(colors: [t.primary, const Color(0xFF4F46E5)]),
+        ),
+        GenBottomBarItem(
+          icon: LucideIcons.search,
+          label: 'Cerca',
+          onTap: () => openGlobalSearch(context, onAskAi: _slots.openAi),
+        ),
+      ],
+      // AI su mobile: endDrawer (pannello da destra), aperto da slots.openAi().
+      // Builder per prendere il context sotto lo Scaffold e chiudere l'endDrawer.
+      endDrawer: Builder(builder: (ctx) => _aiAssistant(onClose: () => Scaffold.of(ctx).closeEndDrawer())),
+      // Bolla assistente AI accanto al body (desktop/tablet bubble). Aperta/chiusa
       // dal pulsante AI dell'header; stato/messaggi posseduti qui (demo echo).
-      trailing: _aiOpen
-          ? GenAiAssistant(
-              messages: _messages,
-              onSend: _onSendAi,
-              isProcessing: _aiProcessing,
-              onClose: _toggleAi,
-              onNewChat: _newChat,
-              conversationTitle: _convTitle,
-              conversations: _conversations,
-              onOpenConversation: _openConv,
-              onDeleteConversation: (id) => setState(() => _conversations.removeWhere((c) => c.id == id)),
-              greetingName: 'Davide',
-              suggestions: const [
-                GenChatSuggestion(icon: LucideIcons.fileText, label: 'Riepilogo', message: 'Fammi un riepilogo.'),
-                GenChatSuggestion(icon: LucideIcons.listChecks, label: 'To-do', message: 'Crea una to-do list.'),
-                GenChatSuggestion(icon: LucideIcons.sparkles, label: 'Idee', message: 'Dammi 3 idee.'),
-              ],
-            )
-          : null,
+      trailing: _aiOpen ? _aiAssistant(onClose: _toggleAi) : null,
       body: widget.child,
     );
   }

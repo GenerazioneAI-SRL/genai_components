@@ -89,7 +89,7 @@ class _FormShowcaseState extends State<FormShowcase> {
                       label: const Text('Username'),
                       description: const Text('Almeno 3 caratteri.'),
                       placeholder: const Text('mario.rossi'),
-                      leading: const GenIcon(LucideIcons.atSign, size: 16),
+                      leading: const Icon(LucideIcons.atSign, size: 16),
                       validator: (v) => _required(v) ?? _minLen(v, 3),
                     ),
                     const SizedBox(height: 12),
@@ -137,14 +137,14 @@ class _FormShowcaseState extends State<FormShowcase> {
                       children: [
                         Expanded(
                           child: GenButton(
-                            leading: const GenIcon(LucideIcons.check),
+                            leading: const Icon(LucideIcons.check),
                             onPressed: _submit,
                             child: const Text('Invia'),
                           ),
                         ),
                         const SizedBox(width: 8),
                         GenButton.outline(
-                          leading: const GenIcon(LucideIcons.rotateCcw),
+                          leading: const Icon(LucideIcons.rotateCcw),
                           onPressed: _reset,
                           child: const Text('Reset'),
                         ),
@@ -165,7 +165,7 @@ class _FormShowcaseState extends State<FormShowcase> {
                           children: [
                             Row(
                               children: [
-                                GenIcon(LucideIcons.circleCheck,
+                                Icon(LucideIcons.circleCheck,
                                     size: 16, color: t.primary),
                                 const SizedBox(width: 6),
                                 Text('Form inviato', style: t.heading5),
@@ -215,7 +215,7 @@ class _FormShowcaseState extends State<FormShowcase> {
               GenInputFormField(
                 label: const Text('Cerca'),
                 placeholder: const Text('Filtra…'),
-                leading: const GenIcon(LucideIcons.search, size: 16),
+                leading: const Icon(LucideIcons.search, size: 16),
               ),
             ),
             _fieldTile(

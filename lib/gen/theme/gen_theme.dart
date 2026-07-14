@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import 'package:genai_components/gen/theme/gen_icon.dart';
 import 'package:genai_components/gen/theme/gen_sizes.dart';
 
 /// Skillera (CL) palette as a [ShadColorScheme]. Single source for brand tokens:
@@ -70,16 +69,11 @@ class GenThemeData {
     // Default = radiusControl (12): stesso raggio dei controlli della tabella,
     // così ShadInput/ShadButton e la tabella condividono un'unica scala radius.
     this.radius = const BorderRadius.all(Radius.circular(GenSizes.radiusControl)),
-    this.iconWeight = 400,
   }) : _colorScheme = colorScheme;
 
   final Brightness brightness;
   final ShadColorScheme? _colorScheme;
   final BorderRadius radius;
-
-  /// Peso Lucide di default per [GenIcon] (100–600, clampato). Applicato via
-  /// [GenIconTheme] montato da [GenTheme].
-  final int iconWeight;
 
   bool get _isDark => brightness == Brightness.dark;
 
@@ -91,6 +85,17 @@ class GenThemeData {
         colorScheme: colorScheme,
         radius: radius,
         textTheme: ShadTextTheme(family: 'Inter'),
+        // Input alti come i button. ShadInput di default è content-sized (più
+        // basso di un ShadButton, che è fisso 40): gli diamo minHeight =
+        // GenSizes.inputHeight (40, = buttonHeightDefault) così un GenInput
+        // accanto a un GenButton combacia in altezza. Solo `constraints` è
+        // sovrascritto (ShadThemeData fonde col resto); crossAxisAlignment di
+        // default è center → contenuto verticalmente centrato; un input multiline
+        // cresce comunque oltre 40. Per un input compatto (32) si passa un
+        // `constraints` locale al singolo GenInput.
+        inputTheme: const ShadInputTheme(
+          constraints: BoxConstraints(minHeight: GenSizes.inputHeight),
+        ),
       );
 
   factory GenThemeData.light() => const GenThemeData(brightness: Brightness.light);
@@ -110,6 +115,6 @@ class GenTheme extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ShadTheme(
         data: data.toShad(),
-        child: GenIconTheme(weight: data.iconWeight, child: child),
+        child: child,
       );
 }

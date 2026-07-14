@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:genai_components/gen/theme/gen_tokens.dart';
+import 'package:genai_components/gen/primitives/gen_primitives.dart';
 import 'gen_destination.dart';
 
 /// Voce fissa custom della bottom bar (es. menu, AI, profilo, ricerca) — non
@@ -61,8 +62,9 @@ class GenBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = GenTokens.of(context);
-    // Icona = iconSizeDefault (token, 20). Altezza barra = bottone + gapLg + gapSm.
-    final iconSize = theme.iconSizeDefault;
+    // Icona compatta (16): con la label sotto sta nel bottone regular (40) senza
+    // sforare — niente bisogno di size lg.
+    final iconSize = theme.iconSizeCompact;
 
     // Riga voci: custom (items) oppure destination-driven.
     final List<Widget> rowChildren;
@@ -152,28 +154,35 @@ class _BottomItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = GenTokens.of(context);
-    // Icone e testi sempre neri (primaryText); la selezione resta nel peso (w600).
+    // Voce = GenButton ghost: hover/press dai primitivi. Icone/testi neutri
+    // (primaryText, non il primary di default del ghost); selezione nel peso
+    // (w600). Contenuto verticale icona+label come child del bottone.
     final iconWidget = icon(theme.primaryText);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: theme.gapXs),
+    // Niente height forzata né tipografia custom (default del ghost). Il bottone
+    // si dimensiona sul CONTENUTO (niente width infinity) → lo sfondo hover del
+    // ghost è una pill attorno a icona+label, non larga tutto lo slot. Il Center
+    // lo centra nell'Expanded. Padding verticale azzerato: contenuto verticale.
+    // Colore neutro (il ghost di default userebbe primary).
+    return Center(
+      child: GenButton.ghost(
+        onPressed: onTap,
+        // Altezza esplicita: il contenuto (~38px) centrato lascia respiro sopra/
+        // sotto → padding interno della pill hover. Le size standard di ShadButton
+        // (≤44) sarebbero troppo strette per un item verticale icona+label.
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
+        foregroundColor: theme.primaryText,
+        hoverForegroundColor: theme.primaryText,
+        // Label più piccola via il parametro `textStyle` del bottone (supportato).
+        textStyle: theme.smallText.copyWith(fontWeight: selected ? FontWeight.w600 : FontWeight.normal),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (iconWidget != null) iconWidget,
             SizedBox(height: theme.gapXs),
-            Text(
-              label,
-              style: theme.smallText.copyWith(
-                color: theme.primaryText,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

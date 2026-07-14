@@ -28,7 +28,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => const Text('Aggiungi un nuovo elemento'),
                 child: GenButton(
                   onPressed: () {},
-                  leading: const GenIcon(LucideIcons.plus),
+                  leading: const Icon(LucideIcons.plus),
                   child: const Text('Aggiungi'),
                 ),
               ),
@@ -39,7 +39,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => const Text('Impostazioni'),
                 child: GenIconButton(
                   onPressed: () {},
-                  icon: const GenIcon(LucideIcons.settings),
+                  icon: const Icon(LucideIcons.settings),
                 ),
               ),
             ),
@@ -55,7 +55,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => const Text('Copia negli appunti'),
                 child: GenIconButton(
                   onPressed: () {},
-                  icon: const GenIcon(LucideIcons.copy),
+                  icon: const Icon(LucideIcons.copy),
                 ),
               ),
             ),
@@ -65,7 +65,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GenIcon(LucideIcons.info, size: 14, color: t.secondaryText),
+                    Icon(LucideIcons.info, size: 14, color: t.secondaryText),
                     const SizedBox(width: 6),
                     const Text('Salva con Ctrl+S'),
                   ],
@@ -125,7 +125,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => const Text('Appare subito'),
                 child: GenIconButton(
                   onPressed: () {},
-                  icon: const GenIcon(LucideIcons.zap),
+                  icon: const Icon(LucideIcons.zap),
                 ),
               ),
             ),
@@ -136,7 +136,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => const Text('Appare dopo 600ms di hover'),
                 child: GenIconButton(
                   onPressed: () {},
-                  icon: const GenIcon(LucideIcons.clock),
+                  icon: const Icon(LucideIcons.clock),
                 ),
               ),
             ),
@@ -147,7 +147,7 @@ class TooltipShowcase extends StatelessWidget {
                 builder: (context) => const Text('Resta 1s dopo l\'uscita'),
                 child: GenIconButton(
                   onPressed: () {},
-                  icon: const GenIcon(LucideIcons.timer),
+                  icon: const Icon(LucideIcons.timer),
                 ),
               ),
             ),

@@ -60,10 +60,10 @@ class ButtonShowcase extends StatelessWidget {
           title: 'Leading icon',
           description: 'Icona prima del testo (leading).',
           items: [
-            DemoTile(label: 'primary', child: GenButton(leading: const GenIcon(LucideIcons.plus), onPressed: () {}, child: const Text('Add'))),
-            DemoTile(label: 'secondary', child: GenButton.secondary(leading: const GenIcon(LucideIcons.download), onPressed: () {}, child: const Text('Download'))),
-            DemoTile(label: 'outline', child: GenButton.outline(leading: const GenIcon(LucideIcons.settings), onPressed: () {}, child: const Text('Settings'))),
-            DemoTile(label: 'destructive', child: GenButton.destructive(leading: const GenIcon(LucideIcons.trash2), onPressed: () {}, child: const Text('Delete'))),
+            DemoTile(label: 'primary', child: GenButton(leading: const Icon(LucideIcons.plus), onPressed: () {}, child: const Text('Add'))),
+            DemoTile(label: 'secondary', child: GenButton.secondary(leading: const Icon(LucideIcons.download), onPressed: () {}, child: const Text('Download'))),
+            DemoTile(label: 'outline', child: GenButton.outline(leading: const Icon(LucideIcons.settings), onPressed: () {}, child: const Text('Settings'))),
+            DemoTile(label: 'destructive', child: GenButton.destructive(leading: const Icon(LucideIcons.trash2), onPressed: () {}, child: const Text('Delete'))),
           ],
         ),
 
@@ -72,9 +72,9 @@ class ButtonShowcase extends StatelessWidget {
           title: 'Trailing icon',
           description: 'Icona dopo il testo (trailing).',
           items: [
-            DemoTile(label: 'primary', child: GenButton(trailing: const GenIcon(LucideIcons.arrowRight), onPressed: () {}, child: const Text('Next'))),
-            DemoTile(label: 'ghost', child: GenButton.ghost(trailing: const GenIcon(LucideIcons.chevronDown), onPressed: () {}, child: const Text('More'))),
-            DemoTile(label: 'link', child: GenButton.link(trailing: const GenIcon(LucideIcons.externalLink), onPressed: () {}, child: const Text('Open'))),
+            DemoTile(label: 'primary', child: GenButton(trailing: const Icon(LucideIcons.arrowRight), onPressed: () {}, child: const Text('Next'))),
+            DemoTile(label: 'ghost', child: GenButton.ghost(trailing: const Icon(LucideIcons.chevronDown), onPressed: () {}, child: const Text('More'))),
+            DemoTile(label: 'link', child: GenButton.link(trailing: const Icon(LucideIcons.externalLink), onPressed: () {}, child: const Text('Open'))),
           ],
         ),
 
@@ -86,8 +86,8 @@ class ButtonShowcase extends StatelessWidget {
             DemoTile(
               label: 'both',
               child: GenButton(
-                leading: const GenIcon(LucideIcons.creditCard),
-                trailing: const GenIcon(LucideIcons.arrowRight),
+                leading: const Icon(LucideIcons.creditCard),
+                trailing: const Icon(LucideIcons.arrowRight),
                 onPressed: () {},
                 child: const Text('Pay now'),
               ),
@@ -95,8 +95,8 @@ class ButtonShowcase extends StatelessWidget {
             DemoTile(
               label: 'both outline',
               child: GenButton.outline(
-                leading: const GenIcon(LucideIcons.calendar),
-                trailing: const GenIcon(LucideIcons.chevronDown),
+                leading: const Icon(LucideIcons.calendar),
+                trailing: const Icon(LucideIcons.chevronDown),
                 onPressed: () {},
                 child: const Text('Pick date'),
               ),
@@ -109,9 +109,9 @@ class ButtonShowcase extends StatelessWidget {
           title: 'Icon only',
           description: 'Solo icona come child (per icon-only dedicato usa GenIconButton).',
           items: [
-            DemoTile(label: 'primary', child: GenButton(onPressed: () {}, child: const GenIcon(LucideIcons.check))),
-            DemoTile(label: 'secondary', child: GenButton.secondary(onPressed: () {}, child: const GenIcon(LucideIcons.star))),
-            DemoTile(label: 'ghost', child: GenButton.ghost(onPressed: () {}, child: const GenIcon(LucideIcons.ellipsis))),
+            DemoTile(label: 'primary', child: GenButton(onPressed: () {}, child: const Icon(LucideIcons.check))),
+            DemoTile(label: 'secondary', child: GenButton.secondary(onPressed: () {}, child: const Icon(LucideIcons.star))),
+            DemoTile(label: 'ghost', child: GenButton.ghost(onPressed: () {}, child: const Icon(LucideIcons.ellipsis))),
           ],
         ),
 
@@ -162,7 +162,7 @@ class ButtonShowcase extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 shadows: t.primaryGlow,
-                leading: const GenIcon(LucideIcons.sparkles),
+                leading: const Icon(LucideIcons.sparkles),
                 child: const Text('Generate'),
               ),
             ),
@@ -204,8 +204,8 @@ class ButtonShowcase extends StatelessWidget {
               child: GenButton(
                 width: 240,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                leading: const GenIcon(LucideIcons.folder),
-                trailing: const GenIcon(LucideIcons.chevronRight),
+                leading: const Icon(LucideIcons.folder),
+                trailing: const Icon(LucideIcons.chevronRight),
                 onPressed: () {},
                 child: const Text('Documents'),
               ),
@@ -216,7 +216,7 @@ class ButtonShowcase extends StatelessWidget {
               child: GenButton.outline(
                 width: 240,
                 mainAxisAlignment: MainAxisAlignment.start,
-                leading: const GenIcon(LucideIcons.user),
+                leading: const Icon(LucideIcons.user),
                 onPressed: () {},
                 child: const Text('Profile'),
               ),

@@ -81,10 +81,7 @@ class TextTableFilter extends TableFilter<String> {
       controller: _controller!,
       focusNode: _focusNode,
       placeholder: Text(isMainFilter ? "Cerca per $title" : "Filtra per $title"),
-      leading: Padding(
-        padding: EdgeInsets.symmetric(horizontal: theme.gapXs),
-        child: Icon(LucideIcons.search, color: theme.secondaryText, size: 18),
-      ),
+      leading: Icon(LucideIcons.search, size: theme.iconSizeCompact),
       onChanged: onFieldChanged,
     );
   }

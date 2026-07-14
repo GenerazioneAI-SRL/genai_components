@@ -54,7 +54,7 @@ class AvatarShowcase extends StatelessWidget {
               child: GenAvatar(
                 '',
                 backgroundColor: t.muted,
-                placeholder: GenIcon(
+                placeholder: Icon(
                   LucideIcons.user,
                   size: 20,
                   color: t.mutedForeground,

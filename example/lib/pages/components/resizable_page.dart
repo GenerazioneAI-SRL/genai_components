@@ -28,7 +28,7 @@ class ResizableShowcase extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                GenIcon(icon, color: t.secondaryText),
+                Icon(icon, color: t.secondaryText),
                 const SizedBox(height: 8),
               ],
               Text(label, style: t.bodyLabel, textAlign: TextAlign.center),

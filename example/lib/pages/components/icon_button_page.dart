@@ -20,11 +20,11 @@ class IconButtonShowcase extends StatelessWidget {
           title: 'Variants',
           description: 'primary, secondary, outline, destructive, ghost. Il link non e supportato.',
           items: [
-            DemoTile(label: 'primary', child: GenIconButton(icon: const GenIcon(LucideIcons.plus), onPressed: () {})),
-            DemoTile(label: 'secondary', child: GenIconButton.secondary(icon: const GenIcon(LucideIcons.star), onPressed: () {})),
-            DemoTile(label: 'outline', child: GenIconButton.outline(icon: const GenIcon(LucideIcons.settings), onPressed: () {})),
-            DemoTile(label: 'destructive', child: GenIconButton.destructive(icon: const GenIcon(LucideIcons.trash2), onPressed: () {})),
-            DemoTile(label: 'ghost', child: GenIconButton.ghost(icon: const GenIcon(LucideIcons.ellipsis), onPressed: () {})),
+            DemoTile(label: 'primary', child: GenIconButton(icon: const Icon(LucideIcons.plus), onPressed: () {})),
+            DemoTile(label: 'secondary', child: GenIconButton.secondary(icon: const Icon(LucideIcons.star), onPressed: () {})),
+            DemoTile(label: 'outline', child: GenIconButton.outline(icon: const Icon(LucideIcons.settings), onPressed: () {})),
+            DemoTile(label: 'destructive', child: GenIconButton.destructive(icon: const Icon(LucideIcons.trash2), onPressed: () {})),
+            DemoTile(label: 'ghost', child: GenIconButton.ghost(icon: const Icon(LucideIcons.ellipsis), onPressed: () {})),
           ],
         ),
 
@@ -33,11 +33,11 @@ class IconButtonShowcase extends StatelessWidget {
           title: 'Variants (.raw)',
           description: 'GenIconButton.raw con variant esplicita (link vietato da assert).',
           items: [
-            DemoTile(label: 'raw primary', child: GenIconButton.raw(variant: GenButtonVariant.primary, icon: const GenIcon(LucideIcons.check), onPressed: () {})),
-            DemoTile(label: 'raw secondary', child: GenIconButton.raw(variant: GenButtonVariant.secondary, icon: const GenIcon(LucideIcons.heart), onPressed: () {})),
-            DemoTile(label: 'raw outline', child: GenIconButton.raw(variant: GenButtonVariant.outline, icon: const GenIcon(LucideIcons.search), onPressed: () {})),
-            DemoTile(label: 'raw destructive', child: GenIconButton.raw(variant: GenButtonVariant.destructive, icon: const GenIcon(LucideIcons.x), onPressed: () {})),
-            DemoTile(label: 'raw ghost', child: GenIconButton.raw(variant: GenButtonVariant.ghost, icon: const GenIcon(LucideIcons.menu), onPressed: () {})),
+            DemoTile(label: 'raw primary', child: GenIconButton.raw(variant: GenButtonVariant.primary, icon: const Icon(LucideIcons.check), onPressed: () {})),
+            DemoTile(label: 'raw secondary', child: GenIconButton.raw(variant: GenButtonVariant.secondary, icon: const Icon(LucideIcons.heart), onPressed: () {})),
+            DemoTile(label: 'raw outline', child: GenIconButton.raw(variant: GenButtonVariant.outline, icon: const Icon(LucideIcons.search), onPressed: () {})),
+            DemoTile(label: 'raw destructive', child: GenIconButton.raw(variant: GenButtonVariant.destructive, icon: const Icon(LucideIcons.x), onPressed: () {})),
+            DemoTile(label: 'raw ghost', child: GenIconButton.raw(variant: GenButtonVariant.ghost, icon: const Icon(LucideIcons.menu), onPressed: () {})),
           ],
         ),
 
@@ -46,9 +46,9 @@ class IconButtonShowcase extends StatelessWidget {
           title: 'Icon size',
           description: 'iconSize controlla la dimensione del glifo interno.',
           items: [
-            DemoTile(label: 'size 14', child: GenIconButton(iconSize: 14, icon: const GenIcon(LucideIcons.bell), onPressed: () {})),
-            DemoTile(label: 'size 18', child: GenIconButton(iconSize: 18, icon: const GenIcon(LucideIcons.bell), onPressed: () {})),
-            DemoTile(label: 'size 24', child: GenIconButton(iconSize: 24, icon: const GenIcon(LucideIcons.bell), onPressed: () {})),
+            DemoTile(label: 'size 14', child: GenIconButton(iconSize: 14, icon: const Icon(LucideIcons.bell), onPressed: () {})),
+            DemoTile(label: 'size 18', child: GenIconButton(iconSize: 18, icon: const Icon(LucideIcons.bell), onPressed: () {})),
+            DemoTile(label: 'size 24', child: GenIconButton(iconSize: 24, icon: const Icon(LucideIcons.bell), onPressed: () {})),
           ],
         ),
 
@@ -57,8 +57,8 @@ class IconButtonShowcase extends StatelessWidget {
           title: 'Custom width / height',
           description: 'width & height espliciti per box quadrati custom.',
           items: [
-            DemoTile(label: '32x32', child: GenIconButton.outline(width: 32, height: 32, iconSize: 16, icon: const GenIcon(LucideIcons.pencil), onPressed: () {})),
-            DemoTile(label: '48x48', child: GenIconButton.outline(width: 48, height: 48, iconSize: 22, icon: const GenIcon(LucideIcons.pencil), onPressed: () {})),
+            DemoTile(label: '32x32', child: GenIconButton.outline(width: 32, height: 32, iconSize: 16, icon: const Icon(LucideIcons.pencil), onPressed: () {})),
+            DemoTile(label: '48x48', child: GenIconButton.outline(width: 48, height: 48, iconSize: 22, icon: const Icon(LucideIcons.pencil), onPressed: () {})),
           ],
         ),
 
@@ -67,11 +67,11 @@ class IconButtonShowcase extends StatelessWidget {
           title: 'Disabled',
           description: 'enabled:false per ogni variante.',
           items: [
-            DemoTile(label: 'primary', child: GenIconButton(enabled: false, icon: const GenIcon(LucideIcons.plus), onPressed: () {})),
-            DemoTile(label: 'secondary', child: GenIconButton.secondary(enabled: false, icon: const GenIcon(LucideIcons.star), onPressed: () {})),
-            DemoTile(label: 'outline', child: GenIconButton.outline(enabled: false, icon: const GenIcon(LucideIcons.settings), onPressed: () {})),
-            DemoTile(label: 'destructive', child: GenIconButton.destructive(enabled: false, icon: const GenIcon(LucideIcons.trash2), onPressed: () {})),
-            DemoTile(label: 'ghost', child: GenIconButton.ghost(enabled: false, icon: const GenIcon(LucideIcons.ellipsis), onPressed: () {})),
+            DemoTile(label: 'primary', child: GenIconButton(enabled: false, icon: const Icon(LucideIcons.plus), onPressed: () {})),
+            DemoTile(label: 'secondary', child: GenIconButton.secondary(enabled: false, icon: const Icon(LucideIcons.star), onPressed: () {})),
+            DemoTile(label: 'outline', child: GenIconButton.outline(enabled: false, icon: const Icon(LucideIcons.settings), onPressed: () {})),
+            DemoTile(label: 'destructive', child: GenIconButton.destructive(enabled: false, icon: const Icon(LucideIcons.trash2), onPressed: () {})),
+            DemoTile(label: 'ghost', child: GenIconButton.ghost(enabled: false, icon: const Icon(LucideIcons.ellipsis), onPressed: () {})),
           ],
         ),
 
@@ -90,7 +90,7 @@ class IconButtonShowcase extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 shadows: t.primaryGlow,
-                icon: const GenIcon(LucideIcons.sparkles),
+                icon: const Icon(LucideIcons.sparkles),
               ),
             ),
             DemoTile(
@@ -98,7 +98,7 @@ class IconButtonShowcase extends StatelessWidget {
               child: GenIconButton(
                 onPressed: () {},
                 shadows: t.primaryGlow,
-                icon: const GenIcon(LucideIcons.zap),
+                icon: const Icon(LucideIcons.zap),
               ),
             ),
           ],
@@ -114,7 +114,7 @@ class IconButtonShowcase extends StatelessWidget {
               child: GenIconButton(
                 backgroundColor: t.secondary,
                 foregroundColor: t.primaryText,
-                icon: const GenIcon(LucideIcons.palette),
+                icon: const Icon(LucideIcons.palette),
                 onPressed: () {},
               ),
             ),
@@ -131,7 +131,7 @@ class IconButtonShowcase extends StatelessWidget {
               child: GenIconButton.outline(
                 onPressed: () {},
                 onLongPress: () {},
-                icon: const GenIcon(LucideIcons.copy),
+                icon: const Icon(LucideIcons.copy),
               ),
             ),
           ],

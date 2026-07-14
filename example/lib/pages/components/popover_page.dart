@@ -203,7 +203,7 @@ class _MenuItem extends StatelessWidget {
       onPressed: () {},
       width: double.infinity,
       mainAxisAlignment: MainAxisAlignment.start,
-      leading: GenIcon(icon, size: 16, color: color),
+      leading: Icon(icon, size: 16, color: color),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(label, style: t.bodyText.copyWith(color: color)),
@@ -257,7 +257,7 @@ class _PopoverDemoState extends State<_PopoverDemo> {
         popover: widget.popover,
         child: GenButton.secondary(
           onPressed: _controller.toggle,
-          leading: widget.icon == null ? null : GenIcon(widget.icon!),
+          leading: widget.icon == null ? null : Icon(widget.icon!),
           child: Text(widget.trigger),
         ),
       ),

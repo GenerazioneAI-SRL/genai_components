@@ -59,7 +59,9 @@ class _InputShowcaseState extends State<InputShowcase> {
               label: 'leading (icona)',
               child: GenInput(
                 placeholder: Text('Cerca…'),
-                leading: GenIcon(LucideIcons.search, size: 16),
+                leading: Icon(
+                  LucideIcons.search,
+                ),
               ),
             ),
             DemoTile(
@@ -67,7 +69,7 @@ class _InputShowcaseState extends State<InputShowcase> {
               label: 'trailing (icona)',
               child: GenInput(
                 placeholder: Text('Email'),
-                trailing: GenIcon(LucideIcons.mail, size: 16),
+                trailing: Icon(LucideIcons.mail, size: 16),
               ),
             ),
             DemoTile(
@@ -75,8 +77,8 @@ class _InputShowcaseState extends State<InputShowcase> {
               label: 'leading + trailing',
               child: GenInput(
                 placeholder: Text('Importo'),
-                leading: GenIcon(LucideIcons.dollarSign, size: 16),
-                trailing: GenIcon(LucideIcons.check, size: 16),
+                leading: Icon(LucideIcons.dollarSign, size: 16),
+                trailing: Icon(LucideIcons.check, size: 16),
               ),
             ),
             DemoTile(
@@ -100,10 +102,10 @@ class _InputShowcaseState extends State<InputShowcase> {
               child: GenInput(
                 placeholder: const Text('Password'),
                 obscureText: _obscure,
-                leading: const GenIcon(LucideIcons.lock, size: 16),
+                leading: const Icon(LucideIcons.lock, size: 16),
                 trailing: GestureDetector(
                   onTap: () => setState(() => _obscure = !_obscure),
-                  child: GenIcon(_obscure ? LucideIcons.eye : LucideIcons.eyeOff, size: 16),
+                  child: Icon(_obscure ? LucideIcons.eye : LucideIcons.eyeOff, size: 16),
                 ),
               ),
             ),
@@ -137,7 +139,7 @@ class _InputShowcaseState extends State<InputShowcase> {
                   const SizedBox(height: 6),
                   GenInput(
                     placeholder: const Text('nome@dominio'),
-                    trailing: GenIcon(LucideIcons.circleAlert, size: 16, color: t.danger),
+                    trailing: Icon(LucideIcons.circleAlert, size: 16, color: t.danger),
                   ),
                   const SizedBox(height: 6),
                   Text('Indirizzo email non valido', style: t.smallText.copyWith(color: t.danger)),

@@ -155,8 +155,9 @@ class CLSizes {
   static const iconSizeCompact = 16.0;
 
   /// 20px — icona standard (Foundation).
-  /// Usato per: icone di bottoni default, icone in header di card, leading
-  /// nelle voci di menu.
+  /// Usato per: icone standard, header di card, leading nelle voci di menu.
+  /// NB: gli icon-button "compatti" usano invece [iconSizeCompact] (16) —
+  /// `ShadIconButton` non eredita l'IconTheme ambientale, va passato esplicito.
   static const iconSizeDefault = 20.0;
 
   /// 24px — icona large (Foundation).

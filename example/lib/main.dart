@@ -45,8 +45,8 @@ class _ExampleAppState extends State<ExampleApp> {
             theme: _theme.dataFor(Brightness.light).toShad(),
             darkTheme: _theme.dataFor(Brightness.dark).toShad(),
             routerConfig: _router,
-            // GenTheme avvolge tutto l'instradato (propaga iconWeight); TextScaler
-            // applica la scala UI del playground. Overlay root usano theme/darkTheme.
+            // GenTheme avvolge tutto l'instradato; TextScaler applica la scala UI
+            // del playground. Overlay root usano theme/darkTheme.
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_theme.textScale)),
               child: GenTheme(data: data, child: child ?? const SizedBox.shrink()),

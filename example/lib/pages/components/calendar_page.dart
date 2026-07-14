@@ -29,18 +29,15 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
 
     // Box contenitore: il calendario ha larghezza propria (monthConstraints
     // default maxWidth 252 per mese), quindi basta un box abbastanza ampio.
-    Widget box(Widget child) =>
-        SizedBox(width: 300, child: Align(alignment: Alignment.topLeft, child: child));
+    Widget box(Widget child) => SizedBox(width: 300, child: Align(alignment: Alignment.topLeft, child: child));
 
-    Widget boxWide(Widget child) =>
-        SizedBox(width: 560, child: Align(alignment: Alignment.topLeft, child: child));
+    Widget boxWide(Widget child) => SizedBox(width: 560, child: Align(alignment: Alignment.topLeft, child: child));
 
     return DemoPage(
       children: [
         DemoGroup(
           title: 'Single',
-          description:
-              'Costruttore default: selezione di una singola data. allowDeselection consente di annullare.',
+          description: 'Costruttore default: selezione di una singola data. allowDeselection consente di annullare.',
           items: [
             DemoTile(
               width: 320,
@@ -67,8 +64,7 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
         ),
         DemoGroup(
           title: 'Multiple',
-          description:
-              'GenCalendar.multiple: selezione di più date. min/max limitano il numero selezionabile.',
+          description: 'GenCalendar.multiple: selezione di più date. min/max limitano il numero selezionabile.',
           items: [
             DemoTile(
               width: 320,
@@ -94,8 +90,7 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
         ),
         DemoGroup(
           title: 'Range',
-          description:
-              'GenCalendar.range: selezione di un intervallo. min/max vincolano la lunghezza in giorni.',
+          description: 'GenCalendar.range: selezione di un intervallo. min/max vincolano la lunghezza in giorni.',
           items: [
             DemoTile(
               width: 320,
@@ -123,17 +118,14 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
         ),
         DemoGroup(
           title: 'Giorni disabilitati & limiti',
-          description:
-              'selectableDayPredicate disabilita giorni (qui i weekend); fromMonth/toMonth limitano i mesi navigabili.',
+          description: 'selectableDayPredicate disabilita giorni (qui i weekend); fromMonth/toMonth limitano i mesi navigabili.',
           items: [
             DemoTile(
               width: 320,
               label: 'weekend disabilitati',
               child: box(
                 GenCalendar(
-                  selectableDayPredicate: (day) =>
-                      day.weekday != DateTime.saturday &&
-                      day.weekday != DateTime.sunday,
+                  selectableDayPredicate: (day) => day.weekday != DateTime.saturday && day.weekday != DateTime.sunday,
                   onChanged: (_) {},
                 ),
               ),
@@ -153,8 +145,7 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
         ),
         DemoGroup(
           title: 'Caption layout',
-          description:
-              'captionLayout: label (default), dropdown (mese+anno), dropdownMonths, dropdownYears.',
+          description: 'captionLayout: label (default), dropdown (mese+anno), dropdownMonths, dropdownYears.',
           items: [
             DemoTile(
               width: 320,
@@ -190,8 +181,7 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
         ),
         DemoGroup(
           title: 'Settimane',
-          description:
-              'weekStartsOn (1=lunedì), showWeekNumbers, fixedWeeks (6 settimane fisse), showOutsideDays, hideWeekdayNames.',
+          description: 'weekStartsOn (1=lunedì), showWeekNumbers, fixedWeeks (6 settimane fisse), showOutsideDays, hideWeekdayNames.',
           items: [
             DemoTile(
               width: 320,
@@ -230,8 +220,7 @@ class _CalendarShowcaseState extends State<CalendarShowcase> {
         ),
         DemoGroup(
           title: 'Più mesi',
-          description:
-              'numberOfMonths affianca più mesi; reverseMonths inverte l\'ordine.',
+          description: 'numberOfMonths affianca più mesi; reverseMonths inverte l\'ordine.',
           items: [
             DemoTile(
               width: 580,

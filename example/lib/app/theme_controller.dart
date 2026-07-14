@@ -65,7 +65,6 @@ class ThemeController extends ChangeNotifier {
       brightness: b,
       colorScheme: scheme,
       radius: BorderRadius.all(Radius.circular(radius.value)),
-      iconWeight: 300,
     );
   }
 

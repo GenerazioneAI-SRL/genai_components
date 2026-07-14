@@ -94,7 +94,7 @@ class CardShowcase extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 16),
                   child: GenButton(
                     width: double.infinity,
-                    leading: const GenIcon(LucideIcons.sparkles),
+                    leading: const Icon(LucideIcons.sparkles),
                     onPressed: () {},
                     child: const Text('Passa a Pro'),
                   ),
@@ -146,7 +146,7 @@ class CardShowcase extends StatelessWidget {
               child: GenCard(
                 leading: Padding(
                   padding: const EdgeInsets.only(right: 16),
-                  child: GenIcon(LucideIcons.bell, color: t.primary),
+                  child: Icon(LucideIcons.bell, color: t.primary),
                 ),
                 title: const Text('Avvisi attivi'),
                 description: const Text('Riceverai notifiche push.'),
@@ -158,7 +158,7 @@ class CardShowcase extends StatelessWidget {
               child: GenCard(
                 title: const Text('Impostazioni'),
                 description: const Text('Configura il tuo spazio.'),
-                trailing: GenButton.ghost(onPressed: () {}, child: const GenIcon(LucideIcons.ellipsisVertical)),
+                trailing: GenButton.ghost(onPressed: () {}, child: const Icon(LucideIcons.ellipsisVertical)),
               ),
             ),
           ],

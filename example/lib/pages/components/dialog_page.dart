@@ -42,7 +42,7 @@ class DialogShowcase extends StatelessWidget {
             DemoTile(
               label: 'title + description + actions',
               child: GenButton(
-                leading: const GenIcon(LucideIcons.messageSquare),
+                leading: const Icon(LucideIcons.messageSquare),
                 onPressed: () => _open(
                   context,
                   (ctx) => GenDialog(
@@ -98,7 +98,7 @@ class DialogShowcase extends StatelessWidget {
             DemoTile(
               label: 'GenDialog.alert',
               child: GenButton.destructive(
-                leading: const GenIcon(LucideIcons.trash2),
+                leading: const Icon(LucideIcons.trash2),
                 onPressed: () => _open(
                   context,
                   (ctx) => GenDialog.alert(
@@ -179,7 +179,7 @@ class DialogShowcase extends StatelessWidget {
             DemoTile(
               label: 'form login',
               child: GenButton(
-                leading: const GenIcon(LucideIcons.userPlus),
+                leading: const Icon(LucideIcons.userPlus),
                 onPressed: () => _open(
                   context,
                   (ctx) => GenDialog(
@@ -195,9 +195,9 @@ class DialogShowcase extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          GenInput(placeholder: Text('Nome'), leading: GenIcon(LucideIcons.user, size: 16)),
+                          GenInput(placeholder: Text('Nome'), leading: Icon(LucideIcons.user, size: 16)),
                           SizedBox(height: 12),
-                          GenInput(placeholder: Text('Email'), leading: GenIcon(LucideIcons.mail, size: 16)),
+                          GenInput(placeholder: Text('Email'), leading: Icon(LucideIcons.mail, size: 16)),
                         ],
                       ),
                     ),

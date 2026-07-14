@@ -99,7 +99,7 @@ class _SelectShowcaseState extends State<SelectShowcase> {
                       value: e.key,
                       child: Row(
                         children: [
-                          GenIcon(e.value.$2, size: 16),
+                          Icon(e.value.$2, size: 16),
                           const SizedBox(width: 8),
                           Text(e.value.$1),
                         ],
@@ -109,7 +109,7 @@ class _SelectShowcaseState extends State<SelectShowcase> {
                 selectedOptionBuilder: (context, value) => Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GenIcon(_timezones[value]!.$2, size: 16),
+                    Icon(_timezones[value]!.$2, size: 16),
                     const SizedBox(width: 8),
                     Text(_timezones[value]!.$1),
                   ],

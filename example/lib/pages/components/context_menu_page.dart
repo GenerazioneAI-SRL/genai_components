@@ -27,7 +27,7 @@ class ContextMenuShowcase extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GenIcon(LucideIcons.mousePointerClick, size: 15, color: t.secondaryText),
+          Icon(LucideIcons.mousePointerClick, size: 15, color: t.secondaryText),
           const SizedBox(width: 8),
           Text(label, style: t.smallText.copyWith(color: t.secondaryText)),
         ],
@@ -73,19 +73,19 @@ class ContextMenuShowcase extends StatelessWidget {
                 tapEnabled: true,
                 items: [
                   GenContextMenuItem(
-                    leading: const GenIcon(LucideIcons.scissors, size: 16),
+                    leading: const Icon(LucideIcons.scissors, size: 16),
                     trailing: const Text('Ctrl+X'),
                     onPressed: () {},
                     child: const Text('Taglia'),
                   ),
                   GenContextMenuItem(
-                    leading: const GenIcon(LucideIcons.copy, size: 16),
+                    leading: const Icon(LucideIcons.copy, size: 16),
                     trailing: const Text('Ctrl+C'),
                     onPressed: () {},
                     child: const Text('Copia'),
                   ),
                   GenContextMenuItem(
-                    leading: const GenIcon(LucideIcons.clipboardPaste, size: 16),
+                    leading: const Icon(LucideIcons.clipboardPaste, size: 16),
                     trailing: const Text('Ctrl+V'),
                     onPressed: () {},
                     child: const Text('Incolla'),
@@ -107,12 +107,12 @@ class ContextMenuShowcase extends StatelessWidget {
                 tapEnabled: true,
                 items: [
                   GenContextMenuItem(
-                    leading: const GenIcon(LucideIcons.plus, size: 16),
+                    leading: const Icon(LucideIcons.plus, size: 16),
                     onPressed: () {},
                     child: const Text('Nuovo file'),
                   ),
                   GenContextMenuItem(
-                    leading: const GenIcon(LucideIcons.share2, size: 16),
+                    leading: const Icon(LucideIcons.share2, size: 16),
                     items: [
                       GenContextMenuItem(onPressed: () {}, child: const Text('Email')),
                       GenContextMenuItem(onPressed: () {}, child: const Text('Messaggio')),
@@ -143,7 +143,7 @@ class ContextMenuShowcase extends StatelessWidget {
                 tapEnabled: true,
                 items: [
                   GenContextMenuItem(
-                    leading: const GenIcon(LucideIcons.check, size: 16),
+                    leading: const Icon(LucideIcons.check, size: 16),
                     onPressed: () {},
                     child: const Text('Barra di stato'),
                   ),
@@ -175,19 +175,19 @@ class ContextMenuShowcase extends StatelessWidget {
                     tapEnabled: true,
                     items: [
                       GenContextMenuItem(
-                        leading: const GenIcon(LucideIcons.star, size: 16),
+                        leading: const Icon(LucideIcons.star, size: 16),
                         selectedBackgroundColor: t.primary.withValues(alpha: 0.15),
                         onPressed: () {},
                         child: const Text('Preferito'),
                       ),
                       GenContextMenuItem(
-                        leading: const GenIcon(LucideIcons.lock, size: 16),
+                        leading: const Icon(LucideIcons.lock, size: 16),
                         enabled: false,
                         onPressed: () {},
                         child: const Text('Bloccato (disabled)'),
                       ),
                       GenContextMenuItem(
-                        leading: GenIcon(LucideIcons.trash2, size: 16, color: t.danger),
+                        leading: Icon(LucideIcons.trash2, size: 16, color: t.danger),
                         selectedBackgroundColor: t.danger.withValues(alpha: 0.15),
                         onPressed: () {},
                         child: Text('Elimina', style: TextStyle(color: t.danger)),

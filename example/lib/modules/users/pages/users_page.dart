@@ -30,38 +30,41 @@ class _UsersPageState extends State<UsersPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Mobile = tier bottom bar dello shell (default tabletBreakpoint 600). Su
+    // mobile le azioni della toolbar salgono nell'area contestuale sopra la
+    // bottom bar (slot shell); su desktop/tablet restano nella toolbar tabella.
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
     return AnimatedBuilder(
       animation: _vm,
       builder: (context, _) {
+        final nuovoBtn = GenButton(
+          onPressed: () {},
+          leading: const Icon(LucideIcons.plus),
+          child: const Text('Nuovo'),
+        );
+
         final table = GenDataTable<String, int, User>(
           initialPage: '0',
           idGetter: (u) => u.id,
           embedded: true,
           rowsSelectable: true,
-          fillHeight: _vm.fullBody,
+          fillHeight: true,
           onItemTap: _openDetail,
           title: 'Utenti',
-          titleActions: [
-            GenButton.outline(
-              onPressed: _vm.toggleFullBody,
-              leading: GenIcon(_vm.fullBody ? LucideIcons.minimize2 : LucideIcons.maximize2),
-              child: Text(_vm.fullBody ? 'Full body: on' : 'Full body: off'),
-            ),
-            GenButton(
-              onPressed: () {},
-              leading: const GenIcon(LucideIcons.plus),
-              child: const Text('Nuovo'),
-            ),
-          ],
+          // Mobile: ricerca + filtri pubblicati nell'area contestuale dello shell
+          // (riga alta sopra la bottom bar) invece che inline. Desktop: invariato.
+          hoistFilterBarToShell: true,
+          // Mobile: azioni tolte dalla toolbar (le pubblica la pagina agli slot).
+          titleActions: isMobile ? const [] : [nuovoBtn],
           selectionActionsBuilder: (context, count, items) => [
             GenButton.outline(
               onPressed: () {},
-              leading: const GenIcon(LucideIcons.download),
+              leading: const Icon(LucideIcons.download),
               child: Text('Esporta ($count)'),
             ),
             GenButton.destructive(
               onPressed: () {},
-              leading: const GenIcon(LucideIcons.trash2),
+              leading: const Icon(LucideIcons.trash2),
               child: const Text('Elimina'),
             ),
           ],
@@ -108,14 +111,28 @@ class _UsersPageState extends State<UsersPage> {
           },
         );
 
-        return Builder(
+        // fillHeight → il parent dev'essere bounded: Padding (non uno scroll view).
+        final layout = Builder(
           builder: (context) {
             // Inset shell: clearance header (top) + gutter (horizontal), bottom 0.
             final pad = MediaQuery.paddingOf(context);
-            return _vm.fullBody
-                ? Padding(padding: pad, child: table)
-                : SingleChildScrollView(padding: pad, child: table);
+            return Padding(padding: pad, child: table);
           },
+        );
+
+        // Desktop/tablet: azioni nella toolbar tabella (sopra). Mobile: pubblicate
+        // agli slot shell → riga bassa dell'area contestuale sopra la bottom bar.
+        // gateOnCurrentRoute:false → la lista è il body dello ShellRoute; il
+        // cleanup avviene via dispose quando si naviga al dettaglio (go replace).
+        if (!isMobile) return layout;
+        return GenShellPageActions(
+          gateOnCurrentRoute: false,
+          // Main action full-width: ShellAction primaria con label → lo shell la
+          // rende come bottone a tutta larghezza nell'area contestuale.
+          actions: [
+            ShellAction(icon: LucideIcons.plus, label: 'Nuovo', isPrimary: true, onTap: () {}),
+          ],
+          child: layout,
         );
       },
     );

@@ -83,7 +83,7 @@ class MenubarShowcase extends StatelessWidget {
                   GenMenubarItem(
                     items: [
                       GenContextMenuItem(
-                        leading: const GenIcon(LucideIcons.check, size: 16),
+                        leading: const Icon(LucideIcons.check, size: 16),
                         onPressed: () {},
                         child: const Text('Barra di stato'),
                       ),
@@ -112,7 +112,7 @@ class MenubarShowcase extends StatelessWidget {
               child: GenMenubar(
                 items: [
                   GenMenubarItem(
-                    leading: const GenIcon(LucideIcons.folder, size: 16),
+                    leading: const Icon(LucideIcons.folder, size: 16),
                     items: [
                       GenContextMenuItem(onPressed: () {}, child: const Text('Apri')),
                       GenContextMenuItem(onPressed: () {}, child: const Text('Apri recenti')),
@@ -120,7 +120,7 @@ class MenubarShowcase extends StatelessWidget {
                     child: const Text('Progetto'),
                   ),
                   GenMenubarItem(
-                    leading: const GenIcon(LucideIcons.settings, size: 16),
+                    leading: const Icon(LucideIcons.settings, size: 16),
                     items: [
                       GenContextMenuItem(onPressed: () {}, child: const Text('Preferenze')),
                       GenContextMenuItem(onPressed: () {}, child: const Text('Scorciatoie')),

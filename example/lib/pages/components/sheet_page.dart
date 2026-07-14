@@ -47,7 +47,7 @@ class SheetShowcase extends StatelessWidget {
               DemoTile(
                 label: 'side: ${entry.$1}',
                 child: GenButton.secondary(
-                  leading: GenIcon(entry.$3),
+                  leading: Icon(entry.$3),
                   onPressed: () => _open(
                     context,
                     side: entry.$2,
@@ -74,7 +74,7 @@ class SheetShowcase extends StatelessWidget {
             DemoTile(
               label: 'lista lunga (right)',
               child: GenButton.secondary(
-                leading: const GenIcon(LucideIcons.list),
+                leading: const Icon(LucideIcons.list),
                 onPressed: () => _open(
                   context,
                   side: GenSheetSide.right,
@@ -95,7 +95,7 @@ class SheetShowcase extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             child: Row(
                               children: [
-                                const GenIcon(LucideIcons.bell, size: 16),
+                                const Icon(LucideIcons.bell, size: 16),
                                 const SizedBox(width: 10),
                                 Expanded(child: Text('Evento numero ${i + 1} nel registro delle attivita\'.')),
                               ],
@@ -118,7 +118,7 @@ class SheetShowcase extends StatelessWidget {
             DemoTile(
               label: 'form filtri (bottom)',
               child: GenButton(
-                leading: const GenIcon(LucideIcons.slidersHorizontal),
+                leading: const Icon(LucideIcons.slidersHorizontal),
                 onPressed: () => _open(
                   context,
                   side: GenSheetSide.bottom,
@@ -137,9 +137,9 @@ class SheetShowcase extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            GenInput(placeholder: Text('Cerca per nome'), leading: GenIcon(LucideIcons.search, size: 16)),
+                            GenInput(placeholder: Text('Cerca per nome'), leading: Icon(LucideIcons.search, size: 16)),
                             SizedBox(height: 12),
-                            GenInput(placeholder: Text('Categoria'), leading: GenIcon(LucideIcons.tag, size: 16)),
+                            GenInput(placeholder: Text('Categoria'), leading: Icon(LucideIcons.tag, size: 16)),
                           ],
                         ),
                       ),
@@ -158,7 +158,7 @@ class SheetShowcase extends StatelessWidget {
             DemoTile(
               label: 'draggable (bottom)',
               child: GenButton.secondary(
-                leading: const GenIcon(LucideIcons.gripHorizontal),
+                leading: const Icon(LucideIcons.gripHorizontal),
                 onPressed: () => _open(
                   context,
                   side: GenSheetSide.bottom,
@@ -180,7 +180,7 @@ class SheetShowcase extends StatelessWidget {
             DemoTile(
               label: 'expandable + snap',
               child: GenButton.secondary(
-                leading: const GenIcon(LucideIcons.moveVertical),
+                leading: const Icon(LucideIcons.moveVertical),
                 onPressed: () => _open(
                   context,
                   side: GenSheetSide.bottom,

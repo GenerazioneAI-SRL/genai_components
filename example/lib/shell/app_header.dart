@@ -6,6 +6,27 @@ import '../app/sections.dart';
 import '../modules/users/constants/users_routes.dart';
 import 'theme_customizer.dart';
 
+/// Apre la ricerca globale ([GenCommandPalette]) con le sezioni showcase + Utenti.
+/// Condivisa tra l'header desktop e il pulsante "Cerca" della bottom bar mobile.
+/// [onAskAi] è invocato dall'azione "chiedi all'AI" della palette.
+void openGlobalSearch(BuildContext context, {required VoidCallback onAskAi}) {
+  GenCommandPalette.show(
+    context,
+    items: [
+      for (final s in showcaseSections)
+        GenCommandItem(id: s.path, label: s.label, icon: s.icon, group: 'Componenti', onSelect: () => context.go(s.path)),
+      GenCommandItem(
+        id: UsersRoutes.listPath,
+        label: 'Utenti',
+        icon: Icons.table_rows,
+        group: 'Esempi',
+        onSelect: () => context.go(UsersRoutes.listPath),
+      ),
+    ],
+    onAskAi: (_) => onAskAi(),
+  );
+}
+
 /// Cluster G3 dell'header (a destra): ricerca globale · AI · impostazioni tema.
 /// La pill apre [GenCommandPalette] (ricerca globale, estetica GenSelect+search);
 /// il pulsante AI apre/chiude la bolla assistente ([onToggleAi]); il gear apre
@@ -28,36 +49,18 @@ class _AppHeaderState extends State<AppHeader> {
     super.dispose();
   }
 
-  void _openPalette(BuildContext context) {
-    GenCommandPalette.show(
-      context,
-      items: [
-        for (final s in showcaseSections)
-          GenCommandItem(id: s.path, label: s.label, icon: s.icon, group: 'Componenti', onSelect: () => context.go(s.path)),
-        GenCommandItem(
-          id: UsersRoutes.listPath,
-          label: 'Utenti',
-          icon: Icons.table_rows,
-          group: 'Esempi',
-          onSelect: () => context.go(UsersRoutes.listPath),
-        ),
-      ],
-      onAskAi: (_) => widget.onToggleAi(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = GenTokens.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _GlobalSearchPill(onTap: () => _openPalette(context)),
+        _GlobalSearchPill(onTap: () => openGlobalSearch(context, onAskAi: widget.onToggleAi)),
         SizedBox(width: theme.gapSm),
         // Pulsante AI: GenIconButton con gradient brand + glow → toggle bolla AI.
         GenIconButton(
           onPressed: widget.onToggleAi,
-          icon: GenIcon(LucideIcons.sparkles, size: theme.iconSizeDefault),
+          icon: Icon(LucideIcons.sparkles, size: theme.iconSizeDefault),
           iconSize: theme.iconSizeDefault,
           gradient: LinearGradient(colors: [theme.primary, const Color(0xFF4F46E5)]),
           shadows: theme.primaryGlow,
@@ -69,7 +72,7 @@ class _AppHeaderState extends State<AppHeader> {
           popover: (context) => const ThemeCustomizer(),
           child: GenIconButton.ghost(
             onPressed: _themePopover.toggle,
-            icon: GenIcon(LucideIcons.settings2, size: theme.iconSizeDefault),
+            icon: Icon(LucideIcons.settings2, size: theme.iconSizeDefault),
           ),
         ),
       ],
@@ -101,7 +104,7 @@ class _GlobalSearchPill extends StatelessWidget {
         ),
         child: Row(
           children: [
-            GenIcon(LucideIcons.search, size: theme.iconSizeCompact, color: theme.secondaryText),
+            Icon(LucideIcons.search, size: theme.iconSizeCompact),
             SizedBox(width: theme.gapSm),
             Expanded(
                 child: Text('Cerca…',

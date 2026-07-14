@@ -562,8 +562,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
             trailing.add(_actionButton(context, theme, a));
           }
         }
-        // G3 (ricerca + AI + profilo): sempre presente.
-        trailing.add(widget.header);
+        // G3 (ricerca + AI + profilo): desktop/tablet. Su mobile le azioni globali
+        // vivono nella bottom bar (menu/AI/ricerca) → niente cluster in header,
+        // che altrimenti (pill 240 + bottoni) andrebbe in overflow.
+        if (!bottomBar) trailing.add(widget.header);
 
         // Intercala Lg dentro ciascun gruppo.
         List<Widget> joined(List<Widget> ws) {
@@ -621,7 +623,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     if (a.isPrimary && a.label != null) {
       return GenButton(
         onPressed: onTap,
-        leading: a.icon != null ? Icon(a.icon) : null,
+        leading: a.icon != null ? Icon(a.icon!) : null,
         child: Text(a.label!),
       );
     }
@@ -819,10 +821,13 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// Bottone reveal (filtri / altre azioni): toggle del pannello inline.
   /// Evidenziato quando aperto; badge opzionale (es. filtri attivi).
   Widget _revealButton(BuildContext context, GenTokens theme, ShellRevealControl r) {
-    final btn = GenIconButton.ghost(
+    final btn = GenIconButton.outline(
       onPressed: () => _togglePanel(r.id),
+      // iconSize ESPLICITO obbligatorio: ShadIconButton NON eredita l'IconTheme
+      // ambientale (senza iconSize cadrebbe sul fallback Flutter, 24). Compact
+      // (16) → pareggia l'icona di ricerca dell'input accanto.
       icon: Icon(r.icon),
-      iconSize: GenSizes.iconSizeDefault,
+      iconSize: GenSizes.iconSizeCompact,
     );
     if (r.badgeCount == null || r.badgeCount! <= 0) return btn;
     return Stack(
@@ -858,44 +863,14 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     if (c.reveal != null) return _revealButton(context, theme, c.reveal!);
     if (c.custom != null) return c.custom!.builder(context);
     final search = c.search!;
-    // Stessa resa della search desktop della tabella (paged_datatable_filter,
-    // isMainFilter): recess tertiaryBackground, pill, icona Lucide primaryText con
-    // left-pad esplicito, TextField collapsed con tipografia di sistema.
+    // Ricerca contestuale su primitivo Gen (GenInput = ShadInput): decorazione,
+    // tipografia e cursore dai token del tema, icona di ricerca come leading.
     return Expanded(
-      child: Container(
-        height: theme.inputHeight,
-        decoration: BoxDecoration(
-          color: theme.primaryBackground,
-          // Bottom bar mobile (chrome): pill.
-        ),
-        child: Row(
-          children: [
-            Padding(
-              padding: EdgeInsets.only(left: theme.gapMd, right: theme.gapSm),
-              child: Icon(LucideIcons.search, color: theme.primaryText, size: GenSizes.iconSizeDefault),
-            ),
-            Expanded(
-              child: TextField(
-                controller: search.controller,
-                onChanged: search.onChanged,
-                maxLines: 1,
-                style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0, color: theme.primaryText),
-                cursorColor: theme.primary,
-                decoration: InputDecoration(
-                  isDense: true,
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  hintText: search.hint,
-                  hintStyle: theme.bodyText.copyWith(color: theme.secondaryText, height: 1.0),
-                ),
-              ),
-            ),
-            SizedBox(width: theme.gapMd),
-          ],
-        ),
+      child: GenInput(
+        controller: search.controller,
+        onChanged: search.onChanged,
+        placeholder: search.hint != null ? Text(search.hint!) : null,
+        leading: Icon(LucideIcons.search, size: GenSizes.iconSizeCompact),
       ),
     );
   }
@@ -1396,10 +1371,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = GenTokens.of(context);
 
-    if (widget.config.bubbleBody) {
-      return _bubbleScaffold(context, theme);
-    }
-    if (widget.config.frostedFullBleed) {
+    // Mobile (bottomBar): SEMPRE il layout frosted con bottom bar — sia con
+    // bubbleBody sia con frostedFullBleed. Su mobile non c'è la "bolla" desktop:
+    // serve la bottom bar (menu/AI/ricerca) + area contestuale. Il vecchio
+    // _bubbleScaffold rendeva solo header desktop (mode sidebar) senza bottom bar.
+    if (widget.config.bubbleBody || widget.config.frostedFullBleed) {
       return _frostedScaffold(context, theme, withBottomBar: withBottomBar);
     }
 
@@ -1556,18 +1532,27 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
       // come clearance ma è solo spazio trasparente sotto cui il contenuto scorre.
       child: Padding(
         padding: EdgeInsets.only(left: theme.gapLg, right: theme.gapLg, bottom: theme.gapLg),
-        child: ClipRRect(
-          // Bottom bar mobile (chrome): bolla capsule = radiusBubble (concentrica ai pill interni).
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.secondaryBackground.withValues(alpha: 0.66),
-                border: Border.all(color: theme.borderColor),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(theme.gapLg),
-                child: _bubbleInner(context, theme, withBottomBar: withBottomBar, applyNavGating: true),
+        // Bolla frosted rounded, come le bolle desktop (_frostedMenuBar): bordo
+        // crisp via foregroundDecoration (non tagliato dal clip) + ClipRRect per
+        // il vetro + DecoratedBox per lo sfondo traslucido. Capsule = radiusBubble.
+        child: Container(
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(theme.radiusBubble),
+            border: Border.all(color: theme.borderColor),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(theme.radiusBubble),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.secondaryBackground.withValues(alpha: 0.66),
+                  borderRadius: BorderRadius.circular(theme.radiusBubble),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(theme.gapLg),
+                  child: _bubbleInner(context, theme, withBottomBar: withBottomBar, applyNavGating: true),
+                ),
               ),
             ),
           ),
@@ -1716,7 +1701,7 @@ class _NavHeaderHandle extends StatelessWidget {
                 color: t.borderColor,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: GenIcon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
+              child: Icon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
             ),
           ),
         ),

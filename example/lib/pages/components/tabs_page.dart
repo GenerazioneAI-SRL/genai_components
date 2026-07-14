@@ -97,21 +97,21 @@ class _TabsShowcaseState extends State<TabsShowcase> {
                 tabs: [
                   GenTab<String>(
                     value: 'music',
-                    leading: const GenIcon(LucideIcons.music),
+                    leading: const Icon(LucideIcons.music),
                     content: pane('La tua libreria musicale.'),
                     child: const Text('Musica'),
                   ),
                   GenTab<String>(
                     value: 'podcasts',
-                    leading: const GenIcon(LucideIcons.mic),
-                    trailing: const GenIcon(LucideIcons.chevronDown),
+                    leading: const Icon(LucideIcons.mic),
+                    trailing: const Icon(LucideIcons.chevronDown),
                     content: pane('Episodi e abbonamenti.'),
                     child: const Text('Podcast'),
                   ),
                   const GenTab<String>(
                     value: 'live',
                     enabled: false,
-                    leading: GenIcon(LucideIcons.radio),
+                    leading: Icon(LucideIcons.radio),
                     content: Padding(padding: EdgeInsets.all(16), child: Text('Live non disponibile.')),
                     child: Text('Live (off)'),
                   ),

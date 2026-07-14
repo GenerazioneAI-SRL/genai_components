@@ -94,7 +94,7 @@ class _DatePickerShowcaseState extends State<DatePickerShowcase> {
                 placeholder: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GenIcon(LucideIcons.info, size: 14, color: t.secondaryText),
+                    Icon(LucideIcons.info, size: 14, color: t.secondaryText),
                     const SizedBox(width: 6),
                     const Text('Data evento'),
                   ],

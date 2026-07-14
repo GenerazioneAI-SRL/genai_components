@@ -83,8 +83,8 @@ class _SegmentedShowcaseState extends State<SegmentedShowcase> {
                   value: _mode,
                   onChanged: (v) => setState(() => _mode = v),
                   options: const [
-                    GenSegmentedOption(value: Brightness.light, label: GenIcon(LucideIcons.sun, size: 16)),
-                    GenSegmentedOption(value: Brightness.dark, label: GenIcon(LucideIcons.moon, size: 16)),
+                    GenSegmentedOption(value: Brightness.light, label: Icon(LucideIcons.sun, size: 16)),
+                    GenSegmentedOption(value: Brightness.dark, label: Icon(LucideIcons.moon, size: 16)),
                   ],
                 ),
               ),
@@ -124,7 +124,7 @@ class _IconLabel extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GenIcon(icon, size: 16),
+          Icon(icon, size: 16),
           const SizedBox(width: 6),
           Text(text),
         ],

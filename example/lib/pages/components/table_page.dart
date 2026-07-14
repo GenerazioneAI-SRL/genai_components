@@ -229,7 +229,7 @@ class _StatusBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GenIcon(icon, size: 14, color: color),
+        Icon(icon, size: 14, color: color),
         const SizedBox(width: 6),
         Text(status, style: TextStyle(color: color)),
       ],

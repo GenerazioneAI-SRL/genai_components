@@ -6,21 +6,13 @@ import '../models/user.model.dart';
 /// lista e dettaglio, discriminati qui.
 enum UsersVMType { list, detail }
 
-/// ViewModel del modulo Users: possiede lo stato UI (full-body on/off) e la
-/// logica di fetch/filtro (lista) + lookup singolo (dettaglio). La view osserva
-/// questo notifier; nessuna logica di dominio vive nel widget.
+/// ViewModel del modulo Users: logica di fetch/filtro (lista) + lookup singolo
+/// (dettaglio). La view osserva questo notifier; nessuna logica di dominio vive
+/// nel widget.
 class UsersViewModel extends ChangeNotifier {
   UsersViewModel({this.type = UsersVMType.list});
 
   final UsersVMType type;
-
-  /// Tabella a piena altezza del body ([GenDataTable.fillHeight]).
-  bool fullBody = true;
-
-  void toggleFullBody() {
-    fullBody = !fullBody;
-    notifyListeners();
-  }
 
   /// Filtro in-memory su nome + ruolo (rimpiazzabile da una fetch remota).
   List<User> query({String? name, String? role}) {
