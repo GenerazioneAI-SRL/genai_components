@@ -20,6 +20,7 @@ class GenTokens {
 
   // ── Colors (mapped to ShadColorScheme) ──────────────────────────────────────
   Color get primary => _cs.primary;
+  Color get primaryForeground => _cs.primaryForeground; // contenuto su sfondo primary (bianco)
   Color get primaryText => _cs.foreground;
   Color get secondaryText => _cs.mutedForeground;
   Color get primaryBackground => _cs.muted; // canvas grigio (menu/shell)

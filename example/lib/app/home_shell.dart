@@ -35,6 +35,53 @@ class _HomeShellState extends State<HomeShell> {
   /// Voce sidebar del modulo "esempio" Users (route proprie fuori dallo showcase).
   static const _usersDest = (path: UsersRoutes.listPath, label: 'Utenti', icon: Icons.table_rows);
 
+  /// Path showcase raccolti sotto il gruppo demo "Overlays" (per mostrare i
+  /// dropdown: inline in sidebar desktop, flyout GenContextMenu nel rail).
+  static const _overlayPaths = {'/dialog', '/sheet', '/popover', '/context-menu', '/menubar'};
+
+  /// Albero destinazioni: le voci flat dello showcase, ma con gli overlay
+  /// raccolti in un gruppo (con un sotto-gruppo annidato "Menu avanzati" per
+  /// dimostrare i submenu del flyout). Solo l'albero della sidebar cambia: route
+  /// e breadcrumb restano su [showcaseSections].
+  List<GenDestination> _destinations() {
+    GenDestination leaf(String path) {
+      final s = showcaseSections.firstWhere((s) => s.path == path);
+      return GenDestination(key: s.path, label: s.label, icon: s.icon);
+    }
+
+    final overlays = GenDestination(
+      key: '/overlays',
+      label: 'Overlays',
+      icon: Icons.layers_outlined,
+      children: [
+        leaf('/dialog'),
+        leaf('/sheet'),
+        leaf('/popover'),
+        GenDestination(
+          key: '/overlays/menu',
+          label: 'Menu avanzati',
+          icon: Icons.menu_open,
+          children: [leaf('/context-menu'), leaf('/menubar')],
+        ),
+      ],
+    );
+
+    final out = <GenDestination>[];
+    var groupInserted = false;
+    for (final s in showcaseSections) {
+      if (_overlayPaths.contains(s.path)) {
+        if (!groupInserted) {
+          out.add(overlays); // il gruppo prende il posto del primo overlay
+          groupInserted = true;
+        }
+        continue;
+      }
+      out.add(GenDestination(key: s.path, label: s.label, icon: s.icon));
+    }
+    out.add(GenDestination(key: _usersDest.path, label: _usersDest.label, icon: _usersDest.icon));
+    return out;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -124,10 +171,7 @@ class _HomeShellState extends State<HomeShell> {
     return GenAdaptiveShell(
       config: const GenShellConfig(bubbleBody: true, resizableNavHeader: true),
       slotsController: _slots,
-      destinations: [
-        for (final s in showcaseSections) GenDestination(key: s.path, label: s.label, icon: s.icon),
-        GenDestination(key: _usersDest.path, label: _usersDest.label, icon: _usersDest.icon),
-      ],
+      destinations: _destinations(),
       selectedKey: _selectedKey,
       onSelect: (d) => context.go(d.key),
       navHeader: const NavHeader(),

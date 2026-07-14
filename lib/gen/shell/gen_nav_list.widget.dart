@@ -3,19 +3,15 @@ import 'package:genai_components/gen/theme/gen_tokens.dart';
 import 'package:genai_components/gen/theme/gen_sizes.dart';
 import 'package:genai_components/gen/primitives/gen_primitives.dart';
 import 'gen_destination.dart';
+import 'gen_nav_tile.widget.dart';
 
 /// Larghezza del rail verticale dei gruppi; il nudge di mezzo pixel lo centra.
 const double _kRailWidth = 1.5;
 
 /// Indentazione delle voci foglia sotto un gruppo: allineate appena oltre il
-/// rail (centro icona parent + mezzo rail + un gap).
+/// rail (centro icona parent + mezzo rail + un gap). Geometria dell'altezza
+/// riga/pill ora vive in [GenNavTile] (buttonHeightCompact + gapXs).
 const double _kGroupIndent = GenSizes.gapMd + GenSizes.iconSizeDefault / 2 + _kRailWidth / 2 + GenSizes.gapLg;
-
-/// Voci menu compatte (unico punto di tuning): pill = `buttonHeightCompact` (32),
-/// spazio tra voci = `gapSm` (8) → riga alta 40 (prima 40+8=48). Icone/geometria
-/// gruppi invariate → nessun disallineamento del rail.
-const double _kNavRowBox = GenSizes.buttonHeightCompact;
-const double _kNavRowGap = GenSizes.gapSm;
 
 /// Lista navigazione condivisa da sidebar (desktop) e drawer (tablet/mobile).
 /// Scrollabile, rende l'albero `GenDestination` con gruppi/sezioni espandibili.
@@ -29,17 +25,16 @@ class GenNavList extends StatelessWidget {
     this.forceExpandedKey,
     this.padding = const EdgeInsets.all(GenSizes.gapLg),
     this.collapsed = false,
-    this.onExpandRequest,
   });
 
   final List<GenDestination> destinations;
   final String? selectedKey;
   final ValueChanged<GenDestination> onSelect;
 
-  /// Rail icon-only: voci senza label, con tooltip; il tap su un gruppo chiede
-  /// la riespansione ([onExpandRequest]) invece di espandere inline.
+  /// Rail icon-only: voci senza label, con tooltip; il tap su un gruppo apre un
+  /// flyout ([GenContextMenu]) di lato con le voci interne (invece di espandere
+  /// inline). La riespansione completa resta sul toggle dello shell.
   final bool collapsed;
-  final VoidCallback? onExpandRequest;
 
   /// Padding interno della lista. Default Lg su tutti i lati; lo shell lo
   /// sovrascrive con top/bottom = altezza barre frosted per far scorrere le
@@ -56,24 +51,28 @@ class GenNavList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final d in destinations)
-              if (d.isVisible) ...(collapsed ? _renderCollapsed(d) : _renderTop(d)),
-          ],
+    // Gate: sopprime i tooltip del rail durante lo scroll (evita il reset della
+    // ScrollPosition causato dal tooltip che compare mentre le icone scorrono).
+    return GenNavScrollTooltipGate(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final d in destinations)
+                if (d.isVisible) ...(collapsed ? _renderCollapsed(d) : _renderTop(d)),
+            ],
+          ),
         ),
       ),
     );
   }
 
   /// Rendering rail icon-only: sezioni/gruppi appiattiti a icone. Un gruppo, se
-  /// toccato, chiede la riespansione della sidebar; una foglia naviga.
+  /// toccato, apre un flyout laterale con le voci interne; una foglia naviga.
   List<Widget> _renderCollapsed(GenDestination d) {
     if (d.isSectionHeader) {
       return [
@@ -83,17 +82,21 @@ class GenNavList extends StatelessWidget {
     }
     if (d.hasChildren) {
       return [
-        _GenNavIconTile(
-          destination: d,
-          selected: d.containsKey(selectedKey),
-          onTap: onExpandRequest ?? () => onSelect(d),
-        ),
+        _GenNavRailGroup(destination: d, selectedKey: selectedKey, onSelect: onSelect),
       ];
     }
     return [
-      _GenNavIconTile(destination: d, selected: d.key == selectedKey, onTap: () => onSelect(d)),
+      _railTile(d, selected: d.key == selectedKey, onTap: () => onSelect(d)),
     ];
   }
+
+  /// Voce rail icon-only: [GenNavRailTile] (ghost + tooltip a destra).
+  Widget _railTile(GenDestination d, {required bool selected, required VoidCallback onTap}) => GenNavRailTile(
+        tooltip: d.label,
+        selected: selected,
+        onTap: onTap,
+        iconBuilder: (color, size) => d.buildIcon(color, size) ?? const SizedBox.shrink(),
+      );
 
   List<Widget> _renderTop(GenDestination d) {
     if (d.isSectionHeader) {
@@ -113,11 +116,7 @@ class GenNavList extends StatelessWidget {
                     forceExpandedKey: forceExpandedKey,
                   )
                 else
-                  _GenNavTile(
-                    destination: c,
-                    selected: c.key == selectedKey,
-                    onTap: () => onSelect(c),
-                  ),
+                  _leafTile(c),
           ],
         ),
       ];
@@ -134,206 +133,117 @@ class GenNavList extends StatelessWidget {
         ),
       ];
     }
-    return [
-      _GenNavTile(destination: d, selected: d.key == selectedKey, onTap: () => onSelect(d)),
-    ];
+    return [_leafTile(d)];
   }
+
+  /// Voce foglia top-level: [GenNavTile] con slot icona sempre riservato (le
+  /// foglie senza icona restano allineate a quelle con icona).
+  Widget _leafTile(GenDestination d) => GenNavTile(
+        label: d.label,
+        selected: d.key == selectedKey,
+        onTap: () => onSelect(d),
+        iconBuilder: (color, size) => d.buildIcon(color, size) ?? const SizedBox.shrink(),
+      );
 }
 
-/// Voce foglia con icona + label.
-class _GenNavTile extends StatefulWidget {
-  const _GenNavTile({required this.destination, required this.selected, required this.onTap});
+/// Voce foglia dentro un gruppo: [GenNavTile] senza icona, indentata di
+/// [_kGroupIndent] così si allinea appena oltre il rail verticale del gruppo.
+GenNavTile _subTile(GenDestination d, {required bool selected, required VoidCallback onTap}) => GenNavTile(
+      label: d.label,
+      selected: selected,
+      onTap: onTap,
+      indent: _kGroupIndent,
+    );
+
+/// Gruppo nel RAIL (sidebar collassata): icona [GenNavRailTile] che al tap apre
+/// un [GenContextMenu] di lato (a destra) con le voci interne. I sotto-gruppi
+/// diventano submenu annidati; le foglie navigano e chiudono il flyout. Sostituisce
+/// l'espansione inline, impossibile quando la sidebar è a sole icone.
+class _GenNavRailGroup extends StatefulWidget {
+  const _GenNavRailGroup({required this.destination, required this.selectedKey, required this.onSelect});
 
   final GenDestination destination;
-  final bool selected;
-  final VoidCallback onTap;
+  final String? selectedKey;
+  final ValueChanged<GenDestination> onSelect;
 
   @override
-  State<_GenNavTile> createState() => _GenNavTileState();
+  State<_GenNavRailGroup> createState() => _GenNavRailGroupState();
 }
 
-class _GenNavTileState extends State<_GenNavTile> {
-  bool _hovered = false;
+class _GenNavRailGroupState extends State<_GenNavRailGroup> {
+  final GenPopoverController _menu = GenPopoverController();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = GenTokens.of(context);
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
-    final iconWidget = widget.destination.buildIcon(
-      widget.selected ? theme.primary : theme.primaryText,
-      GenSizes.iconSizeDefault,
-    );
-
-    return RepaintBoundary(
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: SizedBox(
-            height: h,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  top: (h - box) / 2,
-                  bottom: (h - box) / 2,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    decoration: BoxDecoration(
-                      color: widget.selected
-                          ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
-                          : _hovered
-                              ? theme.secondaryText.withValues(alpha: theme.opacitySoft)
-                              : Colors.transparent,
-                      borderRadius: BorderRadius.circular(GenSizes.radiusControl),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: GenSizes.gapMd),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: GenSizes.iconSizeDefault,
-                        child: iconWidget != null ? Center(child: iconWidget) : null,
-                      ),
-                      const SizedBox(width: GenSizes.gapMd),
-                      Expanded(
-                        child: Text(
-                          widget.destination.label,
-                          style: theme.smallText.copyWith(
-                            color: widget.selected ? theme.primary : theme.primaryText,
-                            fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      const SizedBox(width: GenSizes.gapMd),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    // Rebuild all'apertura/chiusura del flyout → l'icona passa a strongHover.
+    _menu.addListener(_onMenuChanged);
   }
-}
 
-/// Voce rail icon-only (sidebar collassata): `GenIconButton.ghost` (hover +
-/// tooltip nativi, compatibili con ShadMouseArea), selezione via backgroundColor.
-/// Tooltip = label, esce a destra dell'icona.
-class _GenNavIconTile extends StatelessWidget {
-  const _GenNavIconTile({required this.destination, required this.selected, required this.onTap});
-
-  final GenDestination destination;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = GenTokens.of(context);
-    final iconWidget = destination.buildIcon(
-      selected ? theme.primary : theme.primaryText,
-      GenSizes.iconSizeCompact,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: GenSizes.gapXs),
-      // Center: la Column della lista è stretch → senza Center il bottone si
-      // allargherebbe a tutta la rail. Il GenTooltip avvolge SOLO il bottone
-      // (compatto) così l'anchor lo misura e il tooltip esce accanto.
-      child: Center(
-        child: GenTooltip(
-          waitDuration: const Duration(milliseconds: 350),
-          // Esce a DESTRA dell'icona (rail a sinistra). ShadAnchor ha i nomi
-          // invertiti → childAlignment=left / overlayAlignment=right per destra.
-          anchor: const GenAnchor(
-            childAlignment: Alignment.centerLeft,
-            overlayAlignment: Alignment.centerRight,
-            offset: Offset(8, 0),
-          ),
-          builder: (_) => Text(destination.label),
-          child: GenIconButton.ghost(
-            onPressed: onTap,
-            width: GenSizes.buttonHeightCompact,
-            height: GenSizes.buttonHeightCompact,
-            iconSize: GenSizes.iconSizeCompact,
-            backgroundColor: selected ? theme.secondaryText.withValues(alpha: theme.opacityMuted) : null,
-            icon: iconWidget ?? const SizedBox.shrink(),
-          ),
-        ),
-      ),
-    );
+  void _onMenuChanged() {
+    if (mounted) setState(() {});
   }
-}
-
-/// Voce foglia dentro un gruppo: senza icona, indentata sotto il rail.
-class _GenNavSubTile extends StatefulWidget {
-  const _GenNavSubTile({required this.destination, required this.selected, required this.onTap});
-
-  final GenDestination destination;
-  final bool selected;
-  final VoidCallback onTap;
 
   @override
-  State<_GenNavSubTile> createState() => _GenNavSubTileState();
-}
+  void dispose() {
+    _menu.removeListener(_onMenuChanged);
+    _menu.dispose();
+    super.dispose();
+  }
 
-class _GenNavSubTileState extends State<_GenNavSubTile> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = GenTokens.of(context);
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
-    const double boxLeftMargin = _kGroupIndent;
-
-    return RepaintBoundary(
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: SizedBox(
-            height: h,
-            child: Padding(
-              padding: EdgeInsets.only(left: boxLeftMargin, top: (h - box) / 2, bottom: (h - box) / 2),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.only(left: GenSizes.gapMd),
-                decoration: BoxDecoration(
-                  color: widget.selected
-                      ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
-                      : _hovered
-                          ? theme.secondaryText.withValues(alpha: theme.opacitySoft)
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(GenSizes.radiusControl),
-                ),
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  widget.destination.label,
-                  style: theme.smallText.copyWith(
-                    color: widget.selected ? theme.primary : theme.primaryText,
-                    fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+  /// Mappa i figli visibili in [GenContextMenuItem] (ricorsivo: i sotto-gruppi
+  /// diventano submenu via `items:`). Le foglie navigano e chiudono il flyout.
+  List<Widget> _items(GenTokens theme, GenDestination parent) {
+    final out = <Widget>[];
+    for (final c in parent.children) {
+      if (!c.isVisible) continue;
+      final selected = c.hasChildren ? c.containsKey(widget.selectedKey) : c.key == widget.selectedKey;
+      final fg = selected ? theme.primary : theme.primaryText;
+      final leading = c.buildIcon(fg, GenSizes.iconSizeCompact);
+      final label = Text(
+        c.label,
+        style: selected ? TextStyle(color: theme.primary, fontWeight: FontWeight.w500) : null,
+      );
+      out.add(
+        c.hasChildren
+            ? GenContextMenuItem(leading: leading, items: _items(theme, c), child: label)
+            : GenContextMenuItem(
+                leading: leading,
+                onPressed: () {
+                  _menu.hide();
+                  widget.onSelect(c);
+                },
+                child: label,
               ),
-            ),
-          ),
+      );
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = GenTokens.of(context);
+    return GenNavRailTile(
+      tooltip: widget.destination.label,
+      selected: widget.destination.containsKey(widget.selectedKey),
+      strongHover: _menu.isOpen, // flyout aperto → hover primary pieno
+      enableTooltip: !_menu.isOpen, // flyout aperto → niente tooltip (si sovrappone)
+      onTap: _menu.toggle,
+      iconBuilder: (color, size) => widget.destination.buildIcon(color, size) ?? const SizedBox.shrink(),
+      // Il menu avvolge SOLO il bottone compatto (via wrap) → esce alla stessa
+      // distanza del tooltip: bordo destro del bottone + gapSm, non del rail.
+      // ShadAnchor ha i nomi invertiti: childAlignment = punto sul follower
+      // (menu), overlayAlignment = punto sul target (bottone) → menu.topLeft
+      // ancorato a bottone.topRight.
+      wrap: (compact) => GenContextMenu(
+        controller: _menu,
+        anchor: const GenAnchor(
+          childAlignment: Alignment.topLeft,
+          overlayAlignment: Alignment.topRight,
+          offset: Offset(GenSizes.gapSm, 0),
         ),
+        items: _items(theme, widget.destination),
+        child: compact,
       ),
     );
   }
@@ -364,7 +274,6 @@ class _GenNavGroup extends StatefulWidget {
 class _GenNavGroupState extends State<_GenNavGroup> with SingleTickerProviderStateMixin {
   late bool _expanded;
   late final AnimationController _rotationCtrl;
-  bool _hovered = false;
 
   bool get _isSelected => widget.destination.containsKey(widget.selectedKey);
 
@@ -425,11 +334,7 @@ class _GenNavGroupState extends State<_GenNavGroup> with SingleTickerProviderSta
           forceExpandedKey: widget.forceExpandedKey,
         ));
       } else {
-        out.add(_GenNavSubTile(
-          destination: c,
-          selected: c.key == widget.selectedKey,
-          onTap: () => widget.onSelect(c),
-        ));
+        out.add(_subTile(c, selected: c.key == widget.selectedKey, onTap: () => widget.onSelect(c)));
       }
     }
     return out;
@@ -442,75 +347,23 @@ class _GenNavGroupState extends State<_GenNavGroup> with SingleTickerProviderSta
   }
 
   Widget _buildTopLevel(GenTokens theme) {
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
-    final iconWidget = widget.destination.buildIcon(
-      _isSelected ? theme.primary : theme.primaryText,
-      GenSizes.iconSizeDefault,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _toggle,
-            child: SizedBox(
-              height: h,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    top: (h - box) / 2,
-                    bottom: (h - box) / 2,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      decoration: BoxDecoration(
-                        color: _hovered ? theme.secondaryText.withValues(alpha: theme.opacitySoft) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(GenSizes.radiusControl),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: GenSizes.gapMd),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: GenSizes.iconSizeDefault,
-                          child: Center(child: iconWidget ?? const SizedBox.shrink()),
-                        ),
-                        const SizedBox(width: GenSizes.gapMd),
-                        Expanded(
-                          child: Text(
-                            widget.destination.label,
-                            style: theme.smallText.copyWith(
-                              color: _isSelected ? theme.primary : theme.primaryText,
-                              fontWeight: _isSelected ? FontWeight.w500 : FontWeight.normal,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: GenSizes.gapMd),
-                          child: RotationTransition(
-                            turns: Tween(begin: 0.0, end: 0.25)
-                                .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
-                            child: Icon(Icons.chevron_right,
-                                size: 15, color: _isSelected ? theme.primary : theme.primaryText),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        // Header gruppo: mai "selected" (non si evidenzia se un figlio è attivo).
+        // Se aperto, strongHover → hover primary pieno + bianco. Il chevron NON
+        // ha colore esplicito: eredita dall'IconTheme del tile (reattivo).
+        GenNavTile(
+          label: widget.destination.label,
+          selected: false,
+          strongHover: _expanded,
+          onTap: _toggle,
+          iconBuilder: (color, size) => widget.destination.buildIcon(color, size) ?? const SizedBox.shrink(),
+          trailing: RotationTransition(
+            turns: Tween(begin: 0.0, end: 0.25)
+                .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
+            child: const Icon(Icons.chevron_right, size: 15),
           ),
         ),
         AnimatedSize(
@@ -538,9 +391,6 @@ class _GenNavGroupState extends State<_GenNavGroup> with SingleTickerProviderSta
   }
 
   Widget _buildNested(GenTokens theme) {
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
     // 38 ≈ _kGroupIndent arrotondato (indent 1° livello); poi +16 per livello.
     final nestedPadding = widget.depth == 1 ? 38.0 : GenSizes.gapLg;
 
@@ -550,59 +400,19 @@ class _GenNavGroupState extends State<_GenNavGroup> with SingleTickerProviderSta
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          MouseRegion(
-            onEnter: (_) => setState(() => _hovered = true),
-            onExit: (_) => setState(() => _hovered = false),
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _toggle,
-              child: SizedBox(
-                height: h,
-                child: Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    height: box,
-                    decoration: BoxDecoration(
-                      color: _hovered ? theme.secondaryText.withValues(alpha: theme.opacitySoft) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(GenSizes.radiusControl),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: GenSizes.gapMd),
-                        SizedBox(
-                          width: GenSizes.iconSizeDefault,
-                          child: Center(
-                            child: Icon(Icons.folder_outlined,
-                                size: GenSizes.iconSizeCompact, color: _isSelected ? theme.primary : theme.primaryText),
-                          ),
-                        ),
-                        const SizedBox(width: GenSizes.gapMd),
-                        Expanded(
-                          child: Text(
-                            widget.destination.label,
-                            style: theme.smallText.copyWith(
-                              color: _isSelected ? theme.primary : theme.primaryText,
-                              fontWeight: _isSelected ? FontWeight.w600 : FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: GenSizes.gapSm),
-                          child: RotationTransition(
-                            turns: Tween(begin: 0.0, end: 0.25)
-                                .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
-                            child: Icon(Icons.chevron_right,
-                                size: 14, color: _isSelected ? theme.primary : theme.primaryText),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          // Header sotto-gruppo: icona cartella (compatta nello slot standard) +
+          // chevron. L'indent orizzontale lo dà il Padding esterno. Mai selected;
+          // strongHover se aperto. Icona e chevron ricevono/ereditano il colore.
+          GenNavTile(
+            label: widget.destination.label,
+            selected: false,
+            strongHover: _expanded,
+            onTap: _toggle,
+            iconBuilder: (color, size) => Icon(Icons.folder_outlined, size: GenSizes.iconSizeCompact, color: color),
+            trailing: RotationTransition(
+              turns: Tween(begin: 0.0, end: 0.25)
+                  .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
+              child: const Icon(Icons.chevron_right, size: 14),
             ),
           ),
           AnimatedSize(

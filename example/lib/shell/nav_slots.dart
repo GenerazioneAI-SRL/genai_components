@@ -72,61 +72,14 @@ class ClientContextMenu extends StatelessWidget {
             padding: EdgeInsets.only(left: t.gapSm, bottom: t.gapXs),
             child: Text('Gestione cliente', style: t.smallLabel.copyWith(color: t.secondaryText)),
           ),
-          for (final (icon, label) in _items) _ClientMenuTile(icon: icon, label: label, onTap: () {}),
+          // Stesse voci desktop della sidebar: GenNavTile (ghost, hover nativo).
+          for (final (icon, label) in _items)
+            GenNavTile(
+              label: label,
+              onTap: () {},
+              iconBuilder: (color, size) => GenIcon(icon, size: size, color: color),
+            ),
         ],
-      ),
-    );
-  }
-}
-
-/// Voce del menu cliente: stessa resa delle voci della sidebar (icona + label
-/// compatta, `smallText` primaryText, hover pill), non un bottone blu.
-class _ClientMenuTile extends StatefulWidget {
-  const _ClientMenuTile({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  State<_ClientMenuTile> createState() => _ClientMenuTileState();
-}
-
-class _ClientMenuTileState extends State<_ClientMenuTile> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = GenTokens.of(context);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        // Pill = Container full-width con bg hover + padding orizzontale interno:
-        // icona/testo sempre DENTRO il pill. Margine verticale = riga 40 (32+8).
-        child: AnimatedContainer(
-          duration: t.durationBase,
-          height: t.buttonHeightCompact,
-          margin: EdgeInsets.symmetric(vertical: t.gapXs),
-          padding: EdgeInsets.symmetric(horizontal: t.gapMd),
-          decoration: BoxDecoration(
-            color: _hovered ? t.secondaryText.withValues(alpha: t.opacitySoft) : Colors.transparent,
-            borderRadius: BorderRadius.circular(t.radiusControl),
-          ),
-          child: Row(
-            children: [
-              GenIcon(widget.icon, size: t.iconSizeDefault, color: t.primaryText),
-              SizedBox(width: t.gapMd),
-              Expanded(
-                child: Text(widget.label, style: t.smallText.copyWith(color: t.primaryText),
-                    overflow: TextOverflow.ellipsis, maxLines: 1),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -142,29 +95,20 @@ class ClientContextMenuRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GenTokens.of(context);
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: t.gapSm),
+      // Solo top: il clearance sotto l'ultima voce lo dà già lo scroll dello
+      // shell (SingleChildScrollView bottom gapLg) — un bottom qui si sommerebbe.
+      padding: EdgeInsets.only(top: t.gapSm),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Stesse voci rail della sidebar: GenNavRailTile (ghost + tooltip).
           for (final (icon, label) in ClientContextMenu._items)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: t.gapXs),
-              child: GenTooltip(
-                anchor: const GenAnchor(
-                  childAlignment: Alignment.centerLeft,
-                  overlayAlignment: Alignment.centerRight,
-                  offset: Offset(4, 0),
-                ),
-                builder: (_) => Text(label),
-                child: GenIconButton.ghost(
-                  onPressed: () {},
-                  width: t.buttonHeightCompact,
-                  height: t.buttonHeightCompact,
-                  iconSize: t.iconSizeCompact,
-                  icon: GenIcon(icon),
-                ),
-              ),
+            GenNavRailTile(
+              tooltip: label,
+              onTap: () {},
+              tooltipOffset: const Offset(4, 0),
+              iconBuilder: (color, size) => GenIcon(icon, size: size, color: color),
             ),
         ],
       ),

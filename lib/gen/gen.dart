@@ -18,6 +18,7 @@ export 'primitives/gen_overlays.dart';
 
 // Custom widget: adaptive shell (migrated from CLAdaptiveShell, logic intact).
 export 'shell/gen_adaptive_shell.widget.dart';
+export 'shell/gen_nav_tile.widget.dart';
 export 'shell/gen_destination.dart';
 export 'shell/gen_shell_config.dart';
 export 'shell/gen_shell_slots.dart';

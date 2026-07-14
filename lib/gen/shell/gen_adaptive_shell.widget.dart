@@ -319,7 +319,6 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           onSelect: _onSelect,
                           isCompact: false,
                           collapsed: collapsed,
-                          onExpandRequest: () => setState(() => _collapsed = false),
                           padding: EdgeInsets.only(
                             // Lg ESATTO tra bordo basso header e pill prima voce: la
                             // voce ha già padding vertical gapXs (gen_nav_list) → lo
@@ -358,17 +357,24 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                                   ),
                                 ),
                               Expanded(
-                                child: SingleChildScrollView(
-                                  // Clearance bottom → l'ultima voce si ferma sopra il
-                                  // divider, che resta visibile mentre scorri.
-                                  padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
-                                  // Misura l'altezza intrinseca delle voci cliente (lo
-                                  // scroll dà vincolo verticale illimitato) → serve al cap.
-                                  child: _MeasureSize(
-                                    onChange: (s) {
-                                      if (s.height != _navClientH) setState(() => _navClientH = s.height);
-                                    },
-                                    child: scrollSecondary,
+                                // Gate: sopprime i tooltip delle voci cliente durante
+                                // lo scroll (stesso fix della lista principale).
+                                child: GenNavScrollTooltipGate(
+                                  child: SingleChildScrollView(
+                                    // Stessa physics della lista principale (GenNavList):
+                                    // bounce coerente, niente "scatto" clamping al limite.
+                                    physics: const BouncingScrollPhysics(),
+                                    // Clearance bottom → l'ultima voce si ferma sopra il
+                                    // divider, che resta visibile mentre scorri.
+                                    padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
+                                    // Misura l'altezza intrinseca delle voci cliente (lo
+                                    // scroll dà vincolo verticale illimitato) → serve al cap.
+                                    child: _MeasureSize(
+                                      onChange: (s) {
+                                        if (s.height != _navClientH) setState(() => _navClientH = s.height);
+                                      },
+                                      child: scrollSecondary,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -402,8 +408,6 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                 isCompact: isCompact,
                 forceExpandedKey: forceExpandedKey,
                 collapsed: collapsed,
-                // Tap su gruppo in collapsed → riespande la sidebar.
-                onExpandRequest: () => setState(() => _collapsed = false),
                 // Orizzontale 0: le pill delle voci sono a filo delle bolle frosted
                 // (contenuti allineati via il padding interno della tile).
                 // Top/bottom = altezza bolla (già include il margin gapSm verso la
@@ -452,10 +456,17 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// sulla lista trasparente) + card arrotondata `secondaryBackground` traslucida
   /// + BackdropFilter. La lista dietro scorre sotto il vetro nei gutter.
   /// Separator tra azienda e voci secondarie ("Gestione cliente"): linea 1px
-  /// borderColor. Niente gap proprio: il gap sopra lo dà il padding bottom del
-  /// blocco azienda (es. NavHeader ha Padding all gapLg) → un solo Lg, non due.
+  /// borderColor. Niente gap verticale proprio: il gap sopra lo dà il padding
+  /// bottom del blocco azienda (es. NavHeader ha Padding all gapLg) → un solo Lg.
   /// In resizable è pinnato con l'azienda (non scrolla).
-  Widget _navHeaderSeparator(GenTokens theme) => Container(height: 1, color: theme.borderColor);
+  ///
+  /// Inset orizzontale gapLg: allinea le estremità all'inset del contenuto e le
+  /// stacca dal bordo della bolla frosted → niente giunzione a "T"/overlap 1px.
+  Widget _navHeaderSeparator(GenTokens theme) => Container(
+        height: 1,
+        margin: const EdgeInsets.symmetric(horizontal: GenSizes.gapLg),
+        color: theme.borderColor,
+      );
 
   Widget _frostedMenuBar(GenTokens theme, {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
     final radius = BorderRadius.circular(GenSizes.radiusSurface);
