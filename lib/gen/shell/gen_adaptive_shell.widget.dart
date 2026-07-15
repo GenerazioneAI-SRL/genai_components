@@ -277,8 +277,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     final Widget? scrollSecondary = collapsed ? widget.railSecondary : widget.navSecondary;
     final bool hasSep = pinnedCompany != null && scrollSecondary != null;
 
-    // Resize attivo (sidebar espansa E rail/tablet) quando c'è la parte scrollabile.
-    final resizableHeader = !isCompact && widget.config.resizableNavHeader && scrollSecondary != null;
+    // Resize attivo (sidebar espansa, rail/tablet E drawer mobile) quando c'è la
+    // parte scrollabile: la bolla azienda si comporta uguale su tutti i tier —
+    // azienda pinnata + voci cliente scrollabili + maniglia di drag sul bordo.
+    final resizableHeader = widget.config.resizableNavHeader && scrollSecondary != null;
 
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
@@ -343,18 +345,26 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                           return Stack(
                             children: [
                               Positioned.fill(
-                                child: GenNavList(
-                                  destinations: widget.destinations,
-                                  selectedKey: widget.selectedKey,
-                                  onSelect: _onSelect,
-                                  isCompact: false,
-                                  collapsed: collapsed,
-                                  padding: EdgeInsets.only(
-                                    // Lg ESATTO tra bordo basso header e pill prima voce: la
-                                    // voce ha già padding vertical gapXs (gen_nav_list) → lo
-                                    // sottraggo per non sommare (gapLg + gapXs).
-                                    top: headerH + GenSizes.gapLg - GenSizes.gapXs,
-                                    bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
+                                // Clip col raggio delle bolle frosted (header/footer): la lista
+                                // scorre SOTTO il vetro con angoli arrotondati; senza questo, in
+                                // overscroll una voce (es. selezionata) spunta nei triangolini
+                                // d'angolo dove la bolla è trasparente fuori dal raggio.
+                                child: ClipRRect(
+                                  // Deve combaciare col raggio delle bolle frosted del menu.
+                                  borderRadius: BorderRadius.circular(GenSizes.radiusBubble),
+                                  child: GenNavList(
+                                    destinations: widget.destinations,
+                                    selectedKey: widget.selectedKey,
+                                    onSelect: _onSelect,
+                                    isCompact: false,
+                                    collapsed: collapsed,
+                                    padding: EdgeInsets.only(
+                                      // Lg ESATTO tra bordo basso header e pill prima voce: la
+                                      // voce ha già padding vertical gapXs (gen_nav_list) → lo
+                                      // sottraggo per non sommare (gapLg + gapXs).
+                                      top: headerH + GenSizes.gapLg - GenSizes.gapXs,
+                                      bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -506,7 +516,8 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   );
 
   Widget _frostedMenuBar(GenTokens theme, {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
-    final radius = BorderRadius.circular(GenSizes.radiusSurface);
+    // Bolla menu (header/footer frosted) → radiusBubble concentrico coi controlli.
+    final radius = BorderRadius.circular(GenSizes.radiusBubble);
     return Padding(
       // Bolla a filo dei bordi del menu (già a gapSm dal canvas): [margin] dà solo
       // il gap verso la lista (bottom per header, top per footer) → 8px uniformi.
@@ -574,9 +585,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
           );
         }
         if (s.breadcrumbs.isNotEmpty) {
-          if (mode != GenNavMode.sidebar) {
-            // Tablet/mobile: solo titolo (ultimo crumb), Flexible → ellissi su
-            // header stretto (niente overflow).
+          if (bottomBar) {
+            // Mobile: solo titolo (ultimo crumb), Flexible → ellissi su header
+            // stretto (niente overflow). Il path completo non entra nel header
+            // mobile e vive semmai nell'area contestuale.
             leading.add(
               Flexible(
                 child: Text(
@@ -588,8 +600,23 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
               ),
             );
           } else {
-            // Desktop: path completo intrinseco.
-            leading.add(_breadcrumbs(theme, s.breadcrumbs));
+            // Desktop + tablet/rail: GenBreadcrumb (DS) col path completo. È
+            // Wrap-based e l'header ha altezza fissa (40) → lo tengo su riga
+            // singola con OverflowBox(maxWidth: ∞) (il Wrap con larghezza
+            // illimitata non va mai a capo), allineato a sinistra; ClipRect
+            // taglia la coda solo nel caso estremo di header strettissimo. A
+            // larghezza normale: DS pieno, nessun clip.
+            leading.add(
+              Flexible(
+                child: ClipRect(
+                  child: OverflowBox(
+                    maxWidth: double.infinity,
+                    alignment: Alignment.centerLeft,
+                    child: _breadcrumbs(theme, s.breadcrumbs),
+                  ),
+                ),
+              ),
+            );
           }
         } else if (bottomBar && s.back == null && widget.bottomBarHomeLogo != null) {
           // Mobile, pagina senza breadcrumb/back (home): logo al posto del titolo.
@@ -599,6 +626,8 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
         final trailing = <Widget>[];
         if (!bottomBar) {
           for (final a in s.pageActions) {
+            // mobileOnly: hoisted solo nell'area contestuale mobile, mai in header.
+            if (a.mobileOnly) continue;
             trailing.add(_actionButton(context, theme, a));
           }
         }
@@ -631,30 +660,20 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     );
   }
 
+  /// Breadcrumb DS ([GenBreadcrumb]): crumb cliccabili come [GenBreadcrumbLink],
+  /// ultimo (pagina corrente) come Text. Separatore chevron di default dal tema.
+  /// NB: [GenBreadcrumb] è Wrap-based; il confinamento a riga singola nell'header
+  /// (altezza fissa) lo fa il chiamante con OverflowBox + ClipRect.
   Widget _breadcrumbs(GenTokens theme, List<ShellCrumb> crumbs) {
-    final children = <Widget>[];
-    for (var i = 0; i < crumbs.length; i++) {
-      final c = crumbs[i];
-      final isLast = i == crumbs.length - 1;
-      final label = Text(
-        c.label,
-        overflow: TextOverflow.ellipsis,
-        style: theme.bodyText.copyWith(
-          color: isLast ? theme.primaryText : theme.secondaryText,
-          fontWeight: isLast ? FontWeight.w600 : FontWeight.w400,
-        ),
-      );
-      children.add((c.onTap != null && !isLast) ? GestureDetector(onTap: c.onTap, child: label) : label);
-      if (!isLast) {
-        children.add(
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: theme.gapSm),
-            child: Icon(Icons.chevron_right, size: GenSizes.iconSizeDefault, color: theme.secondaryText),
-          ),
-        );
-      }
-    }
-    return Row(mainAxisSize: MainAxisSize.min, children: children);
+    return GenBreadcrumb(
+      children: [
+        for (var i = 0; i < crumbs.length; i++)
+          if (i < crumbs.length - 1 && crumbs[i].onTap != null)
+            GenBreadcrumbLink(onPressed: crumbs[i].onTap, child: Text(crumbs[i].label))
+          else
+            Text(crumbs[i].label),
+      ],
+    );
   }
 
   Widget _actionButton(BuildContext context, GenTokens theme, ShellAction a) {
@@ -906,15 +925,15 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     );
   }
 
-  /// Card bianca (bolla menu desktop): secondaryBackground, angoli card, ombra soft,
-  /// clip.
+  /// Card bianca (bolla menu/assistente desktop): secondaryBackground, angoli
+  /// bolla (radiusBubble), ombra soft, clip.
   Widget _sideCard(BuildContext context, {required Widget child}) {
     final theme = GenTokens.of(context);
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(GenSizes.radiusCard),
+        borderRadius: BorderRadius.circular(GenSizes.radiusBubble),
         border: Border.all(color: theme.borderColor),
       ),
       child: child,
@@ -1186,7 +1205,8 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     // Dentro la bolla non c'è system inset in cima: header = altezza base.
     final headerH = theme.buttonHeightDefault + theme.gapLg * 2;
     final mq = MediaQuery.of(context);
-    final radius = BorderRadius.circular(GenSizes.radiusCard);
+    // Bolla centrale shell → radiusBubble (coerente con menu/AI/bottom bar).
+    final radius = BorderRadius.circular(GenSizes.radiusBubble);
     // bg behind; ClipRRect clips the Stack (rounds corners + contains the header
     // BackdropFilter); border in foregroundDecoration → painted OVER the child,
     // so the frosted header's white doesn't cover the top/side border.

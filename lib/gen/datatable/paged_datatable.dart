@@ -13,6 +13,7 @@ import 'package:genai_components/gen/widgets/gen_popup_menu.dart';
 import 'package:genai_components/gen/widgets/gen_shimmer.dart';
 import 'package:genai_components/old/widgets/cl_text_field.widget.dart';
 import 'package:genai_components/gen/widgets/gen_container.dart';
+import 'package:genai_components/gen/widgets/gen_select_async.dart';
 import 'package:genai_components/old/widgets/cl_dropdown/cl_dropdown.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/foundation.dart';

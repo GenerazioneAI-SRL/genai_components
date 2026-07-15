@@ -47,7 +47,7 @@ class _ActionButtonState<TResultId extends Comparable, TResult extends Object>
       ],
       child: GenIconButton.ghost(
         onPressed: _menu.toggle,
-        icon: Icon(Icons.more_vert_rounded, color: theme.secondaryText),
+        icon: const Icon(Icons.more_vert_rounded),
         iconSize: theme.iconSizeCompact,
         width: theme.buttonHeightCompact,
         height: theme.buttonHeightCompact,

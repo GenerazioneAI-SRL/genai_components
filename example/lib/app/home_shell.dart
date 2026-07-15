@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:genai_components/gen/gen.dart' hide WidgetBuilder;
 import 'package:go_router/go_router.dart';
 
@@ -82,10 +83,26 @@ class _HomeShellState extends State<HomeShell> {
     return out;
   }
 
+  /// Palette ricerca globale aperta → evita di impilarne un'altra su ⌘K ripetuto.
+  bool _searchOpen = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _publishNav());
+    // ⌘K (macOS) / Ctrl+K (win/linux): apre la ricerca globale. Handler globale
+    // su HardwareKeyboard → funziona indipendentemente dal focus corrente.
+    HardwareKeyboard.instance.addHandler(_onGlobalKey);
+  }
+
+  bool _onGlobalKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    final isK = event.logicalKey == LogicalKeyboardKey.keyK;
+    final hasMod = HardwareKeyboard.instance.isMetaPressed || HardwareKeyboard.instance.isControlPressed;
+    if (!isK || !hasMod || _searchOpen) return false;
+    _searchOpen = true;
+    openGlobalSearch(context, onAskAi: _slots.openAi).whenComplete(() => _searchOpen = false);
+    return true; // consumato
   }
 
   @override
@@ -98,6 +115,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onGlobalKey);
     _slots.dispose();
     super.dispose();
   }

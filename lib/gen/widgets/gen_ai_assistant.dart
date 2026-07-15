@@ -443,7 +443,10 @@ class _GenAiAssistantState extends State<GenAiAssistant> {
             controller: _input,
             focusNode: _inputFocus,
             placeholder: Text(widget.hintText),
-            minHeight: t.buttonHeightDefault * 1.8,
+            // Composer AI: più alto ma NON ridimensionabile a mano (niente maniglia
+            // in basso a destra). Cresce da minHeight fino a maxHeight con il testo.
+            resizable: false,
+            minHeight: t.buttonHeightDefault * 2.6,
             maxHeight: 160,
             decoration: const ShadDecoration(border: ShadBorder.none, focusedBorder: ShadBorder.none),
           ),

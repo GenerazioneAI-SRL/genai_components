@@ -43,19 +43,18 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // ── Sinistra: page size + totale ─────────────────────────
+        // ── Sinistra: totale risultati + page size (dropdown) ─────
         Flexible(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Range risultati al posto del label "Righe per pagina" (rimosso),
-              // come testo semplice (niente pill).
+              // Range risultati come testo semplice (niente pill).
               Flexible(
                 child: AnimatedSwitcher(
                   duration: t.durationBase,
                   child: Text(
                     state.totalElement > 0
-                        ? '${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
+                        ? 'Risultati: ${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
                         : '0 risultati',
                     key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
                     style: t.smallLabel.copyWith(
@@ -67,18 +66,25 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                   ),
                 ),
               ),
-              SizedBox(width: t.gapLg),
-              _PageSizeControls(
-                  pageSizes: pageSizes,
-                  currentPageSize: state._pageSize,
-                  onChanged: (size) => state.setPageSize(size),
-                  theme: t),
+              SizedBox(width: t.gapMd),
+              // Dropdown righe-per-pagina (GenSelect).
+              GenSelect<int>(
+                initialValue: state._pageSize,
+                minWidth: 72,
+                options: [for (final s in pageSizes) ShadOption<int>(value: s, child: Text('$s'))],
+                selectedOptionBuilder: (context, value) => Text('$value'),
+                onChanged: (v) {
+                  if (v == null) return;
+                  HapticFeedback.lightImpact();
+                  state.setPageSize(v);
+                },
+              ),
             ],
           ),
         ),
 
-        // ── Destra: paginazione ───────────────────────────────────
-        _PaginationControls(state: state, theme: t),
+        // ── Destra: paginazione numerata ──────────────────────────
+        _NumberedPagination(state: state, theme: t),
       ],
     );
   }
@@ -95,104 +101,129 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAGE SIZE CONTROLS — segmented control iOS: track pill grigio, segmento
-// selezionato pill scuro. Token-only, zero magic number.
+// NUMBERED PAGINATION (desktop) — chevron outline · pulsanti pagina numerati
+// (corrente = primary pieno, altre = outline) · ellissi per range lunghi.
+// Tutto con componenti Gen (GenIconButton/GenButton).
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _PageSizeControls extends StatelessWidget {
-  const _PageSizeControls(
-      {required this.pageSizes, required this.currentPageSize, required this.onChanged, required this.theme});
+class _NumberedPagination<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>
+    extends StatelessWidget {
+  const _NumberedPagination({required this.state, required this.theme});
 
-  final List<int> pageSizes;
-  final int currentPageSize;
-  final void Function(int) onChanged;
+  final _PagedDataTableState<TKey, TResultId, TResult> state;
   final GenTokens theme;
+
+  /// Finestra di pagine da mostrare (0-based). `null` = ellissi. Fino a 7 pagine
+  /// le mostra tutte; oltre, comprime con prima/ultima + intorno alla corrente.
+  List<int?> _pageWindow(int current, int count) {
+    if (count <= 7) return [for (var i = 0; i < count; i++) i];
+    const window = 1; // pagine a sinistra/destra della corrente
+    final left = max(1, current - window);
+    final right = min(count - 2, current + window);
+    return [
+      0,
+      if (left > 1) null,
+      for (var i = left; i <= right; i++) i,
+      if (right < count - 2) null,
+      count - 1,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = theme;
-    return Container(
-      padding: EdgeInsets.all(t.gapXs),
-      decoration: BoxDecoration(
-        color: t.primaryBackground,
-        borderRadius: BorderRadius.circular(t.radiusPill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final size in pageSizes)
-            _PageSizeSegment(
-              size: size,
-              selected: size == currentPageSize,
-              onTap: () {
-                HapticFeedback.lightImpact();
-                onChanged(size);
-              },
+    final loading = state.tableState == _TableState.loading;
+    final canPrev = state.hasPreviousPage && !loading;
+    final canNext = state.hasNextPage && !loading;
+    final pageSize = state._pageSize;
+    final total = state.totalElement;
+    final current = state.currentPage; // 0-based
+    // Numero pagine dal totale; fallback (paginazione a cursore senza totale):
+    // corrente + 1, + un'altra se c'è next.
+    final pageCount =
+        total > 0 && pageSize > 0 ? (total / pageSize).ceil() : (current + (canNext ? 2 : 1));
+    final pages = _pageWindow(current, pageCount);
+
+    Widget navBtn(IconData icon, bool enabled, VoidCallback onTap) => GenIconButton.outline(
+          icon: Icon(icon, size: t.iconSizeCompact),
+          iconSize: t.iconSizeCompact,
+          width: t.buttonHeightCompact,
+          height: t.buttonHeightCompact,
+          onPressed: enabled ? onTap : null,
+        );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        navBtn(LucideIcons.chevronLeft, canPrev, () {
+          HapticFeedback.lightImpact();
+          state.previousPage();
+        }),
+        SizedBox(width: t.gapXs),
+        for (final p in pages) ...[
+          if (p == null)
+            SizedBox(
+              width: t.buttonHeightCompact,
+              height: t.buttonHeightCompact,
+              child: Center(child: Text('…', style: t.smallLabel.copyWith(color: t.secondaryText))),
+            )
+          else
+            _PageNumberButton(
+              page: p,
+              selected: p == current,
               theme: t,
+              onTap: () {
+                if (p == current) return;
+                HapticFeedback.lightImpact();
+                state.goToPage(p);
+              },
             ),
+          SizedBox(width: t.gapXs),
         ],
-      ),
+        navBtn(LucideIcons.chevronRight, canNext, () {
+          HapticFeedback.lightImpact();
+          state.nextPage();
+        }),
+      ],
     );
   }
 }
 
-/// Singolo segmento. Selezionato = pill `secondaryBackground` con label
-/// `primaryText`, si auto-inverte tra tema chiaro/scuro.
-class _PageSizeSegment extends StatefulWidget {
-  final int size;
+/// Pulsante pagina numerato (quadrato compatto). Corrente = [GenButton] primary
+/// pieno; le altre = [GenButton.outline].
+class _PageNumberButton extends StatelessWidget {
+  const _PageNumberButton({required this.page, required this.selected, required this.onTap, required this.theme});
+
+  final int page;
   final bool selected;
   final VoidCallback onTap;
   final GenTokens theme;
 
-  const _PageSizeSegment({
-    required this.size,
-    required this.selected,
-    required this.onTap,
-    required this.theme,
-  });
-
-  @override
-  State<_PageSizeSegment> createState() => _PageSizeSegmentState();
-}
-
-class _PageSizeSegmentState extends State<_PageSizeSegment> {
-  bool _hovered = false;
-
   @override
   Widget build(BuildContext context) {
-    final t = widget.theme;
-    final selected = widget.selected;
-
-    return MouseRegion(
-      cursor: selected ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      onEnter: selected ? null : (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: selected ? null : widget.onTap,
-        child: Container(
-          height: t.buttonHeightCompact,
-          constraints: BoxConstraints(minWidth: t.buttonHeightCompact),
-          padding: EdgeInsets.symmetric(horizontal: t.gapMd),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? t.secondaryBackground : Colors.transparent,
-            borderRadius: BorderRadius.circular(t.radiusPill),
-          ),
-          child: Text(
-            '${widget.size}',
-            style: t.smallLabel.copyWith(
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              color: selected ? t.primaryText : (_hovered ? t.primaryText : t.secondaryText),
-            ),
-          ),
-        ),
-      ),
+    final side = theme.buttonHeightCompact;
+    final label = Text('${page + 1}');
+    if (selected) {
+      return GenButton(
+        onPressed: onTap,
+        width: side,
+        height: side,
+        padding: EdgeInsets.zero,
+        child: label,
+      );
+    }
+    return GenButton.outline(
+      onPressed: onTap,
+      width: side,
+      height: side,
+      padding: EdgeInsets.zero,
+      child: label,
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PAGINATION CONTROLS
+// PAGINATION CONTROLS (mobile) — pill compatto prev/pagina/next.
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _PaginationControls<TKey extends Comparable, TResultId extends Comparable, TResult extends Object>

@@ -65,14 +65,11 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           decoration: BoxDecoration(
             color: GenTokens.of(context).secondaryBackground,
           ),
-          // Niente bottom padding (desktop): il gap verso l'header row lo dà il
-          // padding top dell'header row (gap2Xl), così non si sommano.
+          // Bottom Lg: insieme allo spazio dell'header row sotto (~Lg) dà 2×Lg tra
+          // barra ricerca/filtri e riga label.
           padding: _isTableCompact(context)
               ? EdgeInsets.zero
-              // Bottom gapXs (~ring): clearance minima per il focus ring del search
-              // (esce dal box). La header row sotto ha bg OPACO (sticky) che
-              // coprirebbe lo sforo — non è un clip, quindi serve lo spazio.
-              : EdgeInsets.fromLTRB(embedded ? 0 : clTheme.gapLg, clTheme.gapLg, embedded ? 0 : clTheme.gapLg, clTheme.gapXs),
+              : EdgeInsets.fromLTRB(embedded ? 0 : clTheme.gapLg, clTheme.gapLg, embedded ? 0 : clTheme.gapLg, clTheme.gapLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -460,7 +457,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                             .map(
                               (entry) => Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: entry.value._filter.buildPicker(context, entry.value),
+                                child: _labeledFilterField(context, entry.value),
                               ),
                             )
                             .toList(),
@@ -542,7 +539,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                 .map(
                   (entry) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: entry.value._filter.buildPicker(context, entry.value),
+                    child: _labeledFilterField(context, entry.value),
                   ),
                 ),
           ],
@@ -622,7 +619,7 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
               for (final entry in filterEntries)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: entry.value._filter.buildPicker(context, entry.value),
+                  child: _labeledFilterField(context, entry.value),
                 ),
             ],
           ),
@@ -1016,4 +1013,30 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
       ],
     );
   }
+}
+
+/// Campo filtro nel pannello/dialog "Filtri": [TableFilter.title] come label
+/// sopra il picker. Uniforma tutti i filtri extra (che altrimenti mostrerebbero
+/// il titolo solo come placeholder o floating-label, in modo incoerente).
+///
+/// Stile label IDENTICO a quello dei form field di [GenForm]
+/// (`ShadInputDecorator`): `textTheme.muted` con weight w500 e colore foreground,
+/// padding bottom 8 → coerenza visiva con i form nativi.
+Widget _labeledFilterField(BuildContext context, TableFilterState fs) {
+  final theme = GenTokens.of(context);
+  final labelStyle = ShadTheme.of(context).textTheme.muted.copyWith(
+        fontWeight: FontWeight.w500,
+        color: theme.primaryText,
+      );
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: GenSizes.gapSm),
+        child: Text(fs._filter.title, style: labelStyle),
+      ),
+      fs._filter.buildPicker(context, fs),
+    ],
+  );
 }

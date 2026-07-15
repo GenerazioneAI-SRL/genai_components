@@ -54,17 +54,24 @@ class GenNavList extends StatelessWidget {
     // Gate: sopprime i tooltip del rail durante lo scroll (evita il reset della
     // ScrollPosition causato dal tooltip che compare mentre le icone scorrono).
     return GenNavScrollTooltipGate(
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: padding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final d in destinations)
-                if (d.isVisible) ...(collapsed ? _renderCollapsed(d) : _renderTop(d)),
-            ],
+      // Scrollbar allineata al bordo della card azienda: le voci/header hanno inset
+      // orizzontale gapLg, quindi la scrollbar prende lo stesso margine → sta a filo
+      // del contenuto invece che sul bordo esterno del pannello. Sul rail (icone
+      // centrate, larghezza minima) resta a 0.
+      child: ScrollbarTheme(
+        data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: collapsed ? 0 : GenSizes.gapLg),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: padding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final d in destinations)
+                  if (d.isVisible) ...(collapsed ? _renderCollapsed(d) : _renderTop(d)),
+              ],
+            ),
           ),
         ),
       ),

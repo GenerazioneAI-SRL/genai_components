@@ -36,7 +36,7 @@ class GenTokens {
   double get inputHeight => 40;
   double get iconSizeDefault => 20;
   double get radiusPill => 9999;
-  double get radiusBubble => 36;
+  double get radiusBubble => 28;
 
   // ── Opacity (from CLTheme) ──────────────────────────────────────────────────
   double get opacitySoft => 0.10;

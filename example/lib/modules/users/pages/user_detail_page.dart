@@ -70,7 +70,7 @@ class _UserDetailPageState extends State<UserDetailPage> {
 
   Widget _header(BuildContext context, GenTokens t, User user) => Row(
         children: [
-          GenAvatar('', placeholder: Text(user.initials), backgroundColor: t.primary, size: const Size.square(56)),
+          GenAvatar(null, placeholder: Text(user.initials), backgroundColor: t.primary, size: const Size.square(56)),
           SizedBox(width: t.gapLg),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

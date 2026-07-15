@@ -10,6 +10,7 @@ import '../pages/components/calendar_page.dart';
 import '../pages/components/card_page.dart';
 import '../pages/components/checkbox_page.dart';
 import '../pages/components/context_menu_page.dart';
+import '../pages/components/event_calendar_page.dart';
 import '../pages/components/date_picker_page.dart';
 import '../pages/components/dialog_page.dart';
 import '../pages/components/form_page.dart';
@@ -71,6 +72,7 @@ const List<NavSection> showcaseSections = [
   NavSection(path: '/date-picker', label: 'Date Picker', icon: Icons.calendar_today, builder: DatePickerShowcase.new),
   NavSection(path: '/time-picker', label: 'Time Picker', icon: Icons.schedule, builder: TimePickerShowcase.new),
   NavSection(path: '/calendar', label: 'Calendar', icon: Icons.calendar_month, builder: CalendarShowcase.new),
+  NavSection(path: '/event-calendar', label: 'Event Calendar', icon: Icons.event_note, builder: EventCalendarShowcase.new),
   // Feedback
   NavSection(path: '/alert', label: 'Alert', icon: Icons.warning_amber_outlined, builder: AlertShowcase.new),
   NavSection(path: '/progress', label: 'Progress', icon: Icons.linear_scale, builder: ProgressShowcase.new),

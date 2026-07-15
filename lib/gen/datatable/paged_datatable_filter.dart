@@ -231,7 +231,7 @@ class CLDropdownTableFilterSync<TValue extends Object> extends TableFilter<TValu
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    return ShadSelect<TValue>(
+    return GenSelect<TValue>(
       placeholder: Text(title),
       initialValue: state.value is TValue ? state.value : null,
       options: [for (final it in items) ShadOption<TValue>(value: it, child: itemBuilder(context, it))],
@@ -258,13 +258,8 @@ class CLDropdownTableFilterSync<TValue extends Object> extends TableFilter<TValu
 class CLDateTableFilter extends TableFilter<DateTime> {
   TextEditingController? _controller;
 
-  CLDateTableFilter({
-    required super.chipFormatter,
-    required super.id,
-    required super.title,
-    required super.isMainFilter,
-    super.defaultValue,
-  }) : super(visible: true);
+  CLDateTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
+    : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
@@ -290,13 +285,8 @@ class CLDateTableFilter extends TableFilter<DateTime> {
 class CLDateTimeTableFilter extends TableFilter<DateTime> {
   TextEditingController? _controller;
 
-  CLDateTimeTableFilter({
-    required super.chipFormatter,
-    required super.id,
-    required super.title,
-    required super.isMainFilter,
-    super.defaultValue,
-  }) : super(visible: true);
+  CLDateTimeTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
+    : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
@@ -322,13 +312,8 @@ class CLDateTimeTableFilter extends TableFilter<DateTime> {
 class CLTimeTableFilter extends TableFilter<DateTime> {
   TextEditingController? _controller;
 
-  CLTimeTableFilter({
-    required super.chipFormatter,
-    required super.id,
-    required super.title,
-    required super.isMainFilter,
-    super.defaultValue,
-  }) : super(visible: true);
+  CLTimeTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
+    : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
@@ -337,9 +322,7 @@ class CLTimeTableFilter extends TableFilter<DateTime> {
     return CLTextField.time(
       controller: _controller!,
       labelText: title,
-      initialSelectedTime: state.value is DateTime
-          ? TimeOfDay(hour: (state.value as DateTime).hour, minute: (state.value as DateTime).minute)
-          : null,
+      initialSelectedTime: state.value is DateTime ? TimeOfDay(hour: (state.value as DateTime).hour, minute: (state.value as DateTime).minute) : null,
       onTimeSelected: (time) {
         if (time != null) {
           final now = DateTime.now();
@@ -361,13 +344,8 @@ class CLTimeTableFilter extends TableFilter<DateTime> {
 class CLMonthTableFilter extends TableFilter<DateTime> {
   TextEditingController? _controller;
 
-  CLMonthTableFilter({
-    required super.chipFormatter,
-    required super.id,
-    required super.title,
-    required super.isMainFilter,
-    super.defaultValue,
-  }) : super(visible: true);
+  CLMonthTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
+    : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
@@ -393,13 +371,8 @@ class CLMonthTableFilter extends TableFilter<DateTime> {
 class CLYearTableFilter extends TableFilter<DateTime> {
   TextEditingController? _controller;
 
-  CLYearTableFilter({
-    required super.chipFormatter,
-    required super.id,
-    required super.title,
-    required super.isMainFilter,
-    super.defaultValue,
-  }) : super(visible: true);
+  CLYearTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
+    : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
@@ -426,13 +399,8 @@ class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
   TextEditingController? _startController;
   TextEditingController? _endController;
 
-  CLDateRangeTableFilter({
-    required super.chipFormatter,
-    required super.id,
-    required super.title,
-    required super.isMainFilter,
-    super.defaultValue,
-  }) : super(visible: true);
+  CLDateRangeTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
+    : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
@@ -488,6 +456,7 @@ class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
     _endController = null;
   }
 }
+
 /// Esempio di utilizzo:
 /// ```dart
 /// CLDropdownTableFilterAsync<City>(
@@ -503,12 +472,14 @@ class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
 /// )
 /// ```
 class CLDropdownTableFilterAsync<TValue extends Object> extends TableFilter<TValue> {
-  final Future<(List<TValue>, Object?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy})
-      searchCallback;
+  final Future<(List<TValue>, Object?)> Function({int? page, int? perPage, Map<String, dynamic>? searchBy, Map<String, dynamic>? orderBy}) searchCallback;
   final String searchColumn;
   final Widget Function(BuildContext, TValue) itemBuilder;
   final String Function(TValue) valueToShow;
   final dynamic Function(TValue)? valueToSend;
+
+  /// Dimensione di pagina passata a [GenSelectAsync] (infinite-scroll).
+  final int perPage;
 
   const CLDropdownTableFilterAsync({
     required this.searchCallback,
@@ -516,6 +487,7 @@ class CLDropdownTableFilterAsync<TValue extends Object> extends TableFilter<TVal
     required this.itemBuilder,
     required this.valueToShow,
     this.valueToSend,
+    this.perPage = 100,
     required super.chipFormatter,
     required super.id,
     required super.title,
@@ -525,17 +497,16 @@ class CLDropdownTableFilterAsync<TValue extends Object> extends TableFilter<TVal
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    return CLDropdown<TValue>.singleAsync(
-      hint: title,
+    return GenSelectAsync<TValue>(
+      placeholder: Text(title),
       searchCallback: searchCallback,
       searchColumn: searchColumn,
       valueToShow: valueToShow,
-      itemBuilder: itemBuilder,
-      selectedValues: state.value is TValue ? state.value : null,
-      onSelectItem: (newValue) {
-        // Salva sempre l'oggetto completo nello stato
-        state.value = newValue;
-      },
+      optionBuilder: itemBuilder,
+      perPage: perPage,
+      initialValue: state.value is TValue ? state.value : null,
+      // Salva sempre l'oggetto completo nello stato.
+      onChanged: (newValue) => state.value = newValue,
     );
   }
 
@@ -548,4 +519,3 @@ class CLDropdownTableFilterAsync<TValue extends Object> extends TableFilter<TVal
     return value;
   }
 }
-

@@ -63,7 +63,7 @@ class AvatarShowcase extends StatelessWidget {
             ),
             DemoTile(
               label: 'Placeholder vuoto (default)',
-              child: GenAvatar('', backgroundColor: t.muted),
+              child: GenAvatar(null, backgroundColor: t.muted),
             ),
           ],
         ),
@@ -162,7 +162,7 @@ class AvatarShowcase extends StatelessWidget {
             DemoTile(
               label: 'muted',
               child: GenAvatar(
-                '',
+                null,
                 backgroundColor: t.muted,
                 placeholder: Text(
                   'M',
@@ -223,7 +223,7 @@ class AvatarShowcase extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 72),
                       child: GenAvatar(
-                        '',
+                        null,
                         size: const Size.square(36),
                         backgroundColor: t.muted,
                         shape: CircleBorder(

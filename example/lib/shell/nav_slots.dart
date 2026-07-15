@@ -177,16 +177,31 @@ class _UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GenAvatar(
-        '',
+        // src null → mostra il placeholder (iniziali); con '' resterebbe il solo bg.
+        null,
         size: const Size.square(32),
         backgroundColor: t.primary,
         placeholder: Text('DS', style: t.smallLabel.copyWith(color: Colors.white)),
       );
 }
 
-/// Footer sidebar (slot navFooter dello shell): profilo utente.
-class NavFooter extends StatelessWidget {
+/// Footer sidebar (slot navFooter dello shell): profilo utente. Il ⋮ apre un
+/// [GenContextMenu] con Profilo/Logout (placeholder, nessuna navigazione).
+class NavFooter extends StatefulWidget {
   const NavFooter({super.key});
+
+  @override
+  State<NavFooter> createState() => _NavFooterState();
+}
+
+class _NavFooterState extends State<NavFooter> {
+  final GenPopoverController _menu = GenPopoverController();
+
+  @override
+  void dispose() {
+    _menu.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +223,36 @@ class NavFooter extends StatelessWidget {
               ],
             ),
           ),
-          Icon(LucideIcons.ellipsisVertical, size: t.iconSizeCompact, color: t.secondaryText),
+          // Menu ancorato: sale sopra il bottone, allineato a destra (ShadAnchor ha
+          // i nomi invertiti: childAlignment = punto sul menu, overlayAlignment =
+          // punto sul bottone).
+          GenContextMenu(
+            controller: _menu,
+            anchor: const GenAnchor(
+              childAlignment: Alignment.bottomRight,
+              overlayAlignment: Alignment.topRight,
+              offset: Offset(0, -GenSizes.gapXs),
+            ),
+            items: [
+              GenContextMenuItem(
+                leading: Icon(LucideIcons.user, color: t.primaryText),
+                onPressed: _menu.hide,
+                child: Text('Profilo', style: TextStyle(color: t.primaryText)),
+              ),
+              GenContextMenuItem(
+                leading: Icon(LucideIcons.logOut, color: t.danger),
+                onPressed: _menu.hide,
+                child: Text('Logout', style: TextStyle(color: t.danger)),
+              ),
+            ],
+            child: GenIconButton.ghost(
+              onPressed: _menu.toggle,
+              icon: const Icon(LucideIcons.ellipsisVertical),
+              iconSize: t.iconSizeCompact,
+              width: t.buttonHeightCompact,
+              height: t.buttonHeightCompact,
+            ),
+          ),
         ],
       ),
     );

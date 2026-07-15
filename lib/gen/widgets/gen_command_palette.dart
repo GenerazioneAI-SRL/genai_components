@@ -44,6 +44,8 @@ class GenCommandPalette extends StatefulWidget {
     this.minQueryLength = 1,
     this.debounce = const Duration(milliseconds: 300),
     this.onAskAi,
+    this.header,
+    this.footer,
     this.hintText = 'Cerca comandi, pagine…',
     this.emptyText = 'Nessun risultato',
     this.askAiLabel = 'Chiedi all\'assistente',
@@ -63,6 +65,14 @@ class GenCommandPalette extends StatefulWidget {
   /// Se non-null: a 0 risultati e query non vuota mostra la riga "chiedi all'AI".
   final void Function(String query)? onAskAi;
 
+  /// Slot fisso SOPRA la lista (sotto il search field): es. hint, scorciatoie,
+  /// contesto. Come l'`header` del popover di GenSelect.
+  final Widget? header;
+
+  /// Slot fisso SOTTO la lista: es. legenda tasti, azioni. Come il `footer` del
+  /// popover di GenSelect.
+  final Widget? footer;
+
   final String hintText;
   final String emptyText;
   final String askAiLabel;
@@ -76,6 +86,8 @@ class GenCommandPalette extends StatefulWidget {
     int minQueryLength = 1,
     Duration debounce = const Duration(milliseconds: 300),
     void Function(String query)? onAskAi,
+    Widget? header,
+    Widget? footer,
     String hintText = 'Cerca comandi, pagine…',
     String emptyText = 'Nessun risultato',
     String askAiLabel = 'Chiedi all\'assistente',
@@ -90,6 +102,8 @@ class GenCommandPalette extends StatefulWidget {
         minQueryLength: minQueryLength,
         debounce: debounce,
         onAskAi: onAskAi,
+        header: header,
+        footer: footer,
         hintText: hintText,
         emptyText: emptyText,
         askAiLabel: askAiLabel,
@@ -105,12 +119,18 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
   final _keyboardFocus = FocusNode();
+  final _listScroll = ScrollController();
 
   String _query = '';
   List<GenCommandItem> _asyncResults = const [];
   bool _loading = false;
   Timer? _debounce;
   int _searchSeq = 0;
+
+  /// Visibilità frecce su/giù: true quando c'è ancora contenuto da scorrere in
+  /// quella direzione (come i chevron del popover di GenSelect).
+  bool _showUp = false;
+  bool _showDown = false;
 
   /// Callback attivabili (una per riga selezionabile, header esclusi). Ricostruita
   /// a ogni build; l'indice keyboard/hover [_selected] indicizza qui.
@@ -121,7 +141,11 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
   void initState() {
     super.initState();
     _searchController.addListener(_onQueryChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _searchFocus.requestFocus());
+    _listScroll.addListener(_syncChevrons);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocus.requestFocus();
+      _syncChevrons();
+    });
   }
 
   @override
@@ -130,7 +154,36 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
     _searchController.dispose();
     _searchFocus.dispose();
     _keyboardFocus.dispose();
+    _listScroll.removeListener(_syncChevrons);
+    _listScroll.dispose();
     super.dispose();
+  }
+
+  /// Ricalcola la visibilità delle frecce dalla posizione di scroll corrente.
+  void _syncChevrons() {
+    if (!_listScroll.hasClients) {
+      if (_showUp || _showDown) setState(() => _showUp = _showDown = false);
+      return;
+    }
+    final pos = _listScroll.position;
+    final up = pos.pixels > 0;
+    final down = pos.pixels < pos.maxScrollExtent;
+    if (up != _showUp || down != _showDown) {
+      setState(() {
+        _showUp = up;
+        _showDown = down;
+      });
+    }
+  }
+
+  /// Scroll animato verso l'estremo (hover freccia): come i chevron di GenSelect.
+  void _animateTo({required bool top}) {
+    if (!_listScroll.hasClients) return;
+    _listScroll.animateTo(
+      top ? 0 : _listScroll.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   void _onQueryChanged() {
@@ -226,19 +279,16 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
             onKeyEvent: _onKey,
             child: Material(
               type: MaterialType.transparency,
-              child: Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: t.secondaryBackground,
-                  borderRadius: BorderRadius.circular(GenSizes.radiusModal),
-                  border: Border.all(color: t.borderColor),
-                  boxShadow: t.popoverShadow,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Search field borderless (come ShadSelect.withSearch).
-                    GenInput(
+              // DUE bolle separate: (1) campo ricerca, (2) overlay risultati,
+              // staccate da un gap gapXs. Ogni bolla ha la stessa decorazione del
+              // popover di GenSelect (radius theme.radius, bordo, ombra).
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Bolla 1 — ricerca (borderless, niente ring di focus).
+                  _bubble(
+                    t,
+                    child: GenInput(
                       controller: _searchController,
                       focusNode: _searchFocus,
                       placeholder: Text(widget.hintText),
@@ -246,10 +296,14 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
                       decoration: const ShadDecoration(
                         border: ShadBorder.none,
                         focusedBorder: ShadBorder.none,
+                        // Il ring di focus dello ShadInput è il secondaryFocusedBorder
+                        // (ShadBorder.all colore ring): azzerato → niente ring blu.
+                        secondaryBorder: ShadBorder.none,
+                        secondaryFocusedBorder: ShadBorder.none,
                       ),
                       leading: Padding(
                         padding: EdgeInsets.only(right: t.gapSm),
-                        child: Icon(LucideIcons.search, size: t.iconSizeCompact, color: t.secondaryText),
+                        child: Icon(LucideIcons.search, size: t.iconSizeCompact, color: t.primaryText),
                       ),
                       trailing: _loading
                           ? Padding(
@@ -262,10 +316,30 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
                             )
                           : null,
                     ),
-                    GenSeparator.horizontal(margin: EdgeInsets.zero),
-                    Flexible(child: _results(t)),
-                  ],
-                ),
+                  ),
+                  // Gap che stacca la ricerca dall'overlay sottostante.
+                  SizedBox(height: t.gapXs),
+                  // Bolla 2 — overlay risultati (header · lista+frecce · footer).
+                  Flexible(
+                    child: _bubble(
+                      t,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.header != null) ...[
+                            Padding(padding: EdgeInsets.all(t.gapSm), child: widget.header!),
+                            GenSeparator.horizontal(margin: EdgeInsets.zero),
+                          ],
+                          Flexible(child: _results(t)),
+                          if (widget.footer != null) ...[
+                            GenSeparator.horizontal(margin: EdgeInsets.zero),
+                            Padding(padding: EdgeInsets.all(t.gapSm), child: widget.footer!),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -273,6 +347,19 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
       ),
     );
   }
+
+  /// Bolla (card) di una sezione della palette: stessa estetica del popover di
+  /// GenSelect — superficie, radius theme.radius, bordo, ombra, clip.
+  Widget _bubble(GenTokens t, {required Widget child}) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: t.secondaryBackground,
+          borderRadius: ShadTheme.of(context).radius,
+          border: Border.all(color: t.borderColor),
+          boxShadow: t.popoverShadow,
+        ),
+        child: child,
+      );
 
   Widget _results(GenTokens t) {
     final rows = _buildRows(t);
@@ -285,10 +372,49 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
         ),
       );
     }
-    return ListView(
-      padding: EdgeInsets.all(t.gapXs),
-      shrinkWrap: true,
-      children: rows,
+    // La lista cambia altezza al variare della query → ricalcola le frecce dopo
+    // il layout (postframe: maxScrollExtent aggiornato).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncChevrons());
+    return Stack(
+      children: [
+        ListView(
+          controller: _listScroll,
+          // optionsPadding di GenSelect (4) orizzontale; clearance verticale (gapSm)
+          // così la prima/ultima riga non finiscono sotto i corner arrotondati.
+          padding: EdgeInsets.symmetric(horizontal: t.gapXs, vertical: t.gapSm),
+          shrinkWrap: true,
+          children: rows,
+        ),
+        // Frecce su/giù (come i chevron del popover GenSelect): overlay in alto/
+        // basso, visibili solo se c'è scroll in quella direzione, auto-scroll in
+        // hover. Non intercettano i tap sulle righe (solo la fascia del chevron).
+        if (_showUp) Positioned(top: 0, left: 0, right: 0, child: _chevron(t, up: true)),
+        if (_showDown) Positioned(bottom: 0, left: 0, right: 0, child: _chevron(t, up: false)),
+      ],
+    );
+  }
+
+  /// Fascia freccia su/giù: chevron 16px centrato su una banda sfumata verso lo
+  /// sfondo così le righe sottostanti restano leggibili. Hover → scroll animato.
+  Widget _chevron(GenTokens t, {required bool up}) {
+    return MouseRegion(
+      onEnter: (_) => _animateTo(top: up),
+      child: IgnorePointer(
+        ignoring: false,
+        child: Container(
+          height: t.gapLg + t.gapXs,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: up ? Alignment.topCenter : Alignment.bottomCenter,
+              end: up ? Alignment.bottomCenter : Alignment.topCenter,
+              colors: [t.secondaryBackground, t.secondaryBackground.withValues(alpha: 0)],
+            ),
+          ),
+          child: Icon(up ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+              size: t.iconSizeCompact, color: t.secondaryText),
+        ),
+      ),
     );
   }
 
@@ -329,7 +455,7 @@ class _GenCommandPaletteState extends State<GenCommandPalette> {
         child: Row(
           children: [
             if (it.icon != null) ...[
-              Icon(it.icon!, size: t.iconSizeDefault, color: t.secondaryText),
+              Icon(it.icon!, size: t.iconSizeDefault, color: t.primaryText),
               SizedBox(width: t.gapMd),
             ],
             Expanded(

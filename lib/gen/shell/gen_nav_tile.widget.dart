@@ -186,8 +186,11 @@ class _GenNavTileState extends State<GenNavTile> {
         leading: widget.iconBuilder == null
             ? null
             : SizedBox(
+                // Slot largo iconSizeDefault (20) per preservare allineamento e la
+                // geometria dell'indent dei sotto-item (basata su iconSizeDefault/2);
+                // glifo a iconSizeCompact (16) centrato → pari al rail.
                 width: GenSizes.iconSizeDefault,
-                child: Center(child: widget.iconBuilder!(iconColor, GenSizes.iconSizeDefault)),
+                child: Center(child: widget.iconBuilder!(iconColor, GenSizes.iconSizeCompact)),
               ),
         trailing: widget.trailing,
         child: Text(

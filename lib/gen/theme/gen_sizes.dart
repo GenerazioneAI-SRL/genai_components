@@ -106,9 +106,11 @@ class CLSizes {
   /// dell'header, switch di filtri.
   static const radiusPill = 9999.0;
 
-  /// 36px — bolle shell (header/menu/contenuto/AI). Pari a metà altezza della
-  /// bolla header → estremità tonde (capsula); raggio unico per coerenza.
-  static const radiusBubble = 36.0;
+  /// 28px — bolle shell (header/menu/contenuto/AI/bottom bar). Concentrico coi
+  /// controlli interni: pulsante ([radiusControl] 12) + padding [gapLg] (16) =
+  /// 28, così i bordi della bolla corrono paralleli a quelli dei pulsanti che
+  /// contiene. Coincide con [radiusModal] (stesso ragionamento card+10).
+  static const radiusBubble = 28.0;
 
   // ═══════════════════════════════════════════════════════════
   // ALIAS — naming storico del DS

@@ -30,8 +30,10 @@ export 'widgets/gen_popup_surface.dart';
 export 'widgets/gen_popup_menu.dart';
 export 'widgets/gen_compact_action_scope.dart';
 export 'widgets/gen_segmented.dart';
+export 'widgets/gen_select_async.dart';
 export 'widgets/gen_command_palette.dart';
 export 'widgets/gen_ai_assistant.dart';
+export 'widgets/gen_event_calendar.dart';
 
 // Custom widget: paged data table (migrated; theme→Gen; primitives/customs
 // still partly on old/ — WIP).

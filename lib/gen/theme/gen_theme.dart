@@ -81,22 +81,29 @@ class GenThemeData {
   ShadColorScheme get colorScheme => _colorScheme ?? genSkilleraColorScheme(_isDark);
 
   ShadThemeData toShad() => ShadThemeData(
-        brightness: brightness,
-        colorScheme: colorScheme,
-        radius: radius,
-        textTheme: ShadTextTheme(family: 'Inter'),
-        // Input alti come i button. ShadInput di default è content-sized (più
-        // basso di un ShadButton, che è fisso 40): gli diamo minHeight =
-        // GenSizes.inputHeight (40, = buttonHeightDefault) così un GenInput
-        // accanto a un GenButton combacia in altezza. Solo `constraints` è
-        // sovrascritto (ShadThemeData fonde col resto); crossAxisAlignment di
-        // default è center → contenuto verticalmente centrato; un input multiline
-        // cresce comunque oltre 40. Per un input compatto (32) si passa un
-        // `constraints` locale al singolo GenInput.
-        inputTheme: const ShadInputTheme(
-          constraints: BoxConstraints(minHeight: GenSizes.inputHeight),
-        ),
-      );
+    brightness: brightness,
+    colorScheme: colorScheme,
+    radius: radius,
+    textTheme: ShadTextTheme(family: 'Inter'),
+    // Input alti come i button. ShadInput di default è content-sized (più
+    // basso di un ShadButton, che è fisso 40): gli diamo minHeight =
+    // GenSizes.inputHeight (40, = buttonHeightDefault) così un GenInput
+    // accanto a un GenButton combacia in altezza. Un input multiline cresce
+    // comunque oltre 40. Per un input compatto (32) si passa un `constraints`
+    // locale al singolo GenInput.
+    //
+    // L'altezza 40 la diamo col PADDING verticale, non stirando via minHeight:
+    // ShadInput mette il contenuto in un BoxyColumn(mainAxisSize.min) con
+    // mainAxisAlignment hardcoded, quindi quando il minHeight stira la cella il
+    // testo si ancora in ALTO (non centrabile via alignment). Con padding
+    // simmetrico il contenuto è centrato per costruzione: muted ha line-height
+    // 20px → +10/+10 = 40, pari a buttonHeightDefault. minHeight resta come
+    // floor di sicurezza (non stira più, il naturale è già 40).
+    inputTheme: const ShadInputTheme(
+      constraints: BoxConstraints(minHeight: GenSizes.inputHeight),
+      padding: EdgeInsets.symmetric(horizontal: GenSizes.gapMd, vertical: 10),
+    ),
+  );
 
   factory GenThemeData.light() => const GenThemeData(brightness: Brightness.light);
   factory GenThemeData.dark() => const GenThemeData(brightness: Brightness.dark);
@@ -113,8 +120,5 @@ class GenTheme extends StatelessWidget {
   static ShadThemeData of(BuildContext context) => ShadTheme.of(context);
 
   @override
-  Widget build(BuildContext context) => ShadTheme(
-        data: data.toShad(),
-        child: child,
-      );
+  Widget build(BuildContext context) => ShadTheme(data: data.toShad(), child: child);
 }

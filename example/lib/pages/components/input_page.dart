@@ -170,22 +170,28 @@ class _InputShowcaseState extends State<InputShowcase> {
           ],
         ),
         DemoGroup(
-          title: 'Slot top / bottom',
-          description: 'Label esterna (top) e testo di aiuto (bottom) integrati nel campo.',
+          title: 'Label + helper esterni',
+          description: 'Label sopra e testo di aiuto sotto il campo (fuori dal bordo), '
+              'via Column che avvolge GenInput. Gli slot top/bottom di GenInput invece '
+              'stanno DENTRO il bordo (integrati nel campo).',
           items: [
             DemoTile(
               width: 280,
               label: 'label + helper',
-              child: GenInput(
-                placeholder: const Text('@username'),
-                top: Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('Username', style: t.smallLabel.copyWith(color: t.primaryText)),
-                ),
-                bottom: Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text('Sarà pubblico sul tuo profilo.', style: t.smallText),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text('Username', style: t.smallLabel.copyWith(color: t.primaryText)),
+                  ),
+                  const GenInput(placeholder: Text('@username')),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text('Sarà pubblico sul tuo profilo.', style: t.smallText),
+                  ),
+                ],
               ),
             ),
           ],
