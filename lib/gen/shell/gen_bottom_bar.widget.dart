@@ -15,8 +15,13 @@ class GenBottomBarItem {
 
   /// Gradiente opzionale per l'icona (es. bottone AI brand). Reso via ShaderMask.
   final Gradient? iconGradient;
-  const GenBottomBarItem(
-      {required this.icon, required this.label, required this.onTap, this.selectedKey, this.iconGradient});
+  const GenBottomBarItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.selectedKey,
+    this.iconGradient,
+  });
 }
 
 /// Bottom bar mobile. Due modalità:
@@ -69,23 +74,27 @@ class GenBottomBar extends StatelessWidget {
     // Riga voci: custom (items) oppure destination-driven.
     final List<Widget> rowChildren;
     if (items != null) {
+      // Custom mobile: icon-only. Menu/Cerca = ghost neutro; AI (voce con
+      // [iconGradient]) = bottone pieno con gradiente brand + glow.
       rowChildren = [
         for (final it in items!)
           Expanded(
-            child: _BottomItem(
-              icon: (c) {
-                final icon = Icon(it.icon, color: c, size: iconSize);
-                if (it.iconGradient == null) return icon;
-                // Gradiente icona (AI): ShaderMask su icona bianca.
-                return ShaderMask(
-                  shaderCallback: (b) => it.iconGradient!.createShader(Offset.zero & b.size),
-                  blendMode: BlendMode.srcIn,
-                  child: Icon(it.icon, color: Colors.white, size: iconSize),
-                );
-              },
-              label: it.label,
-              selected: it.selectedKey != null && it.selectedKey == selectedKey,
-              onTap: it.onTap,
+            child: Center(
+              child: it.iconGradient != null
+                  ? GenIconButton(
+                      onPressed: it.onTap,
+                      gradient: it.iconGradient,
+                      shadows: theme.primaryGlow,
+                      iconSize: theme.iconSizeDefault,
+                      icon: Icon(it.icon, color: Colors.white),
+                    )
+                  : GenIconButton.ghost(
+                      onPressed: it.onTap,
+                      iconSize: theme.iconSizeDefault,
+                      foregroundColor: theme.primaryText,
+                      hoverForegroundColor: theme.primaryText,
+                      icon: Icon(it.icon),
+                    ),
             ),
           ),
       ];
@@ -123,10 +132,7 @@ class GenBottomBar extends StatelessWidget {
       padding: floating
           ? EdgeInsets.zero
           : EdgeInsets.fromLTRB(theme.gapMd, topBorder ? theme.gapMd : 0, theme.gapMd, theme.gapMd),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: rowChildren,
-      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: rowChildren),
     );
 
     // Floating: nessun bg/bordo/SafeArea propri → li dà la bolla frosted dello shell.

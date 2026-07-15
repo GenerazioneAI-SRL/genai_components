@@ -510,18 +510,12 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
               hasAnyActions ? actionsColumnWidth : 0.0,
               infiniteScroll,
             );
-            // Bolla righe: container arrotondato, niente bordo. Margin SENZA top: il
-            // margin-top si sommerebbe al centering interno della prima riga (= 2Lg).
-            // Clip sul radius → zebra full-bleed rispetta gli angoli tondi.
-            // Gutter orizzontale interno: 0 in `embedded` (il gutter lo dà la
-            // pagina host → niente doppio padding). Verticale invariato.
+            // Righe trasparenti: nessun container arrotondato che le contiene, solo
+            // il gutter orizzontale. 0 in `embedded` (il gutter lo dà la pagina host
+            // → niente doppio padding).
             final double hGut = embedded ? 0.0 : GenSizes.gapLg;
-            // Bottom 0: il gap verso il footer lo dà il padding top del footer (Lg)
-            // → niente doppio Lg tra ultima riga e paginazione.
-            rowsSection = Container(
-              margin: EdgeInsets.fromLTRB(hGut, 0, hGut, 0),
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(GenSizes.radiusCard)),
+            rowsSection = Padding(
+              padding: EdgeInsets.symmetric(horizontal: hGut),
               child: rowsSection,
             );
             if (ownScroll) rowsSection = Expanded(child: rowsSection);

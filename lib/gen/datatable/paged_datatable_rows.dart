@@ -130,9 +130,10 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
           : const NeverScrollableScrollPhysics(),
       primary: false,
       padding: EdgeInsets.zero,
-      separatorBuilder: (_, index) => theme.dividerColor == null
-          ? Divider(height: 0, color: clTheme.secondaryBackground, thickness: 1)
-          : const SizedBox.shrink(),
+      // Hairline tra le righe (no zebra): usa il dividerColor del tema se
+      // impostato, altrimenti il borderColor Gen.
+      separatorBuilder: (_, index) =>
+          Divider(height: 1, thickness: 1, color: theme.dividerColor ?? clTheme.borderColor),
       itemCount: rowCount + (showTail ? 1 : 0),
       shrinkWrap: !fillHeight,
       itemBuilder: (context, index) {
@@ -157,7 +158,6 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
                 actionsTitle: actionsTitle,
                 expandedRowBuilder: expandedRowBuilder,
                 onRowExpanded: onRowExpanded,
-                isEven: index % 2 == 0,
               );
             },
           ),

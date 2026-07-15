@@ -224,7 +224,15 @@ class _HomeShellState extends State<HomeShell> {
       ],
       // AI su mobile: endDrawer (pannello da destra), aperto da slots.openAi().
       // Builder per prendere il context sotto lo Scaffold e chiudere l'endDrawer.
-      endDrawer: Builder(builder: (ctx) => _aiAssistant(onClose: () => Scaffold.of(ctx).closeEndDrawer())),
+      // Superficie opaca sotto l'assistente (endDrawer mobile): senza, lo Stack
+      // dell'AI è trasparente e il body sottostante traspare. Su desktop il bg lo
+      // dà `_sideCard`; qui lo diamo noi.
+      endDrawer: Builder(
+        builder: (ctx) => Material(
+          color: GenTokens.of(ctx).secondaryBackground,
+          child: SafeArea(child: _aiAssistant(onClose: () => Scaffold.of(ctx).closeEndDrawer())),
+        ),
+      ),
       // Bolla assistente AI accanto al body (desktop/tablet bubble). Aperta/chiusa
       // dal pulsante AI dell'header; stato/messaggi posseduti qui (demo echo).
       trailing: _aiOpen ? _aiAssistant(onClose: _toggleAi) : null,

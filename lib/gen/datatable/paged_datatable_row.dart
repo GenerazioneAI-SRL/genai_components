@@ -12,7 +12,6 @@ class _HoverableRow<TKey extends Comparable, TResultId extends Comparable,
   final Function(TResult)? actionsTitle;
   final Widget Function(BuildContext context, TResult item)? expandedRowBuilder;
   final Future<void> Function(TResult item)? onRowExpanded;
-  final bool isEven;
 
   const _HoverableRow({
     required this.model,
@@ -25,7 +24,6 @@ class _HoverableRow<TKey extends Comparable, TResultId extends Comparable,
     required this.actionsTitle,
     this.expandedRowBuilder,
     this.onRowExpanded,
-    this.isEven = false,
   });
 
   @override
@@ -39,7 +37,6 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   bool _isLoadingExpanded = false;
-  bool _isPressed = false;
 
   Future<void> _handleTap() async {
     HapticFeedback.selectionClick();
@@ -66,30 +63,24 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     Color primary,
     bool isSelected,
   ) {
-    // Tint OPACHI (alphaBlend sul grigio zebra più scuro): la zebra è opaca → un
-    // overlay translucido lerperebbe verso il trasparente (riga slavata); il blend
-    // su tertiaryBackground tiene hover/selezione più scuri di entrambe le righe.
+    // Righe trasparenti: niente hover. Selezione = tinta primary translucida
+    // sopra la superficie sotto (niente blend opaco).
     if (isSelected) {
       return (
-        rowColor: Color.alphaBlend(primary.withValues(alpha: 0.10), theme.tertiaryBackground),
-        // Niente barra verticale: solo tint di sfondo (anche su selezione).
+        rowColor: primary.withValues(alpha: 0.10),
         leftBorderColor: Colors.transparent,
       );
     }
-    // Nessun tint su hover: la riga resta sul colore zebra.
+    // A riposo: trasparente. Le righe si separano col divider (hairline) reso da
+    // ListView.separated in _build.
     return (
-      // Zebra morbida a due grigi: pari = primaryBackground, dispari = un grigio
-      // un filo più chiaro (verso il bianco, NON bianco pieno).
-      rowColor: widget.isEven
-          ? theme.primaryBackground
-          : Color.alphaBlend(theme.secondaryBackground.withValues(alpha: 0.7), theme.primaryBackground),
+      rowColor: Colors.transparent,
       leftBorderColor: Colors.transparent,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final GlobalKey iconKey = GlobalKey();
     final model = widget.model;
     final state = widget.state;
     final theme = GenTokens.of(context);
@@ -97,10 +88,12 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     final allActions =
         widget.actionsBuilder?.call(model.item) ?? widget.tableActions;
     final inlineActions = allActions.where((a) => a.inline).toList();
-    final actions = allActions.where((a) => !a.inline).toList();
     // Mobile: le azioni inline NON si mostrano nella riga, si rivelano con lo
     // swipe a sinistra (_SwipeActionsReveal). Desktop/tablet: inline invariate.
     final useSwipe = _isTableCompact(context) && inlineActions.isNotEmpty;
+    // Menu kebab: desktop → tutte le azioni consolidate; mobile → solo le
+    // non-inline (le inline le gestisce lo swipe-reveal).
+    final menuActions = useSwipe ? allActions.where((a) => !a.inline).toList() : allActions;
     final hasExpandedBuilder = widget.expandedRowBuilder != null;
     final isSelected = model._isSelected;
     final tablePrimary = _effectiveTablePrimary(context);
@@ -117,8 +110,8 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
             useSwipe: useSwipe,
             inlineActions: inlineActions,
             rowVisual: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
               constraints: const BoxConstraints(
                   minHeight: GenSizes.buttonHeightLarge + GenSizes.gapXs),
               width: double.infinity,
@@ -154,42 +147,22 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
                       ),
                     ),
                     const Spacer(),
-                    if (!useSwipe && inlineActions.isNotEmpty)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var i = 0; i < inlineActions.length; i++) ...[
-                            if (i > 0) SizedBox(width: m.gap),
-                            _InlineActionButton<TResultId, TResult>(
-                              action: inlineActions[i],
-                              model: model,
-                            ),
-                          ],
-                        ],
-                      ),
-                    if (actions.isNotEmpty)
+                    // Azioni riga = un solo bottone compact (kebab) → context menu
+                    // con TUTTE le azioni. Su mobile le inline restano nello
+                    // swipe-reveal, quindi il menu mostra solo le non-inline.
+                    if (menuActions.isNotEmpty)
                       Padding(
-                        padding: EdgeInsets.only(
-                          left: inlineActions.isNotEmpty
-                              ? m.popupLeftGapWithInline
-                              : 0,
-                          right: m.popupRightGap,
-                        ),
+                        padding: EdgeInsets.only(right: m.popupRightGap),
                         child: SizedBox(
                           width: m.popupButtonSlot,
                           child: Center(
                             child: _ActionButton(
-                              iconKey: iconKey,
-                              actions: actions,
+                              actions: menuActions,
                               model: model,
-                              actionsTitle: widget.actionsTitle,
-                              onDialogStateChange: (isOpen) {},
                             ),
                           ),
                         ),
-                      )
-                    else if (inlineActions.isNotEmpty)
-                      SizedBox(width: m.popupRightGap),
+                      ),
                   ],
                 ),
               ),
@@ -228,16 +201,8 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
     }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
       onTap: _handleTap,
-      child: AnimatedScale(
-        scale: _isPressed ? 0.995 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOutCubic,
-        child: rowVisual,
-      ),
+      child: rowVisual,
     );
   }
 }
@@ -382,37 +347,6 @@ class _ExpandedRowContent extends StatelessWidget {
               ),
             )
           : child,
-    );
-  }
-}
-
-/// Inline action rendered in a row as a `CLIconButton` muted tondo — stesso
-/// linguaggio del pulsante "Cambia azienda" (fill `muted`, icona `primaryText`,
-/// size compact da `m.inlineButtonSide`, raggio pill). Used when `TableAction.inline == true`.
-/// L'icona usa il colore semantico se dichiarato (`action.color`,
-/// es. `theme.danger` per "Elimina" → icona rossa), altrimenti `primaryText`.
-class _InlineActionButton<TResultId extends Comparable, TResult extends Object>
-    extends StatelessWidget {
-  final TableAction<TResult> action;
-  final _PagedDataTableRowState<TResultId, TResult> model;
-
-  const _InlineActionButton({required this.action, required this.model});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = GenTokens.of(context);
-    final semantic = action.color;
-    final iconColor = (semantic == null || semantic == theme.primary)
-        ? theme.primaryText
-        : semantic;
-
-    return ShadIconButton.ghost(
-      onPressed: () => action.onTap(model.item),
-      icon: Icon(action.icon, color: iconColor),
-      iconSize: theme.iconSizeCompact,
-      // Match the width the row reservation math allocates (inlineButtonSide).
-      width: theme.buttonHeightCompact,
-      height: theme.buttonHeightCompact,
     );
   }
 }

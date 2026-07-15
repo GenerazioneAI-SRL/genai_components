@@ -454,12 +454,17 @@ class _GenAiAssistantState extends State<GenAiAssistant> {
           children: [
             GenIconButton.outline(
               onPressed: widget.onAttach,
+              iconSize: t.iconSizeDefault,
               icon: const Icon(LucideIcons.paperclip),
             ),
             const Spacer(),
             widget.isProcessing && widget.onStop != null
-                ? GenIconButton.destructive(onPressed: widget.onStop, icon: const Icon(LucideIcons.square))
-                : GenIconButton(onPressed: _canSend ? _send : null, icon: const Icon(LucideIcons.arrowUp)),
+                ? GenIconButton.destructive(
+                    onPressed: widget.onStop, iconSize: t.iconSizeDefault, icon: const Icon(LucideIcons.square))
+                : GenIconButton(
+                    onPressed: _canSend ? _send : null,
+                    iconSize: t.iconSizeDefault,
+                    icon: const Icon(LucideIcons.arrowUp)),
           ],
         ),
         SizedBox(height: t.gapLg),

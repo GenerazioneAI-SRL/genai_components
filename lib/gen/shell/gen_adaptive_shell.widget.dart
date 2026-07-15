@@ -163,11 +163,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// Scrollbar nascosta in tutto il contenuto shell (scroll via drag/wheel) →
   /// coerente con la rail; le pagine non mostrano scrollbar.
   Widget _scopedBody() => Builder(
-        builder: (context) => ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: GenShellScope(controller: _slots, child: widget.body),
-        ),
-      );
+    builder: (context) => ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: GenShellScope(controller: _slots, child: widget.body),
+    ),
+  );
 
   /// Selezione: chiude prima il drawer (se aperto su tablet/mobile), poi delega
   /// all'app. Su desktop `_scaffoldKey` non è montato → no-op.
@@ -213,12 +213,14 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     );
   }
 
-  Widget _navPanel(GenTokens theme,
-      {required bool isCompact,
-      String? forceExpandedKey,
-      bool frosted = false,
-      bool showRightBorder = true,
-      bool collapsed = false}) {
+  Widget _navPanel(
+    GenTokens theme, {
+    required bool isCompact,
+    String? forceExpandedKey,
+    bool frosted = false,
+    bool showRightBorder = true,
+    bool collapsed = false,
+  }) {
     // Blocco AZIENDA (logo/headerLeading + navHeader): in resizable è la parte
     // FISSA in cima al pannello header (non scrolla).
     final Widget? companyContent = (widget.headerLeading != null || widget.navHeader != null)
@@ -249,7 +251,15 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
             children: [
               if (companyContent != null) companyContent,
               if (expandedHasSep) _navHeaderSeparator(theme),
-              if (widget.navSecondary != null) widget.navSecondary!,
+              // Clearance Lg sotto l'ultima voce cliente: nel ramo non-resizable
+              // (drawer mobile) l'header non scrolla → senza questo la pill finale
+              // tocca il bordo basso della bolla frosted. Nel ramo resizable lo dà
+              // il padding del SingleChildScrollView.
+              if (widget.navSecondary != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
+                  child: widget.navSecondary!,
+                ),
             ],
           )
         : null;
@@ -268,8 +278,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     final bool hasSep = pinnedCompany != null && scrollSecondary != null;
 
     // Resize attivo (sidebar espansa E rail/tablet) quando c'è la parte scrollabile.
-    final resizableHeader =
-        !isCompact && widget.config.resizableNavHeader && scrollSecondary != null;
+    final resizableHeader = !isCompact && widget.config.resizableNavHeader && scrollSecondary != null;
 
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
@@ -286,168 +295,196 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
       // (vetro smerigliato traslucido come l'header shell, niente hairline). Il
       // padding top/bottom della lista = altezza misurata delle barre → prima/ultima
       // voce restano raggiungibili.
-      child: Stack(
-        children: [
-          if (resizableHeader)
-            // Overlay resizable: la lista scorre SOTTO l'header frosted (frost
-            // preservato: il vetro sfoca la lista dietro). L'header ha altezza =
-            // frazione regolabile via maniglia custom sul suo bordo basso. Nessun
-            // divider Shad → niente hairline staccata.
-            Positioned.fill(
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final avail = c.maxHeight;
-                  // Cap: header non oltre azienda+cliente misurati (niente vuoto sotto
-                  // l'ultima voce). Min: azienda + ~1 voce (azienda sempre visibile,
-                  // no overflow). Tra i due, il cliente scrolla nell'area residua.
-                  // _navCompanyH = zona FISSA (azienda + separator, misurata insieme).
-                  // Cap max = fissa + voci + clearance (niente vuoto). Min = fissa +
-                  // ~1 voce (fissa sempre visibile). +gapLg = clearance bottom scroll.
-                  final contentTotal = (_navCompanyH + _navClientH) > 0
-                      ? _navCompanyH + _navClientH + GenSizes.gapLg
-                      : avail;
-                  final minFrac = ((_navCompanyH + GenSizes.buttonHeightCompact) / avail).clamp(0.0, 0.85);
-                  final maxFrac = (contentTotal / avail).clamp(minFrac, 0.85);
-                  final frac = _navHeaderFraction.clamp(minFrac, maxFrac);
-                  final headerH = frac * avail;
-                  return Stack(
-                    children: [
-                      Positioned.fill(
-                        child: GenNavList(
-                          destinations: widget.destinations,
-                          selectedKey: widget.selectedKey,
-                          onSelect: _onSelect,
-                          isCompact: false,
-                          collapsed: collapsed,
-                          padding: EdgeInsets.only(
-                            // Lg ESATTO tra bordo basso header e pill prima voce: la
-                            // voce ha già padding vertical gapXs (gen_nav_list) → lo
-                            // sottraggo per non sommare (gapLg + gapXs).
-                            top: headerH + GenSizes.gapLg - GenSizes.gapXs,
-                            bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
-                          ),
+      //
+      // Drawer mobile (compact): inset Lg su tutti i lati → bolle frosted + lista
+      // non toccano i bordi del drawer. Desktop/rail (card esterna già a gapSm dal
+      // canvas): nessun inset qui.
+      child: Padding(
+        padding: isCompact ? const EdgeInsets.all(GenSizes.gapLg) : EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drawer mobile: bottone ghost "chiudi" sopra la bolla azienda.
+            if (isCompact)
+              Align(
+                alignment: Alignment.centerRight,
+                child: GenIconButton.ghost(
+                  onPressed: () => _scaffoldKey.currentState?.closeDrawer(),
+                  iconSize: GenSizes.iconSizeDefault,
+                  icon: const Icon(LucideIcons.x),
+                ),
+              ),
+            if (isCompact) const SizedBox(height: GenSizes.gapLg),
+            Expanded(
+              child: Stack(
+                children: [
+                  if (resizableHeader)
+                    // Overlay resizable: la lista scorre SOTTO l'header frosted (frost
+                    // preservato: il vetro sfoca la lista dietro). L'header ha altezza =
+                    // frazione regolabile via maniglia custom sul suo bordo basso. Nessun
+                    // divider Shad → niente hairline staccata.
+                    Positioned.fill(
+                      child: LayoutBuilder(
+                        builder: (context, c) {
+                          final avail = c.maxHeight;
+                          // Cap: header non oltre azienda+cliente misurati (niente vuoto sotto
+                          // l'ultima voce). Min: azienda + ~1 voce (azienda sempre visibile,
+                          // no overflow). Tra i due, il cliente scrolla nell'area residua.
+                          // _navCompanyH = zona FISSA (azienda + separator, misurata insieme).
+                          // Cap max = fissa + voci + clearance (niente vuoto). Min = fissa +
+                          // ~1 voce (fissa sempre visibile). +gapLg = clearance bottom scroll.
+                          final contentTotal = (_navCompanyH + _navClientH) > 0
+                              ? _navCompanyH + _navClientH + GenSizes.gapLg
+                              : avail;
+                          final minFrac = ((_navCompanyH + GenSizes.buttonHeightCompact) / avail).clamp(0.0, 0.85);
+                          final maxFrac = (contentTotal / avail).clamp(minFrac, 0.85);
+                          final frac = _navHeaderFraction.clamp(minFrac, maxFrac);
+                          final headerH = frac * avail;
+                          return Stack(
+                            children: [
+                              Positioned.fill(
+                                child: GenNavList(
+                                  destinations: widget.destinations,
+                                  selectedKey: widget.selectedKey,
+                                  onSelect: _onSelect,
+                                  isCompact: false,
+                                  collapsed: collapsed,
+                                  padding: EdgeInsets.only(
+                                    // Lg ESATTO tra bordo basso header e pill prima voce: la
+                                    // voce ha già padding vertical gapXs (gen_nav_list) → lo
+                                    // sottraggo per non sommare (gapLg + gapXs).
+                                    top: headerH + GenSizes.gapLg - GenSizes.gapXs,
+                                    bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
+                                  ),
+                                ),
+                              ),
+                              // Header frosted ad altezza fissa: AZIENDA pinnata in cima +
+                              // voci CLIENTE (navSecondary) scrollabili nell'area residua fino
+                              // al divider. Il vetro sfoca la lista che scorre sotto.
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: headerH,
+                                child: _frostedMenuBar(
+                                  theme,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Zona FISSA: azienda + separator (misurata insieme).
+                                      if (pinnedCompany != null)
+                                        _MeasureSize(
+                                          onChange: (s) {
+                                            if (s.height != _navCompanyH) setState(() => _navCompanyH = s.height);
+                                          },
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [pinnedCompany, if (hasSep) _navHeaderSeparator(theme)],
+                                          ),
+                                        ),
+                                      Expanded(
+                                        // Gate: sopprime i tooltip delle voci cliente durante
+                                        // lo scroll (stesso fix della lista principale).
+                                        child: GenNavScrollTooltipGate(
+                                          child: SingleChildScrollView(
+                                            // Stessa physics della lista principale (GenNavList):
+                                            // bounce coerente, niente "scatto" clamping al limite.
+                                            physics: const BouncingScrollPhysics(),
+                                            // Clearance bottom → l'ultima voce si ferma sopra il
+                                            // divider, che resta visibile mentre scorri.
+                                            padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
+                                            // Misura l'altezza intrinseca delle voci cliente (lo
+                                            // scroll dà vincolo verticale illimitato) → serve al cap.
+                                            child: _MeasureSize(
+                                              onChange: (s) {
+                                                if (s.height != _navClientH) setState(() => _navClientH = s.height);
+                                              },
+                                              child: scrollSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Maniglia sul bordo basso dell'header.
+                              Positioned(
+                                top: headerH - 8,
+                                left: 0,
+                                right: 0,
+                                child: _NavHeaderHandle(
+                                  key: const Key('gen-nav-header-resize-handle'),
+                                  onDrag: (dy) => setState(() {
+                                    _navHeaderFraction = (frac + dy / avail).clamp(minFrac, maxFrac);
+                                  }),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    )
+                  else ...[
+                    Positioned.fill(
+                      child: GenNavList(
+                        destinations: widget.destinations,
+                        selectedKey: widget.selectedKey,
+                        onSelect: _onSelect,
+                        isCompact: isCompact,
+                        forceExpandedKey: forceExpandedKey,
+                        collapsed: collapsed,
+                        // Orizzontale 0: le pill delle voci sono a filo delle bolle frosted
+                        // (contenuti allineati via il padding interno della tile).
+                        // Top/bottom = altezza bolla (già include il margin gapSm verso la
+                        // lista) → gap 8px, niente gapLg extra. Fallback gapSm se assente.
+                        padding: EdgeInsets.only(
+                          top: hasHeader ? _menuHeaderH : GenSizes.gapSm,
+                          bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
                         ),
                       ),
-                      // Header frosted ad altezza fissa: AZIENDA pinnata in cima +
-                      // voci CLIENTE (navSecondary) scrollabili nell'area residua fino
-                      // al divider. Il vetro sfoca la lista che scorre sotto.
+                    ),
+                    // Barra header frosted (logo + navHeader): in alto, full-width.
+                    if (hasHeader)
                       Positioned(
                         top: 0,
                         left: 0,
                         right: 0,
-                        height: headerH,
-                        child: _frostedMenuBar(
-                          theme,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Zona FISSA: azienda + separator (misurata insieme).
-                              if (pinnedCompany != null)
-                                _MeasureSize(
-                                  onChange: (s) {
-                                    if (s.height != _navCompanyH) setState(() => _navCompanyH = s.height);
-                                  },
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      pinnedCompany,
-                                      if (hasSep) _navHeaderSeparator(theme),
-                                    ],
-                                  ),
-                                ),
-                              Expanded(
-                                // Gate: sopprime i tooltip delle voci cliente durante
-                                // lo scroll (stesso fix della lista principale).
-                                child: GenNavScrollTooltipGate(
-                                  child: SingleChildScrollView(
-                                    // Stessa physics della lista principale (GenNavList):
-                                    // bounce coerente, niente "scatto" clamping al limite.
-                                    physics: const BouncingScrollPhysics(),
-                                    // Clearance bottom → l'ultima voce si ferma sopra il
-                                    // divider, che resta visibile mentre scorri.
-                                    padding: const EdgeInsets.only(bottom: GenSizes.gapLg),
-                                    // Misura l'altezza intrinseca delle voci cliente (lo
-                                    // scroll dà vincolo verticale illimitato) → serve al cap.
-                                    child: _MeasureSize(
-                                      onChange: (s) {
-                                        if (s.height != _navClientH) setState(() => _navClientH = s.height);
-                                      },
-                                      child: scrollSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                        child: _MeasureSize(
+                          onChange: (s) {
+                            if (s.height != _menuHeaderH) setState(() => _menuHeaderH = s.height);
+                          },
+                          child: _frostedMenuBar(
+                            theme,
+                            margin: const EdgeInsets.only(bottom: GenSizes.gapSm),
+                            child: headerContent,
                           ),
                         ),
                       ),
-                      // Maniglia sul bordo basso dell'header.
-                      Positioned(
-                        top: headerH - 8,
-                        left: 0,
-                        right: 0,
-                        child: _NavHeaderHandle(
-                          key: const Key('gen-nav-header-resize-handle'),
-                          onDrag: (dy) => setState(() {
-                            _navHeaderFraction = (frac + dy / avail).clamp(minFrac, maxFrac);
-                          }),
+                  ],
+                  // Barra footer frosted (navFooter): in basso, full-width. Comune ai due rami.
+                  if (hasFooter)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: _MeasureSize(
+                        onChange: (s) {
+                          if (s.height != _menuFooterH) setState(() => _menuFooterH = s.height);
+                        },
+                        child: _frostedMenuBar(
+                          theme,
+                          margin: const EdgeInsets.only(top: GenSizes.gapSm),
+                          child: footerContent,
                         ),
                       ),
-                    ],
-                  );
-                },
-              ),
-            )
-          else ...[
-            Positioned.fill(
-              child: GenNavList(
-                destinations: widget.destinations,
-                selectedKey: widget.selectedKey,
-                onSelect: _onSelect,
-                isCompact: isCompact,
-                forceExpandedKey: forceExpandedKey,
-                collapsed: collapsed,
-                // Orizzontale 0: le pill delle voci sono a filo delle bolle frosted
-                // (contenuti allineati via il padding interno della tile).
-                // Top/bottom = altezza bolla (già include il margin gapSm verso la
-                // lista) → gap 8px, niente gapLg extra. Fallback gapSm se assente.
-                padding: EdgeInsets.only(
-                  top: hasHeader ? _menuHeaderH : GenSizes.gapSm,
-                  bottom: hasFooter ? _menuFooterH : GenSizes.gapSm,
-                ),
+                    ),
+                ],
               ),
             ),
-            // Barra header frosted (logo + navHeader): in alto, full-width.
-            if (hasHeader)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _MeasureSize(
-                  onChange: (s) {
-                    if (s.height != _menuHeaderH) setState(() => _menuHeaderH = s.height);
-                  },
-                  child: _frostedMenuBar(theme,
-                      margin: const EdgeInsets.only(bottom: GenSizes.gapSm), child: headerContent),
-                ),
-              ),
           ],
-          // Barra footer frosted (navFooter): in basso, full-width. Comune ai due rami.
-          if (hasFooter)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _MeasureSize(
-                onChange: (s) {
-                  if (s.height != _menuFooterH) setState(() => _menuFooterH = s.height);
-                },
-                child: _frostedMenuBar(theme,
-                    margin: const EdgeInsets.only(top: GenSizes.gapSm), child: footerContent),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -463,10 +500,10 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// Inset orizzontale gapLg: allinea le estremità all'inset del contenuto e le
   /// stacca dal bordo della bolla frosted → niente giunzione a "T"/overlap 1px.
   Widget _navHeaderSeparator(GenTokens theme) => Container(
-        height: 1,
-        margin: const EdgeInsets.symmetric(horizontal: GenSizes.gapLg),
-        color: theme.borderColor,
-      );
+    height: 1,
+    margin: const EdgeInsets.symmetric(horizontal: GenSizes.gapLg),
+    color: theme.borderColor,
+  );
 
   Widget _frostedMenuBar(GenTokens theme, {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
     final radius = BorderRadius.circular(GenSizes.radiusSurface);
@@ -486,10 +523,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.secondaryBackground.withValues(alpha: 0.82),
-                borderRadius: radius,
-              ),
+              decoration: BoxDecoration(color: theme.secondaryBackground.withValues(alpha: 0.82), borderRadius: radius),
               child: child,
             ),
           ),
@@ -520,33 +554,39 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
         // Toggle collapse sidebar (solo bubble desktop/tablet): estende/collassa
         // il menu a rail. Icona statica; lo stato reale lo dà `_prevMode`.
         if (widget.config.bubbleBody && !bottomBar) {
-          leading.add(GenIconButton.ghost(
-            onPressed: () => setState(() => _collapsed = !_isCollapsed(_prevMode ?? GenNavMode.sidebar)),
-            icon: Icon(Icons.view_sidebar_outlined),
-            iconSize: GenSizes.iconSizeDefault,
-          ));
+          leading.add(
+            GenIconButton.ghost(
+              onPressed: () => setState(() => _collapsed = !_isCollapsed(_prevMode ?? GenNavMode.sidebar)),
+              icon: Icon(Icons.view_sidebar_outlined),
+              iconSize: GenSizes.iconSizeDefault,
+            ),
+          );
         }
         // Il logo vive in cima al menu (tutti i breakpoint), mai nell'header → qui
         // niente logo: leading parte da back + breadcrumbs.
         if (s.back != null && !bottomBar) {
-          leading.add(GenIconButton.ghost(
-            onPressed: s.back!.onTap,
-            icon: Icon(Icons.chevron_left),
-            iconSize: GenSizes.iconSizeDefault,
-          ));
+          leading.add(
+            GenIconButton.ghost(
+              onPressed: s.back!.onTap,
+              icon: Icon(Icons.chevron_left),
+              iconSize: GenSizes.iconSizeDefault,
+            ),
+          );
         }
         if (s.breadcrumbs.isNotEmpty) {
           if (mode != GenNavMode.sidebar) {
             // Tablet/mobile: solo titolo (ultimo crumb), Flexible → ellissi su
             // header stretto (niente overflow).
-            leading.add(Flexible(
-              child: Text(
-                s.breadcrumbs.last.label,
-                style: theme.heading4,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+            leading.add(
+              Flexible(
+                child: Text(
+                  s.breadcrumbs.last.label,
+                  style: theme.heading4,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
-            ));
+            );
           } else {
             // Desktop: path completo intrinseco.
             leading.add(_breadcrumbs(theme, s.breadcrumbs));
@@ -604,14 +644,14 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
           fontWeight: isLast ? FontWeight.w600 : FontWeight.w400,
         ),
       );
-      children.add(
-        (c.onTap != null && !isLast) ? GestureDetector(onTap: c.onTap, child: label) : label,
-      );
+      children.add((c.onTap != null && !isLast) ? GestureDetector(onTap: c.onTap, child: label) : label);
       if (!isLast) {
-        children.add(Padding(
-          padding: EdgeInsets.symmetric(horizontal: theme.gapSm),
-          child: Icon(Icons.chevron_right, size: GenSizes.iconSizeDefault, color: theme.secondaryText),
-        ));
+        children.add(
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: theme.gapSm),
+            child: Icon(Icons.chevron_right, size: GenSizes.iconSizeDefault, color: theme.secondaryText),
+          ),
+        );
       }
     }
     return Row(mainAxisSize: MainAxisSize.min, children: children);
@@ -621,11 +661,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
     if (a.builder != null) return a.builder!(context);
     final onTap = a.enabled ? (a.onTap ?? () {}) : () {};
     if (a.isPrimary && a.label != null) {
-      return GenButton(
-        onPressed: onTap,
-        leading: a.icon != null ? Icon(a.icon!) : null,
-        child: Text(a.label!),
-      );
+      return GenButton(onPressed: onTap, leading: a.icon != null ? Icon(a.icon!) : null, child: Text(a.label!));
     }
     return GenIconButton.ghost(
       onPressed: onTap,
@@ -756,10 +792,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                   ),
                   // Azioni secondarie a destra del primario (solo se c'è un primario).
                   if (primary != null)
-                    for (final a in others) ...[
-                      SizedBox(width: theme.gapMd),
-                      _actionButton(context, theme, a),
-                    ],
+                    for (final a in others) ...[SizedBox(width: theme.gapMd), _actionButton(context, theme, a)],
                   if (s.contextOverflow != null) ...[
                     SizedBox(width: theme.gapMd),
                     _revealButton(context, theme, s.contextOverflow!),
@@ -800,13 +833,11 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
       children: [
         Row(
           children: [
-            GenIconButton.ghost(
-              onPressed: close,
-              icon: Icon(Icons.arrow_back),
-              iconSize: GenSizes.iconSizeDefault,
-            ),
+            GenIconButton.ghost(onPressed: close, icon: Icon(Icons.arrow_back), iconSize: GenSizes.iconSizeDefault),
             SizedBox(width: theme.gapMd),
-            Expanded(child: Text(r.title, style: theme.heading5, overflow: TextOverflow.ellipsis)),
+            Expanded(
+              child: Text(r.title, style: theme.heading5, overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         SizedBox(height: theme.gapLg),
@@ -913,10 +944,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
             padding: const EdgeInsets.all(GenSizes.gapLg),
             child: SizedBox(
               width: widget.config.sidebarWidth,
-              child: _sideCard(
-                context,
-                child: _navPanel(theme, isCompact: false, frosted: true),
-              ),
+              child: _sideCard(context, child: _navPanel(theme, isCompact: false, frosted: true)),
             ),
           ),
           // Colonna centrale: header solo sopra il contenuto, poi corpo.
@@ -1068,40 +1096,44 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
           // Menu in bolla (come body/AI): margin Sm su l/t/b, NIENTE destra (il
           // gap col body lo dà il padding-left del body → evita doppio). Card
           // arrotondata secondaryBackground; larghezza animata sidebar↔rail.
-          Builder(builder: (_) {
-            final menuW = collapsed ? widget.config.railWidth : widget.config.sidebarWidth;
-            return Padding(
-              padding: const EdgeInsets.only(
-                  left: GenSizes.gapSm, top: GenSizes.gapSm, bottom: GenSizes.gapSm),
-              child: AnimatedContainer(
-                duration: theme.durationBase,
-                curve: Curves.easeInOut,
-                width: menuW,
-                // Sfondo TRASPARENTE dietro le voci. ClipRect RETTANGOLARE (non
-                // arrotondato): il menu è trasparente e le bolle frost hanno il
-                // proprio radius → un ClipRRect qui taglierebbe gli angoli delle
-                // bolle a filo. Serve solo a clippare la larghezza animata.
-                child: ClipRect(
-                  // OverflowBox: impagina il contenuto alla larghezza FINALE (menuW),
-                  // così durante l'animazione non fa reflow (niente overflow delle
-                  // voci/header estesi); il ClipRRect rivela la larghezza animata.
-                  child: OverflowBox(
-                    minWidth: menuW,
-                    maxWidth: menuW,
-                    alignment: Alignment.centerLeft,
-                    child: _navPanel(theme, isCompact: false, frosted: true, showRightBorder: false, collapsed: collapsed),
+          Builder(
+            builder: (_) {
+              final menuW = collapsed ? widget.config.railWidth : widget.config.sidebarWidth;
+              return Padding(
+                padding: const EdgeInsets.only(left: GenSizes.gapSm, top: GenSizes.gapSm, bottom: GenSizes.gapSm),
+                child: AnimatedContainer(
+                  duration: theme.durationBase,
+                  curve: Curves.easeInOut,
+                  width: menuW,
+                  // Sfondo TRASPARENTE dietro le voci. ClipRect RETTANGOLARE (non
+                  // arrotondato): il menu è trasparente e le bolle frost hanno il
+                  // proprio radius → un ClipRRect qui taglierebbe gli angoli delle
+                  // bolle a filo. Serve solo a clippare la larghezza animata.
+                  child: ClipRect(
+                    // OverflowBox: impagina il contenuto alla larghezza FINALE (menuW),
+                    // così durante l'animazione non fa reflow (niente overflow delle
+                    // voci/header estesi); il ClipRRect rivela la larghezza animata.
+                    child: OverflowBox(
+                      minWidth: menuW,
+                      maxWidth: menuW,
+                      alignment: Alignment.centerLeft,
+                      child: _navPanel(
+                        theme,
+                        isCompact: false,
+                        frosted: true,
+                        showRightBorder: false,
+                        collapsed: collapsed,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
           // Bolla centrale: header frost fisso + body scroll. Gutter Sm su tutti i
           // lati (il left dà il gap col menu, il right col bordo/AI).
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(GenSizes.gapSm),
-              child: _bubbleCenter(context, theme),
-            ),
+            child: Padding(padding: const EdgeInsets.all(GenSizes.gapSm), child: _bubbleCenter(context, theme)),
           ),
           // Assistente in bolla a destra. Anima SOLO la bolla (reveal della
           // larghezza, apertura+chiusura, durata da token): il contenuto è
@@ -1121,8 +1153,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
                 if (v <= 0) return const SizedBox.shrink();
                 final full = widget.config.trailingWidth;
                 return Padding(
-                  padding: const EdgeInsets.only(
-                      top: GenSizes.gapSm, bottom: GenSizes.gapSm, right: GenSizes.gapSm),
+                  padding: const EdgeInsets.only(top: GenSizes.gapSm, bottom: GenSizes.gapSm, right: GenSizes.gapSm),
                   child: SizedBox(
                     width: full * v,
                     child: ClipRect(
@@ -1169,43 +1200,39 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
         borderRadius: radius,
         child: Stack(
           children: [
-          // z0 — contenuto che scorre sotto l'header. Inset via MediaQuery.
-          Positioned.fill(
-            child: MediaQuery(
-              data: mq.copyWith(
-                padding: mq.padding.copyWith(
-                  // top = clearance header esatta (niente gapLg extra); bottom 0.
-                  // La pagina non deve ereditare respiro verticale che taglia in
-                  // scroll — lo aggiunge lei se serve. Gutter solo orizzontale.
-                  top: headerH,
-                  bottom: 0,
-                  left: theme.gapLg,
-                  right: theme.gapLg,
+            // z0 — contenuto che scorre sotto l'header. Inset via MediaQuery.
+            Positioned.fill(
+              child: MediaQuery(
+                data: mq.copyWith(
+                  padding: mq.padding.copyWith(
+                    // top = clearance header esatta (niente gapLg extra); bottom 0.
+                    // La pagina non deve ereditare respiro verticale che taglia in
+                    // scroll — lo aggiunge lei se serve. Gutter solo orizzontale.
+                    top: headerH,
+                    bottom: 0,
+                    left: theme.gapLg,
+                    right: theme.gapLg,
+                  ),
                 ),
+                child: _scopedBody(),
               ),
-              child: _scopedBody(),
             ),
-          ),
-          // z1 — header frosted fisso in cima alla bolla. removeTop: dentro la
-          // bolla non c'è system inset (SafeArea del header lo aggiungerebbe →
-          // header troppo alto, hairline sfasato).
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: Builder(
-                builder: (ctx) => _frostedHeader(
-                  ctx,
-                  theme,
-                  withMenuButton: withMenuButton,
-                  mode: GenNavMode.sidebar,
+            // z1 — header frosted fisso in cima alla bolla. removeTop: dentro la
+            // bolla non c'è system inset (SafeArea del header lo aggiungerebbe →
+            // header troppo alto, hairline sfasato).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: Builder(
+                  builder: (ctx) =>
+                      _frostedHeader(ctx, theme, withMenuButton: withMenuButton, mode: GenNavMode.sidebar),
                 ),
               ),
             ),
-          ),
           ],
         ),
       ),
@@ -1406,11 +1433,7 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// Ramo frosted full-bleed: Scaffold con `extendBody`/`extendBodyBehindAppBar`
   /// veri così Flutter calcola gli inset della bottom bar (altezza variabile) e
   /// li inietta nel MediaQuery del body automaticamente.
-  Widget _frostedScaffold(
-    BuildContext context,
-    GenTokens theme, {
-    required bool withBottomBar,
-  }) {
+  Widget _frostedScaffold(BuildContext context, GenTokens theme, {required bool withBottomBar}) {
     final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
     final drawer = Drawer(
       width: drawerWidth,
@@ -1567,7 +1590,12 @@ class _GenAdaptiveShellState extends State<GenAdaptiveShell> {
   /// [applyNavGating] — solo il path frosted nasconde la nav quando un pannello
   /// è aperto o la selezione bulk è attiva. Il path legacy non gata mai la nav
   /// (comportamento invariato rispetto a prima di Task 5).
-  Widget _bubbleInner(BuildContext context, GenTokens theme, {required bool withBottomBar, bool applyNavGating = false}) {
+  Widget _bubbleInner(
+    BuildContext context,
+    GenTokens theme, {
+    required bool withBottomBar,
+    bool applyNavGating = false,
+  }) {
     return AnimatedBuilder(
       animation: _slots,
       builder: (context, _) {
@@ -1697,10 +1725,7 @@ class _NavHeaderHandle extends StatelessWidget {
             // (radius 4, padding H3/V1) con icona gripHorizontal (asse verticale).
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-              decoration: BoxDecoration(
-                color: t.borderColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
+              decoration: BoxDecoration(color: t.borderColor, borderRadius: BorderRadius.circular(4)),
               child: Icon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
             ),
           ),
