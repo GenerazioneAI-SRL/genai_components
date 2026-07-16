@@ -1,4 +1,4 @@
-import 'package:genai_components/old/utils/models/pagination.model.dart';
+import 'package:genai_components/gen/datatable/pagination.model.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'dart:async';
 import 'dart:collection';

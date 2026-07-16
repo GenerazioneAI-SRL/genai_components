@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:genai_components/gen/gen.dart' hide WidgetBuilder;
-import 'package:genai_components/old/utils/models/pagination.model.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/users_routes.dart';

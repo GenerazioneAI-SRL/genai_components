@@ -41,3 +41,4 @@ export 'widgets/gen_datetime_field.dart';
 // Custom widget: paged data table (migrated; theme→Gen; primitives/customs
 // still partly on old/ — WIP).
 export 'datatable/paged_datatable.dart';
+export 'datatable/pagination.model.dart';
