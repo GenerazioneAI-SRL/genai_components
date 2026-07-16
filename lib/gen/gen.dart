@@ -35,6 +35,7 @@ export 'widgets/gen_command_palette.dart';
 export 'widgets/gen_ai_assistant.dart';
 export 'widgets/gen_event_calendar.dart';
 export 'widgets/gen_year_field.dart';
+export 'widgets/gen_month_field.dart';
 
 // Custom widget: paged data table (migrated; theme→Gen; primitives/customs
 // still partly on old/ — WIP).
