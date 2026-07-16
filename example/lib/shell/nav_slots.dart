@@ -29,7 +29,6 @@ class NavHeader extends StatelessWidget {
           GenButton.outline(
             onPressed: () {},
             width: double.infinity,
-            size: GenButtonSize.sm,
             leading: const Icon(LucideIcons.repeat),
             child: const Text('Cambia azienda'),
           ),
@@ -142,9 +141,9 @@ class NavHeaderRail extends StatelessWidget {
             builder: (_) => const Text('Cambia azienda'),
             child: GenIconButton.outline(
               onPressed: () {},
-              width: t.buttonHeightCompact,
-              height: t.buttonHeightCompact,
-              iconSize: t.iconSizeCompact,
+              width: t.buttonHeightDefault,
+              height: t.buttonHeightDefault,
+              iconSize: t.iconSizeDefault,
               icon: const Icon(LucideIcons.repeat),
             ),
           ),
@@ -248,9 +247,9 @@ class _NavFooterState extends State<NavFooter> {
             child: GenIconButton.ghost(
               onPressed: _menu.toggle,
               icon: const Icon(LucideIcons.ellipsisVertical),
-              iconSize: t.iconSizeCompact,
-              width: t.buttonHeightCompact,
-              height: t.buttonHeightCompact,
+              iconSize: t.iconSizeDefault,
+              width: t.buttonHeightDefault,
+              height: t.buttonHeightDefault,
             ),
           ),
         ],

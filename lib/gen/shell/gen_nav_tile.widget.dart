@@ -56,8 +56,8 @@ class _GenNavScrollTooltipGateState extends State<GenNavScrollTooltipGate> {
 }
 
 /// Altezza della "pill" cliccabile di una voce di menu desktop.
-const double _kTileHeight = GenSizes.buttonHeightCompact; // 32
-/// Gap verticale sopra/sotto ogni voce → riga effettiva = 32 + 2×4 = 40.
+const double _kTileHeight = GenSizes.buttonHeightDefault; // 40
+/// Gap verticale sopra/sotto ogni voce → riga effettiva = 40 + 2×4 = 48.
 const double _kTileVGap = GenSizes.gapXs; // 4
 
 /// Opacità del `primary` per l'hover "soft" (voci a riposo, dropdown chiusi).
@@ -181,16 +181,16 @@ class _GenNavTileState extends State<GenNavTile> {
         hoverBackgroundColor: c.hoverBackground,
         foregroundColor: c.restForeground,
         hoverForegroundColor: c.hoverForeground,
-        // Label pinnata a smallText (12): il default button è small (14).
-        textStyle: t.smallText.copyWith(fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal),
+        // Label a size default (14): pari al testo small del button default.
+        textStyle: t.smallText.copyWith(fontSize: 14, fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal),
         leading: widget.iconBuilder == null
             ? null
             : SizedBox(
                 // Slot largo iconSizeDefault (20) per preservare allineamento e la
                 // geometria dell'indent dei sotto-item (basata su iconSizeDefault/2);
-                // glifo a iconSizeCompact (16) centrato → pari al rail.
+                // glifo a iconSizeDefault (20) centrato → pari al rail.
                 width: GenSizes.iconSizeDefault,
-                child: Center(child: widget.iconBuilder!(iconColor, GenSizes.iconSizeCompact)),
+                child: Center(child: widget.iconBuilder!(iconColor, GenSizes.iconSizeDefault)),
               ),
         trailing: widget.trailing,
         child: Text(
@@ -239,9 +239,9 @@ class GenNavRailTile extends StatefulWidget {
   /// il tooltip coprirebbe le voci.
   final bool enableTooltip;
 
-  /// Avvolge il nodo COMPATTO (bottone, 32px) prima del centraggio nel rail.
+  /// Avvolge il nodo del rail (bottone, 40px) prima del centraggio nel rail.
   /// Serve per ancorare un overlay (es. [GenContextMenu] del gruppo) al bottone
-  /// da 32px e non al tile full-width → stessa distanza del tooltip.
+  /// da 40px e non al tile full-width → stessa distanza del tooltip.
   final Widget Function(Widget compact)? wrap;
 
   @override
@@ -260,17 +260,18 @@ class _GenNavRailTileState extends State<GenNavRailTile> {
     final reactsToHover = c.restForeground != c.hoverForeground;
     final iconColor = reactsToHover ? c.foreground(_hovered) : c.restForeground;
 
-    // Nodo COMPATTO da 32px: è questo che [wrap] (flyout) e il tooltip misurano
-    // → gli overlay escono accanto al bottone, non al rail full-width.
+    // Nodo del rail da 40px (buttonHeightDefault): è questo che [wrap] (flyout) e
+    // il tooltip misurano → gli overlay escono accanto al bottone, non al rail
+    // full-width.
     Widget compact = GenIconButton.ghost(
       onPressed: widget.onTap,
       onHoverChange: reactsToHover ? (v) => setState(() => _hovered = v) : null,
-      width: GenSizes.buttonHeightCompact,
-      height: GenSizes.buttonHeightCompact,
-      iconSize: GenSizes.iconSizeCompact,
+      width: GenSizes.buttonHeightDefault,
+      height: GenSizes.buttonHeightDefault,
+      iconSize: GenSizes.iconSizeDefault,
       backgroundColor: c.restBackground,
       hoverBackgroundColor: c.hoverBackground,
-      icon: widget.iconBuilder(iconColor, GenSizes.iconSizeCompact),
+      icon: widget.iconBuilder(iconColor, GenSizes.iconSizeDefault),
     );
     // Niente tooltip durante lo scroll: mostrarlo mentre le icone scorrono sotto
     // il cursore resetta la ScrollPosition (scatto). [_NavScrolling] arriva dal

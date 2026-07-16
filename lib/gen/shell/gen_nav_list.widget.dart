@@ -10,7 +10,7 @@ const double _kRailWidth = 1.5;
 
 /// Indentazione delle voci foglia sotto un gruppo: allineate appena oltre il
 /// rail (centro icona parent + mezzo rail + un gap). Geometria dell'altezza
-/// riga/pill ora vive in [GenNavTile] (buttonHeightCompact + gapXs).
+/// riga/pill ora vive in [GenNavTile] (buttonHeightDefault + gapXs).
 const double _kGroupIndent = GenSizes.gapMd + GenSizes.iconSizeDefault / 2 + _kRailWidth / 2 + GenSizes.gapLg;
 
 /// Lista navigazione condivisa da sidebar (desktop) e drawer (tablet/mobile).

@@ -103,6 +103,16 @@ class GenThemeData {
       constraints: BoxConstraints(minHeight: GenSizes.inputHeight),
       padding: EdgeInsets.symmetric(horizontal: GenSizes.gapMd, vertical: 10),
     ),
+    // OTP: ogni slot è un ShadInput che EREDITA il minHeight globale (40) qui
+    // sopra; dentro la cella lo slot aggiunge però ~4px di chrome (bordo 1+1 +
+    // padding decorativo 1+1), quindi l'input da 40 non ci sta in una cella da
+    // 40 → overflow di 4px. ShadInputOTPTheme non espone `constraints` per
+    // togliere quel minHeight allo slot, quindi diamo alla cella l'altezza che
+    // accoglie input(40) + chrome(4). La cifra resta centrata (padding input
+    // simmetrico dentro i 40 imposti dal minHeight).
+    inputOTPTheme: const ShadInputOTPTheme(
+      height: GenSizes.inputHeight + 4, // 44 = 40 (minHeight input) + 4 (chrome)
+    ),
   );
 
   factory GenThemeData.light() => const GenThemeData(brightness: Brightness.light);
