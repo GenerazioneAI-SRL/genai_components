@@ -344,22 +344,12 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     _disposed = true;
     filterChipsScrollController.dispose();
     _refreshListenerSubscription?.cancel();
-    // Dispose risorse dei filtri (controller, focusNode, debounce timer)
+    // Dispose risorse dei filtri (controller, focusNode, debounce timer).
+    // Solo TextTableFilter mantiene ancora controller/focusNode/timer; i filtri
+    // data/ora ora usano picker nativi Shad senza risorse da liberare.
     for (final filterState in filters.values) {
       final filter = filterState._filter;
       if (filter is TextTableFilter) {
-        filter.dispose();
-      } else if (filter is CLDateTableFilter) {
-        filter.dispose();
-      } else if (filter is CLDateTimeTableFilter) {
-        filter.dispose();
-      } else if (filter is CLTimeTableFilter) {
-        filter.dispose();
-      } else if (filter is CLMonthTableFilter) {
-        filter.dispose();
-      } else if (filter is CLYearTableFilter) {
-        filter.dispose();
-      } else if (filter is CLDateRangeTableFilter) {
         filter.dispose();
       }
     }

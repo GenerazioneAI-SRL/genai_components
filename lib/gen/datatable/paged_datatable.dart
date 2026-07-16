@@ -27,8 +27,6 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 import 'package:equatable/equatable.dart';
 
-part 'controls.dart';
-
 part 'errors.dart';
 
 part 'paged_datatable_column.dart';

@@ -144,16 +144,13 @@ class DatePickerTableFilter extends TableFilter<DateTime> {
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    return _DateTimePicker(
-      firstDate: firstDate,
-      lastDate: lastDate,
-      dateFormat: dateFormat,
-      initialDate: state.value,
-      decoration: decoration ?? InputDecoration(labelText: title),
-      onSaved: (newValue) {
-        if (newValue != null) {
-          state.value = newValue;
-        }
+    return GenDatePicker(
+      placeholder: Text(decoration?.labelText ?? title),
+      selected: state.value is DateTime ? state.value : null,
+      fromMonth: firstDate,
+      toMonth: lastDate,
+      onChanged: (date) {
+        if (date != null) state.value = date;
       },
     );
   }
@@ -178,15 +175,15 @@ class DateRangePickerTableFilter extends TableFilter<DateTimeRange> {
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    return _DateTimeRangePicker(
-      firstDate: firstDate,
-      lastDate: lastDate,
-      dateFormat: dateFormat,
-      initialValue: state.value,
-      decoration: decoration ?? InputDecoration(labelText: title),
-      onSaved: (newValue) {
-        if (newValue != null) {
-          state.value = newValue;
+    final r = state.value is DateTimeRange ? state.value as DateTimeRange : null;
+    return GenDatePicker.range(
+      placeholder: Text(decoration?.labelText ?? title),
+      selected: r == null ? null : ShadDateTimeRange(start: r.start, end: r.end),
+      fromMonth: firstDate,
+      toMonth: lastDate,
+      onRangeChanged: (range) {
+        if (range?.start != null && range?.end != null) {
+          state.value = DateTimeRange(start: range!.start!, end: range.end!);
         }
       },
     );
@@ -251,7 +248,7 @@ class CLDropdownTableFilterSync<TValue extends Object> extends TableFilter<TValu
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Filtri inline con CLTextField (senza picker/calendario)
+// Filtri data/ora — picker nativi Shad (GenDatePicker/GenTimePicker/GenSelect)
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Filtro data singola — GenDatePicker (calendario Shad nativo)
