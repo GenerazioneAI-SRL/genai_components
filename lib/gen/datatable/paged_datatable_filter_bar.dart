@@ -422,28 +422,34 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                 padding: EdgeInsets.all(theme.pagePadX),
                 child: Column(
                   children: [
-                    CLDropdown<Map<BaseTableColumn<TResult>?, bool>>.singleSync(
-                      hint: 'Ordina per',
-                      items: items,
-                      valueToShow: (item) {
-                        if (item.values.toList()[0]) {
-                          return "${item.keys.toList()[0]!.title.toString()} - Discendente";
-                        } else {
-                          return "${item.keys.toList()[0]!.title.toString()} - Ascendente";
+                    GenSelect<Map<BaseTableColumn<TResult>?, bool>>(
+                      placeholder: const Text('Ordina per'),
+                      initialValue: () {
+                        final sm = state._sortModel;
+                        if (sm == null) return null;
+                        for (final it in items) {
+                          if (it.keys.first?.id == sm.columnId && it.values.first == sm.descending) {
+                            return it;
+                          }
                         }
-                      },
-                      itemBuilder: (context, item) {
-                        if (item.values.toList()[0]) {
-                          return Text("${item.keys.toList()[0]!.title.toString()} - Discendente");
-                        } else {
-                          return Text("${item.keys.toList()[0]!.title.toString()} - Ascendente");
-                        }
-                      },
-                      onSelectItem: (item) {
+                        return null;
+                      }(),
+                      options: [
+                        for (final it in items)
+                          GenOption<Map<BaseTableColumn<TResult>?, bool>>(
+                            value: it,
+                            child: Text(it.values.first
+                                ? '${it.keys.first!.title} - Discendente'
+                                : '${it.keys.first!.title} - Ascendente'),
+                          ),
+                      ],
+                      selectedOptionBuilder: (context, value) => Text(value.values.first
+                          ? '${value.keys.first!.title} - Discendente'
+                          : '${value.keys.first!.title} - Ascendente'),
+                      onChanged: (item) {
                         if (item != null) {
-                          selectedColumn = item.keys.toList()[0];
-                          descending = item.values.toList()[0];
-                          return item.keys.toList()[0]?.id == state._sortModel?._columnId;
+                          selectedColumn = item.keys.first;
+                          descending = item.values.first;
                         }
                       },
                     ),
@@ -686,20 +692,34 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        CLDropdown<Map<BaseTableColumn<TResult>?, bool>>.singleSync(
-          hint: 'Ordina per',
-          items: sortItems,
-          valueToShow: (item) => item.values.first
-              ? '${item.keys.first!.title} - Discendente'
-              : '${item.keys.first!.title} - Ascendente',
-          itemBuilder: (context, item) => Text(item.values.first
-              ? '${item.keys.first!.title} - Discendente'
-              : '${item.keys.first!.title} - Ascendente'),
-          onSelectItem: (item) {
+        GenSelect<Map<BaseTableColumn<TResult>?, bool>>(
+          placeholder: const Text('Ordina per'),
+          initialValue: () {
+            final sm = state._sortModel;
+            if (sm == null) return null;
+            for (final it in sortItems) {
+              if (it.keys.first?.id == sm.columnId && it.values.first == sm.descending) {
+                return it;
+              }
+            }
+            return null;
+          }(),
+          options: [
+            for (final it in sortItems)
+              GenOption<Map<BaseTableColumn<TResult>?, bool>>(
+                value: it,
+                child: Text(it.values.first
+                    ? '${it.keys.first!.title} - Discendente'
+                    : '${it.keys.first!.title} - Ascendente'),
+              ),
+          ],
+          selectedOptionBuilder: (context, value) => Text(value.values.first
+              ? '${value.keys.first!.title} - Discendente'
+              : '${value.keys.first!.title} - Ascendente'),
+          onChanged: (item) {
             if (item != null) {
               selectedColumn = item.keys.first;
               descending = item.values.first;
-              return item.keys.first?.id == state._sortModel?._columnId;
             }
           },
         ),
