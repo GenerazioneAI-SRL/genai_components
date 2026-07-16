@@ -254,206 +254,101 @@ class CLDropdownTableFilterSync<TValue extends Object> extends TableFilter<TValu
 // Filtri inline con CLTextField (senza picker/calendario)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Filtro data singola — CLTextField.date (gg/mm/aaaa)
+/// Filtro data singola — GenDatePicker (calendario Shad nativo)
 class CLDateTableFilter extends TableFilter<DateTime> {
-  TextEditingController? _controller;
-
   CLDateTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
     : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _controller ??= TextEditingController();
-
-    return CLTextField.date(
-      controller: _controller!,
-      labelText: title,
-      initialSelectedDateTime: state.value is DateTime ? state.value : null,
-      onDateTimeSelected: (date) {
-        state.value = date;
-      },
+    return GenDatePicker(
+      placeholder: Text(title),
+      selected: state.value is DateTime ? state.value : null,
+      onChanged: (date) => state.value = date,
     );
-  }
-
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
   }
 }
 
-/// Filtro data e ora — CLTextField.dateTime (gg/mm/aaaa hh:mm)
+/// Filtro data e ora — GenDateTimeField (GenDatePicker + GenTimePicker)
 class CLDateTimeTableFilter extends TableFilter<DateTime> {
-  TextEditingController? _controller;
-
   CLDateTimeTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
     : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _controller ??= TextEditingController();
-
-    return CLTextField.dateTime(
-      controller: _controller!,
-      labelText: title,
-      initialSelectedDateTime: state.value is DateTime ? state.value : null,
-      onDateTimeSelected: (date) {
-        state.value = date;
-      },
+    return GenDateTimeField(
+      initialValue: state.value is DateTime ? state.value : null,
+      onChanged: (date) => state.value = date,
     );
-  }
-
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
   }
 }
 
-/// Filtro solo ora — CLTextField.time (hh:mm)
+/// Filtro solo ora — GenTimePicker (hh:mm). Salva un DateTime con la data di
+/// oggi + ora/minuti, come il comportamento legacy.
 class CLTimeTableFilter extends TableFilter<DateTime> {
-  TextEditingController? _controller;
-
   CLTimeTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
     : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _controller ??= TextEditingController();
-
-    return CLTextField.time(
-      controller: _controller!,
-      labelText: title,
-      initialSelectedTime: state.value is DateTime ? TimeOfDay(hour: (state.value as DateTime).hour, minute: (state.value as DateTime).minute) : null,
-      onTimeSelected: (time) {
-        if (time != null) {
-          final now = DateTime.now();
-          state.value = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-        } else {
-          state.value = null;
-        }
+    final v = state.value is DateTime ? state.value as DateTime : null;
+    return GenTimePicker(
+      initialValue: v == null ? null : ShadTimeOfDay(hour: v.hour, minute: v.minute, second: 0),
+      onChanged: (t) {
+        final now = DateTime.now();
+        state.value = DateTime(now.year, now.month, now.day, t.hour, t.minute);
       },
     );
   }
-
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
-  }
 }
 
-/// Filtro mese — CLTextField.month (mm/aaaa)
+/// Filtro mese — GenMonthField (tendine mese + anno, mm/aaaa)
 class CLMonthTableFilter extends TableFilter<DateTime> {
-  TextEditingController? _controller;
-
   CLMonthTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
     : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _controller ??= TextEditingController();
-
-    return CLTextField.month(
-      controller: _controller!,
-      labelText: title,
-      initialSelectedDateTime: state.value is DateTime ? state.value : null,
-      onDateTimeSelected: (date) {
-        state.value = date;
-      },
+    return GenMonthField(
+      initialValue: state.value is DateTime ? state.value : null,
+      onChanged: (date) => state.value = date,
     );
-  }
-
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
   }
 }
 
-/// Filtro anno — CLTextField.year (aaaa)
+/// Filtro anno — GenYearField (tendina anno)
 class CLYearTableFilter extends TableFilter<DateTime> {
-  TextEditingController? _controller;
-
   CLYearTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
     : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _controller ??= TextEditingController();
-
-    return CLTextField.year(
-      controller: _controller!,
-      labelText: title,
-      initialSelectedDateTime: state.value is DateTime ? state.value : null,
-      onDateTimeSelected: (date) {
-        state.value = date;
-      },
+    return GenYearField(
+      initialValue: state.value is DateTime ? state.value : null,
+      onChanged: (date) => state.value = date,
     );
-  }
-
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
   }
 }
 
-/// Filtro range di date — due CLTextField.date affiancati (Da / A)
+/// Filtro range di date — GenDatePicker.range (calendario Shad, Da/A)
 class CLDateRangeTableFilter extends TableFilter<DateTimeRange> {
-  TextEditingController? _startController;
-  TextEditingController? _endController;
-
   CLDateRangeTableFilter({required super.chipFormatter, required super.id, required super.title, required super.isMainFilter, super.defaultValue})
     : super(visible: true);
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _startController ??= TextEditingController();
-    _endController ??= TextEditingController();
-
-    DateTime? startDate;
-    DateTime? endDate;
-
-    if (state.value is DateTimeRange) {
-      startDate = (state.value as DateTimeRange).start;
-      endDate = (state.value as DateTimeRange).end;
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: CLTextField.date(
-            controller: _startController!,
-            labelText: 'Da',
-            initialSelectedDateTime: startDate,
-            onDateTimeSelected: (date) {
-              startDate = date;
-              if (startDate != null && endDate != null) {
-                state.value = DateTimeRange(start: startDate!, end: endDate!);
-              }
-            },
-          ),
-        ),
-        const SizedBox(width: GenSizes.gapSm),
-        Expanded(
-          child: CLTextField.date(
-            controller: _endController!,
-            labelText: 'A',
-            initialSelectedDateTime: endDate,
-            onDateTimeSelected: (date) {
-              endDate = date;
-              if (startDate != null && endDate != null) {
-                state.value = DateTimeRange(start: startDate!, end: endDate!);
-              }
-            },
-          ),
-        ),
-      ],
+    final r = state.value is DateTimeRange ? state.value as DateTimeRange : null;
+    return GenDatePicker.range(
+      placeholder: Text(title),
+      selected: r == null ? null : ShadDateTimeRange(start: r.start, end: r.end),
+      onRangeChanged: (range) {
+        if (range?.start != null && range?.end != null) {
+          state.value = DateTimeRange(start: range!.start!, end: range.end!);
+        } else {
+          state.value = null;
+        }
+      },
     );
-  }
-
-  void dispose() {
-    _startController?.dispose();
-    _startController = null;
-    _endController?.dispose();
-    _endController = null;
   }
 }
 
