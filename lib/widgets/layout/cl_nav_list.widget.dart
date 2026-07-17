@@ -54,12 +54,12 @@ class CLNavList extends StatelessWidget {
     // Gate: sopprime i tooltip del rail durante lo scroll (evita il reset della
     // ScrollPosition causato dal tooltip che compare mentre le icone scorrono).
     return CLNavScrollTooltipGate(
-      // Scrollbar allineata al bordo della card azienda: le voci/header hanno inset
-      // orizzontale gapLg, quindi la scrollbar prende lo stesso margine → sta a filo
-      // del contenuto invece che sul bordo esterno del pannello. Sul rail (icone
-      // centrate, larghezza minima) resta a 0.
+      // Scrollbar nel gutter destro del contenuto: le voci hanno inset gapLg (16),
+      // quindi la scrollbar sta a gapXs (4) dal bordo pannello → dentro i 16px di
+      // gutter, SENZA coprire le voci/chevron (crossAxisMargin gapLg la metteva a
+      // filo del contenuto → sovrapposizione). Sul rail (icone centrate) resta a 0.
       child: ScrollbarTheme(
-        data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: collapsed ? 0 : CLShellSizes.gapLg),
+        data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: collapsed ? 0 : CLShellSizes.gapXs),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Padding(
