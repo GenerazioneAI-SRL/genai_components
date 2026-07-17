@@ -100,6 +100,16 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
     return KeyEventResult.ignored;
   }
 
+  /// Mouse hover su una voce → diventa l'highlight corrente. shadcn unifica
+  /// hover e focus in un unico stato: così mouse e tastiera non producono due
+  /// evidenziazioni simultanee (arrow su A + hover su B mostrerebbero due pill).
+  void setHoverHighlight(int index) {
+    if (_highlightedIndex == index) return;
+    _highlightedIndex = index;
+    notifyListeners();
+    _overlayEntry?.markNeedsBuild();
+  }
+
   void _moveHighlight(int delta) {
     if (items.isEmpty) return;
     final next =
@@ -366,6 +376,14 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
       await _prefillData();
     }
 
+    // shadcn (ensureSelectedVisible/focus): all'apertura il selezionato (single)
+    // è già "highlighted" → le frecce partono da lì e il pill grigio marca la
+    // voce corrente. Multi: nessun highlight iniziale (come Shad).
+    if (!isMultiple && selectedItem != null) {
+      final i = items.indexOf(selectedItem as T);
+      if (i >= 0) _highlightedIndex = i;
+    }
+
     _scrollController = ScrollController();
     _scrollController!.addListener(_onScrollListener);
 
@@ -389,7 +407,10 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Autofocus sul campo ricerca del popover (se presente).
         _searchFocusNode.requestFocus();
-        final ctx = _selectedItemKey.currentContext;
+        // Scrolla alla voce da mostrare: se c'è un highlight (selezionato
+        // pre-evidenziato sopra) usa la sua key, altrimenti quella del selected.
+        final ctx = (_highlightedIndex >= 0 ? _highlightKey : _selectedItemKey)
+            .currentContext;
         if (ctx != null) {
           Scrollable.ensureVisible(ctx,
               alignment: 0.5,
@@ -554,17 +575,22 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                 animateUpward: openUpward,
                 visible: !_closing,
                 onDismissed: _finalizeClose,
-                // Focus per la nav da tastiera: con search cattura i tasti che
-                // il campo non consuma (frecce/invio/esc); senza search prende
-                // lui il focus (autofocus) per riceverli.
-                child: Focus(
-                  onKeyEvent: handleKey,
-                  canRequestFocus: !_hasSearch,
-                  autofocus: !_hasSearch,
-                  skipTraversal: _hasSearch,
-                  child: _buildListContent(
-                    context,
-                    listMaxHeight: listMaxHeight,
+                // shadcn: il popover è un FocusTraversalGroup con ordine widget
+                // (Tab/frecce restano nell'ordine visivo del menu, non saltano
+                // fuori a caso). Dentro, il Focus cattura la nav da tastiera:
+                // con search prende i tasti che il campo non consuma
+                // (frecce/invio/esc); senza search prende lui il focus.
+                child: FocusTraversalGroup(
+                  policy: WidgetOrderTraversalPolicy(),
+                  child: Focus(
+                    onKeyEvent: handleKey,
+                    canRequestFocus: !_hasSearch,
+                    autofocus: !_hasSearch,
+                    skipTraversal: _hasSearch,
+                    child: _buildListContent(
+                      context,
+                      listMaxHeight: listMaxHeight,
+                    ),
                   ),
                 ),
               ),
@@ -705,6 +731,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
               : ((!isMultiple && isSelected) ? _selectedItemKey : null),
           child: _DropdownHoverItem(
             onTap: () => _selectItem(item),
+            onHover: () => setHoverHighlight(index),
             isSelected: isSelected,
             highlighted: isHighlighted,
             // Le voci sono SEMPRE compatte (altezza inputHeightCompact = 32),
@@ -928,24 +955,24 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
 // HOVER ITEM WIDGET
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _DropdownHoverItem extends StatefulWidget {
+/// Voce del menu. shadcn: hover e evidenziazione tastiera SONO lo stesso stato
+/// (`highlighted`, guidato dal parent via [onHover] → setHoverHighlight), così
+/// non convivono due pill. a11y: la voce è annunciata come button + selected.
+class _DropdownHoverItem extends StatelessWidget {
   final VoidCallback onTap;
+
+  /// Mouse entra sulla voce → il parent la promuove a highlight corrente.
+  final VoidCallback? onHover;
   final bool isSelected;
   final bool highlighted;
   final Widget child;
 
   const _DropdownHoverItem(
       {required this.onTap,
+      this.onHover,
       required this.isSelected,
       this.highlighted = false,
       required this.child});
-
-  @override
-  State<_DropdownHoverItem> createState() => _DropdownHoverItemState();
-}
-
-class _DropdownHoverItemState extends State<_DropdownHoverItem> {
-  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
@@ -953,30 +980,33 @@ class _DropdownHoverItemState extends State<_DropdownHoverItem> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Color bgColor;
-    if (_isHovered || widget.highlighted) {
-      // Hover / evidenziazione tastiera → grigio neutro (precede il selected).
+    if (highlighted) {
+      // Hover / evidenziazione tastiera (unico stato) → grigio neutro.
       bgColor = theme.secondaryText.withValues(alpha: isDark ? 0.12 : 0.08);
-    } else if (widget.isSelected) {
+    } else if (isSelected) {
       bgColor = theme.primary.withValues(alpha: isDark ? 0.15 : 0.08);
     } else {
       bgColor = Colors.transparent;
     }
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter: onHover == null ? null : (_) => onHover!(),
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        // Hover/selected = pill ARROTONDATO (shadcn: BoxDecoration + radius),
-        // non full-bleed. Con l'optionsPadding della lista → staccato dai bordi.
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(theme.gapSm),
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        child: GestureDetector(
+          onTap: onTap,
+          // Hover/selected = pill ARROTONDATO (shadcn: BoxDecoration + radius),
+          // non full-bleed. Con l'optionsPadding della lista → staccato dai bordi.
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(theme.gapSm),
+            ),
+            child: child,
           ),
-          child: widget.child,
         ),
       ),
     );
