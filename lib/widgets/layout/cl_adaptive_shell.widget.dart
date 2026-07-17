@@ -103,6 +103,26 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// (espande solo il gruppo della rotta corrente).
   String? _drawerExpandKey;
 
+  /// Override manuale collapse del menu (solo layout `bubbleBody`). `null` =
+  /// automatico: esteso su sidebar, collassato (rail width) sotto. Il toggle
+  /// nell'header lo setta; al cambio di breakpoint torna `null`.
+  bool? _collapsed;
+  CLNavMode? _prevMode;
+
+  /// Frazione (0..1) dell'altezza occupata dalla bolla navHeader quando
+  /// `config.resizableNavHeader` è attivo. Regolata dalla maniglia sul bordo
+  /// basso; clamp [0.15, 0.85]. Stato di sessione (no persistenza).
+  double _navHeaderFraction = 0.4;
+
+  /// Ultimo `trailing` non-null: ritenuto durante l'animazione di CHIUSURA della
+  /// bolla assistente (quando `widget.trailing` torna null) così il contenuto
+  /// resta montato mentre la bolla collassa. Azzerato a collasso completo.
+  Widget? _retainedTrailing;
+
+  /// Collapse effettivo per il [mode] corrente (override o automatico): esteso
+  /// su sidebar, collassato altrove.
+  bool _isCollapsed(CLNavMode mode) => _collapsed ?? (mode != CLNavMode.sidebar);
+
   /// Altezze misurate delle barre frosted (header/footer) del menu bolla: servono
   /// a riservare il padding della lista così le voci scorrono SOTTO il vetro
   /// smerigliato senza finire coperte in modo permanente.
@@ -150,6 +170,18 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final mode = resolveCLNavMode(constraints.maxWidth, widget.config);
+        // Al cambio di breakpoint: azzera l'override collapse → torna automatico.
+        if (_prevMode != null && _prevMode != mode && _collapsed != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _collapsed = null);
+          });
+        }
+        _prevMode = mode;
+        // Bubble: desktop E tablet condividono lo stesso layout a bolle; il tier
+        // decide solo il collapse iniziale (rail width su tablet).
+        if (widget.config.bubbleBody && mode != CLNavMode.bottomBar) {
+          return _bubbleDesktop(context, CLTheme.of(context), mode: mode);
+        }
         switch (mode) {
           case CLNavMode.sidebar:
             return _buildSidebar(context);
@@ -162,20 +194,54 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
-  Widget _navPanel(CLTheme theme, {required bool isCompact, String? forceExpandedKey, bool frosted = false}) {
+  /// [showRightBorder] — false nel layout `bubbleBody` (menu flat senza bordo
+  /// destro; il gap col body lo dà il gutter). [collapsed] — true nel bubble su
+  /// tablet (rail width): CLNavList non ha modalità icon-only, quindi qui incide
+  /// solo indirettamente (larghezza animata da [_bubbleDesktop]); il contenuto
+  /// resta la lista estesa.
+  Widget _navPanel(
+    CLTheme theme, {
+    required bool isCompact,
+    String? forceExpandedKey,
+    bool frosted = false,
+    bool showRightBorder = true,
+    bool collapsed = false,
+  }) {
     final hasHeader = widget.headerLeading != null || widget.navHeader != null;
     final hasFooter = widget.navFooter != null;
 
+    // Blocco header (logo/headerLeading + navHeader): riutilizzato dal ramo
+    // frosted misurato e dal ramo resizable (pannello ad altezza regolabile).
+    final Widget headerColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.headerLeading != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
+            child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
+          ),
+        if (widget.navHeader != null) widget.navHeader!,
+      ],
+    );
+
+    // Resize attivo SOLO su menu espanso (sidebar) con header presente: la bolla
+    // navHeader diventa un pannello ad altezza regolabile e le destinazioni sotto
+    // scorrono nell'area residua. Escluso su drawer (compact) e su bubble rail
+    // collassato (CLNavList non ha icon-only mode).
+    final resizableHeader = widget.config.resizableNavHeader && hasHeader && !isCompact && !collapsed;
+
     return Container(
       // Menu = L0 (primaryBackground) + bordo destro. In card (bolla desktop): bg/
-      // bordo li dà la card esterna → qui trasparente.
+      // bordo li dà la card esterna → qui trasparente. `showRightBorder` false nel
+      // layout bubble (menu flat).
       decoration: frosted
           ? null
           : BoxDecoration(
               // Drawer mobile (compact): superficie elevata = secondaryBackground.
               // Menu desktop (rail/sidebar): L0 = primaryBackground + bordo destro.
               color: isCompact ? theme.secondaryBackground : theme.primaryBackground,
-              border: Border(right: BorderSide(color: theme.borderColor)),
+              border: showRightBorder ? Border(right: BorderSide(color: theme.borderColor)) : null,
             ),
       // Stack: la lista riempie e scorre SOTTO le barre frosted di header/footer
       // (vetro smerigliato traslucido come l'header shell, niente hairline). Il
@@ -183,50 +249,104 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       // voce restano raggiungibili.
       child: Stack(
         children: [
-          Positioned.fill(
-            child: CLNavList(
-              destinations: widget.destinations,
-              selectedKey: widget.selectedKey,
-              onSelect: _onSelect,
-              isCompact: isCompact,
-              forceExpandedKey: forceExpandedKey,
-              // Altezza barra + gapLg di respiro tra vetro e prima/ultima voce.
-              padding: EdgeInsets.only(
-                left: Sizes.gapLg,
-                right: Sizes.gapLg,
-                top: (hasHeader ? _menuHeaderH : 0) + Sizes.gapLg,
-                bottom: (hasFooter ? _menuFooterH : 0) + Sizes.gapLg,
-              ),
-            ),
-          ),
-          // Barra header frosted (logo + navHeader): in alto, full-width.
-          if (hasHeader)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _MeasureSize(
-                onChange: (s) {
-                  if (s.height != _menuHeaderH) setState(() => _menuHeaderH = s.height);
-                },
-                child: _frostedMenuBar(
-                  theme,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
+          if (resizableHeader)
+            // Ramo resizable: la bolla header ha altezza = frazione regolabile via
+            // maniglia sul bordo basso; la lista scorre SOTTO l'header frosted
+            // (padding top = altezza header). ClipRRect col raggio bolle → in
+            // overscroll le voci non spuntano negli angoli trasparenti.
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final avail = c.maxHeight;
+                  const minFrac = 0.15;
+                  const maxFrac = 0.85;
+                  final double frac = _navHeaderFraction.clamp(minFrac, maxFrac).toDouble();
+                  final double headerH = frac * avail;
+                  final radius = BorderRadius.circular(theme.radiusBubble);
+                  return Stack(
                     children: [
-                      if (widget.headerLeading != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
-                          child: Align(alignment: Alignment.centerLeft, child: widget.headerLeading!),
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: radius,
+                          child: CLNavList(
+                            destinations: widget.destinations,
+                            selectedKey: widget.selectedKey,
+                            onSelect: _onSelect,
+                            isCompact: false,
+                            forceExpandedKey: forceExpandedKey,
+                            padding: EdgeInsets.only(
+                              left: Sizes.gapLg,
+                              right: Sizes.gapLg,
+                              top: headerH + Sizes.gapLg,
+                              bottom: (hasFooter ? _menuFooterH : 0) + Sizes.gapLg,
+                            ),
+                          ),
                         ),
-                      if (widget.navHeader != null) widget.navHeader!,
+                      ),
+                      // Header frosted ad altezza fissa: il contenuto scrolla nell'
+                      // area se più alto della frazione scelta.
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: headerH,
+                        child: _frostedMenuBar(
+                          theme,
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: headerColumn,
+                          ),
+                        ),
+                      ),
+                      // Maniglia sul bordo basso dell'header.
+                      Positioned(
+                        top: headerH - 8,
+                        left: 0,
+                        right: 0,
+                        child: _NavHeaderHandle(
+                          key: const Key('cl-nav-header-resize-handle'),
+                          onDrag: (dy) => setState(() {
+                            _navHeaderFraction = (frac + dy / avail).clamp(minFrac, maxFrac).toDouble();
+                          }),
+                        ),
+                      ),
                     ],
-                  ),
+                  );
+                },
+              ),
+            )
+          else ...[
+            Positioned.fill(
+              child: CLNavList(
+                destinations: widget.destinations,
+                selectedKey: widget.selectedKey,
+                onSelect: _onSelect,
+                isCompact: isCompact,
+                forceExpandedKey: forceExpandedKey,
+                // Altezza barra + gapLg di respiro tra vetro e prima/ultima voce.
+                padding: EdgeInsets.only(
+                  left: Sizes.gapLg,
+                  right: Sizes.gapLg,
+                  top: (hasHeader ? _menuHeaderH : 0) + Sizes.gapLg,
+                  bottom: (hasFooter ? _menuFooterH : 0) + Sizes.gapLg,
                 ),
               ),
             ),
-          // Barra footer frosted (navFooter): in basso, full-width.
+            // Barra header frosted (logo + navHeader): in alto, full-width.
+            if (hasHeader)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _MeasureSize(
+                  onChange: (s) {
+                    if (s.height != _menuHeaderH) setState(() => _menuHeaderH = s.height);
+                  },
+                  child: _frostedMenuBar(theme, child: headerColumn),
+                ),
+              ),
+          ],
+          // Barra footer frosted (navFooter): in basso, full-width. Comune ai rami.
           if (hasFooter)
             Positioned(
               bottom: 0,
@@ -278,6 +398,19 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         // sinistra, trailing [pageActions · G3 ricerca/AI] a destra. Lo Spacer tra i
         // due si accorcia restringendo la finestra.
         final leading = <Widget>[];
+        // Toggle collapse menu (solo layout bubble desktop/tablet): estende/
+        // collassa il menu. Icona statica; lo stato reale lo dà `_prevMode`.
+        if (widget.config.bubbleBody && !bottomBar) {
+          leading.add(CLIconButton(
+            onTap: () => setState(() => _collapsed = !_isCollapsed(_prevMode ?? CLNavMode.sidebar)),
+            iconData: Icons.view_sidebar_outlined,
+            backgroundColor: Colors.transparent,
+            iconColor: theme.primaryText,
+            size: theme.buttonHeightDefault,
+            iconSize: Sizes.iconSizeDefault,
+            tooltip: 'Comprimi menu',
+          ));
+        }
         // Il logo vive in cima al menu (tutti i breakpoint), mai nell'header → qui
         // niente logo: leading parte da back + breadcrumbs.
         if (s.back != null && !bottomBar) {
@@ -704,6 +837,188 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     );
   }
 
+  // ── Desktop/tablet "a bolle" (opt-in config.bubbleBody) ────────────────────
+  /// Menu FLAT sul canvas grigio a sinistra (niente card, solo `_navPanel` frosted
+  /// senza bordo destro); centro = UNA bolla arrotondata con header frosted fisso +
+  /// contenuto scrollabile che scorre SOTTO l'header; assistente in bolla a destra.
+  /// Gutter Sm attorno alle bolle. Stile shadcn dashboard. Gestisce sidebar E rail
+  /// (il tier decide solo il collapse iniziale via [_isCollapsed]).
+  Widget _bubbleDesktop(BuildContext context, CLTheme theme, {required CLNavMode mode}) {
+    final collapsed = _isCollapsed(mode);
+    // Ritieni l'ultimo trailing non-null: montato durante l'animazione di
+    // chiusura della bolla assistente (vedi reveal più sotto).
+    if (widget.trailing != null) _retainedTrailing = widget.trailing;
+    return ColoredBox(
+      color: theme.primaryBackground,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Menu in bolla: margin Sm su l/t/b, NIENTE destra (il gap col body lo dà
+          // il padding del body). Larghezza animata sidebar↔rail. NB: CLNavList non
+          // ha modalità icon-only → in collapsed il contenuto resta esteso, cambia
+          // solo la larghezza rivelata dal clip.
+          Builder(
+            builder: (_) {
+              final menuW = collapsed ? widget.config.railWidth : widget.config.sidebarWidth;
+              return Padding(
+                padding: const EdgeInsets.only(left: Sizes.gapSm, top: Sizes.gapSm, bottom: Sizes.gapSm),
+                child: AnimatedContainer(
+                  duration: theme.durationBase,
+                  curve: Curves.easeInOut,
+                  width: menuW,
+                  // ClipRect RETTANGOLARE (le bolle frost interne hanno il proprio
+                  // radius): clippa solo la larghezza animata. OverflowBox impagina
+                  // il contenuto alla larghezza FINALE → niente reflow in animazione.
+                  child: ClipRect(
+                    child: OverflowBox(
+                      minWidth: menuW,
+                      maxWidth: menuW,
+                      alignment: Alignment.centerLeft,
+                      child: _navPanel(
+                        theme,
+                        isCompact: false,
+                        frosted: true,
+                        showRightBorder: false,
+                        collapsed: collapsed,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          // Bolla centrale: header frost fisso + body scroll. Gutter Sm su tutti i lati.
+          Expanded(
+            child: Padding(padding: const EdgeInsets.all(Sizes.gapSm), child: _bubbleCenter(context, theme)),
+          ),
+          // Assistente in bolla a destra. Anima SOLO la bolla (reveal della
+          // larghezza): il contenuto è impaginato alla larghezza FINALE dentro un
+          // OverflowBox → non slitta. `_retainedTrailing` tiene il child montato
+          // durante il collasso (widget.trailing torna null).
+          if (_retainedTrailing != null)
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: widget.trailing != null ? 1.0 : 0.0),
+              duration: theme.durationBase,
+              curve: Curves.easeInOutCubic,
+              onEnd: () {
+                if (widget.trailing == null && mounted) setState(() => _retainedTrailing = null);
+              },
+              builder: (context, v, child) {
+                if (v <= 0) return const SizedBox.shrink();
+                final full = widget.config.trailingWidth;
+                return Padding(
+                  padding: const EdgeInsets.only(top: Sizes.gapSm, bottom: Sizes.gapSm, right: Sizes.gapSm),
+                  child: SizedBox(
+                    width: full * v,
+                    child: ClipRect(
+                      child: OverflowBox(
+                        minWidth: full,
+                        maxWidth: full,
+                        alignment: Alignment.centerRight,
+                        child: child,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: SizedBox(
+                width: widget.config.trailingWidth,
+                child: _sideCard(context, child: _retainedTrailing!),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Bolla centrale di [_bubbleDesktop]: card arrotondata (clip) con header frosted
+  /// fisso in cima e contenuto scrollabile sotto. Il contenuto riceve top inset =
+  /// altezza header via MediaQuery, così scorre SOTTO il vetro senza esserne
+  /// tagliato. Angoli clippati → blur e contenuto restano dentro la bolla.
+  Widget _bubbleCenter(BuildContext context, CLTheme theme, {bool withMenuButton = false}) {
+    // Dentro la bolla non c'è system inset in cima: header = altezza base.
+    final headerH = theme.buttonHeightDefault + theme.gapLg * 2;
+    final mq = MediaQuery.of(context);
+    final radius = BorderRadius.circular(theme.radiusBubble);
+    // bg dietro; ClipRRect clippa lo Stack (arrotonda + contiene il BackdropFilter
+    // dell'header); bordo in foregroundDecoration → dipinto SOPRA il child, così il
+    // bianco dell'header frosted non copre il bordo top/laterale.
+    return Container(
+      decoration: BoxDecoration(color: theme.secondaryBackground, borderRadius: radius),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(color: theme.borderColor),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            // z0 — contenuto che scorre sotto l'header. Inset via MediaQuery.
+            Positioned.fill(
+              child: MediaQuery(
+                data: mq.copyWith(
+                  padding: mq.padding.copyWith(
+                    // top = clearance header esatta; bottom 0 (la pagina aggiunge
+                    // respiro se serve). Gutter solo orizzontale.
+                    top: headerH,
+                    bottom: 0,
+                    left: theme.gapLg,
+                    right: theme.gapLg,
+                  ),
+                ),
+                child: _scopedBody(),
+              ),
+            ),
+            // z1 — header frosted fisso in cima alla bolla. removeTop: dentro la
+            // bolla non c'è system inset (la SafeArea del header lo aggiungerebbe →
+            // header troppo alto).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: Builder(
+                  builder: (ctx) => _frostedHeader(ctx, theme, withMenuButton: withMenuButton, mode: CLNavMode.sidebar),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Variante mobile/tablet del layout a bolle: canvas grigio, menu nel drawer
+  /// (hamburger nell'header frosted), body = stessa bolla del desktop. NB: con
+  /// `resolveCLNavMode` il tier rail entra da [_bubbleDesktop] (early return in
+  /// build), quindi questo path serve da fallback drawer per il layout a bolle.
+  Widget _bubbleScaffold(BuildContext context, CLTheme theme) {
+    final drawerWidth = MediaQuery.of(context).size.width * widget.config.drawerWidthFactor;
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: theme.primaryBackground,
+      onDrawerChanged: (open) {
+        if (!open && _drawerExpandKey != null) setState(() => _drawerExpandKey = null);
+      },
+      drawer: Drawer(
+        width: drawerWidth,
+        backgroundColor: theme.secondaryBackground,
+        shape: const RoundedRectangleBorder(),
+        child: SafeArea(child: _navPanel(theme, isCompact: true, forceExpandedKey: _drawerExpandKey)),
+      ),
+      endDrawer: widget.endDrawer,
+      endDrawerEnableOpenDragGesture: false,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(Sizes.gapSm),
+          child: _bubbleCenter(context, theme, withMenuButton: true),
+        ),
+      ),
+    );
+  }
+
   // ── Desktop ──────────────────────────────────────────────────────────────
   /// Menu in bolla FULL-HEIGHT a sinistra (logo in cima + nav), con padding esterno;
   /// a destra, in Column: header frosted (solo sopra il contenuto) · shell ·
@@ -868,6 +1183,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// voce di gruppo della rail mostra il menu completo.
   Widget _buildRail(BuildContext context) {
     final theme = CLTheme.of(context);
+    if (widget.config.bubbleBody) {
+      return _bubbleScaffold(context, theme);
+    }
     if (widget.config.frostedFullBleed) {
       return _frostedRail(context, theme);
     }
@@ -995,7 +1313,10 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   Widget _buildScaffold(BuildContext context, {required bool withBottomBar}) {
     final theme = CLTheme.of(context);
 
-    if (widget.config.frostedFullBleed) {
+    // Mobile (bottomBar): sia bubbleBody sia frostedFullBleed usano il layout
+    // frosted con bottom bar (menu/AI/ricerca + area contestuale). Su mobile non
+    // c'è la "bolla" desktop.
+    if (widget.config.bubbleBody || widget.config.frostedFullBleed) {
       return _frostedScaffold(context, theme, withBottomBar: withBottomBar);
     }
 
@@ -1287,6 +1608,38 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
             // Padding interno Lg; gap Md tra gli elementi (context area · nav).
             padding: const EdgeInsets.all(Sizes.gapLg),
             child: _bubbleInner(context, theme, withBottomBar: withBottomBar),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Maniglia di resize sul bordo basso della bolla navHeader (`resizableNavHeader`):
+/// strip full-width con drag verticale (cursore resizeUpDown) che notifica il
+/// delta dy; grabber pill (borderColor) con icona gripHorizontal sempre visibile.
+class _NavHeaderHandle extends StatelessWidget {
+  const _NavHeaderHandle({super.key, required this.onDrag});
+
+  /// Delta verticale (px) di ogni update di drag.
+  final ValueChanged<double> onDrag;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = CLTheme.of(context);
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeUpDown,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onVerticalDragUpdate: (d) => onDrag(d.delta.dy),
+        child: SizedBox(
+          height: 16,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              decoration: BoxDecoration(color: t.borderColor, borderRadius: BorderRadius.circular(4)),
+              child: Icon(LucideIcons.gripHorizontal, size: 10, color: t.secondaryText),
+            ),
           ),
         ),
       ),
