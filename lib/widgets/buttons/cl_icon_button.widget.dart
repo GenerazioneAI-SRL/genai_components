@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 // Budella Shad: nucleo interno del bottone. Solo i simboli usati (show) per non
 // inquinare il namespace. Firma pubblica CLIconButton invariata.
 import 'package:shadcn_ui/shadcn_ui.dart'
-    show ShadButton, ShadButtonVariant, ShadDecoration, ShadBorder;
+    show ShadIconButton, ShadButtonVariant, ShadDecoration, ShadBorder;
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
@@ -174,14 +174,14 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
     final BorderSide? side0 =
         widget.border is Border ? (widget.border as Border).top : null;
 
-    // ── Nucleo = ShadButton (budella Shad): hover/press/focus/keyboard/ring
-    //    nativi, disabled+loading attenuati via `enabled`. Colori per stato dal
-    //    motore CLToneStyle. async/confirm/haptic/loading/icon-swap nel wrapper.
-    //    Firma pubblica invariata. ─────────────────────────────────────────────
-    Widget button = ShadButton.raw(
+    // ── Nucleo = ShadIconButton (budella Shad, primitivo icon-only): hover/press/
+    //    focus/keyboard/ring nativi, disabled+loading attenuati via `enabled`.
+    //    Colori per stato dal motore CLToneStyle. async/confirm/haptic/loading/
+    //    icon-swap nel wrapper. Firma pubblica invariata. ──────────────────────
+    Widget button = ShadIconButton.raw(
       variant: ShadButtonVariant.primary,
-      // enabled=isInteractive → in disabled E loading ShadButton toglie hover e
-      // attenua (sostituisce sia il tap-guard sia l'AnimatedOpacity precedente).
+      // enabled=isInteractive → in disabled E loading ShadIconButton toglie hover
+      // e attenua (sostituisce sia il tap-guard sia l'AnimatedOpacity precedente).
       enabled: isInteractive,
       onPressed: () => _handleTap(),
       onTapDown: widget.haptic ? (_) => _fireHaptic() : null,
@@ -195,7 +195,6 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
       height: side,
       padding: EdgeInsets.zero,
       shadows: widget.boxShadow,
-      mainAxisAlignment: MainAxisAlignment.center,
       decoration: ShadDecoration(
         border: side0 != null
             ? ShadBorder.all(
@@ -204,7 +203,7 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
                 radius: BorderRadius.circular(radius))
             : ShadBorder(radius: BorderRadius.circular(radius)),
       ),
-      child: semanticContent,
+      icon: semanticContent,
     );
 
     // a11y: nome esplicito quando il contenuto è ExcludeSemantics.
