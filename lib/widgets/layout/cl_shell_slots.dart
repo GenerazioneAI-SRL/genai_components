@@ -20,6 +20,7 @@ class ShellAction {
     this.isPrimary = false,
     this.enabled = true,
     this.builder,
+    this.mobileOnly = false,
   });
 
   final IconData? icon;
@@ -30,6 +31,12 @@ class ShellAction {
   /// Azione primaria (es. "+ Aggiungi") → resa come pulsante con testo.
   final bool isPrimary;
   final bool enabled;
+
+  /// Se `true`, l'azione è resa SOLO nell'area contestuale mobile (riga bassa,
+  /// full-width) e MAI nell'header desktop/rail. Per pagine che su desktop hanno
+  /// già un proprio controllo inline (es. la toolbar del calendario) e vogliono
+  /// solo l'hoisting su mobile — evita il doppione e l'overflow dell'header.
+  final bool mobileOnly;
 
   /// Escape hatch: se presente, lo shell rende questo widget invece del bottone
   /// generico. Serve a preservare azioni con logica propria (es.
