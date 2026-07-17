@@ -262,7 +262,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   const maxFrac = 0.85;
                   final double frac = _navHeaderFraction.clamp(minFrac, maxFrac).toDouble();
                   final double headerH = frac * avail;
-                  final radius = BorderRadius.circular(theme.radiusBubble);
+                  // Raggio bolla = concentrico: raggio controlli (12) + padding interno (16) = 28.
+    final radius = BorderRadius.circular(theme.radiusControl + theme.gapLg);
                   return Stack(
                     children: [
                       Positioned.fill(
@@ -377,7 +378,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// header, top per footer). Stile shadcn: bolle frosted concentriche.
   Widget _frostedMenuBar(CLTheme theme,
       {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
-    final radius = BorderRadius.circular(theme.radiusBubble);
+    // Raggio bolla = concentrico: raggio controlli (12) + padding interno (16) = 28.
+    final radius = BorderRadius.circular(theme.radiusControl + theme.gapLg);
     return Padding(
       padding: margin,
       child: Container(
@@ -853,7 +855,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(Sizes.radiusCard),
+        // Bolla = concentrico: raggio controlli (12) + padding interno (16) = 28.
+        borderRadius: BorderRadius.circular(theme.radiusControl + theme.gapLg),
         boxShadow: theme.cardShadowSoft,
       ),
       child: child,
@@ -962,7 +965,8 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     // Dentro la bolla non c'è system inset in cima: header = altezza base.
     final headerH = theme.buttonHeightDefault + theme.gapLg * 2;
     final mq = MediaQuery.of(context);
-    final radius = BorderRadius.circular(theme.radiusBubble);
+    // Raggio bolla = concentrico: raggio controlli (12) + padding interno (16) = 28.
+    final radius = BorderRadius.circular(theme.radiusControl + theme.gapLg);
     // bg dietro; ClipRRect clippa lo Stack (arrotonda + contiene il BackdropFilter
     // dell'header); bordo in foregroundDecoration → dipinto SOPRA il child, così il
     // bianco dell'header frosted non copre il bordo top/laterale.
