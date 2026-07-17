@@ -1509,13 +1509,13 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         padding: EdgeInsets.only(left: theme.gapLg, right: theme.gapLg, bottom: theme.gapLg),
         child: ClipRRect(
           // Bottom bar mobile (chrome): bolla capsule = radiusBubble (concentrica ai pill interni).
-          borderRadius: BorderRadius.circular(theme.radiusBubble),
+          borderRadius: BorderRadius.circular(theme.radiusControl + theme.gapLg),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: theme.secondaryBackground.withValues(alpha: 0.66),
-                borderRadius: BorderRadius.circular(theme.radiusBubble),
+                borderRadius: BorderRadius.circular(theme.radiusControl + theme.gapLg),
                 border: Border.all(color: theme.borderColor),
               ),
               child: Padding(
