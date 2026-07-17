@@ -342,7 +342,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                   onChange: (s) {
                     if (s.height != _menuHeaderH) setState(() => _menuHeaderH = s.height);
                   },
-                  child: _frostedMenuBar(theme, child: headerColumn),
+                  child: _frostedMenuBar(theme,
+                      margin: const EdgeInsets.only(bottom: Sizes.gapSm),
+                      child: headerColumn),
                 ),
               ),
           ],
@@ -356,7 +358,9 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
                 onChange: (s) {
                   if (s.height != _menuFooterH) setState(() => _menuFooterH = s.height);
                 },
-                child: _frostedMenuBar(theme, child: widget.navFooter!),
+                child: _frostedMenuBar(theme,
+                    margin: const EdgeInsets.only(top: Sizes.gapSm),
+                    child: widget.navFooter!),
               ),
             ),
         ],
@@ -367,13 +371,32 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   /// Barra vetro smerigliato per header/footer del menu bolla: ClipRect +
   /// BackdropFilter (blur sigma frost) + sfondo traslucido, identica all'header
   /// shell. La lista dietro nello Stack viene sfocata sotto il vetro.
-  Widget _frostedMenuBar(CLTheme theme, {required Widget child}) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: theme.secondaryBackground.withValues(alpha: 0.6)),
-          child: child,
+  /// Bolla vetro smerigliato per header/footer del menu: radiusBubble + hairline
+  /// dipinta SOPRA il contenuto clippato (foregroundDecoration → bordo crisp, non
+  /// tagliato dal ClipRRect). [margin] dà il gap verso la lista (bottom per
+  /// header, top per footer). Stile shadcn: bolle frosted concentriche.
+  Widget _frostedMenuBar(CLTheme theme,
+      {required Widget child, EdgeInsets margin = EdgeInsets.zero}) {
+    final radius = BorderRadius.circular(theme.radiusBubble);
+    return Padding(
+      padding: margin,
+      child: Container(
+        foregroundDecoration: BoxDecoration(
+          borderRadius: radius,
+          border: Border.all(color: theme.borderColor),
+        ),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.secondaryBackground.withValues(alpha: 0.82),
+                borderRadius: radius,
+              ),
+              child: child,
+            ),
+          ),
         ),
       ),
     );
