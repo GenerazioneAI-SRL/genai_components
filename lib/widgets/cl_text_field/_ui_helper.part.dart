@@ -63,11 +63,16 @@ class _TextFieldUiHelper extends _Helper {
         final bool hasError = fieldState.hasError;
         final String? errorText = fieldState.errorText;
 
-        // Campo nudo: nessun border/error di Material, tutto disegnato dal chrome.
+        // Nucleo = ShadInput (budella Shad), NUDO: `ShadDecoration.none` toglie
+        // bordo/fill/ring di Shad — quel chrome resta disegnato dal chrome CL
+        // esterno (BoxDecoration + CLFocusRingPainter), così zero doppio-chrome e
+        // zero regressione visiva. Padding orizzontale 0: prefix/suffix + gapMd li
+        // gestisce la Row esterna. `constraints` azzera il minHeight globale (40
+        // da inputTheme): l'altezza la fissa il chrome CL (32/40/textArea).
         // (didChange sul FormField è gestito dal listener del controller in State.)
-        final Widget innerField = TextField(
-          textAlignVertical:
-              w.isTextArea ? TextAlignVertical.top : TextAlignVertical.center,
+        final Widget innerField = ShadInput(
+          controller: s.controllerRef,
+          focusNode: s.focusNodeRef,
           textCapitalization: w.capitalize ? TextCapitalization.sentences : TextCapitalization.none,
           cursorColor: theme.primary,
           cursorWidth: 1.5,
@@ -76,9 +81,7 @@ class _TextFieldUiHelper extends _Helper {
               : (w.isCompact ? _kCompactCursorHeight : _kCursorHeight),
           cursorRadius: const Radius.circular(1),
           readOnly: readOnly,
-          onTap: w.onTap,
-          controller: s.controllerRef,
-          focusNode: s.focusNodeRef,
+          onPressed: w.onTap,
           maxLines: w.isTextArea ? null : 1,
           minLines: null,
           expands: w.isTextArea,
@@ -96,19 +99,12 @@ class _TextFieldUiHelper extends _Helper {
           inputFormatters:
               isInline ? [DateMaskFormatter(w.dateFieldType!)] : (w.inputFormatters ?? _defaultInputFormatters()),
           style: theme.bodyText.copyWith(fontWeight: FontWeight.w400, height: 1.0),
-          decoration: InputDecoration(
-            isDense: true,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorBorder: InputBorder.none,
-            focusedErrorBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(
-                vertical: w.isTextArea ? theme.gapMd : (w.isCompact ? theme.gapSm * 0.75 : theme.gapMd)),
-            hintText: placeholder,
-            hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: 1.0),
-          ),
+          placeholder: placeholder != null ? Text(placeholder) : null,
+          placeholderStyle: theme.bodyText.copyWith(color: theme.mutedForeground, height: 1.0),
+          decoration: ShadDecoration.none,
+          padding: EdgeInsets.symmetric(
+              vertical: w.isTextArea ? theme.gapMd : (w.isCompact ? theme.gapSm * 0.75 : theme.gapMd)),
+          constraints: const BoxConstraints(),
         );
 
         final bool hasPrefix = w.prefixIcon != null;

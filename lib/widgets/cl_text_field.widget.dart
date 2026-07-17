@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
+// Budella Shad: nucleo interno del campo. Solo ShadInput/ShadDecoration (show)
+// per non inquinare il namespace del file. Firma pubblica CLTextField invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadInput, ShadDecoration;
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';

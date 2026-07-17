@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:genai_components/genai_components.dart' hide WidgetBuilder;
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadTheme;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'screens/buttons_screen.dart';
@@ -46,6 +47,12 @@ class _GalleryAppState extends State<GalleryApp> {
         darkTheme: ThemeData(
           brightness: Brightness.dark,
           scaffoldBackgroundColor: const Color(0xFF121218),
+        ),
+        // Budella Shad: le budella dei CL* (es. ShadInput in CLTextField) esigono
+        // un ShadTheme antenato. Montato qui come nell'app reale (app.dart).
+        builder: (context, child) => ShadTheme(
+          data: CLTheme.of(context).toShadTheme(),
+          child: child!,
         ),
         home: GalleryHome(
           isDark: _themeMode == ThemeMode.dark,
