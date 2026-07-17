@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+// Budella Shad: nucleo interno del bottone. Solo i simboli usati (show) per non
+// inquinare il namespace. Firma pubblica CLGhostButton invariata.
+import 'package:shadcn_ui/shadcn_ui.dart'
+    show ShadButton, ShadButtonVariant, ShadDecoration, ShadBorder;
 
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
 import '../foundation/cl_pressable.widget.dart';
 import '../foundation/cl_tone_style.dart';
+
+// ── Durate micro-interazione ────────────────────────────────────────
+const Duration _iconSwapDuration = Duration(milliseconds: 180);
 
 class CLGhostButton extends StatefulWidget {
   final Color color;
@@ -251,108 +258,129 @@ class _CLGhostButtonState extends State<CLGhostButton> with AsyncButtonMixin {
   Widget build(BuildContext context) {
     final isMobile = !ResponsiveBreakpoints.of(context).isDesktop;
     final theme = CLTheme.of(context);
-    final hPad = widget.isCompact ? theme.gapMd : theme.gapLg;
-    const vPad = 0.0;
+    final showText = widget.text.isNotEmpty;
+    final isLoading = loading;
+    final isInteractive = !isLoading;
     final colored = widget._colored;
+
+    // ── Colori per stato (da CLToneStyle, variante ghost): bg neutro
+    // trasparente→accent hover→accent scurito press; il tono vive nel testo/icona
+    // (fg). Con `colored:false` percorso neutro (fg = primaryText). ──────────
     CLToneColors chrome(CLPressableState state) => CLToneStyle.resolve(theme,
         color: widget.color,
         variant: CLVariant.ghost,
         colored: colored,
         state: state);
-    final idle = chrome(const CLPressableState());
-    final fgColor = widget.foregroundColor ?? idle.fg;
-    final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
-    final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
-    final hoverBg = chrome(const CLPressableState(hovered: true)).bg;
-    final pressedBg = chrome(const CLPressableState(pressed: true)).bg;
-    final focusBorder = colored ? widget.color : theme.primary;
-    final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
+    final CLToneColors tBase = chrome(const CLPressableState());
+    final CLToneColors tHover = chrome(const CLPressableState(hovered: true));
+    final CLToneColors tPressed = chrome(const CLPressableState(pressed: true));
 
-    return Theme(
-        data: Theme.of(context).copyWith(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
+    // foregroundColor override vince su tutti gli stati; altrimenti fg per-stato.
+    final fgColor = widget.foregroundColor ?? tBase.fg;
+    final hoverFg = widget.foregroundColor ?? tHover.fg;
+    final pressedFg = widget.foregroundColor ?? tPressed.fg;
+
+    final padH = widget.isCompact ? theme.gapMd : theme.gapLg;
+    final iconSz = widget.isCompact ? theme.iconSizeCompact - 2 : theme.iconSizeCompact;
+    final minHeight = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
+    final iconOnlySide = minHeight;
+    final radius = theme.radiusControl;
+
+    // ── Slot icona ↔ spinner ─────────────────────────────────────────
+    Widget buildIconSlot(double size) {
+      final iconChild = widget.hugeIcon ??
+          (widget.iconData != null
+              ? Icon(widget.iconData, color: fgColor, size: size)
+              : SizedBox(width: size, height: size));
+      return AnimatedSwitcher(
+        duration: _iconSwapDuration,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: isLoading
+            ? SizedBox(
+                key: const ValueKey('spinner'),
+                width: size,
+                height: size,
+                child: CLLoadingSpinner(size: size, color: fgColor),
+              )
+            : KeyedSubtree(key: const ValueKey('icon'), child: iconChild),
+      );
+    }
+
+    // ── Label ────────────────────────────────────────────────────────
+    final labelStyle = theme.bodyText.copyWith(color: fgColor, fontWeight: FontWeight.w500);
+    final hasInlineIcon = widget.iconData != null || widget.hugeIcon != null || isLoading;
+    final iconTextGap = theme.gapSm;
+
+    Widget content;
+    if (showText) {
+      // Label con fade durante loading per comunicare stato "in corso".
+      final labelWidget = AnimatedOpacity(
+        opacity: isLoading ? 0.7 : 1.0,
+        duration: _iconSwapDuration,
+        child: Text(
+          widget.text,
+          style: labelStyle,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          textAlign: TextAlign.center,
         ),
-        child: SizedBox(
-          width: widget.width,
-          child: widget.text.isNotEmpty
-              ? TextButton.icon(
-                  iconAlignment: widget.iconAlignment,
-                  icon: (widget.hugeIcon != null || widget.iconData != null || loading)
-                      ? AnimatedCrossFade(
-                          alignment: Alignment.center,
-                          firstChild: widget.hugeIcon ??
-                              (widget.iconData != null
-                                  ? Icon(widget.iconData, color: fgColor, size: iconSz)
-                                  : SizedBox(width: iconSz, height: iconSz)),
-                          secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
-                          crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                          duration: const Duration(milliseconds: 200),
-                        )
-                      : null,
-                  onPressed: _handleTap,
-                  style: widget.buttonStyle ??
-                      ButtonStyle(
-                        foregroundColor: WidgetStateProperty.all(fgColor),
-                        backgroundColor: WidgetStateProperty.resolveWith((states) {
-                          if (states.contains(WidgetState.pressed)) return pressedBg;
-                          if (states.contains(WidgetState.hovered)) return hoverBg;
-                          return idle.bg;
-                        }),
-                        overlayColor: WidgetStateProperty.all(Colors.transparent),
-                        splashFactory: NoSplash.splashFactory,
-                        animationDuration: const Duration(milliseconds: 150),
-                        padding: WidgetStateProperty.all(EdgeInsets.symmetric(horizontal: hPad, vertical: vPad)),
-                        shape: WidgetStateProperty.resolveWith((states) {
-                          return RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(theme.radiusControl),
-                            side: states.contains(WidgetState.focused)
-                                ? BorderSide(color: focusBorder, width: 2)
-                                : BorderSide.none,
-                          );
-                        }),
-                        minimumSize: WidgetStateProperty.all(Size(isMobile ? 0 : 64, btnH)),
-                        fixedSize: WidgetStateProperty.all(Size.fromHeight(btnH)),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.standard,
-                        iconSize: WidgetStateProperty.all(iconSz),
-                      ),
-                  label: Text(
-                    widget.text,
-                    style: labelStyle,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                )
-              : IconButton(
-                  onPressed: _handleTap,
-                  iconSize: iconSz,
-                  style: ButtonStyle(
-                    foregroundColor: WidgetStateProperty.all(fgColor),
-                    backgroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.pressed)) return pressedBg;
-                      if (states.contains(WidgetState.hovered)) return hoverBg;
-                      return idle.bg;
-                    }),
-                    overlayColor: WidgetStateProperty.all(Colors.transparent),
-                    shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusControl))),
-                    minimumSize: WidgetStateProperty.all(Size(btnH, btnH)),
-                    fixedSize: WidgetStateProperty.all(Size(btnH, btnH)),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.standard,
-                  ),
-                  icon: AnimatedCrossFade(
-                    firstChild: widget.hugeIcon ??
-                        (widget.iconData != null
-                            ? Icon(widget.iconData, color: fgColor, size: iconSz)
-                            : const SizedBox.shrink()),
-                    secondChild: CLLoadingSpinner(size: iconSz, color: fgColor),
-                    crossFadeState: loading ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 200),
-                  ),
-                ),
-        ));
+      );
+      content = Row(
+        mainAxisSize: widget.width != null ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
+            buildIconSlot(iconSz),
+            SizedBox(width: iconTextGap),
+          ],
+          Flexible(child: labelWidget),
+          if (hasInlineIcon && widget.iconAlignment == IconAlignment.end) ...[
+            SizedBox(width: iconTextGap),
+            buildIconSlot(iconSz),
+          ],
+        ],
+      );
+    } else {
+      content = Center(child: buildIconSlot(iconSz));
+    }
+
+    // ── Nucleo = ShadButton (budella Shad, variante ghost): hover/press/focus/
+    //    keyboard e ring nativi. Colori per stato dal motore CLToneStyle (ghost):
+    //    base/hover/press → tono CL preservato 1:1. async/confirm/loading/icon-swap
+    //    restano nel wrapper CL. Firma pubblica invariata. ─────────────────────
+    Widget button = ShadButton.raw(
+      variant: ShadButtonVariant.ghost,
+      // enabled=isInteractive → in loading ShadButton toglie hover e attenua.
+      enabled: isInteractive,
+      onPressed: () => _handleTap(),
+      backgroundColor: tBase.bg,
+      hoverBackgroundColor: tHover.bg,
+      pressedBackgroundColor: tPressed.bg,
+      foregroundColor: fgColor,
+      hoverForegroundColor: hoverFg,
+      pressedForegroundColor: pressedFg,
+      height: showText ? minHeight : iconOnlySide,
+      width: showText ? null : iconOnlySide,
+      padding:
+          showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
+      mainAxisAlignment: MainAxisAlignment.center,
+      decoration: ShadDecoration(
+        border: ShadBorder(radius: BorderRadius.circular(radius)),
+      ),
+      child: content,
+    );
+
+    // minWidth 64 (desktop) per i bottoni con testo, come prima.
+    if (showText && !isMobile) {
+      button = ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 64), child: button);
+    }
+
+    if (widget.width != null) {
+      button = SizedBox(width: widget.width, child: button);
+    }
+
+    return button;
   }
 }
