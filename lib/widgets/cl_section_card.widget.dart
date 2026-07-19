@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+// Budella Shad: il frame (bg/bordo/raggio/ombra) è ShadCard. Solo i simboli
+// usati (show). Firma pubblica CLSectionCard invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadCard, ShadBorder;
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
@@ -28,14 +31,18 @@ class CLSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final radius = BorderRadius.circular(Sizes.radiusCard);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(Sizes.radiusCard),
-        border: Border.all(color: theme.cardBorder),
-        boxShadow: theme.cardShadow,
-      ),
+    // Frame via ShadCard (padding zero + clip antiAlias: l'header colorato con
+    // i top corner arrotondati resta dentro il raggio). Chrome CL preservato:
+    // secondaryBackground, cardBorder, cardShadow.
+    return ShadCard(
+      padding: EdgeInsets.zero,
+      backgroundColor: theme.secondaryBackground,
+      radius: radius,
+      border: ShadBorder.all(color: theme.cardBorder, width: 1, radius: radius),
+      shadows: theme.cardShadow,
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -85,4 +92,3 @@ class CLSectionCard extends StatelessWidget {
     );
   }
 }
-

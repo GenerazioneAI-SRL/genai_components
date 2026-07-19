@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+// Budella Shad: il frame (bg/bordo/raggio/ombra) è ShadCard. Solo i simboli
+// usati (show). Hover-lift/scale/press restano nel wrapper CL. Firma invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadCard, ShadBorder;
 
 import '../cl_theme.dart';
 
@@ -69,17 +72,17 @@ class _CLCardState extends State<CLCard> {
         ? 0.99
         : (clickable && _hovering ? 1.005 : 1.0);
 
-    Widget content = AnimatedContainer(
-      duration: _kAnim,
-      curve: _kCurve,
+    // Frame via ShadCard: bg/bordo/raggio/ombra CL preservati. La shadow di
+    // hover è passata dinamicamente (transizione istantanea; lo scale resta
+    // animato via AnimatedScale — cue principale del press/hover).
+    final radius = BorderRadius.circular(theme.radiusCard);
+    Widget content = ShadCard(
       clipBehavior: Clip.antiAlias,
       padding: EdgeInsets.all(theme.gapXl),
-      decoration: BoxDecoration(
-        color: theme.secondaryBackground,
-        borderRadius: BorderRadius.circular(theme.radiusCard),
-        border: Border.all(color: theme.cardBorder),
-        boxShadow: shadow,
-      ),
+      backgroundColor: theme.secondaryBackground,
+      radius: radius,
+      border: ShadBorder.all(color: theme.cardBorder, width: 1, radius: radius),
+      shadows: shadow,
       child: widget.vertical
           ? _VerticalContent(
               color: widget.color,
