@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+// Budella Shad: CLRoleBadge = ShadBadge.raw (soft + border, radiusChip). Solo i
+// simboli usati (show). CLRoleIcon resta CircleAvatar (non è un badge).
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadBadge, ShadBadgeVariant;
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
@@ -16,33 +19,35 @@ class CLRoleBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding / 2, vertical: Sizes.padding / 4),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: CLTheme.of(context).opacitySoft),
-            borderRadius: BorderRadius.circular(Sizes.radiusChip),
-            border: showBorder ? Border.all(color: color.withValues(alpha: 0.3), width: 1) : null,
+    final theme = CLTheme.of(context);
+    // Soft bg + bordo color@0.3 (se showBorder), radiusChip: chrome CL 1:1.
+    return ShadBadge.raw(
+      variant: ShadBadgeVariant.primary,
+      backgroundColor: color.withValues(alpha: theme.opacitySoft),
+      hoverBackgroundColor: color.withValues(alpha: theme.opacitySoft),
+      foregroundColor: color,
+      padding: const EdgeInsets.symmetric(horizontal: Sizes.padding / 2, vertical: Sizes.padding / 4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Sizes.radiusChip),
+        side: showBorder
+            ? BorderSide(color: color.withValues(alpha: 0.3), width: 1)
+            : BorderSide.none,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: icon, color: color, size: iconSize),
+          const SizedBox(width: Sizes.padding / 2),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.smallLabel.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              HugeIcon(icon: icon, color: color, size: iconSize),
-              const SizedBox(width: Sizes.padding / 2),
-              Flexible(
-                child: Text(
-                  label,
-                  style: CLTheme.of(context).smallLabel.copyWith(color: color, fontWeight: FontWeight.w500, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

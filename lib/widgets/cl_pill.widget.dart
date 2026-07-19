@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+// Budella Shad: nucleo interno = ShadBadge.raw. Solo i simboli usati (show).
+// Firma pubblica CLPill invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadBadge, ShadBadgeVariant;
 
 import '../cl_theme.dart';
 
@@ -7,10 +10,9 @@ import '../cl_theme.dart';
 /// Linguaggio Skillera Refined Editorial:
 /// - filled (default): bg soft tint (color × 0.08), NESSUN bordo
 /// - outline: bg trasparente + bordo 1px color
-/// - pill radius (`CLTheme.radiusPill`)
+/// - pill radius (stadium)
 /// - tipografia Inter SemiBold (`smallLabel` con peso w600)
-/// - icona opzionale `CLTheme.iconSizeCompact` (16) — riducibile inline a 14
-///   per restare proporzionata al testo del pill.
+/// - icona opzionale ridotta a 14 per restare proporzionata al testo.
 class CLPill extends StatelessWidget {
   const CLPill({
     super.key,
@@ -34,19 +36,25 @@ class CLPill extends StatelessWidget {
       fontWeight: FontWeight.w600,
     );
 
+    // Filled: solo soft tint (0.08), niente bordo. Outline: trasparente + bordo
+    // color. Chrome CL preservato 1:1, sizing/pill delegati a ShadBadge.
     final Color softBg = pillColor.withValues(alpha: 0.08);
+    final Color bg = outline ? Colors.transparent : softBg;
 
     return IntrinsicWidth(
-      child: Container(
+      child: ShadBadge.raw(
+        variant: ShadBadgeVariant.primary,
+        backgroundColor: bg,
+        hoverBackgroundColor: bg,
+        foregroundColor: pillColor,
         padding: EdgeInsets.symmetric(
           horizontal: theme.gapSm,
           vertical: theme.gapXs / 2 + 1,
         ),
-        decoration: BoxDecoration(
-          color: outline ? Colors.transparent : softBg,
-          borderRadius: BorderRadius.circular(theme.radiusPill),
-          // Filled: solo soft tint, niente bordo colorato. Outline: bordo color.
-          border: outline ? Border.all(color: pillColor, width: 1) : null,
+        shape: StadiumBorder(
+          side: outline
+              ? BorderSide(color: pillColor, width: 1)
+              : BorderSide.none,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
