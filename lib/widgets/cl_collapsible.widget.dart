@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+// Budella Shad: nucleo interno = ShadAccordion single-item + ShadAccordionItem
+// (header, chevron rotante e animazione expand nativi). Solo i simboli usati
+// (show). Firma pubblica CLCollapsible invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadAccordion, ShadAccordionItem;
 import '../cl_theme.dart';
-import '../layout/constants/sizes.constant.dart';
 
 /// Sezione espandibile/collassabile con animazione. Alternativa più semplice
 /// a `CustomExpansionTile` con stile coerente al tema.
 ///
-/// Linguaggio Skillera Refined Editorial:
-/// - header row con chevron rotante 180° (AnimatedRotation, easeInOutCubic)
-/// - hover row su muted (sottile)
-/// - border bottom 1px che appare a sezione aperta per separare dal contenuto
-class CLCollapsible extends StatefulWidget {
+/// Linguaggio Skillera Refined Editorial: header con chevron rotante, titolo
+/// `theme.title`, leading opzionale. Interazione (toggle/animazione/hover)
+/// delegata a ShadAccordionItem; tono CL nei colori/testi.
+class CLCollapsible extends StatelessWidget {
   final String title;
   final Widget child;
   final bool initiallyExpanded;
@@ -24,95 +27,34 @@ class CLCollapsible extends StatefulWidget {
   });
 
   @override
-  State<CLCollapsible> createState() => _CLCollapsibleState();
-}
-
-class _CLCollapsibleState extends State<CLCollapsible> {
-  late bool _expanded;
-  bool _hovering = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _expanded = widget.initiallyExpanded;
-  }
-
-  void _toggle() => setState(() => _expanded = !_expanded);
-
-  @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
 
-    final Color headerBg = _hovering ? theme.muted : Colors.transparent;
-    final Border? expandedBorder = _expanded
-        ? Border(
-            bottom: BorderSide(color: theme.borderColor, width: 1),
-          )
-        : null;
+    final Widget titleWidget = leading == null
+        ? Text(title, style: theme.title)
+        : Row(
+            children: [
+              leading!,
+              SizedBox(width: theme.gapSm),
+              Expanded(child: Text(title, style: theme.title)),
+            ],
+          );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ShadAccordion<int>(
+      initialValue: initiallyExpanded ? 0 : null,
       children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _hovering = true),
-          onExit: (_) => setState(() => _hovering = false),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            decoration: BoxDecoration(
-              color: headerBg,
-              borderRadius: BorderRadius.circular(theme.radiusControl),
-              border: expandedBorder,
-            ),
-            child: InkWell(
-              onTap: _toggle,
-              borderRadius: BorderRadius.circular(theme.radiusControl),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: theme.gapMd,
-                  vertical: theme.gapMd,
-                ),
-                child: Row(
-                  children: [
-                    if (widget.leading != null) ...[
-                      widget.leading!,
-                      SizedBox(width: theme.gapSm),
-                    ],
-                    Expanded(
-                      child: Text(widget.title, style: theme.title),
-                    ),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeInOutCubic,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        size: Sizes.iconSizeDefault,
-                        color: theme.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+        ShadAccordionItem<int>(
+          value: 0,
+          titleStyle: theme.title,
+          iconData: LucideIcons.chevronDown,
+          padding: EdgeInsets.symmetric(
+            horizontal: theme.gapMd,
+            vertical: theme.gapMd,
           ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOutCubic,
-          alignment: Alignment.topCenter,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            child: _expanded
-                ? Padding(
-                    key: const ValueKey('cl-collapsible-expanded'),
-                    padding: EdgeInsets.only(
-                      top: theme.gapMd,
-                      bottom: theme.gapMd,
-                    ),
-                    child: widget.child,
-                  )
-                : const SizedBox.shrink(key: ValueKey('cl-collapsible-collapsed')),
+          title: titleWidget,
+          child: Padding(
+            padding: EdgeInsets.only(top: theme.gapMd, bottom: theme.gapMd),
+            child: child,
           ),
         ),
       ],
