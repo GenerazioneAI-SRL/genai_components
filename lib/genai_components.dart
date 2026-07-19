@@ -107,6 +107,7 @@ export 'widgets/cl_pdf_viewer.widget.dart';
 export 'widgets/cl_month_calendar.widget.dart';
 export 'widgets/cl_calendar.widget.dart';
 export 'widgets/cl_date_picker.widget.dart';
+export 'widgets/cl_time_picker.widget.dart';
 
 // Charts
 export 'widgets/charts/cl_bar_chart.widget.dart';
