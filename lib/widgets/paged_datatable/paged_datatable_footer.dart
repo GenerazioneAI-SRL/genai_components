@@ -4,7 +4,10 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
     extends StatelessWidget {
   final PagedDataTableThemeData themeData;
 
-  const _PagedDataTableFooter({required this.themeData});
+  /// embedded → niente inset orizzontale del footer (a filo superficie esterna).
+  final bool embedded;
+
+  const _PagedDataTableFooter({required this.themeData, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +17,7 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
     return Consumer<_PagedDataTableState<TKey, TResultId, TResult>>(
       builder: (context, state, _) {
         Widget child = Container(
-          padding: EdgeInsets.all(hPadding),
+          padding: EdgeInsets.symmetric(horizontal: embedded ? 0 : hPadding, vertical: hPadding),
           decoration: BoxDecoration(
             color: themeData.headerBackgroundColor ?? CLTheme.of(context).primaryBackground,
           ),

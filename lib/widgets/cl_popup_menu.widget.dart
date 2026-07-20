@@ -261,19 +261,11 @@ class CLPopupMenu extends StatefulWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header con gradient
+                      // Header: label titolo + hairline divider (no fill azzurro).
                       if (title != null || titleWidget != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapLg * 0.75),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                theme.primary.withValues(alpha: theme.opacitySoft),
-                                theme.secondary.withValues(alpha: 0.05),
-                              ],
-                            ),
                             border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
                           ),
                           child: titleWidget ??

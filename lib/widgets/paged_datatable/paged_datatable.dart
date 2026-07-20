@@ -8,6 +8,7 @@ import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_outline_button.widget.dart';
 import '../buttons/cl_icon_button.widget.dart';
+import '../foundation/cl_pressable.widget.dart';
 import '../buttons/cl_compact_action_scope.dart';
 import '../layout/cl_shell_slots.dart';
 import '../cl_popup_surface.widget.dart';
@@ -16,6 +17,7 @@ import '../cl_shimmer.widget.dart';
 import '../cl_text_field.widget.dart';
 import '../cl_container.widget.dart';
 import '../cl_dropdown/cl_dropdown.dart';
+import '../cl_date_picker.widget.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -161,6 +163,11 @@ class PagedDataTableRowMetrics {
 /// Tablet e desktop (>= soglia) usano la tabella classica.
 const double _kTableCardBreakpoint = 600.0;
 
+// Padding toolbar selezione: valori intermedi tra i gap token (non su scala
+// gapXs/gapSm/gapMd), documentati qui invece che come literal inline.
+const double _kSelectionToolbarPaddingV = 10.0;
+const double _kSelectionBadgePaddingH = 10.0;
+
 /// True su telefono (larghezza < soglia): la tabella mostra le card.
 bool _isTableCompact(BuildContext context) => MediaQuery.sizeOf(context).width < _kTableCardBreakpoint;
 
@@ -273,6 +280,10 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
   /// Ritorna solo i widget delle azioni: badge "X selezionati" e "Deseleziona tutto" vengono
   /// gestiti internamente dalla tabella.
   final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)? selectionActionsBuilder;
+
+  /// Label del bottone che deseleziona tutte le righe nella toolbar di selezione.
+  /// Default 'Deseleziona tutto'.
+  final String? deselectAllLabel;
 
   /// Mostra il checkbox "seleziona tutti" nell'header. Default true. Se false
   /// resta lo slot (allineamento) ma niente select-all: la selezione avviene
@@ -390,6 +401,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
     this.expandedRowBuilder,
     this.onRowExpanded,
     this.selectionActionsBuilder,
+    this.deselectAllLabel,
     this.title,
     this.titleWidget,
     this.titleIcon,
@@ -514,7 +526,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
             // margin-top si sommerebbe al centering interno della prima riga (= 2Lg).
             // Clip sul radius → zebra full-bleed rispetta gli angoli tondi.
             rowsSection = Container(
-              margin: const EdgeInsets.fromLTRB(Sizes.gapLg, 0, Sizes.gapLg, Sizes.gapLg),
+              // embedded → niente inset orizzontale card (lo dà già la superficie
+              // esterna): le righe vanno a filo della bolla.
+              margin: EdgeInsets.fromLTRB(embedded ? 0 : Sizes.gapLg, 0, embedded ? 0 : Sizes.gapLg, Sizes.gapLg),
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.radiusCard)),
               child: rowsSection,
@@ -541,7 +555,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
             );
             // Bolla righe (mobile): stesso container arrotondato, niente bordo.
             boxedSection = Container(
-              margin: const EdgeInsets.all(Sizes.gapLg),
+              margin: EdgeInsets.symmetric(horizontal: embedded ? 0 : Sizes.gapLg, vertical: Sizes.gapLg),
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.radiusCard)),
               child: boxedSection,
@@ -569,7 +583,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                         final isAllSelected = st._items.isNotEmpty && st._items.every((it) => st.selectedRows.containsKey(idGetter(it)));
                         toolbarContent = Container(
                           key: const ValueKey('toolbar_visible'),
-                          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: _kSelectionToolbarPaddingV),
                           decoration: BoxDecoration(
                             color: tablePrimary.withValues(alpha: clTheme.opacitySubtle),
                             border: Border(
@@ -587,9 +601,9 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     visualDensity: VisualDensity.compact,
                                     activeColor: tablePrimary,
-                                    checkColor: Colors.white,
+                                    checkColor: clTheme.primaryForeground,
                                     side: BorderSide(color: clTheme.borderColor, width: 1),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(clTheme.radiusXs)),
                                     onChanged: (_) {
                                       if (isAllSelected) {
                                         st.clearAllSelections();
@@ -602,17 +616,16 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                 const SizedBox(width: Sizes.small),
                               ],
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: EdgeInsets.symmetric(horizontal: _kSelectionBadgePaddingH, vertical: clTheme.gapXs),
                                 decoration: BoxDecoration(
                                   color: tablePrimary.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
-                                  style: clTheme.bodyLabel.copyWith(
+                                  style: clTheme.smallLabel.copyWith(
                                     color: tablePrimary,
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 12,
                                   ),
                                 ),
                               ),
@@ -622,20 +635,14 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                               ],
                               const Spacer(),
                               if (isDesktop)
-                                TextButton(
-                                  onPressed: () => st.clearAllSelections(),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(horizontal: clTheme.gapMd, vertical: clTheme.gapIconText),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    'Deseleziona tutto',
-                                    style: clTheme.bodyLabel.copyWith(
-                                      color: clTheme.secondaryText,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                CLButton(
+                                  context: context,
+                                  text: deselectAllLabel ?? 'Deseleziona tutto',
+                                  onTap: () => st.clearAllSelections(),
+                                  iconAlignment: IconAlignment.start,
+                                  isCompact: true,
+                                  backgroundColor: Colors.transparent,
+                                  textStyle: clTheme.smallLabel.copyWith(color: clTheme.secondaryText),
                                 ),
                             ],
                           ),
@@ -693,6 +700,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                 isFilterBarRounded,
                                 hoistFilterBarToShell,
                                 selectionActionsBuilder,
+                                embedded,
                               ),
                             ],
 
@@ -703,7 +711,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             /* HEADER ROW — inset Lg (allineato alla bolla). Top Lg: + il
                                centering del testo nella riga (44px) ≈ 2Xl visivo dalla toolbar. */
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
+                              padding: EdgeInsets.fromLTRB(embedded ? 0 : Sizes.gapLg, Sizes.gapLg, embedded ? 0 : Sizes.gapLg, 0),
                               child: _PagedDataTableHeaderRow<TKey, TResultId, TResult>(
                                   rowsSelectable, width, idGetter, hasAnyActions, hasExpandIcon, actionsColumnWidth, selectAllInHeader),
                             ),
@@ -752,6 +760,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                             // la barra bulk nel bottom shell (selectionBar). Il tab
                             // stesso non la renderizza inline su mobile (isDesktopBar).
                             selectionActionsBuilder,
+                            embedded,
                           );
                           if (hoistFilterBarToShell) return tab;
                           // Niente SizedBox sotto: il gap verso il container row lo dà
@@ -763,7 +772,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                               borderRadius: BorderRadius.all(Radius.circular(Sizes.radiusCard)),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(Sizes.gapLg),
+                              padding: EdgeInsets.symmetric(horizontal: embedded ? 0 : Sizes.gapLg, vertical: Sizes.gapLg),
                               child: tab,
                             ),
                           );
@@ -788,7 +797,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
             // ridisegna, altrimenti doppio hairline sopra la paginazione.
             ? SizedBox(
                 width: double.infinity,
-                child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme),
+                child: _PagedDataTableFooter<TKey, TResultId, TResult>(themeData: localTheme, embedded: embedded),
               )
             : const SizedBox.shrink();
 
@@ -917,8 +926,8 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
       child: Padding(
         // Bottom 0: lo stacco Lg dalla filter bar lo dà già il SUO top padding
         // (desktop, fromLTRB(Lg,Lg,Lg,0)) o il margine della sezione card (mobile)
-        // → niente gap doppio. Top/orizzontali invariati.
-        padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapLg, Sizes.gapLg, 0),
+        // → niente gap doppio. Orizzontali 0 in embedded (li dà la superficie esterna).
+        padding: EdgeInsets.fromLTRB(embedded ? 0 : Sizes.gapLg, Sizes.gapLg, embedded ? 0 : Sizes.gapLg, 0),
         child: Row(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,

@@ -169,20 +169,20 @@ class CLSizes {
   /// bottoni inline in tabelle.
   static const buttonHeightCompact = 32.0;
 
-  /// 40px — bottone default (Foundation).
+  /// 36px — bottone default (Foundation).
   /// Usato per: `CLButton` size default, azioni primarie standard di pagina,
   /// bottoni in form.
-  static const buttonHeightDefault = 40.0;
+  static const buttonHeightDefault = 36.0;
 
   /// 48px — bottone large (Foundation).
   /// Usato per: `CLButton` size large, CTA hero, azioni primarie in modali
   /// di onboarding.
   static const buttonHeightLarge = 48.0;
 
-  /// 40px — altezza standard input.
+  /// 36px — altezza standard input.
   /// Usato per: `CLTextField`, `CLDropdown`, `CLDatePicker` — allineata a
   /// `buttonHeightDefault` per row form coerenti.
-  static const inputHeight = 40.0;
+  static const inputHeight = 36.0;
 
   /// 32px — altezza input compatto (Foundation).
   /// Usato per: `CLTextField`/`CLDropdown` con `isCompact: true` — allineata a

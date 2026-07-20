@@ -262,7 +262,7 @@ class _ExpandIcon extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
             child: Icon(
-              Icons.chevron_right_rounded,
+              LucideIcons.chevronRight,
               size: theme.iconSizeCompact,
               color: isExpanded
                   ? _effectiveTablePrimary(context)

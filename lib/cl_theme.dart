@@ -227,8 +227,16 @@ abstract class CLTheme {
   /// 80px — offset verticale header pagina.
   double get pageTop => 80.0;
 
+  /// 4px — radius extra-small (checkbox, popup menu).
+  double get radiusXs => 4.0;
+
   /// 6px — radius chip/badge.
   double get radiusChip => 6.0;
+
+  /// Colore contrasto su `primary` (checkmark checkbox, testo su fill primario).
+  /// Bianco in light e dark: `primary` è blu mid-sat in entrambi. Allineato al
+  /// `primaryForeground` dello ShadColorScheme.
+  Color get primaryForeground => const Color(0xFFFFFFFF);
 
   /// 12px — radius controlli (bottoni, input).
   double get radiusControl => 12.0;

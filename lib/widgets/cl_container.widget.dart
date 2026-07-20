@@ -8,7 +8,7 @@ class CLContainer extends StatefulWidget {
     super.key,
     required this.child,
     this.title,
-    this.showShadow = true,
+    this.showShadow = false,
     this.customHeader,
     this.contentPadding,
     this.contentMargin,
@@ -22,7 +22,7 @@ class CLContainer extends StatefulWidget {
     this.actionWidget,
     this.onActionTap,
     this.glassmorphism = false,
-    this.showBorder = false,
+    this.showBorder = true,
     this.titleBackgroundColor,
     this.titleIcon,
     this.plainHeader = false,
@@ -92,7 +92,9 @@ class _CLContainerState extends State<CLContainer> {
     // recessed = superficie incassata: niente ombra (e quindi niente auto-bordo
     // dark) a prescindere da showShadow. `elevated` è l'elevazione effettiva.
     final elevated = widget.showShadow && !widget.recessed;
-    final useBorder = widget.showBorder || (elevated && isDark);
+    // recessed = superficie incassata: si delinea per contrasto (fill), MAI hairline
+    // (nemmeno col nuovo default showBorder=true). Bordo solo per card normali.
+    final useBorder = (widget.showBorder && !widget.recessed) || (elevated && isDark);
     // Raggio per livello di annidamento (concentrico, token distinti):
     // - recessed = superficie secondaria dentro card → radiusSurface (14)
     // - card L1 → radiusCard (18)
@@ -115,8 +117,8 @@ class _CLContainerState extends State<CLContainer> {
         border: useBorder ? Border.all(color: theme.cardBorder, width: 1.0) : null,
         color: widget.backgroundColor ?? (widget.recessed ? theme.primaryBackground : theme.secondaryBackground),
         borderRadius: br,
-        // Default Foundation: ombra soft (card statica L1), nessun bordo. Il
-        // bordo torna opt-in via `showBorder: true`.
+        // Default: hairline (border, nessuna ombra) per coerenza col resto del
+        // progetto. L'ombra soft torna opt-in via `showShadow: true`.
         boxShadow: elevated ? theme.cardShadowSoft : null,
       ),
       child: ClipRRect(

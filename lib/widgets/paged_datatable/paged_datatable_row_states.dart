@@ -110,7 +110,7 @@ class _EmptyState extends StatelessWidget {
                 border: Border.all(color: _effectiveTablePrimary(context).withValues(alpha: theme.opacitySoft)),
               ),
               child: Icon(
-                Icons.search_off_rounded,
+                LucideIcons.searchX,
                 size: 28,
                 color: _effectiveTablePrimary(context).withValues(alpha: theme.opacityDisabled),
               ),
@@ -173,7 +173,7 @@ class _ErrorState extends StatelessWidget {
                 border: Border.all(color: theme.danger.withValues(alpha: 0.15)),
               ),
               child: Icon(
-                Icons.error_outline_rounded,
+                LucideIcons.circleAlert,
                 size: 26,
                 color: theme.danger.withValues(alpha: 0.8),
               ),

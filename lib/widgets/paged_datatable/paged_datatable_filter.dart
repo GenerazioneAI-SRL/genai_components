@@ -132,7 +132,7 @@ class TextTableFilter extends TableFilter<String> {
       prefixIcon: Icon(
         LucideIcons.search,
         color: theme.secondaryText,
-        size: 18,
+        size: theme.iconSizeCompact,
       ),
       onChanged: (value) async => onFieldChanged(value),
     );
@@ -310,10 +310,8 @@ class CLDropdownTableFilterSync<TValue extends Object> extends TableFilter<TValu
 // Filtri inline con CLTextField (senza picker/calendario)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Filtro data singola — CLTextField.date (gg/mm/aaaa)
+/// Filtro data singola — CLDatePicker (trigger + popover calendario in-theme).
 class CLDateTableFilter extends TableFilter<DateTime> {
-  TextEditingController? _controller;
-
   CLDateTableFilter({
     required super.chipFormatter,
     required super.id,
@@ -324,22 +322,30 @@ class CLDateTableFilter extends TableFilter<DateTime> {
 
   @override
   Widget buildPicker(BuildContext context, TableFilterState state) {
-    _controller ??= TextEditingController();
-
-    return CLTextField.date(
-      controller: _controller!,
-      labelText: title,
-      initialSelectedDateTime: state.value is DateTime ? state.value : null,
-      onDateTimeSelected: (date) {
-        state.value = date;
-      },
+    final theme = CLTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Label sopra il campo — stessa resa di CLTextField (smallText/secondaryText).
+        Text(title, style: theme.smallText.copyWith(fontWeight: FontWeight.w500, color: theme.secondaryText)),
+        SizedBox(height: theme.gapSm),
+        CLDatePicker(
+          selected: state.value is DateTime ? state.value : null,
+          placeholder: title,
+          width: double.infinity,
+          onChanged: (date) {
+            state.value = date;
+          },
+        ),
+      ],
     );
   }
 
-  void dispose() {
-    _controller?.dispose();
-    _controller = null;
-  }
+  // CLDatePicker non tiene risorse (niente controller): dispose no-op.
+  // Presente perché `_PagedDataTableState.dispose` chiama `filter.dispose()`
+  // sul branch `is CLDateTableFilter`.
+  void dispose() {}
 }
 
 /// Filtro data e ora — CLTextField.dateTime (gg/mm/aaaa hh:mm)
