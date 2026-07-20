@@ -697,7 +697,7 @@ class _ClDropdownShadState<T extends Object> extends State<_ClDropdownShad<T>>
               });
             }
 
-            final Widget select = widget.isMultiple
+            final Widget selectCore = widget.isMultiple
                 ? ShadSelect<T>.multiple(
                     controller: _controller,
                     enabled: widget.isEnabled,
@@ -762,6 +762,10 @@ class _ClDropdownShadState<T extends Object> extends State<_ClDropdownShad<T>>
                         },
                       );
 
+            // Full-width nel contenitore (come i campi input e il dropdown async):
+            // il trigger ShadSelect di default si dimensiona al contenuto. Il
+            // SizedBox prende la maxWidth del parent → riempie.
+            final Widget select = SizedBox(width: double.infinity, child: selectCore);
             if (!fstate.hasError) return select;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
