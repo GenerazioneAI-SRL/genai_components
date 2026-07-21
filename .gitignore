@@ -8,3 +8,8 @@ pubspec.lock
 *.iml
 .idea/
 .DS_Store
+
+# env (secrets — mai committare)
+.env
+.env.*
+!.env.example
