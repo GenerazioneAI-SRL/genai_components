@@ -79,9 +79,7 @@ class CLCommandPalette extends StatefulWidget {
       transitionBuilder: (ctx, anim, _, child) => FadeTransition(
         opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
         child: ScaleTransition(
-          scale: Tween<double>(begin: 0.96, end: 1.0).animate(
-            CurvedAnimation(parent: anim, curve: Curves.easeOut),
-          ),
+          scale: Tween<double>(begin: 0.96, end: 1.0).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
           child: child,
         ),
       ),
@@ -228,9 +226,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
     if (_selected >= _selectable.length) _selected = 0;
 
     // Due bolle separate: barra di ricerca (tonda) sopra, elenco risultati sotto.
-    final shadow = [
-      BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 8)),
-    ];
+    final shadow = [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 8))];
     final showResults = rows.isNotEmpty || _loading || _query.isNotEmpty;
 
     return Center(
@@ -250,84 +246,89 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
         },
         child: Material(
           color: Colors.transparent,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Bolla ricerca (tonda) ──
-                Container(
-                  decoration: BoxDecoration(
-                    color: theme.secondaryBackground,
-                    borderRadius: BorderRadius.circular(theme.radiusPill),
-                    border: Border.all(color: theme.cardBorder),
-                    boxShadow: shadow,
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapMd),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, size: 18, color: theme.mutedForeground),
-                      SizedBox(width: theme.gapSm),
-                      Expanded(
-                        child: TextField(
-                          controller: _search,
-                          focusNode: _focus,
-                          onChanged: _onSearch,
-                          style: theme.bodyText,
-                          decoration: InputDecoration(
-                            hintText: widget.hintText ?? 'Cerca…',
-                            hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+          // Margine laterale: sotto i 560px (mobile) la palette riempirebbe
+          // tutta la larghezza schermo, bolle attaccate ai bordi.
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: theme.gapLg),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Bolla ricerca (tonda) ──
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.secondaryBackground,
+                      borderRadius: BorderRadius.circular(theme.radiusPill),
+                      border: Border.all(color: theme.cardBorder),
+                      boxShadow: shadow,
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapMd),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, size: 18, color: theme.mutedForeground),
+                        SizedBox(width: theme.gapSm),
+                        Expanded(
+                          child: TextField(
+                            controller: _search,
+                            focusNode: _focus,
+                            onChanged: _onSearch,
+                            style: theme.bodyText,
+                            decoration: InputDecoration(
+                              hintText: widget.hintText ?? 'Cerca…',
+                              hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
                           ),
                         ),
-                      ),
-                      if (_loading) ...[
-                        SizedBox(width: theme.gapSm),
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: theme.mutedForeground),
-                        ),
+                        if (_loading) ...[
+                          SizedBox(width: theme.gapSm),
+                          SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: theme.mutedForeground),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-
-                // ── Bolla risultati (separata) ──
-                if (showResults) ...[
-                  SizedBox(height: theme.gapMd),
-                  Flexible(
-                    child: Container(
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: theme.secondaryBackground,
-                        borderRadius: BorderRadius.circular(theme.radiusModal),
-                        border: Border.all(color: theme.cardBorder),
-                        boxShadow: shadow,
-                      ),
-                      child: rows.isEmpty
-                          ? Padding(
-                              padding: EdgeInsets.all(theme.gap2Xl),
-                              child: Text(
-                                _loading ? 'Ricerca…' : (widget.emptyText ?? 'Nessun risultato'),
-                                style: theme.bodyLabel,
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          // Padding verticale gapSm: tiene la prima/ultima riga
-                          // dentro le curve del radiusModal (no clip agli angoli).
-                          : ListView(
-                              shrinkWrap: true,
-                              padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: theme.gapMd),
-                              children: rows,
-                            ),
                     ),
                   ),
+
+                  // ── Bolla risultati (separata) ──
+                  if (showResults) ...[
+                    SizedBox(height: theme.gapMd),
+                    Flexible(
+                      child: Container(
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: theme.secondaryBackground,
+                          borderRadius: BorderRadius.circular(theme.radiusModal),
+                          border: Border.all(color: theme.cardBorder),
+                          boxShadow: shadow,
+                        ),
+                        child: rows.isEmpty
+                            ? Padding(
+                                padding: EdgeInsets.all(theme.gap2Xl),
+                                child: Text(
+                                  _loading ? 'Ricerca…' : (widget.emptyText ?? 'Nessun risultato'),
+                                  style: theme.bodyLabel,
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            // Padding verticale gapSm: tiene la prima/ultima riga
+                            // dentro le curve del radiusModal (no clip agli angoli).
+                            : ListView(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: theme.gapMd),
+                                children: rows,
+                              ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -340,11 +341,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
       padding: EdgeInsets.fromLTRB(theme.gapMd, theme.gapSm, theme.gapMd, theme.gapXs),
       child: Text(
         '$label · $count',
-        style: theme.smallLabel.copyWith(
-          color: theme.mutedForeground,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-        ),
+        style: theme.smallLabel.copyWith(color: theme.mutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }
@@ -408,12 +405,7 @@ class _HoverRow extends StatelessWidget {
   final VoidCallback onHover;
   final Widget child;
 
-  const _HoverRow({
-    required this.isSelected,
-    required this.onTap,
-    required this.onHover,
-    required this.child,
-  });
+  const _HoverRow({required this.isSelected, required this.onTap, required this.onHover, required this.child});
 
   @override
   Widget build(BuildContext context) {
