@@ -1,4 +1,5 @@
 import 'dart:ui' show ImageFilter;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -104,6 +105,18 @@ class CLAdaptiveShell extends StatefulWidget {
 
 class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   static const double _kFrostSigma = 18.0;
+
+  /// Vetro smerigliato. Su **web** il `BackdropFilter` rompe l'input dei
+  /// `TextField` (bug noto di Flutter web: il layer blur occlude l'overlay
+  /// nascosto dell'input → focus ok ma tasti/paste non arrivano, senza errori).
+  /// Quindi su web niente blur: resta lo sfondo traslucido del figlio
+  /// (`DecoratedBox`). Su mobile/desktop native il blur è pieno.
+  static Widget _frostBlur({required Widget child}) => kIsWeb
+      ? child
+      : BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+          child: child,
+        );
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -532,8 +545,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
         ),
         child: ClipRRect(
           borderRadius: radius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+          child: _frostBlur(
             child: DecoratedBox(
               decoration: BoxDecoration(color: theme.secondaryBackground.withValues(alpha: 0.82), borderRadius: radius),
               child: child,
@@ -1522,8 +1534,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
     return PreferredSize(
       preferredSize: Size.fromHeight(height),
       child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+        child: _frostBlur(
           child: DecoratedBox(
             decoration: BoxDecoration(
               // Vetro smerigliato bianco (come la bolla bottom), non il canvas grigio.
@@ -1586,8 +1597,7 @@ class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(theme.radiusBubble),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+            child: _frostBlur(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: theme.secondaryBackground.withValues(alpha: 0.66),
