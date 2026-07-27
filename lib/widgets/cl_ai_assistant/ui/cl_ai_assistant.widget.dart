@@ -1,4 +1,5 @@
 import 'dart:ui' show ImageFilter;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -308,20 +309,27 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
 
   // Barra glass tipo header shell: blur + velo semi-trasparente + bordo token.
   Widget _glassBar(CLTheme theme, {required bool top, required Widget child}) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.secondaryBackground.withValues(alpha: 0.72),
-            border: Border(
-              top: top ? BorderSide.none : BorderSide(color: theme.borderColor),
-              bottom: top ? BorderSide(color: theme.borderColor) : BorderSide.none,
-            ),
-          ),
-          child: child,
+    final Widget veil = DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.secondaryBackground.withValues(alpha: 0.72),
+        border: Border(
+          top: top ? BorderSide.none : BorderSide(color: theme.borderColor),
+          bottom: top ? BorderSide(color: theme.borderColor) : BorderSide.none,
         ),
       ),
+      child: child,
+    );
+    // Su web BackdropFilter rompe l'input dei TextField (bug noto Flutter web:
+    // il layer blur, sempre presente con l'AI assistant, occlude l'overlay
+    // nascosto dell'input → tasti/paste non arrivano). Niente blur su web,
+    // resta il velo traslucido; su mobile/native blur pieno.
+    return ClipRect(
+      child: kIsWeb
+          ? veil
+          : BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: veil,
+            ),
     );
   }
 
