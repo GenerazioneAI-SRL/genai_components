@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
@@ -17,6 +18,13 @@ class SemanticsWalker {
   /// Enable the semantics tree. Must be called once at startup.
   /// Returns a handle that keeps the tree alive; dispose it when done.
   void ensureSemantics() {
+    // ⚠️ Flutter WEB: tenere l'albero semantics abilitato in modo permanente
+    // (SemanticsHandle vivo) ROMPE l'input dei TextField su TUTTA l'app — cursore
+    // e focus ok, ma digitazione e paste non arrivano, senza errori. L'AI abilita
+    // semantics per "leggere" lo schermo: su web lo saltiamo (contesto schermo via
+    // semantics degradato — resta globalContextProvider) per non sacrificare
+    // l'input dell'utente. Su mobile/desktop native semantics resta pieno.
+    if (kIsWeb) return;
     if (_semanticsHandle == null) {
       AiLogger.log('Enabling semantics tree', tag: 'Semantics');
     }
