@@ -1,5 +1,4 @@
 import 'dart:ui' show ImageFilter;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -319,17 +318,14 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
       ),
       child: child,
     );
-    // Su web BackdropFilter rompe l'input dei TextField (bug noto Flutter web:
-    // il layer blur, sempre presente con l'AI assistant, occlude l'overlay
-    // nascosto dell'input → tasti/paste non arrivano). Niente blur su web,
-    // resta il velo traslucido; su mobile/native blur pieno.
+    // Blur pieno su tutte le piattaforme (web incluso): il bug di input dei
+    // TextField era il SemanticsWalker (ensureSemantics permanente), non il
+    // BackdropFilter — vedi cl_adaptive_shell._frostBlur.
     return ClipRect(
-      child: kIsWeb
-          ? veil
-          : BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: veil,
-            ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: veil,
+      ),
     );
   }
 

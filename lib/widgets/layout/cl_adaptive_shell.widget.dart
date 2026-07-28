@@ -1,5 +1,4 @@
 import 'dart:ui' show ImageFilter;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -106,17 +105,15 @@ class CLAdaptiveShell extends StatefulWidget {
 class _CLAdaptiveShellState extends State<CLAdaptiveShell> {
   static const double _kFrostSigma = 18.0;
 
-  /// Vetro smerigliato. Su **web** il `BackdropFilter` rompe l'input dei
-  /// `TextField` (bug noto di Flutter web: il layer blur occlude l'overlay
-  /// nascosto dell'input → focus ok ma tasti/paste non arrivano, senza errori).
-  /// Quindi su web niente blur: resta lo sfondo traslucido del figlio
-  /// (`DecoratedBox`). Su mobile/desktop native il blur è pieno.
-  static Widget _frostBlur({required Widget child}) => kIsWeb
-      ? child
-      : BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
-          child: child,
-        );
+  /// Vetro smerigliato: blur pieno su tutte le piattaforme, **web incluso**.
+  /// La disabilitazione su web era stata introdotta per un sospetto (errato) sul
+  /// bug di input dei TextField, poi risolto altrove (SemanticsWalker: niente
+  /// `ensureSemantics` permanente su web). Il BackdropFilter non ne era la causa
+  /// — senza blur l'header restava traslucido e il contenuto dietro traspariva.
+  static Widget _frostBlur({required Widget child}) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: _kFrostSigma, sigmaY: _kFrostSigma),
+        child: child,
+      );
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
