@@ -2,16 +2,6 @@
 
 ## 5.9.3
 
-- **Widgets:** Updated 56 components
-- **Layout:** Updated Sizes Constant
-- **Theme:** Updated Cl Theme
-- **Core:** Updated 4 components
-- **Package:** Updated Pubspec Yaml
-- **Example:** Updated 5 components
-
-
-## 5.9.3
-
 - **Buttons (fix):** un bottone a larghezza forzata (`fullWidth` o `width`) **e con testo**
   mandava in crash il layout. Dopo il porting su `ShadButton`, `CLButton`, `CLSoftButton`,
   `CLOutlineButton` e `CLGhostButton` mettevano il contenuto in un `Row(mainAxisSize: max)` con
@@ -23,6 +13,12 @@
 - **CLButton:** il contenuto viene limitato a `larghezza − padding orizzontale`, così il
   `TextOverflow.ellipsis` della label tronca davvero invece di far traboccare il bottone. Su
   outline/soft/ghost una label molto più larga del bottone trabocca ancora.
+- **Widgets:** Updated 56 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated 4 components
+- **Package:** Updated Pubspec Yaml
+- **Example:** Updated 5 components
 
 ## 5.9.2
 
