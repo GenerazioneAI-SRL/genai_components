@@ -2,6 +2,16 @@
 
 ## 5.9.3
 
+- **Widgets:** Updated 56 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated 4 components
+- **Package:** Updated Pubspec Yaml
+- **Example:** Updated 5 components
+
+
+## 5.9.3
+
 - **Buttons (fix):** un bottone a larghezza forzata (`fullWidth` o `width`) **e con testo**
   mandava in crash il layout. Dopo il porting su `ShadButton`, `CLButton`, `CLSoftButton`,
   `CLOutlineButton` e `CLGhostButton` mettevano il contenuto in un `Row(mainAxisSize: max)` con
