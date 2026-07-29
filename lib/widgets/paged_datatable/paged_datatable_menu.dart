@@ -17,9 +17,9 @@ class _PagedDataTableMenu extends StatelessWidget {
       duration: const Duration(milliseconds: 500),
       child: Material(
           color: Colors.transparent,
-          borderRadius: const BorderRadius.all(Radius.circular(4)),
+          borderRadius: BorderRadius.all(Radius.circular(theme.radiusXs)),
           child: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(4)),
+              borderRadius: BorderRadius.all(Radius.circular(theme.radiusXs)),
               child: SingleChildScrollView(
                   child: _AutoAnimatedSize(
                 startAfterDuration: const Duration(milliseconds: 0),

@@ -79,9 +79,9 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                                     hoverColor: Colors.transparent,
                                     overlayColor: WidgetStateProperty.all(Colors.transparent),
                                     activeColor: clTheme.primary,
-                                    checkColor: Colors.white,
+                                    checkColor: clTheme.primaryForeground,
                                     side: BorderSide(color: clTheme.borderColor, width: 1),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(clTheme.radiusXs)),
                                     onChanged: (_) {
                                       if (isAllSelected) {
                                         // Tutti selezionati → deseleziona solo la pagina corrente
@@ -215,11 +215,9 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                   softWrap: false,
-                  style: theme.smallLabel.copyWith(
+                  style: theme.bodyLabelTableHead.copyWith(
                     fontWeight: widget.isSorted ? FontWeight.w700 : FontWeight.w600,
                     color: widget.isSorted ? _effectiveTablePrimary(context) : theme.secondaryText,
-                    fontSize: 12,
-                    letterSpacing: 0.3,
                   ),
                   child: widget.column.title,
                 ),
@@ -236,8 +234,8 @@ class _ColumnHeaderState<TResult extends Object> extends State<_ColumnHeader<TRe
                     curve: Curves.easeOutCubic,
                     turns: widget.isDescending ? 0.5 : 0,
                     child: Icon(
-                      Icons.arrow_upward_rounded,
-                      size: 13,
+                      LucideIcons.arrowUp,
+                      size: theme.iconSizeCompact,
                       color: widget.isSorted ? _effectiveTablePrimary(context) : theme.secondaryText,
                     ),
                   ),

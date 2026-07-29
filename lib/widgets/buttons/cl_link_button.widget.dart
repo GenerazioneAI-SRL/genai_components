@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+// Budella Shad: nucleo interno del bottone. Solo i simboli usati (show). Firma
+// pubblica CLLinkButton invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadButton, ShadButtonVariant;
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
@@ -6,8 +9,8 @@ import '../foundation/cl_pressable.widget.dart';
 import '../foundation/cl_tone_style.dart';
 
 /// Bottone "link" (variante shadcn): solo testo colorato dal tono, **underline
-/// su hover**, nessun background né bordo. Costruito sul foundation
-/// `CLPressable` + `CLToneStyle` (variante `link`).
+/// su hover**, nessun background né bordo. Nucleo su `ShadButton.raw`
+/// (variante `link`); toni dal motore `CLToneStyle` (variante `link`).
 class CLLinkButton extends StatefulWidget {
   final Color color;
   final String text;
@@ -233,64 +236,80 @@ class _CLLinkButtonState extends State<CLLinkButton> with AsyncButtonMixin {
     final btnH = widget.isCompact ? theme.buttonHeightCompact : theme.buttonHeightDefault;
     final hasInlineIcon = widget.iconData != null || widget.hugeIcon != null || isLoading;
 
-    Widget button = CLPressable(
-      enabled: isInteractive,
-      onTap: _handleTap,
-      builder: (context, state) {
-        final fg = CLToneStyle.resolve(theme,
-                color: widget.color,
-                variant: CLVariant.link,
-                state: state,
-                colored: widget._colored)
-            .fg;
-        final labelStyle = theme.bodyText.copyWith(
-          color: fg,
-          fontWeight: FontWeight.w500,
-          decoration:
-              state.hovered ? TextDecoration.underline : TextDecoration.none,
-          decorationColor: fg,
-        );
+    // ── Colori (da CLToneStyle, variante link: bg SEMPRE trasparente, tono solo
+    // nel testo/icona; hover scurito del 12%). base + hover passati a ShadButton. ─
+    final CLToneColors tBase = CLToneStyle.resolve(theme,
+        color: widget.color, variant: CLVariant.link, colored: widget._colored);
+    final CLToneColors tHover = CLToneStyle.resolve(theme,
+        color: widget.color,
+        variant: CLVariant.link,
+        colored: widget._colored,
+        state: const CLPressableState(hovered: true));
+    final Color fgColor = tBase.fg;
 
-        Widget iconSlot(double size) {
-          if (isLoading) {
-            return SizedBox(
-                width: size,
-                height: size,
-                child: CLLoadingSpinner(size: size, color: fg));
-          }
-          return widget.hugeIcon ??
-              (widget.iconData != null
-                  ? Icon(widget.iconData, color: fg, size: size)
-                  : SizedBox(width: size, height: size));
-        }
+    // Label: colore = tono base (idem CLButton). decoration NON impostata →
+    // eredita da ShadButton (none / underline su hover via hoverTextDecoration).
+    final labelStyle = theme.bodyText.copyWith(
+      color: fgColor,
+      fontWeight: FontWeight.w500,
+    );
 
-        return Container(
-          constraints: BoxConstraints(minHeight: btnH),
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: theme.gapXs),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
-                iconSlot(iconSz),
-                SizedBox(width: theme.gapXs),
-              ],
-              if (showText)
-                Flexible(
-                  child: Text(widget.text,
-                      style: labelStyle,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1),
-                ),
-              if (hasInlineIcon && widget.iconAlignment == IconAlignment.end) ...[
-                SizedBox(width: theme.gapXs),
-                iconSlot(iconSz),
-              ],
-            ],
+    Widget iconSlot(double size) {
+      if (isLoading) {
+        return SizedBox(
+            width: size,
+            height: size,
+            child: CLLoadingSpinner(size: size, color: fgColor));
+      }
+      return widget.hugeIcon ??
+          (widget.iconData != null
+              ? Icon(widget.iconData, color: fgColor, size: size)
+              : SizedBox(width: size, height: size));
+    }
+
+    final Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
+          iconSlot(iconSz),
+          SizedBox(width: theme.gapXs),
+        ],
+        if (showText)
+          Flexible(
+            child: Text(widget.text,
+                style: labelStyle,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1),
           ),
-        );
-      },
+        if (hasInlineIcon && widget.iconAlignment == IconAlignment.end) ...[
+          SizedBox(width: theme.gapXs),
+          iconSlot(iconSz),
+        ],
+      ],
+    );
+
+    // ── Nucleo = ShadButton.raw (variante link): hover/press/focus/keyboard
+    //    nativi. bg SEMPRE trasparente (link non ha superficie); tono nel fg
+    //    (base/hover). Underline su hover via hoverTextDecoration. async/confirm/
+    //    loading restano nel wrapper CL. enabled=isInteractive → disabled/loading
+    //    toglie hover e attenua. Firma pubblica invariata. ──────────────────────
+    Widget button = ShadButton.raw(
+      variant: ShadButtonVariant.link,
+      enabled: isInteractive,
+      onPressed: () => _handleTap(),
+      backgroundColor: Colors.transparent,
+      hoverBackgroundColor: Colors.transparent,
+      pressedBackgroundColor: Colors.transparent,
+      foregroundColor: tBase.fg,
+      hoverForegroundColor: tHover.fg,
+      pressedForegroundColor: tHover.fg,
+      height: btnH,
+      padding: EdgeInsets.symmetric(horizontal: theme.gapXs),
+      textDecoration: TextDecoration.none,
+      hoverTextDecoration: TextDecoration.underline,
+      mainAxisAlignment: MainAxisAlignment.center,
+      child: content,
     );
 
     if (widget.width != null) {

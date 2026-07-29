@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:genai_components/cl_theme.dart';
-import 'package:genai_components/layout/constants/sizes.constant.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'cl_shell_tokens.dart';
+import 'cl_shell_sizes.dart';
 import 'cl_destination.dart';
+import 'cl_nav_tile.widget.dart';
 
 /// Larghezza del rail verticale dei gruppi; il nudge di mezzo pixel lo centra.
 const double _kRailWidth = 1.5;
 
 /// Indentazione delle voci foglia sotto un gruppo: allineate appena oltre il
-/// rail (centro icona parent + mezzo rail + un gap).
-const double _kGroupIndent = Sizes.gapMd + Sizes.iconSizeDefault / 2 + _kRailWidth / 2 + Sizes.gapLg;
-
-/// Voci menu compatte (unico punto di tuning): pill = `buttonHeightCompact` (32),
-/// spazio tra voci = `gapSm` (8) → riga alta 40 (prima 40+8=48). Icone/geometria
-/// gruppi invariate → nessun disallineamento del rail.
-const double _kNavRowBox = Sizes.buttonHeightCompact;
-const double _kNavRowGap = Sizes.gapSm;
+/// rail (centro icona parent + mezzo rail + un gap). Geometria dell'altezza
+/// riga/pill ora vive in [CLNavTile] (buttonHeightDefault + gapXs).
+const double _kGroupIndent = CLShellSizes.gapMd + CLShellSizes.iconSizeDefault / 2 + _kRailWidth / 2 + CLShellSizes.gapLg;
 
 /// Lista navigazione condivisa da sidebar (desktop) e drawer (tablet/mobile).
 /// Scrollabile, rende l'albero `CLDestination` con gruppi/sezioni espandibili.
@@ -26,12 +23,18 @@ class CLNavList extends StatelessWidget {
     required this.onSelect,
     this.isCompact = false,
     this.forceExpandedKey,
-    this.padding = const EdgeInsets.all(Sizes.gapLg),
+    this.padding = const EdgeInsets.all(CLShellSizes.gapLg),
+    this.collapsed = false,
   });
 
   final List<CLDestination> destinations;
   final String? selectedKey;
   final ValueChanged<CLDestination> onSelect;
+
+  /// Rail icon-only: voci senza label, con tooltip; il tap su un gruppo apre un
+  /// flyout ([ShadContextMenu]) di lato con le voci interne (invece di espandere
+  /// inline). La riespansione completa resta sul toggle dello shell.
+  final bool collapsed;
 
   /// Padding interno della lista. Default Lg su tutti i lati; lo shell lo
   /// sovrascrive con top/bottom = altezza barre frosted per far scorrere le
@@ -48,21 +51,59 @@ class CLNavList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final d in destinations)
-              if (d.isVisible) ..._renderTop(d),
-          ],
+    // Gate: sopprime i tooltip del rail durante lo scroll (evita il reset della
+    // ScrollPosition causato dal tooltip che compare mentre le icone scorrono).
+    return CLNavScrollTooltipGate(
+      // Scrollbar nel gutter destro del contenuto: le voci hanno inset gapLg (16),
+      // quindi la scrollbar sta a gapXs (4) dal bordo pannello → dentro i 16px di
+      // gutter, SENZA coprire le voci/chevron (crossAxisMargin gapLg la metteva a
+      // filo del contenuto → sovrapposizione). Sul rail (icone centrate) resta a 0.
+      child: ScrollbarTheme(
+        data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: collapsed ? 0 : CLShellSizes.gapXs),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: padding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final d in destinations)
+                  if (d.isVisible) ...(collapsed ? _renderCollapsed(d) : _renderTop(d)),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
+
+  /// Rendering rail icon-only: sezioni/gruppi appiattiti a icone. Un gruppo, se
+  /// toccato, apre un flyout laterale con le voci interne; una foglia naviga.
+  List<Widget> _renderCollapsed(CLDestination d) {
+    if (d.isSectionHeader) {
+      return [
+        for (final c in d.children)
+          if (c.isVisible) ..._renderCollapsed(c),
+      ];
+    }
+    if (d.hasChildren) {
+      return [
+        _CLNavRailGroup(destination: d, selectedKey: selectedKey, onSelect: onSelect),
+      ];
+    }
+    return [
+      _railTile(d, selected: d.key == selectedKey, onTap: () => onSelect(d)),
+    ];
+  }
+
+  /// Voce rail icon-only: [CLNavRailTile] (ghost + tooltip a destra).
+  Widget _railTile(CLDestination d, {required bool selected, required VoidCallback onTap}) => CLNavRailTile(
+        tooltip: d.label,
+        selected: selected,
+        onTap: onTap,
+        iconBuilder: (color, size) => d.buildIcon(color, size) ?? const SizedBox.shrink(),
+      );
 
   List<Widget> _renderTop(CLDestination d) {
     if (d.isSectionHeader) {
@@ -82,11 +123,7 @@ class CLNavList extends StatelessWidget {
                     forceExpandedKey: forceExpandedKey,
                   )
                 else
-                  _CLNavTile(
-                    destination: c,
-                    selected: c.key == selectedKey,
-                    onTap: () => onSelect(c),
-                  ),
+                  _leafTile(c),
           ],
         ),
       ];
@@ -103,160 +140,117 @@ class CLNavList extends StatelessWidget {
         ),
       ];
     }
-    return [
-      _CLNavTile(destination: d, selected: d.key == selectedKey, onTap: () => onSelect(d)),
-    ];
+    return [_leafTile(d)];
   }
+
+  /// Voce foglia top-level: [CLNavTile] con slot icona sempre riservato (le
+  /// foglie senza icona restano allineate a quelle con icona).
+  Widget _leafTile(CLDestination d) => CLNavTile(
+        label: d.label,
+        selected: d.key == selectedKey,
+        onTap: () => onSelect(d),
+        iconBuilder: (color, size) => d.buildIcon(color, size) ?? const SizedBox.shrink(),
+      );
 }
 
-/// Voce foglia con icona + label.
-class _CLNavTile extends StatefulWidget {
-  const _CLNavTile({required this.destination, required this.selected, required this.onTap});
-
-  final CLDestination destination;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  State<_CLNavTile> createState() => _CLNavTileState();
-}
-
-class _CLNavTileState extends State<_CLNavTile> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
-    final iconWidget = widget.destination.buildIcon(
-      widget.selected ? theme.primary : theme.primaryText,
-      Sizes.iconSizeDefault,
+/// Voce foglia dentro un gruppo: [CLNavTile] senza icona, indentata di
+/// [_kGroupIndent] così si allinea appena oltre il rail verticale del gruppo.
+CLNavTile _subTile(CLDestination d, {required bool selected, required VoidCallback onTap}) => CLNavTile(
+      label: d.label,
+      selected: selected,
+      onTap: onTap,
+      indent: _kGroupIndent,
     );
 
-    return RepaintBoundary(
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: SizedBox(
-            height: h,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  top: (h - box) / 2,
-                  bottom: (h - box) / 2,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    decoration: BoxDecoration(
-                      color: widget.selected
-                          ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
-                          : _hovered
-                              ? theme.secondaryText.withValues(alpha: theme.opacitySoft)
-                              : Colors.transparent,
-                      borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: Sizes.gapMd),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: Sizes.iconSizeDefault,
-                        child: iconWidget != null ? Center(child: iconWidget) : null,
-                      ),
-                      const SizedBox(width: Sizes.gapMd),
-                      Expanded(
-                        child: Text(
-                          widget.destination.label,
-                          style: theme.title.copyWith(
-                            fontSize: theme.bodyText.fontSize,
-                            color: widget.selected ? theme.primary : theme.primaryText,
-                            fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      const SizedBox(width: Sizes.gapMd),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Voce foglia dentro un gruppo: senza icona, indentata sotto il rail.
-class _CLNavSubTile extends StatefulWidget {
-  const _CLNavSubTile({required this.destination, required this.selected, required this.onTap});
+/// Gruppo nel RAIL (sidebar collassata): icona [CLNavRailTile] che al tap apre
+/// un [ShadContextMenu] di lato (a destra) con le voci interne. I sotto-gruppi
+/// diventano submenu annidati; le foglie navigano e chiudono il flyout. Sostituisce
+/// l'espansione inline, impossibile quando la sidebar è a sole icone.
+class _CLNavRailGroup extends StatefulWidget {
+  const _CLNavRailGroup({required this.destination, required this.selectedKey, required this.onSelect});
 
   final CLDestination destination;
-  final bool selected;
-  final VoidCallback onTap;
+  final String? selectedKey;
+  final ValueChanged<CLDestination> onSelect;
 
   @override
-  State<_CLNavSubTile> createState() => _CLNavSubTileState();
+  State<_CLNavRailGroup> createState() => _CLNavRailGroupState();
 }
 
-class _CLNavSubTileState extends State<_CLNavSubTile> {
-  bool _hovered = false;
+class _CLNavRailGroupState extends State<_CLNavRailGroup> {
+  final ShadPopoverController _menu = ShadPopoverController();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
-    const double boxLeftMargin = _kGroupIndent;
+  void initState() {
+    super.initState();
+    // Rebuild all'apertura/chiusura del flyout → l'icona passa a strongHover.
+    _menu.addListener(_onMenuChanged);
+  }
 
-    return RepaintBoundary(
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: SizedBox(
-            height: h,
-            child: Padding(
-              padding: EdgeInsets.only(left: boxLeftMargin, top: (h - box) / 2, bottom: (h - box) / 2),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.only(left: Sizes.gapMd),
-                decoration: BoxDecoration(
-                  color: widget.selected
-                      ? theme.secondaryText.withValues(alpha: theme.opacityMuted)
-                      : _hovered
-                          ? theme.secondaryText.withValues(alpha: theme.opacitySoft)
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                ),
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  widget.destination.label,
-                  style: theme.title.copyWith(
-                    fontSize: theme.bodyText.fontSize,
-                    color: widget.selected ? theme.primary : theme.primaryText,
-                    fontWeight: widget.selected ? FontWeight.w500 : FontWeight.normal,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+  void _onMenuChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _menu.removeListener(_onMenuChanged);
+    _menu.dispose();
+    super.dispose();
+  }
+
+  /// Mappa i figli visibili in [ShadContextMenuItem] (ricorsivo: i sotto-gruppi
+  /// diventano submenu via `items:`). Le foglie navigano e chiudono il flyout.
+  List<Widget> _items(CLShellTokens theme, CLDestination parent) {
+    final out = <Widget>[];
+    for (final c in parent.children) {
+      if (!c.isVisible) continue;
+      final selected = c.hasChildren ? c.containsKey(widget.selectedKey) : c.key == widget.selectedKey;
+      final fg = selected ? theme.primary : theme.primaryText;
+      final leading = c.buildIcon(fg, CLShellSizes.iconSizeCompact);
+      final label = Text(
+        c.label,
+        style: selected ? TextStyle(color: theme.primary, fontWeight: FontWeight.w500) : null,
+      );
+      out.add(
+        c.hasChildren
+            ? ShadContextMenuItem(leading: leading, items: _items(theme, c), child: label)
+            : ShadContextMenuItem(
+                leading: leading,
+                onPressed: () {
+                  _menu.hide();
+                  widget.onSelect(c);
+                },
+                child: label,
               ),
-            ),
-          ),
+      );
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLShellTokens.of(context);
+    return CLNavRailTile(
+      tooltip: widget.destination.label,
+      selected: widget.destination.containsKey(widget.selectedKey),
+      strongHover: _menu.isOpen, // flyout aperto → hover primary pieno
+      enableTooltip: !_menu.isOpen, // flyout aperto → niente tooltip (si sovrappone)
+      onTap: _menu.toggle,
+      iconBuilder: (color, size) => widget.destination.buildIcon(color, size) ?? const SizedBox.shrink(),
+      // Il menu avvolge SOLO il bottone compatto (via wrap) → esce alla stessa
+      // distanza del tooltip: bordo destro del bottone + gapSm, non del rail.
+      // ShadAnchor ha i nomi invertiti: childAlignment = punto sul follower
+      // (menu), overlayAlignment = punto sul target (bottone) → menu.topLeft
+      // ancorato a bottone.topRight.
+      wrap: (compact) => ShadContextMenu(
+        controller: _menu,
+        anchor: const ShadAnchor(
+          childAlignment: Alignment.topLeft,
+          overlayAlignment: Alignment.topRight,
+          offset: Offset(CLShellSizes.gapSm, 0),
         ),
+        items: _items(theme, widget.destination),
+        child: compact,
       ),
     );
   }
@@ -287,7 +281,6 @@ class _CLNavGroup extends StatefulWidget {
 class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderStateMixin {
   late bool _expanded;
   late final AnimationController _rotationCtrl;
-  bool _hovered = false;
 
   bool get _isSelected => widget.destination.containsKey(widget.selectedKey);
 
@@ -348,11 +341,7 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
           forceExpandedKey: widget.forceExpandedKey,
         ));
       } else {
-        out.add(_CLNavSubTile(
-          destination: c,
-          selected: c.key == widget.selectedKey,
-          onTap: () => widget.onSelect(c),
-        ));
+        out.add(_subTile(c, selected: c.key == widget.selectedKey, onTap: () => widget.onSelect(c)));
       }
     }
     return out;
@@ -360,81 +349,28 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
+    final theme = CLShellTokens.of(context);
     return widget.depth > 0 ? _buildNested(theme) : _buildTopLevel(theme);
   }
 
-  Widget _buildTopLevel(CLTheme theme) {
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
-    final iconWidget = widget.destination.buildIcon(
-      _isSelected ? theme.primary : theme.primaryText,
-      Sizes.iconSizeDefault,
-    );
-
+  Widget _buildTopLevel(CLShellTokens theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _toggle,
-            child: SizedBox(
-              height: h,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    top: (h - box) / 2,
-                    bottom: (h - box) / 2,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      decoration: BoxDecoration(
-                        color: _hovered ? theme.secondaryText.withValues(alpha: theme.opacitySoft) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: Sizes.gapMd),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: Sizes.iconSizeDefault,
-                          child: Center(child: iconWidget ?? const SizedBox.shrink()),
-                        ),
-                        const SizedBox(width: Sizes.gapMd),
-                        Expanded(
-                          child: Text(
-                            widget.destination.label,
-                            style: theme.title.copyWith(
-                              fontSize: theme.bodyText.fontSize,
-                              color: _isSelected ? theme.primary : theme.primaryText,
-                              fontWeight: _isSelected ? FontWeight.w500 : FontWeight.normal,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: Sizes.gapMd),
-                          child: RotationTransition(
-                            turns: Tween(begin: 0.0, end: 0.25)
-                                .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
-                            child: Icon(Icons.chevron_right,
-                                size: 15, color: _isSelected ? theme.primary : theme.primaryText),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        // Header gruppo: mai "selected" (non si evidenzia se un figlio è attivo).
+        // Se aperto, strongHover → hover primary pieno + bianco. Il chevron NON
+        // ha colore esplicito: eredita dall'IconTheme del tile (reattivo).
+        CLNavTile(
+          label: widget.destination.label,
+          selected: false,
+          strongHover: _expanded,
+          onTap: _toggle,
+          iconBuilder: (color, size) => widget.destination.buildIcon(color, size) ?? const SizedBox.shrink(),
+          trailing: RotationTransition(
+            turns: Tween(begin: 0.0, end: 0.25)
+                .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
+            child: const Icon(Icons.chevron_right, size: 15),
           ),
         ),
         AnimatedSize(
@@ -442,11 +378,11 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
           curve: Curves.easeInOut,
           child: _expanded
               ? Padding(
-                  padding: const EdgeInsets.only(bottom: Sizes.gapXs),
+                  padding: const EdgeInsets.only(bottom: CLShellSizes.gapXs),
                   child: Stack(
                     children: [
                       Positioned(
-                        left: Sizes.gapMd + Sizes.iconSizeDefault / 2 - _kRailWidth / 2,
+                        left: CLShellSizes.gapMd + CLShellSizes.iconSizeDefault / 2 - _kRailWidth / 2,
                         top: 0,
                         bottom: 0,
                         child: Container(width: _kRailWidth, color: theme.borderColor),
@@ -461,12 +397,9 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
     );
   }
 
-  Widget _buildNested(CLTheme theme) {
-    // Riga compatta: vedi _kNavRowBox/_kNavRowGap (pill 32 + gap 4 = 36).
-    final h = _kNavRowBox + _kNavRowGap;
-    final box = _kNavRowBox;
+  Widget _buildNested(CLShellTokens theme) {
     // 38 ≈ _kGroupIndent arrotondato (indent 1° livello); poi +16 per livello.
-    final nestedPadding = widget.depth == 1 ? 38.0 : Sizes.gapLg;
+    final nestedPadding = widget.depth == 1 ? 38.0 : CLShellSizes.gapLg;
 
     return Padding(
       padding: EdgeInsets.only(left: nestedPadding),
@@ -474,60 +407,19 @@ class _CLNavGroupState extends State<_CLNavGroup> with SingleTickerProviderState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          MouseRegion(
-            onEnter: (_) => setState(() => _hovered = true),
-            onExit: (_) => setState(() => _hovered = false),
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _toggle,
-              child: SizedBox(
-                height: h,
-                child: Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    height: box,
-                    decoration: BoxDecoration(
-                      color: _hovered ? theme.secondaryText.withValues(alpha: theme.opacitySoft) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: Sizes.gapMd),
-                        SizedBox(
-                          width: Sizes.iconSizeDefault,
-                          child: Center(
-                            child: Icon(Icons.folder_outlined,
-                                size: Sizes.iconSizeCompact, color: _isSelected ? theme.primary : theme.primaryText),
-                          ),
-                        ),
-                        const SizedBox(width: Sizes.gapMd),
-                        Expanded(
-                          child: Text(
-                            widget.destination.label,
-                            style: theme.title.copyWith(
-                              color: _isSelected ? theme.primary : theme.primaryText,
-                              fontWeight: _isSelected ? FontWeight.w600 : FontWeight.w500,
-                              fontSize: theme.bodyText.fontSize,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: Sizes.gapSm),
-                          child: RotationTransition(
-                            turns: Tween(begin: 0.0, end: 0.25)
-                                .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
-                            child: Icon(Icons.chevron_right,
-                                size: 14, color: _isSelected ? theme.primary : theme.primaryText),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          // Header sotto-gruppo: icona cartella (compatta nello slot standard) +
+          // chevron. L'indent orizzontale lo dà il Padding esterno. Mai selected;
+          // strongHover se aperto. Icona e chevron ricevono/ereditano il colore.
+          CLNavTile(
+            label: widget.destination.label,
+            selected: false,
+            strongHover: _expanded,
+            onTap: _toggle,
+            iconBuilder: (color, size) => Icon(Icons.folder_outlined, size: CLShellSizes.iconSizeCompact, color: color),
+            trailing: RotationTransition(
+              turns: Tween(begin: 0.0, end: 0.25)
+                  .animate(CurvedAnimation(parent: _rotationCtrl, curve: Curves.easeInOut)),
+              child: const Icon(Icons.chevron_right, size: 14),
             ),
           ),
           AnimatedSize(
@@ -581,7 +473,7 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
 
   @override
   Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
+    final theme = CLShellTokens.of(context);
     final t = widget.title.isEmpty
         ? widget.title
         : '${widget.title[0].toUpperCase()}${widget.title.substring(1).toLowerCase()}';
@@ -597,13 +489,13 @@ class _CLNavSectionState extends State<_CLNavSection> with SingleTickerProviderS
             onTap: _toggle,
             child: Padding(
               padding: const EdgeInsets.only(
-                  left: Sizes.gapMd, right: Sizes.gapMd, top: Sizes.gapLg, bottom: Sizes.gapSm),
+                  left: CLShellSizes.gapMd, right: CLShellSizes.gapMd, top: CLShellSizes.gapLg, bottom: CLShellSizes.gapSm),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       t,
-                      style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, fontSize: theme.bodyText.fontSize),
+                      style: theme.smallLabel.copyWith(fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),

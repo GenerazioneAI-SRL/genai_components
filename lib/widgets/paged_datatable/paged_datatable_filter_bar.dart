@@ -17,6 +17,9 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
   final List<Widget> Function(BuildContext context, int selectedCount, List<TResult> selectedItems)?
       selectionActionsBuilder;
 
+  /// embedded → niente inset orizzontale della toolbar (a filo superficie esterna).
+  final bool embedded;
+
   const _PagedDataTableFilterTab(
     this.mainMenus,
     this.extraMenus,
@@ -29,6 +32,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     this.isFilterBarRounded,
     this.hoistToShell,
     this.selectionActionsBuilder,
+    this.embedded,
   );
 
   @override
@@ -65,7 +69,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
           // padding top dell'header row (gap2Xl), così non si sommano.
           padding: _isTableCompact(context)
               ? EdgeInsets.zero
-              : EdgeInsets.fromLTRB(clTheme.gapLg, clTheme.gapLg, clTheme.gapLg, 0),
+              : EdgeInsets.fromLTRB(embedded ? 0 : clTheme.gapLg, clTheme.gapLg, embedded ? 0 : clTheme.gapLg, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -154,20 +158,20 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                   ),
                                   if (activeCount > 0)
                                     Positioned(
-                                      top: -4,
-                                      right: -4,
+                                      top: -clTheme.gapXs,
+                                      right: -clTheme.gapXs,
                                       child: Container(
                                         width: 18,
                                         height: 18,
                                         decoration: BoxDecoration(
                                           color: _effectiveTablePrimary(context),
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: CLTheme.of(context).primaryBackground, width: 1.5),
+                                          border: Border.all(color: clTheme.primaryBackground, width: 1.5),
                                         ),
                                         child: Center(
                                           child: Text(
                                             '$activeCount',
-                                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                                            style: clTheme.smallLabel.copyWith(color: clTheme.primaryForeground, fontSize: 9, fontWeight: FontWeight.w700),
                                           ),
                                         ),
                                       ),
@@ -267,7 +271,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                     final label = (filter as dynamic).chipFormatter(entry.value.value) as String;
                     final clTheme = CLTheme.of(context);
                     return Container(
-                      padding: const EdgeInsets.only(left: 10, right: 4, top: 4, bottom: 4),
+                      padding: EdgeInsets.only(left: clTheme.gapSm, right: clTheme.gapXs, top: clTheme.gapXs, bottom: clTheme.gapXs),
                       decoration: BoxDecoration(
                         color: clTheme.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(clTheme.radiusPill),
@@ -284,12 +288,14 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                             ),
                           ),
                           SizedBox(width: clTheme.gapXs),
-                          GestureDetector(
+                          CLIconButton(
                             onTap: () => state.removeFilter(entry.key),
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: Icon(Icons.close_rounded, size: 14, color: clTheme.primary.withValues(alpha: 0.7)),
-                            ),
+                            iconData: LucideIcons.x,
+                            backgroundColor: Colors.transparent,
+                            iconColor: clTheme.primary.withValues(alpha: 0.7),
+                            size: Sizes.iconSizeDefault,
+                            iconSize: Sizes.iconSizeCompact,
+                            borderRadius: clTheme.radiusPill,
                           ),
                         ],
                       ),
@@ -389,7 +395,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
     // Modal centrale (non più popover ancorato): fade + scale come CLCommandPalette.
     await showGeneralDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.4),
+      barrierColor: kCLModalScrim,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       transitionDuration: const Duration(milliseconds: 150),
@@ -1092,14 +1098,14 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
               ),
             ),
             const Spacer(),
-            TextButton(
-              onPressed: () => state.clearAllSelections(),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: t.gapMd, vertical: t.gapIconText),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text('Deseleziona', style: t.bodyLabel.copyWith(color: t.secondaryText, fontSize: 12)),
+            CLButton(
+              text: 'Deseleziona',
+              onTap: () => state.clearAllSelections(),
+              backgroundColor: Colors.transparent,
+              textStyle: t.smallLabel.copyWith(color: t.secondaryText),
+              iconAlignment: IconAlignment.start,
+              isCompact: true,
+              context: context,
             ),
           ],
         ),

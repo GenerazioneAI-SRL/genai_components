@@ -179,8 +179,16 @@ class CLPopupMenu extends StatefulWidget {
                       child:
                           titleWidget ?? Text(title!, style: theme.title.override(fontWeight: FontWeight.w600)),
                     ),
-                  for (int i = 0; i < items.length; i++)
-                    _CLPopupMenuItemWidget(item: items[i], isLast: i == items.length - 1),
+                  Padding(
+                    padding: EdgeInsets.all(theme.gapXs),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final it in items) _CLPopupMenuItemWidget(item: it),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -253,19 +261,11 @@ class CLPopupMenu extends StatefulWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header con gradient
+                      // Header: label titolo + hairline divider (no fill azzurro).
                       if (title != null || titleWidget != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapLg * 0.75),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                theme.primary.withValues(alpha: theme.opacitySoft),
-                                theme.secondary.withValues(alpha: 0.05),
-                              ],
-                            ),
                             border: Border(bottom: BorderSide(color: theme.borderColor, width: 1)),
                           ),
                           child: titleWidget ??
@@ -274,20 +274,19 @@ class CLPopupMenu extends StatefulWidget {
                                 style: theme.title.override(fontWeight: FontWeight.w600),
                               ),
                         ),
-                      // Items — righe alte come un button default; divider
-                      // full-width (border-bottom) tra una opzione e l'altra.
-                      // stretch: le righe occupano tutta la larghezza → hover e
-                      // divider full-width (senza stretch si restringevano al testo).
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (int i = 0; i < items.length; i++)
-                            _CLPopupMenuItemWidget(
-                              item: items[i],
-                              isLast: i == items.length - 1,
-                            ),
-                        ],
+                      // Items — look ShadContextMenu: lista con inset p-1, righe
+                      // con hover arrotondato per-item, nessun divider. stretch:
+                      // le righe occupano la larghezza → hover full-width interno.
+                      Padding(
+                        padding: EdgeInsets.all(theme.gapXs),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final it in items)
+                              _CLPopupMenuItemWidget(item: it),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -333,38 +332,35 @@ class _CLPopupMenuState extends State<CLPopupMenu> {
 /// Allineamento orizzontale del popup rispetto all'anchor.
 enum CLPopupAlignment { start, end }
 
-/// Singola voce: alta come un button default, hover nativo InkWell (Material
-/// fornito da CLPopupSurface), divider full-width come border-bottom.
+/// Singola voce — look ShadContextMenuItem: hover arrotondato per-item (accent +
+/// radiusChip), nessun divider full-width, altezza compact. Hover nativo InkWell
+/// (Material fornito da CLPopupSurface).
 class _CLPopupMenuItemWidget extends StatelessWidget {
   final CLPopupMenuItem item;
-  final bool isLast;
 
-  const _CLPopupMenuItemWidget({required this.item, required this.isLast});
+  const _CLPopupMenuItemWidget({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
+    final radius = BorderRadius.circular(Sizes.radiusChip);
 
-    return SizedBox(
-      height: theme.buttonHeightDefault,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).pop();
-          item.onTap();
-        },
-        // accent = token "hover/interactive surface". Splash trasparente +
-        // highlight = accent → il press combacia con l'hover (niente ripple tinto).
-        hoverColor: theme.accent,
-        highlightColor: theme.accent,
-        splashColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg),
-          alignment: Alignment.centerLeft,
-          decoration: isLast
-              ? null
-              : BoxDecoration(border: Border(bottom: BorderSide(color: theme.borderColor, width: 1))),
-          child: item.content,
-        ),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).pop();
+        item.onTap();
+      },
+      borderRadius: radius,
+      // accent = token "hover/interactive surface". Splash trasparente +
+      // highlight = accent → il press combacia con l'hover (niente ripple tinto).
+      hoverColor: theme.accent,
+      highlightColor: theme.accent,
+      splashColor: Colors.transparent,
+      child: Container(
+        height: theme.buttonHeightCompact,
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.gapSm),
+        alignment: Alignment.centerLeft,
+        child: item.content,
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
@@ -87,10 +88,22 @@ class _CLToastWidgetState extends State<_CLToastWidget>
     CLToastVariant.error => theme.danger,
   };
 
+  IconData get _variantIcon => switch (widget.variant) {
+    CLToastVariant.info => LucideIcons.info,
+    CLToastVariant.success => LucideIcons.circleCheck,
+    CLToastVariant.warning => LucideIcons.triangleAlert,
+    CLToastVariant.error => LucideIcons.circleX,
+  };
+
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final accent = _accentColor(theme);
+    // Look ShadToast/Sonner: niente accent-stripe. Icona variante colorata
+    // (Sonner) + titolo semibold + descrizione muted + close top-right. Bordo
+    // danger sulla variante error (destructive Shad), altrimenti cardBorder.
+    final borderColor =
+        widget.variant == CLToastVariant.error ? theme.danger.withValues(alpha: 0.5) : theme.cardBorder;
 
     return Positioned(
       bottom: Sizes.gap2Xl,
@@ -105,7 +118,7 @@ class _CLToastWidgetState extends State<_CLToastWidget>
             decoration: BoxDecoration(
               color: theme.secondaryBackground,
               borderRadius: BorderRadius.circular(Sizes.radiusSurface),
-              border: Border.all(color: theme.cardBorder),
+              border: Border.all(color: borderColor),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
@@ -117,14 +130,9 @@ class _CLToastWidgetState extends State<_CLToastWidget>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 3,
-                  height: widget.title != null ? 44 : 20,
-                  margin: const EdgeInsets.only(right: Sizes.gapMd),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.only(right: Sizes.gapMd, top: 1),
+                  child: Icon(_variantIcon, size: Sizes.iconSizeCompact, color: accent),
                 ),
                 Expanded(
                   child: Column(
@@ -134,9 +142,15 @@ class _CLToastWidgetState extends State<_CLToastWidget>
                       if (widget.title != null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: Sizes.gapXs),
-                          child: Text(widget.title!, style: theme.title),
+                          child: Text(
+                            widget.title!,
+                            style: theme.title.copyWith(fontWeight: FontWeight.w600),
+                          ),
                         ),
-                      Text(widget.message, style: theme.bodyText),
+                      Text(
+                        widget.message,
+                        style: theme.bodyText.copyWith(color: theme.mutedForeground),
+                      ),
                     ],
                   ),
                 ),
@@ -144,7 +158,7 @@ class _CLToastWidgetState extends State<_CLToastWidget>
                 InkWell(
                   onTap: _dismiss,
                   borderRadius: BorderRadius.circular(Sizes.radiusChip),
-                  child: Icon(Icons.close, size: Sizes.iconSizeCompact, color: theme.mutedForeground),
+                  child: Icon(LucideIcons.x, size: Sizes.iconSizeCompact, color: theme.mutedForeground),
                 ),
               ],
             ),

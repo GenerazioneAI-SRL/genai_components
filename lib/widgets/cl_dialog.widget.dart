@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+// Budella Shad: nucleo interno = ShadDialog (surface/constraints/scrollable/
+// layout title-body-actions nativi). Solo il simbolo usato (show). Firma
+// pubblica CLDialog (campi, show(), buildContent) invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadDialog;
 
 import '../cl_theme.dart';
 import 'dialogs/_dialog_chrome.dart';
@@ -82,64 +86,88 @@ abstract class CLDialog<T> extends StatelessWidget {
     final double resolvedMaxWidth = maxWidthFraction != null
         ? MediaQuery.sizeOf(context).width * maxWidthFraction!
         : maxWidth;
-    return DialogShell(
-      maxWidth: resolvedMaxWidth,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DialogHeader(
-            title: title,
-            subtitle: subtitle,
-            leading: headerLeading,
-            trailing: showCloseButton
-                ? DialogCloseButton(
-                    onPressed: () {
-                      onCancel?.call();
-                      Navigator.of(context).pop();
-                    },
-                  )
-                : null,
-          ),
-          Flexible(
-            child: scrollableBody
-                ? SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(cl.gap2Xl, 0, cl.gap2Xl, cl.gap2Xl),
-                    child: DefaultTextStyle.merge(
-                      style: cl.bodyText.copyWith(color: cl.primaryText),
-                      child: buildContent(context),
-                    ),
-                  )
-                : Padding(
-                    padding: EdgeInsets.fromLTRB(cl.gap2Xl, 0, cl.gap2Xl, cl.gap2Xl),
-                    child: DefaultTextStyle.merge(
-                      style: cl.bodyText.copyWith(color: cl.primaryText),
-                      child: buildContent(context),
-                    ),
+
+    // Header CL: leading badge opzionale + titolo (heading4 18 w600).
+    final Widget titleWidget = headerLeading == null
+        ? Text(
+            title,
+            style: cl.heading4.copyWith(
+              color: cl.primaryText,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              headerLeading!,
+              SizedBox(width: cl.gapLg),
+              Expanded(
+                child: Text(
+                  title,
+                  style: cl.heading4.copyWith(
+                    color: cl.primaryText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
                   ),
-          ),
-          DialogFooter(
-            actions: [
-              CLDialogButton(
-                label: cancelLabel,
-                tone: CLDialogButtonTone.ghost,
-                onPressed: () {
-                  onCancel?.call();
-                  Navigator.of(context).pop();
-                },
-              ),
-              if (onConfirm != null)
-                CLDialogButton(
-                  label: confirmLabel,
-                  tone: CLDialogButtonTone.primary,
-                  autofocus: true,
-                  onPressed: () async {
-                    final result = await onConfirm!.call();
-                    if (context.mounted) Navigator.of(context).pop(result);
-                  },
                 ),
+              ),
             ],
+          );
+
+    // Nucleo = ShadDialog: surface (radius/bordo/ombra/bg da token CL),
+    // constraints maxWidth, scrollable e layout title→body→actions nativi.
+    // Close = DialogCloseButton CL (preserva onCancel). Bottoni = CLDialogButton.
+    return ShadDialog(
+      constraints: BoxConstraints(maxWidth: resolvedMaxWidth),
+      backgroundColor: cl.secondaryBackground,
+      radius: BorderRadius.circular(cl.radiusModal),
+      border: Border.all(color: cl.cardBorder, width: 1),
+      shadows: cl.popoverShadow,
+      padding: EdgeInsets.all(cl.gap2Xl),
+      gap: cl.gapLg,
+      scrollable: scrollableBody,
+      closeIcon: showCloseButton
+          ? DialogCloseButton(
+              onPressed: () {
+                onCancel?.call();
+                Navigator.of(context).pop();
+              },
+            )
+          : const SizedBox.shrink(),
+      title: titleWidget,
+      description: subtitle == null
+          ? null
+          : Text(
+              subtitle!,
+              style: cl.smallLabel.copyWith(color: cl.secondaryText, height: 1.5),
+            ),
+      actionsMainAxisAlignment: MainAxisAlignment.end,
+      actions: [
+        CLDialogButton(
+          label: cancelLabel,
+          tone: CLDialogButtonTone.ghost,
+          onPressed: () {
+            onCancel?.call();
+            Navigator.of(context).pop();
+          },
+        ),
+        if (onConfirm != null)
+          CLDialogButton(
+            label: confirmLabel,
+            tone: CLDialogButtonTone.primary,
+            autofocus: true,
+            onPressed: () async {
+              final result = await onConfirm!.call();
+              if (context.mounted) Navigator.of(context).pop(result);
+            },
           ),
-        ],
+      ],
+      child: DefaultTextStyle.merge(
+        style: cl.bodyText.copyWith(color: cl.primaryText),
+        child: buildContent(context),
       ),
     );
   }

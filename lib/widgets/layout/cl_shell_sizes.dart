@@ -1,4 +1,4 @@
-/// Design tokens del DS Skillera.
+/// Design tokens del DS Skillera (accessor const per lo shell adattivo).
 ///
 /// Scala derivata per un admin tool professionale (HR / giuridico / presenze):
 /// griglia 4, spaziature on-grid, radii leggermente più morbidi di shadcn per
@@ -8,7 +8,7 @@
 /// il token in base all'uso, non al valore numerico. I nomi storici (sm, small,
 /// borderRadius, padding, ...) sono mantenuti come alias puri — stesso valore,
 /// nessun warning — per non rompere codice esistente o consumer del package.
-class CLSizes {
+class CLShellSizes {
   // ═══════════════════════════════════════════════════════════
   // SPAZIATURE (griglia 4)
   // ═══════════════════════════════════════════════════════════
@@ -106,9 +106,11 @@ class CLSizes {
   /// dell'header, switch di filtri.
   static const radiusPill = 9999.0;
 
-  /// 36px — bolle shell (header/menu/contenuto/AI). Pari a metà altezza della
-  /// bolla header → estremità tonde (capsula); raggio unico per coerenza.
-  static const radiusBubble = 36.0;
+  /// 28px — bolle shell (header/menu/contenuto/AI/bottom bar). Concentrico coi
+  /// controlli interni: pulsante ([radiusControl] 12) + padding [gapLg] (16) =
+  /// 28, così i bordi della bolla corrono paralleli a quelli dei pulsanti che
+  /// contiene. Coincide con [radiusModal] (stesso ragionamento card+10).
+  static const radiusBubble = 28.0;
 
   // ═══════════════════════════════════════════════════════════
   // ALIAS — naming storico del DS
@@ -155,8 +157,9 @@ class CLSizes {
   static const iconSizeCompact = 16.0;
 
   /// 20px — icona standard (Foundation).
-  /// Usato per: icone di bottoni default, icone in header di card, leading
-  /// nelle voci di menu.
+  /// Usato per: icone standard, header di card, leading nelle voci di menu.
+  /// NB: gli icon-button "compatti" usano invece [iconSizeCompact] (16) —
+  /// `ShadIconButton` non eredita l'IconTheme ambientale, va passato esplicito.
   static const iconSizeDefault = 20.0;
 
   /// 24px — icona large (Foundation).
@@ -169,20 +172,20 @@ class CLSizes {
   /// bottoni inline in tabelle.
   static const buttonHeightCompact = 32.0;
 
-  /// 36px — bottone default (Foundation).
+  /// 40px — bottone default (Foundation).
   /// Usato per: `CLButton` size default, azioni primarie standard di pagina,
   /// bottoni in form.
-  static const buttonHeightDefault = 36.0;
+  static const buttonHeightDefault = 40.0;
 
   /// 48px — bottone large (Foundation).
   /// Usato per: `CLButton` size large, CTA hero, azioni primarie in modali
   /// di onboarding.
   static const buttonHeightLarge = 48.0;
 
-  /// 36px — altezza standard input.
+  /// 40px — altezza standard input.
   /// Usato per: `CLTextField`, `CLDropdown`, `CLDatePicker` — allineata a
   /// `buttonHeightDefault` per row form coerenti.
-  static const inputHeight = 36.0;
+  static const inputHeight = 40.0;
 
   /// 32px — altezza input compatto (Foundation).
   /// Usato per: `CLTextField`/`CLDropdown` con `isCompact: true` — allineata a
@@ -204,6 +207,3 @@ class CLSizes {
   /// dettaglio persona.
   static const avatarSizeLarge = 40.0;
 }
-
-/// Retrocompatibilità: il vecchio nome [Sizes] resta disponibile come alias.
-typedef Sizes = CLSizes;

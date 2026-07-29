@@ -1,6 +1,6 @@
 name: genai_components
 description: A comprehensive Flutter UI component library with theming, routing, state management, charts, and 30+ reusable widgets. Built for rapid app development with sensible defaults.
-version: 5.9.2
+version: 5.9.3
 homepage: https://github.com/generazione-ai/genai_components
 repository: https://github.com/generazione-ai/genai_components
 issue_tracker: https://github.com/generazione-ai/genai_components/issues
@@ -23,6 +23,11 @@ dependencies:
   # Theme & styling
   responsive_framework: '>=1.1.0 <2.0.0'
   flutter_svg: '>=2.0.0 <3.0.0'
+
+  # Shad core ("budella"): internal implementation detail. NON esposto al barrel
+  # (genai_components.dart). I widget CL* delegano internamente a Shad*; la firma
+  # pubblica CL resta invariata. Bridge tema: CLTheme.toShadTheme().
+  shadcn_ui: ^0.55.0
 
   # State & DI
   provider: '>=6.0.0 <7.0.0'

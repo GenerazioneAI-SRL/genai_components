@@ -20,22 +20,16 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(theme.radiusControl),
-        hoverColor: theme.muted,
-        onTap: () => _showActionsMenu(context),
-        child: Container(
-          key: iconKey,
-          padding: EdgeInsets.all(Sizes.gapSm),
-          child: Icon(
-            Icons.more_vert_rounded,
-            size: theme.iconSizeCompact,
-            color: theme.secondaryText,
-          ),
-        ),
-      ),
+    return CLIconButton(
+      key: iconKey,
+      onTap: () => _showActionsMenu(context),
+      iconData: LucideIcons.ellipsisVertical,
+      backgroundColor: Colors.transparent,
+      iconColor: theme.secondaryText,
+      size: theme.buttonHeightCompact,
+      iconSize: theme.iconSizeCompact,
+      borderRadius: theme.radiusControl,
+      tooltip: actionsTitle?.call(model.item) ?? 'Azioni',
     );
   }
 
@@ -73,7 +67,7 @@ class _RowSelectorCheckbox<TResultId extends Comparable, TResult extends Object>
         hoverColor: Colors.transparent,
         overlayColor: WidgetStateProperty.all(Colors.transparent),
         activeColor: _effectiveTablePrimary(context),
-        checkColor: Colors.white,
+        checkColor: theme.primaryForeground,
         side: WidgetStateBorderSide.resolveWith(
           (states) => BorderSide(
             color: states.contains(WidgetState.selected) ? _effectiveTablePrimary(context) : theme.borderColor,

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart' as shad;
 import 'package:provider/provider.dart';
 import 'utils/providers/cl_theme.provider.dart';
 import 'utils/shared_manager.util.dart';
@@ -226,8 +227,16 @@ abstract class CLTheme {
   /// 80px — offset verticale header pagina.
   double get pageTop => 80.0;
 
+  /// 4px — radius extra-small (checkbox, popup menu).
+  double get radiusXs => 4.0;
+
   /// 6px — radius chip/badge.
   double get radiusChip => 6.0;
+
+  /// Colore contrasto su `primary` (checkmark checkbox, testo su fill primario).
+  /// Bianco in light e dark: `primary` è blu mid-sat in entrambi. Allineato al
+  /// `primaryForeground` dello ShadColorScheme.
+  Color get primaryForeground => const Color(0xFFFFFFFF);
 
   /// 12px — radius controlli (bottoni, input).
   double get radiusControl => 12.0;
@@ -311,6 +320,49 @@ abstract class CLTheme {
     final int hash = text.hashCode;
     final Random random = Random(hash);
     return Color.fromARGB(255, 100 + random.nextInt(155), 100 + random.nextInt(155), 100 + random.nextInt(155));
+  }
+
+  /// Bridge tema CL → Shad ("budella"). Produce lo [shad.ShadThemeData] che
+  /// l'app monta via `ShadTheme(...)`: gli internal Shad dentro i widget CL*
+  /// (es. ShadInput in CLTextField) ereditano palette/raggio/font dai token CL.
+  /// I 20 token Shad sono mappati deliberatamente sulla palette CL (grigio Shad
+  /// = `muted`, non il blu brand). Reattivo a light/dark: la brightness è
+  /// derivata dalla luminanza dello sfondo — nessun getter dedicato, non tocca
+  /// la gerarchia CLTheme.
+  shad.ShadThemeData toShadTheme() {
+    const white = Color(0xFFFFFFFF);
+    final isDark = secondaryBackground.computeLuminance() < 0.5;
+    return shad.ShadThemeData(
+      brightness: isDark ? Brightness.dark : Brightness.light,
+      colorScheme: shad.ShadColorScheme(
+        background: secondaryBackground,
+        foreground: primaryText,
+        card: secondaryBackground,
+        cardForeground: primaryText,
+        popover: secondaryBackground,
+        popoverForeground: primaryText,
+        primary: primary,
+        primaryForeground: white,
+        secondary: muted, // grigio Shad, NON il blu brand
+        secondaryForeground: accentForeground,
+        muted: muted,
+        mutedForeground: mutedForeground,
+        accent: accent,
+        accentForeground: accentForeground,
+        destructive: danger,
+        destructiveForeground: white,
+        border: borderColor,
+        input: borderColor,
+        ring: ring,
+        selection: primary.withValues(alpha: 0.25),
+      ),
+      radius: BorderRadius.circular(radiusControl),
+      textTheme: shad.ShadTextTheme(family: 'Inter'),
+      inputTheme: shad.ShadInputTheme(
+        constraints: BoxConstraints(minHeight: inputHeight),
+        padding: EdgeInsets.symmetric(horizontal: gapMd, vertical: 10),
+      ),
+    );
   }
 }
 

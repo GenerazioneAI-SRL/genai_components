@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+// Budella Shad: nucleo interno = ShadProgress. Solo il simbolo usato (show).
+// Firma pubblica CLProgress invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadProgress;
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 
@@ -27,14 +30,16 @@ class CLProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Sizes.radiusPill),
-      child: LinearProgressIndicator(
-        value: value.clamp(0.0, 1.0),
-        minHeight: height,
-        backgroundColor: theme.muted,
-        valueColor: AlwaysStoppedAnimation(_color(theme)),
-      ),
+    // Colore per variante e bg `muted` da CLTheme: identità CL preservata.
+    // Track e fill entrambi a raggio pill (come il ClipRRect originale).
+    final pill = BorderRadius.circular(Sizes.radiusPill);
+    return ShadProgress(
+      value: value.clamp(0.0, 1.0),
+      color: _color(theme),
+      backgroundColor: theme.muted,
+      minHeight: height,
+      borderRadius: pill,
+      innerBorderRadius: pill,
     );
   }
 }

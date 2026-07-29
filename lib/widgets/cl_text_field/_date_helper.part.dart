@@ -92,42 +92,69 @@ class _TextFieldDateHelper extends _Helper {
         ),
       );
 
-  Future<DateTime?> _showDatePicker(BuildContext context, CLTheme theme) => showDatePicker(
-        locale: const Locale('it', 'IT'),
-        context: context,
-        initialDate: w.initialSelectedDateTime ?? DateTime.now(),
-        firstDate: DateTime(1900),
-        lastDate: DateTime(DateTime.now().year + 100),
-        builder: (ctx, child) => Theme(data: _datePickerTheme(ctx, theme), child: child!),
-      );
+  /// Picker giorno **in-theme**: popover ancorato al campo con [CLCalendar]
+  /// (ShadCalendar sotto), al posto del dialog Material. Ritorna la data scelta
+  /// (tap giorno → chiude) o `null` se si tocca fuori. La scrittura mascherata
+  /// nel campo resta il percorso alternativo.
+  Future<DateTime?> _showDatePicker(BuildContext context, CLTheme theme) {
+    final overlay = Overlay.of(context);
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return Future<DateTime?>.value(null);
 
-  ThemeData _datePickerTheme(BuildContext ctx, CLTheme theme) => Theme.of(ctx).copyWith(
-        colorScheme: ColorScheme.light(
-          primary: theme.primary,
-          onPrimary: Colors.white,
-          onSurface: theme.primaryText,
-          surface: theme.secondaryBackground,
-        ),
-        dialogBackgroundColor: theme.secondaryBackground,
-        datePickerTheme: DatePickerThemeData(
-          backgroundColor: theme.secondaryBackground,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Sizes.radiusControl)),
-          headerBackgroundColor: theme.primary,
-          headerForegroundColor: Colors.white,
-          dayStyle: theme.bodyText,
-          yearStyle: theme.bodyText,
-          dayForegroundColor: WidgetStateColor.resolveWith(
-              (st) => st.contains(WidgetState.selected) ? Colors.white : theme.primaryText),
-          dayBackgroundColor: WidgetStateColor.resolveWith(
-              (st) => st.contains(WidgetState.selected) ? theme.primary : Colors.transparent),
-          todayBackgroundColor: WidgetStateColor.resolveWith((st) =>
-              st.contains(WidgetState.selected) ? theme.primary : theme.primary.withValues(alpha: theme.opacitySoft)),
-          todayForegroundColor: WidgetStateColor.resolveWith(
-              (st) => st.contains(WidgetState.selected) ? Colors.white : theme.primary),
-          cancelButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(theme.danger)),
-          confirmButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(theme.primary)),
-        ),
-      );
+    final size = box.size;
+    final offset = box.localToGlobal(Offset.zero);
+    final screen = MediaQuery.of(context).size;
+    const gap = 4.0;
+    const estH = 360.0;
+    const popW = 288.0;
+    final spaceBelow = screen.height - (offset.dy + size.height + gap);
+    final openUp = spaceBelow < estH && offset.dy - gap > spaceBelow;
+    final left = offset.dx.clamp(8.0, (screen.width - popW - 8).clamp(8.0, double.infinity));
+
+    final completer = Completer<DateTime?>();
+    late OverlayEntry entry;
+    var done = false;
+    void finish(DateTime? d) {
+      if (done) return;
+      done = true;
+      entry.remove();
+      if (!completer.isCompleted) completer.complete(d);
+    }
+
+    entry = OverlayEntry(
+      builder: (ctx) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => finish(null),
+            ),
+          ),
+          Positioned(
+            left: left,
+            top: openUp ? null : offset.dy + size.height + gap,
+            bottom: openUp ? screen.height - offset.dy + gap : null,
+            child: CLPopupSurface(
+              animateUpward: openUp,
+              padding: EdgeInsets.all(theme.gapMd),
+              child: SizedBox(
+                width: 280,
+                child: CLCalendar(
+                  selected: w.initialSelectedDateTime,
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime(DateTime.now().year + 100),
+                  onChanged: finish,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    overlay.insert(entry);
+    return completer.future;
+  }
 
   Widget _actionBtn(BuildContext ctx, String label, Color bg, Color fg) => Container(
         padding: const EdgeInsets.symmetric(horizontal: Sizes.gapXl, vertical: Sizes.gapLg),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:genai_components/cl_theme.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'cl_shell_tokens.dart';
 import 'cl_destination.dart';
 
 /// Voce fissa custom della bottom bar (es. menu, AI, profilo, ricerca) — non
@@ -14,8 +15,13 @@ class CLBottomBarItem {
 
   /// Gradiente opzionale per l'icona (es. bottone AI brand). Reso via ShaderMask.
   final Gradient? iconGradient;
-  const CLBottomBarItem(
-      {required this.icon, required this.label, required this.onTap, this.selectedKey, this.iconGradient});
+  const CLBottomBarItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.selectedKey,
+    this.iconGradient,
+  });
 }
 
 /// Bottom bar mobile. Due modalità:
@@ -60,30 +66,35 @@ class CLBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-    // Icona = iconSizeDefault (token, 20). Altezza barra = bottone + gapLg + gapSm.
-    final iconSize = theme.iconSizeDefault;
+    final theme = CLShellTokens.of(context);
+    // Icona compatta (16): con la label sotto sta nel bottone regular (40) senza
+    // sforare — niente bisogno di size lg.
+    final iconSize = theme.iconSizeCompact;
 
     // Riga voci: custom (items) oppure destination-driven.
     final List<Widget> rowChildren;
     if (items != null) {
+      // Custom mobile: icon-only. Menu/Cerca = ghost neutro; AI (voce con
+      // [iconGradient]) = bottone pieno con gradiente brand + glow.
       rowChildren = [
         for (final it in items!)
           Expanded(
-            child: _BottomItem(
-              icon: (c) {
-                final icon = Icon(it.icon, color: c, size: iconSize);
-                if (it.iconGradient == null) return icon;
-                // Gradiente icona (AI): ShaderMask su icona bianca.
-                return ShaderMask(
-                  shaderCallback: (b) => it.iconGradient!.createShader(Offset.zero & b.size),
-                  blendMode: BlendMode.srcIn,
-                  child: Icon(it.icon, color: Colors.white, size: iconSize),
-                );
-              },
-              label: it.label,
-              selected: it.selectedKey != null && it.selectedKey == selectedKey,
-              onTap: it.onTap,
+            child: Center(
+              child: it.iconGradient != null
+                  ? ShadIconButton(
+                      onPressed: it.onTap,
+                      gradient: it.iconGradient,
+                      shadows: theme.primaryGlow,
+                      iconSize: theme.iconSizeDefault,
+                      icon: Icon(it.icon, color: Colors.white),
+                    )
+                  : ShadIconButton.ghost(
+                      onPressed: it.onTap,
+                      iconSize: theme.iconSizeDefault,
+                      foregroundColor: theme.primaryText,
+                      hoverForegroundColor: theme.primaryText,
+                      icon: Icon(it.icon),
+                    ),
             ),
           ),
       ];
@@ -121,10 +132,7 @@ class CLBottomBar extends StatelessWidget {
       padding: floating
           ? EdgeInsets.zero
           : EdgeInsets.fromLTRB(theme.gapMd, topBorder ? theme.gapMd : 0, theme.gapMd, theme.gapMd),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: rowChildren,
-      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: rowChildren),
     );
 
     // Floating: nessun bg/bordo/SafeArea propri → li dà la bolla frosted dello shell.
@@ -151,29 +159,36 @@ class _BottomItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
-    // Icone e testi sempre neri (primaryText); la selezione resta nel peso (w600).
+    final theme = CLShellTokens.of(context);
+    // Voce = ShadButton ghost: hover/press dai primitivi. Icone/testi neutri
+    // (primaryText, non il primary di default del ghost); selezione nel peso
+    // (w600). Contenuto verticale icona+label come child del bottone.
     final iconWidget = icon(theme.primaryText);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: theme.gapXs),
+    // Niente height forzata né tipografia custom (default del ghost). Il bottone
+    // si dimensiona sul CONTENUTO (niente width infinity) → lo sfondo hover del
+    // ghost è una pill attorno a icona+label, non larga tutto lo slot. Il Center
+    // lo centra nell'Expanded. Padding verticale azzerato: contenuto verticale.
+    // Colore neutro (il ghost di default userebbe primary).
+    return Center(
+      child: ShadButton.ghost(
+        onPressed: onTap,
+        // Altezza esplicita: il contenuto (~38px) centrato lascia respiro sopra/
+        // sotto → padding interno della pill hover. Le size standard di ShadButton
+        // (≤44) sarebbero troppo strette per un item verticale icona+label.
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
+        foregroundColor: theme.primaryText,
+        hoverForegroundColor: theme.primaryText,
+        // Label più piccola via il parametro `textStyle` del bottone (supportato).
+        textStyle: theme.smallText.copyWith(fontWeight: selected ? FontWeight.w600 : FontWeight.normal),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (iconWidget != null) iconWidget,
             SizedBox(height: theme.gapXs),
-            Text(
-              label,
-              style: theme.smallText.copyWith(
-                color: theme.primaryText,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

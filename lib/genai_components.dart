@@ -64,6 +64,7 @@ export 'widgets/cl_role_badge.widget.dart';
 export 'widgets/cl_status_badge.widget.dart';
 export 'widgets/cl_summary_stat_card.widget.dart';
 export 'widgets/cl_metric_card.widget.dart';
+export 'widgets/cl_stat_strip.widget.dart';
 export 'widgets/cl_media_viewer.widget.dart';
 export 'widgets/cl_media_attach.widget.dart';
 export 'widgets/excerpt_text.widget.dart';
@@ -107,6 +108,7 @@ export 'widgets/cl_pdf_viewer.widget.dart';
 export 'widgets/cl_month_calendar.widget.dart';
 export 'widgets/cl_calendar.widget.dart';
 export 'widgets/cl_date_picker.widget.dart';
+export 'widgets/cl_time_picker.widget.dart';
 
 // Charts
 export 'widgets/charts/cl_bar_chart.widget.dart';

@@ -308,19 +308,23 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
 
   // Barra glass tipo header shell: blur + velo semi-trasparente + bordo token.
   Widget _glassBar(CLTheme theme, {required bool top, required Widget child}) {
+    final Widget veil = DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.secondaryBackground.withValues(alpha: 0.72),
+        border: Border(
+          top: top ? BorderSide.none : BorderSide(color: theme.borderColor),
+          bottom: top ? BorderSide(color: theme.borderColor) : BorderSide.none,
+        ),
+      ),
+      child: child,
+    );
+    // Blur pieno su tutte le piattaforme (web incluso): il bug di input dei
+    // TextField era il SemanticsWalker (ensureSemantics permanente), non il
+    // BackdropFilter — vedi cl_adaptive_shell._frostBlur.
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.secondaryBackground.withValues(alpha: 0.72),
-            border: Border(
-              top: top ? BorderSide.none : BorderSide(color: theme.borderColor),
-              bottom: top ? BorderSide(color: theme.borderColor) : BorderSide.none,
-            ),
-          ),
-          child: child,
-        ),
+        child: veil,
       ),
     );
   }

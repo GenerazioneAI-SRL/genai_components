@@ -21,6 +21,18 @@ class CLShellConfig {
   /// header/bolla in blur). Default false → comportamento legacy invariato.
   final bool frostedFullBleed;
 
+  /// Opt-in: layout desktop/tablet "a bolle" (dashboard shadcn). Menu FLAT sul
+  /// canvas grigio a sinistra, UNA bolla centrale arrotondata (header frosted
+  /// fisso + contenuto scrollabile che scorre SOTTO l'header), assistente in
+  /// bolla a destra. Su mobile ricade sul path frosted con bottom bar. Default
+  /// false → comportamento invariato.
+  final bool bubbleBody;
+
+  /// Opt-in: nella sidebar espansa la bolla [navHeader] diventa un pannello ad
+  /// altezza regolabile con maniglia di drag sul bordo basso; le destinazioni
+  /// sotto occupano lo spazio residuo (scorrono sotto l'header). Default false.
+  final bool resizableNavHeader;
+
   const CLShellConfig({
     this.tabletBreakpoint = 600,
     this.desktopBreakpoint = 1079,
@@ -30,6 +42,8 @@ class CLShellConfig {
     this.maxBottomBarItems = 5,
     this.drawerWidthFactor = 0.85,
     this.frostedFullBleed = false,
+    this.bubbleBody = false,
+    this.resizableNavHeader = false,
   });
 }
 

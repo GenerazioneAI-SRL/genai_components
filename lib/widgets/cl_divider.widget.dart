@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+// Budella Shad: le linee sono ShadSeparator.horizontal. Solo il simbolo usato
+// (show). Firma pubblica CLDivider invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadSeparator;
 import '../cl_theme.dart';
 
 /// CLDivider — divider con stile standard del design system.
@@ -29,13 +32,13 @@ class CLDivider extends StatelessWidget {
     final Color lineColor = color ?? theme.borderColor;
 
     if (label == null) {
-      return Divider(
-        thickness: 1,
-        indent: 0,
-        endIndent: 0,
-        height: height,
-        color: lineColor,
-      );
+      final line = ShadSeparator.horizontal(
+          thickness: 1, color: lineColor, margin: EdgeInsets.zero);
+      // `height` riserva lo spazio verticale con la linea centrata (come
+      // `Divider(height:)`); se null la linea è alta 1px.
+      return height == null
+          ? line
+          : SizedBox(height: height, child: Center(child: line));
     }
 
     final TextStyle effectiveLabelStyle =
@@ -46,7 +49,10 @@ class CLDivider extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(child: Divider(thickness: 1, height: 1, color: lineColor)),
+          Expanded(
+            child: ShadSeparator.horizontal(
+                thickness: 1, color: lineColor, margin: EdgeInsets.zero),
+          ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: theme.gapMd),
             child: Container(
@@ -61,7 +67,10 @@ class CLDivider extends StatelessWidget {
               child: Text(label!, style: effectiveLabelStyle),
             ),
           ),
-          Expanded(child: Divider(thickness: 1, height: 1, color: lineColor)),
+          Expanded(
+            child: ShadSeparator.horizontal(
+                thickness: 1, color: lineColor, margin: EdgeInsets.zero),
+          ),
         ],
       ),
     );

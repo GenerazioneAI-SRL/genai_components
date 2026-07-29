@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,10 +7,15 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
+// Budella Shad: nucleo interno del campo. Solo ShadInput/ShadDecoration (show)
+// per non inquinare il namespace del file. Firma pubblica CLTextField invariata.
+import 'package:shadcn_ui/shadcn_ui.dart' show ShadInput, ShadDecoration;
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'buttons/cl_soft_button.widget.dart';
+import 'cl_calendar.widget.dart';
+import 'cl_popup_surface.widget.dart';
 import 'formatters/date_mask_formatter.dart';
 import 'textfield_validator.dart';
 import 'foundation/cl_focus_ring.dart';

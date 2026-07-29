@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+// Budella Shad: varianti SYNC delegate a ShadSelect (path a). Solo i simboli
+// usati (show) per non inquinare il namespace. Firma CLDropdown invariata.
+import 'package:shadcn_ui/shadcn_ui.dart'
+    show ShadSelect, ShadOption, ShadSelectController;
 
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_loading_spinner.widget.dart';
 import '../foundation/cl_pressable.widget.dart';
 import '../foundation/cl_focus_ring.dart';
+import 'cl_dropdown_registry.dart';
 import 'dropdown_state.dart';
 
 class CLDropdown<T extends Object> extends StatefulWidget {
@@ -236,6 +241,29 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
 
   @override
   Widget build(BuildContext context) {
+    // Path (a) — varianti SYNC (nessun asyncSearchCallback: items in memoria):
+    // delega a ShadSelect (feature-complete: header/footer/allowDeselection/
+    // multi/search + keyboard/focus/a11y nativi). L'async paginato + bottom-sheet
+    // resta sul path CL sotto (DropdownState). Firma pubblica invariata.
+    if (widget.asyncSearchCallback == null) {
+      return _ClDropdownShad<T>(
+        items: widget.items,
+        itemBuilder: widget.itemBuilder,
+        valueToShow: widget.valueToShow,
+        hint: widget.hint,
+        isMultiple: widget.isMultiple,
+        selectedValues: widget.selectedValues,
+        isEnabled: widget.isEnabled,
+        isCompact: widget.isCompact,
+        syncSearchCallback: widget.syncSearchCallback,
+        onSelectItem: widget.onSelectItem,
+        onSelectItems: widget.onSelectItems,
+        onClearItem: widget.onClearItem,
+        validators: widget.validators,
+        fillColor: widget.fillColor,
+      );
+    }
+
     _focusNode ??= FocusNode();
     return ChangeNotifierProvider<DropdownState<T>>(
       create: (context) => DropdownState(
@@ -472,6 +500,287 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
           ],
         );
       },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Path (a) — CLDropdown SYNC su ShadSelect
+// ───────────────────────────────────────────────────────────────────────────
+// Varianti in-memory (singleSync/multipleSync): il nucleo è ShadSelect, che
+// porta gratis tutte le feature Shad (allowDeselection, keyboard nav, focus
+// trap, a11y, scroll-chevron, popover positioning). Attorno resta il "chrome"
+// CL: label sopra + error sotto (FormField), token CL via ShadTheme.
+//
+// Preservato dal CL: validazione (validators/FormField), registry+selectByName
+// (AI), sync selezione esterna (didUpdateWidget), search sync (client/callback),
+// disabled, fillColor, isCompact, hint.
+//
+// Differenze dichiarate (UI ora "stile Shad", volutamente):
+//  • multi trigger = etichette joined (Shad), non i chip rimovibili inline del
+//    CL overlay. La rimozione avviene ri-aprendo e deselezionando (allowDeselection).
+//  • clear single = deselezione dalla lista (allowDeselection), non la X nel campo.
+// L'async paginato + il bottom-sheet mobile restano sul path CL (DropdownState).
+// ═══════════════════════════════════════════════════════════════════════════
+class _ClDropdownShad<T extends Object> extends StatefulWidget {
+  const _ClDropdownShad({
+    required this.items,
+    required this.itemBuilder,
+    required this.valueToShow,
+    required this.hint,
+    required this.isMultiple,
+    required this.selectedValues,
+    required this.isEnabled,
+    required this.isCompact,
+    this.syncSearchCallback,
+    this.onSelectItem,
+    this.onSelectItems,
+    this.onClearItem,
+    this.validators,
+    this.fillColor,
+  });
+
+  final List<T> items;
+  final Widget Function(BuildContext, T) itemBuilder;
+  final String Function(T) valueToShow;
+  final String hint;
+  final bool isMultiple;
+  final List<T> selectedValues;
+  final bool isEnabled;
+  final bool isCompact;
+  final Future<List<T>> Function(String)? syncSearchCallback;
+  final Function(T?)? onSelectItem;
+  final Function(List<T>)? onSelectItems;
+  final Function()? onClearItem;
+  final List<FormFieldValidator<String>>? validators;
+  final Color? fillColor;
+
+  @override
+  State<_ClDropdownShad<T>> createState() => _ClDropdownShadState<T>();
+}
+
+class _ClDropdownShadState<T extends Object> extends State<_ClDropdownShad<T>>
+    implements ISelectableDropdown {
+  late final ShadSelectController<T> _controller;
+  late List<T> _filtered;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        ShadSelectController<T>(initialValue: widget.selectedValues.toSet());
+    _filtered = widget.items;
+    if (widget.hint.isNotEmpty) {
+      CLDropdownRegistry.instance.register(widget.hint, this);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ClDropdownShad<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Selezione cambiata dal parent (reset form, AI) → allinea il controller.
+    if (!listEquals(oldWidget.selectedValues, widget.selectedValues)) {
+      _controller.value = widget.selectedValues.toSet();
+    }
+    if (!listEquals(oldWidget.items, widget.items)) {
+      _filtered = widget.items;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.hint.isNotEmpty) {
+      CLDropdownRegistry.instance.unregister(widget.hint);
+    }
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// AI/registry: seleziona per nome (match esatto poi parziale su items).
+  @override
+  Future<bool> selectByName(String name) async {
+    final lower = name.toLowerCase();
+    T? match;
+    for (final it in widget.items) {
+      if (widget.valueToShow(it).toLowerCase() == lower) {
+        match = it;
+        break;
+      }
+    }
+    if (match == null) {
+      for (final it in widget.items) {
+        if (widget.valueToShow(it).toLowerCase().contains(lower)) {
+          match = it;
+          break;
+        }
+      }
+    }
+    if (match == null) return false;
+    if (widget.isMultiple) {
+      _controller.value = {..._controller.value, match};
+      widget.onSelectItems?.call(_controller.value.toList());
+    } else {
+      _controller.value = {match};
+      widget.onSelectItem?.call(match);
+    }
+    return true;
+  }
+
+  void _runSearch(String q) {
+    if (widget.syncSearchCallback != null) {
+      widget.syncSearchCallback!(q).then((r) {
+        if (mounted) setState(() => _filtered = r);
+      });
+    } else {
+      setState(() => _filtered = q.isEmpty
+          ? widget.items
+          : widget.items
+              .where((e) =>
+                  widget.valueToShow(e).toLowerCase().contains(q.toLowerCase()))
+              .toList());
+    }
+  }
+
+  String get _formValue => widget.isMultiple
+      ? _controller.value.map(widget.valueToShow).join(', ')
+      : (_controller.value.isEmpty
+          ? ''
+          : widget.valueToShow(_controller.value.first));
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final bool hasSearch = widget.syncSearchCallback != null;
+
+    final Widget placeholder = Text('Seleziona…',
+        style: theme.bodyText
+            .copyWith(color: theme.mutedForeground, height: 1.0));
+    final EdgeInsets padding = EdgeInsets.symmetric(
+        horizontal: theme.gapMd,
+        vertical: widget.isCompact ? theme.gapSm * 0.75 : 10);
+
+    List<Widget> options() => _filtered
+        .map((e) => ShadOption<T>(
+              value: e,
+              child: DefaultTextStyle.merge(
+                  style: theme.bodyText,
+                  child: widget.itemBuilder(context, e)),
+            ))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.hint.isNotEmpty) ...[
+          Text(widget.hint,
+              style: theme.smallText.copyWith(
+                  fontWeight: FontWeight.w500, color: theme.secondaryText)),
+          SizedBox(height: theme.gapSm),
+        ],
+        FormField<String>(
+          initialValue: _formValue,
+          validator:
+              (widget.validators == null || widget.validators!.isEmpty)
+                  ? null
+                  : (value) {
+                      for (final v in widget.validators!) {
+                        final r = v(value);
+                        if (r != null) return r;
+                      }
+                      return null;
+                    },
+          builder: (fstate) {
+            // Allinea il FormField alla selezione corrente (validazione+error).
+            if (fstate.value != _formValue) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) fstate.didChange(_formValue);
+              });
+            }
+
+            final Widget selectCore = widget.isMultiple
+                ? ShadSelect<T>.multiple(
+                    controller: _controller,
+                    enabled: widget.isEnabled,
+                    placeholder: placeholder,
+                    options: options(),
+                    padding: padding,
+                    allowDeselection: true,
+                    selectedOptionsBuilder: (context, values) => Text(
+                        values.map(widget.valueToShow).join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            theme.bodyText.copyWith(color: theme.primaryText)),
+                    onChanged: (set) {
+                      widget.onSelectItems?.call(set.toList());
+                      fstate.didChange(set.map(widget.valueToShow).join(', '));
+                    },
+                  )
+                : hasSearch
+                    ? ShadSelect<T>.withSearch(
+                        controller: _controller,
+                        enabled: widget.isEnabled,
+                        placeholder: placeholder,
+                        options: options(),
+                        padding: padding,
+                        allowDeselection: true,
+                        searchPlaceholder: Text('Cerca',
+                            style: theme.bodyText.copyWith(
+                                color: theme.mutedForeground, height: 1.0)),
+                        onSearchChanged: _runSearch,
+                        selectedOptionBuilder: (context, value) => Text(
+                            widget.valueToShow(value),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.bodyText
+                                .copyWith(color: theme.primaryText)),
+                        onChanged: (v) {
+                          widget.onSelectItem?.call(v);
+                          if (v == null) widget.onClearItem?.call();
+                          fstate.didChange(
+                              v == null ? '' : widget.valueToShow(v));
+                        },
+                      )
+                    : ShadSelect<T>(
+                        controller: _controller,
+                        enabled: widget.isEnabled,
+                        placeholder: placeholder,
+                        options: options(),
+                        padding: padding,
+                        allowDeselection: true,
+                        selectedOptionBuilder: (context, value) => Text(
+                            widget.valueToShow(value),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.bodyText
+                                .copyWith(color: theme.primaryText)),
+                        onChanged: (v) {
+                          widget.onSelectItem?.call(v);
+                          if (v == null) widget.onClearItem?.call();
+                          fstate.didChange(
+                              v == null ? '' : widget.valueToShow(v));
+                        },
+                      );
+
+            // Full-width nel contenitore (come i campi input e il dropdown async):
+            // il trigger ShadSelect di default si dimensiona al contenuto. Il
+            // SizedBox prende la maxWidth del parent → riempie.
+            final Widget select = SizedBox(width: double.infinity, child: selectCore);
+            if (!fstate.hasError) return select;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                select,
+                SizedBox(height: theme.gapSm),
+                Text(fstate.errorText ?? '',
+                    style: theme.smallLabel
+                        .copyWith(color: theme.danger, height: 1.3)),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

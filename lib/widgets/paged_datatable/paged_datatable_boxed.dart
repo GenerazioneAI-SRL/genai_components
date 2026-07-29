@@ -260,7 +260,7 @@ class _PagedDataTableBoxed<
                     .withValues(alpha: theme.opacitySubtle),
                 borderRadius: BorderRadius.circular(Sizes.radiusSurface),
               ),
-              child: Icon(Icons.search_off_rounded,
+              child: Icon(LucideIcons.searchX,
                   size: 26,
                   color: _effectiveTablePrimary(context)
                       .withValues(alpha: theme.opacityDisabled)),
@@ -311,7 +311,7 @@ class _PagedDataTableBoxed<
                 color: theme.danger.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(Sizes.borderRadius),
               ),
-              child: Icon(Icons.error_outline_rounded,
+              child: Icon(LucideIcons.circleAlert,
                   size: 24, color: theme.danger.withValues(alpha: 0.8)),
             ),
             const SizedBox(height: Sizes.padding),
@@ -444,10 +444,10 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
                     activeColor: _effectiveTablePrimary(context),
-                    checkColor: Colors.white,
+                    checkColor: theme.primaryForeground,
                     side: BorderSide(color: theme.borderColor, width: 1),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4)),
+                        borderRadius: BorderRadius.circular(theme.radiusXs)),
                     onChanged: (value) {
                       if (value == true) {
                         state.selectRow(model.itemId);
@@ -481,7 +481,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                 const SizedBox(width: Sizes.small),
                 CLIconButton(
                   onTap: () => _showActionsSheet(context, menuActions, model),
-                  iconData: Icons.more_vert_rounded,
+                  iconData: LucideIcons.ellipsisVertical,
                   backgroundColor: theme.controlFill,
                   iconColor: theme.primaryText,
                   size: Sizes.buttonHeightDefault,
@@ -573,36 +573,40 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                             .copyWith(fontWeight: FontWeight.w600),
                       ),
                     ),
-                    GestureDetector(
+                    CLIconButton(
                       onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: theme.secondaryText.withValues(alpha: 0.08),
-                          borderRadius:
-                              BorderRadius.circular(Sizes.radiusControl),
-                        ),
-                        child: Icon(Icons.close_rounded,
-                            size: Sizes.iconSizeCompact,
-                            color: theme.secondaryText),
-                      ),
+                      iconData: LucideIcons.x,
+                      backgroundColor:
+                          theme.secondaryText.withValues(alpha: 0.08),
+                      iconColor: theme.secondaryText,
+                      size: Sizes.iconSizeCompact + 12,
+                      iconSize: Sizes.iconSizeCompact,
+                      borderRadius: Sizes.radiusControl,
                     ),
                   ],
                 ),
               ),
 
               // Actions list
-              ...actions.map((action) => InkWell(
+              ...actions.map((action) => CLPressable(
                     onTap: () {
                       Navigator.pop(context);
                       action.onTap.call(model.item);
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: Sizes.padding,
-                          vertical: Sizes.padding * 0.75),
-                      child: action.content,
-                    ),
+                    semanticLabel: action.label,
+                    builder: (context, pstate) {
+                      final bg = pstate.hovered || pstate.pressed
+                          ? theme.secondaryText.withValues(alpha: 0.06)
+                          : Colors.transparent;
+                      return AnimatedContainer(
+                        duration: theme.durationFast,
+                        color: bg,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: Sizes.padding,
+                            vertical: Sizes.padding * 0.75),
+                        child: action.content,
+                      );
+                    },
                   )),
 
               // Safe area bottom

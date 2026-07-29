@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:genai_components/cl_theme.dart';
-import 'package:genai_components/layout/constants/sizes.constant.dart';
+import 'cl_shell_tokens.dart';
+import 'cl_shell_sizes.dart';
 import 'cl_destination.dart';
 
 /// Rail di navigazione icon-only (tier tablet). Una icona per voce top-level:
@@ -53,7 +53,7 @@ class CLNavRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
+    final theme = CLShellTokens.of(context);
     return Container(
       width: width,
       // Rail (menu) = L0 + bordo destro. In bolla → trasparente (lo dà la card).
@@ -122,14 +122,14 @@ class _RailItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = CLTheme.of(context);
+    final theme = CLShellTokens.of(context);
     final d = destination;
     final selected = d.key == selectedKey || d.containsKey(selectedKey);
     // Selezionato: bolla grigia neutra + icona primary (coerente con la leaf
     // della sidebar). Non selezionato: icona secondaryText, niente sfondo.
     final fg = selected ? theme.primary : theme.secondaryText;
 
-    final icon = d.buildIcon(fg, Sizes.iconSizeDefault) ??
+    final icon = d.buildIcon(fg, CLShellSizes.iconSizeDefault) ??
         Text(
           d.label.isNotEmpty ? d.label.characters.first.toUpperCase() : '?',
           style: theme.bodyLabel.copyWith(color: fg, fontWeight: FontWeight.w700),

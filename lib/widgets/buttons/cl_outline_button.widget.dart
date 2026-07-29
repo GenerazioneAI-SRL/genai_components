@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+// Budella Shad: nucleo interno del bottone. Solo i simboli usati (show) per non
+// inquinare il namespace. Firma pubblica CLOutlineButton invariata.
+import 'package:shadcn_ui/shadcn_ui.dart'
+    show ShadButton, ShadButtonVariant, ShadDecoration, ShadBorder;
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_compact_action_scope.dart';
 import 'cl_loading_spinner.widget.dart';
 import '../foundation/cl_pressable.widget.dart';
 import '../foundation/cl_tone_style.dart';
-import '../foundation/cl_focus_ring.dart';
 
 class CLOutlineButton extends StatefulWidget {
   final Color color;
@@ -278,8 +281,12 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
 
     Widget content;
     if (showText) {
+      // SEMPRE min: il Row interno di ShadButton misura i figli non-flex con
+      // larghezza infinita, e un Row `max` con dentro un `Flexible` asserisce
+      // (spiegazione estesa in cl_button.widget.dart). La larghezza la dà il
+      // SizedBox esterno, che la rende tight: il Row `min` la eredita.
       content = Row(
-        mainAxisSize: widget.width != null ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
@@ -307,45 +314,73 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
     final Widget semanticContent =
         needsExplicitLabel ? ExcludeSemantics(child: content) : content;
 
-    final constraints = showText
-        ? BoxConstraints(minHeight: btnH, minWidth: isMobile ? 0 : 64)
-        : BoxConstraints(minWidth: iconOnlySide, minHeight: iconOnlySide);
+    // ── Nucleo = ShadButton (budella Shad): hover/press/focus/keyboard e ring
+    //    (da ShadTheme = theme.ring) nativi. I colori per stato restano dal
+    //    motore CLToneStyle (variante outline): base/hover/press passati a
+    //    ShadButton → tono CL preservato 1:1. Per outline il bg è neutro
+    //    (trasparente → accent su hover/press) e il tono vive solo in fg/bordo.
+    //    Il bordo è SEMPRE presente (grigio `cardBorder`) via ShadDecoration.
+    //    async/confirm/loading/icon-swap restano nel wrapper CL. Firma
+    //    pubblica invariata. ────────────────────────────────────────────────
+    final CLToneColors tBase = CLToneStyle.resolve(theme,
+        color: widget.color, variant: CLVariant.outline, colored: widget._colored);
+    final CLToneColors tHover = CLToneStyle.resolve(theme,
+        color: widget.color,
+        variant: CLVariant.outline,
+        colored: widget._colored,
+        state: const CLPressableState(hovered: true));
+    final CLToneColors tPressed = CLToneStyle.resolve(theme,
+        color: widget.color,
+        variant: CLVariant.outline,
+        colored: widget._colored,
+        state: const CLPressableState(pressed: true));
+    final Color borderColor = tBase.border ?? theme.cardBorder;
 
-    Widget button = CLPressable(
+    Widget button = ShadButton.raw(
+      variant: ShadButtonVariant.primary,
+      // enabled=isInteractive → in loading ShadButton toglie hover e attenua.
       enabled: isInteractive,
-      onTap: _handleTap,
-      semanticLabel: needsExplicitLabel ? widget.text : null,
-      builder: (context, state) {
-        final colors = CLToneStyle.resolve(theme,
-            color: widget.color,
-            variant: CLVariant.outline,
-            state: state,
-            colored: widget._colored);
-        Widget surface = AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          padding: showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
-          constraints: constraints,
-          decoration: BoxDecoration(
-            color: colors.bg,
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: colors.border ?? theme.cardBorder, width: 1),
-          ),
-          child: semanticContent,
-        );
-        // CustomPaint sempre presente (painter null off-focus) → albero stabile.
-        surface = CustomPaint(
-          foregroundPainter:
-              state.focused ? CLFocusRingPainter(color: theme.ring, radius: radius) : null,
-          child: surface,
-        );
-        return surface;
-      },
+      onPressed: () => _handleTap(),
+      backgroundColor: tBase.bg,
+      hoverBackgroundColor: tHover.bg,
+      pressedBackgroundColor: tPressed.bg,
+      foregroundColor: fgColor,
+      hoverForegroundColor: fgColor,
+      pressedForegroundColor: fgColor,
+      height: showText ? btnH : iconOnlySide,
+      width: showText ? null : iconOnlySide,
+      padding:
+          showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
+      mainAxisAlignment: MainAxisAlignment.center,
+      decoration: ShadDecoration(
+        border: ShadBorder.all(
+          color: borderColor,
+          width: 1,
+          radius: BorderRadius.circular(radius),
+        ),
+      ),
+      child: semanticContent,
     );
+
+    // minWidth 64 (desktop) per i bottoni con testo, come prima.
+    if (showText && !isMobile) {
+      button = ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 64), child: button);
+    }
 
     if (widget.width != null) {
       button = SizedBox(width: widget.width, child: button);
     }
+
+    // a11y: nome esplicito quando il contenuto è ExcludeSemantics (icon-only).
+    if (needsExplicitLabel) {
+      button = Semantics(
+          label: widget.text,
+          button: true,
+          enabled: isInteractive,
+          child: button);
+    }
+
     return button;
   }
 }

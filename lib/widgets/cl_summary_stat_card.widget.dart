@@ -65,10 +65,12 @@ class CLSummaryStatCard extends StatelessWidget {
               children: [
                 Text(
                   value,
+                  // Un punto in più (2026-07-23): 16/14 risultava piccolo
+                  // rispetto alla superficie della card.
                   style: theme.bodyText.override(
                     fontWeight: FontWeight.w700,
                     color: color,
-                    fontSize: compact ? 14 : 16,
+                    fontSize: compact ? 15 : 18,
                   ),
                 ),
                 Text(
@@ -76,7 +78,7 @@ class CLSummaryStatCard extends StatelessWidget {
                   style: theme.smallLabel.override(
                     color: color.withValues(alpha: 0.88),
                     fontWeight: FontWeight.w600,
-                    fontSize: compact ? 10 : 11,
+                    fontSize: compact ? 11 : 12,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,

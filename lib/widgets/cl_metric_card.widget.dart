@@ -80,15 +80,17 @@ class _CLMetricCardState extends State<CLMetricCard> {
     final double iconBoxPad = widget.compact ? theme.gapSm : theme.gapMd;
     final double iconSize = widget.compact ? theme.iconSizeCompact : theme.iconSizeDefault;
 
-    // Hero number style — Inter medium-bold, restrained.
-    final TextStyle valueStyle = (widget.compact ? theme.heading4 : theme.heading3).copyWith(
+    // Hero number style — Inter medium-bold. Un gradino più grande (2026-07-23):
+    // heading3/heading4 lasciavano il numero piccolo rispetto alla card.
+    final TextStyle valueStyle = (widget.compact ? theme.heading3 : theme.heading2).copyWith(
       color: theme.primaryText,
       fontWeight: FontWeight.w600,
       letterSpacing: -0.4,
     );
 
-    // Caption: subdued, regular weight, no shouting.
-    final TextStyle captionStyle = theme.smallLabel.copyWith(
+    // Caption: subdued ma leggibile (bodyLabel, non smallLabel — era
+    // sproporzionata rispetto alla superficie della card).
+    final TextStyle captionStyle = (widget.compact ? theme.smallLabel : theme.bodyLabel).copyWith(
       color: theme.mutedForeground,
       letterSpacing: 0.2,
       fontWeight: FontWeight.w400,
@@ -127,7 +129,9 @@ class _CLMetricCardState extends State<CLMetricCard> {
             ],
           ],
         ),
-        SizedBox(height: widget.compact ? theme.gapMd : theme.gapLg),
+        // gapMd anche non-compact: gapLg creava troppa aria fra icona e numero
+        // e gonfiava la card in verticale (2026-07-23).
+        SizedBox(height: widget.compact ? theme.gapSm : theme.gapMd),
         // Hero value with count-up animation (only when numeric).
         if (_parsed.isNumeric)
           TweenAnimationBuilder<double>(

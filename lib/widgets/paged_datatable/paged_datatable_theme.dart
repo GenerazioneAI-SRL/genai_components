@@ -174,7 +174,7 @@ class PagedDataTableConfiguration extends Equatable {
     this.columnsHeaderHeight = 44.0,
     this.filterBarHeight = 56.0,
     this.rowHeight = 52.0,
-    this.initialPageSize = 5,
+    this.initialPageSize = 25,
     this.footer = const PagedDataTableFooterConfiguration(),
     this.filterBarVisibile = true,
   });

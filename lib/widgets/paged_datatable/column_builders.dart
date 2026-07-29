@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
+import '../buttons/cl_icon_button.widget.dart';
 import 'paged_datatable.dart';
 
 /// Lightweight action descriptor consumed by [TableColumnBuilder.actionColumn].
@@ -71,7 +73,7 @@ extension TableColumnBuilder on BuildContext {
           padding: const EdgeInsets.symmetric(horizontal: Sizes.gapSm, vertical: Sizes.gapXs),
           decoration: BoxDecoration(
             color: c.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Sizes.radiusControl),
           ),
           child: Text(
             label(item),
@@ -124,16 +126,20 @@ extension TableColumnBuilder on BuildContext {
     double sizeFactor = .1,
     String? id,
   }) {
+    final theme = CLTheme.of(this);
     return TableColumn<T>(
       id: id,
       title: Text(title),
       cellBuilder: (item) => Row(
         mainAxisSize: MainAxisSize.min,
         children: actions
-            .map((a) => IconButton(
-                  icon: Icon(a.icon, size: 18),
+            .map((a) => CLIconButton(
+                  onTap: () => a.onPressed(item),
+                  iconData: a.icon,
+                  backgroundColor: Colors.transparent,
+                  iconColor: theme.secondaryText,
+                  iconSize: theme.iconSizeCompact,
                   tooltip: a.tooltip,
-                  onPressed: () => a.onPressed(item),
                 ))
             .toList(),
       ),

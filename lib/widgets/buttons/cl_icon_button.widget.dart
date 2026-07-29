@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// Budella Shad: nucleo interno del bottone. Solo i simboli usati (show) per non
+// inquinare il namespace. Firma pubblica CLIconButton invariata.
+import 'package:shadcn_ui/shadcn_ui.dart'
+    show ShadIconButton, ShadButtonVariant, ShadDecoration, ShadBorder;
 import '../../cl_theme.dart';
 import 'cl_async_button_mixin.dart';
 import 'cl_loading_spinner.widget.dart';
+import '../foundation/cl_pressable.widget.dart';
+import '../foundation/cl_tone_style.dart';
 
-// ── Costanti micro-interazione (identiche a CLButton) ───────────────
-const double _pressScale = 0.97;
-const double _pressYOffset = 1.0;
-const Duration _pressDuration = Duration(milliseconds: 110);
-const Duration _hoverDuration = Duration(milliseconds: 140);
+// ── Durata micro-interazione (icon ↔ spinner) ──────────────────────
 const Duration _iconSwapDuration = Duration(milliseconds: 180);
 
 /// Bottone pieno solo-icona, quadrato. Stesse micro-interazioni di [CLButton]
@@ -86,37 +88,9 @@ class CLIconButton extends StatefulWidget {
 }
 
 class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
-  // Stato "umano" tracciato via controller: evitiamo gli overlay Material
-  // e animiamo noi scala, offset e sfondo per un feedback tattile.
-  late final WidgetStatesController _statesController;
-  bool _wasPressed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _statesController = WidgetStatesController();
-    _statesController.addListener(_onStatesChanged);
-  }
-
-  @override
-  void dispose() {
-    _statesController.removeListener(_onStatesChanged);
-    _statesController.dispose();
-    super.dispose();
-  }
-
-  void _onStatesChanged() {
-    // Gli aggiornamenti visivi (hover/press/focus) passano attraverso
-    // `ValueListenableBuilder` in `build`: nessun `setState` qui, altrimenti
-    // si rischia "setState during build" quando Material aggiorna il
-    // controller all'interno del suo `build` (es. onPressed che diventa null).
-    if (!mounted) return;
-    final nowPressed = _statesController.value.contains(WidgetState.pressed);
-    if (nowPressed && !_wasPressed && widget.haptic && widget.enabled) {
-      HapticFeedback.selectionClick();
-    }
-    _wasPressed = nowPressed;
-  }
+  // Interazione + stato (hover/press/focus/ring/keyboard) delegati a ShadButton
+  // (budella Shad): niente hand-roll di controller/overlay qui. Colori per stato
+  // dal motore CLToneStyle.
 
   Future<void> _handleTap() async {
     await handleAsyncTap(
@@ -126,29 +100,44 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
     );
   }
 
+  void _fireHaptic() => HapticFeedback.selectionClick();
+
   @override
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     final isLoading = widget.loading ?? loading;
     final isInteractive = widget.enabled && !isLoading;
 
-    // ── Colori ────────────────────────────────────────────────────────
+    // ── Colori (da CLToneStyle) ───────────────────────────────────────
     final bgColor = widget.backgroundColor ?? theme.muted;
     // Variante "plain" (bg trasparente): icona nuda, il fill appare solo su
-    // hover/press usando theme.muted — il lerp verso nero su un colore
-    // trasparente produrrebbe un velo scuro sbagliato, e l'auto-contrast
-    // (luminance 0 → bianco) renderebbe l'icona invisibile su superfici chiare.
+    // hover/press. Il lerp verso nero su un colore trasparente produrrebbe un
+    // velo scuro sbagliato, quindi usiamo la variante `ghost` neutra (overlay
+    // grigio + fg `primaryText`) invece della `solid` colorata.
     final isPlain = bgColor.a == 0.0;
-    final fgColor = isPlain ? theme.primaryText : (bgColor.computeLuminance() > 0.5 ? Colors.black : Colors.white);
-    final iconColor = widget.iconColor ?? fgColor;
+    final variant = isPlain ? CLVariant.ghost : CLVariant.solid;
+    final colored = !isPlain;
 
-    // Hover/press: alpha-blend uniforme nero 0.08/0.16 (no glow, no colored shadow).
-    final hoverBg = isPlain ? theme.muted : Color.lerp(bgColor, Colors.black, 0.08)!;
-    final pressedBg = isPlain ? Color.lerp(theme.muted, Colors.black, 0.08)! : Color.lerp(bgColor, Colors.black, 0.16)!;
+    final CLToneColors tBase = CLToneStyle.resolve(theme,
+        color: bgColor, variant: variant, colored: colored);
+    final CLToneColors tHover = CLToneStyle.resolve(theme,
+        color: bgColor,
+        variant: variant,
+        colored: colored,
+        state: const CLPressableState(hovered: true));
+    final CLToneColors tPressed = CLToneStyle.resolve(theme,
+        color: bgColor,
+        variant: variant,
+        colored: colored,
+        state: const CLPressableState(pressed: true));
+
+    final fgColor = tBase.fg;
+    final iconColor = widget.iconColor ?? fgColor;
 
     // ── Geometria: lato quadrato da design token, icona a metà lato ──
     final side = widget.size ?? theme.buttonHeightDefault;
     final iconSz = widget.iconSize ?? side * 0.5;
+    // Default 999 → cerchio/pill: i bottoni icona isolati di chrome sono tondi.
     final radius = widget.borderRadius ?? 999;
 
     // ── Slot icona ↔ spinner ─────────────────────────────────────────
@@ -172,94 +161,58 @@ class _CLIconButtonState extends State<CLIconButton> with AsyncButtonMixin {
       ),
     );
 
-    // ── Superficie animata (bg + ombra/bordo: niente gap trasparente) ─
-    // La surface animata (bg, border focus, press scale+offset) reagisce agli
-    // stati tramite UN SOLO ValueListenableBuilder posto COME DESCENDANT
-    // dell'ElevatedButton. Se fosse ancestor, quando Material aggiorna il
-    // controller in `didUpdateWidget` spareremmo "setState during build" su
-    // un ancestor già processato nel frame corrente.
-    final surface = ValueListenableBuilder<Set<WidgetState>>(
-      valueListenable: _statesController,
-      builder: (context, states, stableChild) {
-        final isHovered = states.contains(WidgetState.hovered);
-        final isPressed = states.contains(WidgetState.pressed);
-        final isFocused = states.contains(WidgetState.focused);
-        final currentBg = isPressed
-            ? pressedBg
-            : isHovered
-                ? hoverBg
-                : bgColor;
-        final transform = Matrix4.identity()
-          ..translateByDouble(0.0, isPressed ? _pressYOffset : 0.0, 0.0, 1.0)
-          ..scaleByDouble(isPressed ? _pressScale : 1.0, isPressed ? _pressScale : 1.0, 1.0, 1.0);
-
-        // Focus ring: sostituisce l'eventuale bordo custom solo quando focused.
-        final currentBorder = isFocused ? Border.all(color: fgColor.withValues(alpha: 0.6), width: 2) : widget.border;
-
-        return AnimatedContainer(
-          duration: _pressDuration,
-          curve: Curves.easeOut,
-          transform: transform,
-          transformAlignment: Alignment.center,
-          child: AnimatedContainer(
-            duration: _hoverDuration,
-            curve: Curves.easeOut,
-            width: side,
-            height: side,
-            decoration: BoxDecoration(
-              color: currentBg,
-              borderRadius: BorderRadius.circular(radius),
-              border: currentBorder,
-              boxShadow: widget.boxShadow,
-            ),
-            child: stableChild,
-          ),
-        );
-      },
-      child: content,
-    );
-
-    // ── Style Material "invisibile" (solo tap/focus/semantics, niente chrome) ─
-    final buttonStyle = ButtonStyle(
-      padding: WidgetStateProperty.all(EdgeInsets.zero),
-      backgroundColor: WidgetStateProperty.all(Colors.transparent),
-      foregroundColor: WidgetStateProperty.all(fgColor),
-      overlayColor: WidgetStateProperty.all(Colors.transparent),
-      shadowColor: WidgetStateProperty.all(Colors.transparent),
-      surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
-      elevation: WidgetStateProperty.all(0),
-      splashFactory: NoSplash.splashFactory,
-      animationDuration: Duration.zero,
-      shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius))),
-      side: WidgetStateProperty.all(BorderSide.none),
-      minimumSize: WidgetStateProperty.all(Size.zero),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      iconSize: WidgetStateProperty.all(iconSz),
-    );
-
-    Widget button = ElevatedButton(
-      statesController: _statesController,
-      onPressed: isInteractive ? _handleTap : null,
-      style: buttonStyle,
-      child: surface,
-    );
-
-    // ── Disabled: fade opacità ───────────────────────────────────────
-    button = AnimatedOpacity(
-      opacity: widget.enabled ? 1.0 : theme.opacityDisabled,
-      duration: const Duration(milliseconds: 150),
-      child: button,
-    );
-
-    // Niente Tooltip automatico (scelta di prodotto: si aggiunge a mano dove serve).
-    // `tooltip` resta come fallback per la label di accessibilità.
+    // ── a11y: icon-only ⇒ serve sempre un nome accessibile. `tooltip` resta
+    // come fallback della label. Quando presente, escludiamo la semantica del
+    // contenuto e la rimpiazziamo con un `Semantics` esplicito sul bottone.
     final a11yLabel = widget.semanticLabel ?? widget.tooltip;
-    if (a11yLabel != null && a11yLabel.isNotEmpty) {
+    final hasA11y = a11yLabel != null && a11yLabel.isNotEmpty;
+    final Widget semanticContent =
+        hasA11y ? ExcludeSemantics(child: content) : content;
+
+    // Bordo custom → ShadBorder (il focus ring nativo di ShadButton = theme.ring
+    // resta a parte). Solo `Border` (bordo uniforme) è mappabile su ShadBorder.all.
+    final BorderSide? side0 =
+        widget.border is Border ? (widget.border as Border).top : null;
+
+    // ── Nucleo = ShadIconButton (budella Shad, primitivo icon-only): hover/press/
+    //    focus/keyboard/ring nativi, disabled+loading attenuati via `enabled`.
+    //    Colori per stato dal motore CLToneStyle. async/confirm/haptic/loading/
+    //    icon-swap nel wrapper. Firma pubblica invariata. ──────────────────────
+    Widget button = ShadIconButton.raw(
+      variant: ShadButtonVariant.primary,
+      // enabled=isInteractive → in disabled E loading ShadIconButton toglie hover
+      // e attenua (sostituisce sia il tap-guard sia l'AnimatedOpacity precedente).
+      enabled: isInteractive,
+      onPressed: () => _handleTap(),
+      onTapDown: widget.haptic ? (_) => _fireHaptic() : null,
+      backgroundColor: tBase.bg,
+      hoverBackgroundColor: tHover.bg,
+      pressedBackgroundColor: tPressed.bg,
+      foregroundColor: iconColor,
+      hoverForegroundColor: iconColor,
+      pressedForegroundColor: iconColor,
+      width: side,
+      height: side,
+      padding: EdgeInsets.zero,
+      shadows: widget.boxShadow,
+      decoration: ShadDecoration(
+        border: side0 != null
+            ? ShadBorder.all(
+                color: side0.color,
+                width: side0.width,
+                radius: BorderRadius.circular(radius))
+            : ShadBorder(radius: BorderRadius.circular(radius)),
+      ),
+      icon: semanticContent,
+    );
+
+    // a11y: nome esplicito quando il contenuto è ExcludeSemantics.
+    if (hasA11y) {
       button = Semantics(
         button: true,
         enabled: isInteractive,
         label: a11yLabel,
-        child: ExcludeSemantics(child: button),
+        child: button,
       );
     }
 

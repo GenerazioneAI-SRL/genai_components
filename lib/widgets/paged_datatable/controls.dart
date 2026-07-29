@@ -1,5 +1,9 @@
 part of 'paged_datatable.dart';
 
+/// Dimensioni fisse del dialog calendario (calendar_date_picker2) — costante di
+/// layout, nessun token del design system copre le dimensioni di un dialog.
+const Size _kCalendarDialogSize = Size(496.0, 346.0);
+
 class _DateTimePicker extends HookWidget {
   final InputDecoration? decoration;
   final DateTime firstDate, lastDate;
@@ -43,7 +47,7 @@ class _DateTimePicker extends HookWidget {
             lastDate: lastDate,
             currentDate: initialDate,
           ),
-          dialogSize: const Size(496.0, 346.0),
+          dialogSize: _kCalendarDialogSize,
         ).then((value) {
           if (value == null) {
             return null;
@@ -104,7 +108,7 @@ class _DateTimeRangePicker extends HookWidget {
             lastDate: lastDate,
             currentDate: initialValue?.start,
           ),
-          dialogSize: const Size(496.0, 346.0),
+          dialogSize: _kCalendarDialogSize,
         ).then((value) {
           if (value == null) {
             return null;
