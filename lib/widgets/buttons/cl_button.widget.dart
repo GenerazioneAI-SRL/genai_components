@@ -529,8 +529,18 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
           textAlign: TextAlign.center,
         ),
       );
+      // SEMPRE min. ShadButton avvolge il child in un `Row(mainAxisSize: min)`
+      // (button.dart:1147) e RenderFlex misura i figli non-flex con larghezza
+      // INFINITA: un Row `max` con dentro un `Flexible` asserisce "children have
+      // non-zero flex but incoming width constraints are unbounded" e il layout
+      // non completa mai (da lì la cascata di `!semantics.parentDataDirty`).
+      // Il full-width lo dà già il SizedBox esterno più sotto: rende tight la
+      // larghezza, il Row `min` la eredita via `constraints.constrain` e
+      // `mainAxisAlignment.center` centra comunque. Regressione introdotta dal
+      // porting su ShadButton (cl-on-shad): prima il Row era la radice del
+      // bottone e riceveva vincoli limitati.
       content = Row(
-        mainAxisSize: (widget.width != null || widget.fullWidth) ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
@@ -576,47 +586,75 @@ class _CLButtonState extends State<CLButton> with AsyncButtonMixin {
     final BorderSide? side =
         widget.border is Border ? (widget.border as Border).top : null;
 
-    Widget button = ShadButton.raw(
-      variant: ShadButtonVariant.primary,
-      // enabled=isInteractive → in disabled E loading ShadButton toglie hover e
-      // attenua (sostituisce sia il CLPressable disabled sia l'AnimatedOpacity).
-      enabled: isInteractive,
-      onPressed: () => _handleTap(),
-      onTapDown: widget.haptic ? (_) => _fireHaptic() : null,
-      backgroundColor: tBase.bg,
-      hoverBackgroundColor: tHover.bg,
-      pressedBackgroundColor: tPressed.bg,
-      foregroundColor: fgColor,
-      hoverForegroundColor: fgColor,
-      pressedForegroundColor: fgColor,
-      height: showText ? minHeight : iconOnlySide,
-      width: showText ? null : iconOnlySide,
-      padding:
-          showText ? EdgeInsets.symmetric(horizontal: padH) : EdgeInsets.zero,
-      shadows: widget.boxShadow,
-      mainAxisAlignment: MainAxisAlignment.center,
-      decoration: ShadDecoration(
-        border: side != null
-            ? ShadBorder.all(
-                color: side.color,
-                width: side.width,
-                radius: BorderRadius.circular(radius))
-            : ShadBorder(radius: BorderRadius.circular(radius)),
-      ),
-      child: semanticContent,
-    );
+    // Il contenuto va limitato a mano quando la larghezza è forzata: il Row
+    // interno di ShadButton misura i figli non-flex con larghezza INFINITA,
+    // quindi senza questo il `TextOverflow.ellipsis` della label non scatta mai
+    // e una label più larga del bottone trabocca invece di troncare.
+    // `contentMax` = larghezza del bottone meno il padding orizzontale.
+    ShadButton core(double? contentMax) => ShadButton.raw(
+          variant: ShadButtonVariant.primary,
+          // enabled=isInteractive → in disabled E loading ShadButton toglie hover
+          // e attenua (sostituisce sia il CLPressable disabled sia l'AnimatedOpacity).
+          enabled: isInteractive,
+          onPressed: () => _handleTap(),
+          onTapDown: widget.haptic ? (_) => _fireHaptic() : null,
+          backgroundColor: tBase.bg,
+          hoverBackgroundColor: tHover.bg,
+          pressedBackgroundColor: tPressed.bg,
+          foregroundColor: fgColor,
+          hoverForegroundColor: fgColor,
+          pressedForegroundColor: fgColor,
+          height: showText ? minHeight : iconOnlySide,
+          width: showText ? null : iconOnlySide,
+          padding: showText
+              ? EdgeInsets.symmetric(horizontal: padH)
+              : EdgeInsets.zero,
+          shadows: widget.boxShadow,
+          mainAxisAlignment: MainAxisAlignment.center,
+          decoration: ShadDecoration(
+            border: side != null
+                ? ShadBorder.all(
+                    color: side.color,
+                    width: side.width,
+                    radius: BorderRadius.circular(radius))
+                : ShadBorder(radius: BorderRadius.circular(radius)),
+          ),
+          child: contentMax == null || !contentMax.isFinite
+              ? semanticContent
+              : ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentMax),
+                  child: semanticContent),
+        );
+
+    double innerFor(double outer) =>
+        (outer - padH * 2).clamp(0.0, double.infinity);
 
     // minWidth 64 (desktop) per i bottoni con testo, come prima.
-    if (showText && !isMobile) {
-      button = ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 64), child: button);
-    }
+    Widget withMinWidth(Widget b) => (showText && !isMobile)
+        ? ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 64), child: b)
+        : b;
 
-    // Width (fullWidth ha precedenza su width).
-    if (widget.fullWidth) {
-      button = SizedBox(width: double.infinity, child: button);
+    // Width (fullWidth ha precedenza su width). `width: double.infinity` vale
+    // fill quanto `fullWidth`. Chi riempie non conosce la propria larghezza
+    // finale → LayoutBuilder; con una `width` esplicita basta il conto.
+    final bool fillWidth = widget.fullWidth || (widget.width?.isInfinite ?? false);
+    Widget button;
+    if (fillWidth) {
+      button = LayoutBuilder(
+        builder: (context, constraints) => SizedBox(
+          width: double.infinity,
+          child: withMinWidth(core(constraints.maxWidth.isFinite
+              ? innerFor(constraints.maxWidth)
+              : null)),
+        ),
+      );
     } else if (widget.width != null) {
-      button = SizedBox(width: widget.width, child: button);
+      button = SizedBox(
+          width: widget.width,
+          child: withMinWidth(core(innerFor(widget.width!))));
+    } else {
+      button = withMinWidth(core(null));
     }
 
     // a11y: nome esplicito quando il contenuto è ExcludeSemantics (icon-only /

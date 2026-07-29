@@ -281,8 +281,12 @@ class _CLOutlineButtonState extends State<CLOutlineButton> with AsyncButtonMixin
 
     Widget content;
     if (showText) {
+      // SEMPRE min: il Row interno di ShadButton misura i figli non-flex con
+      // larghezza infinita, e un Row `max` con dentro un `Flexible` asserisce
+      // (spiegazione estesa in cl_button.widget.dart). La larghezza la dà il
+      // SizedBox esterno, che la rende tight: il Row `min` la eredita.
       content = Row(
-        mainAxisSize: widget.width != null ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (hasInlineIcon && widget.iconAlignment == IconAlignment.start) ...[
