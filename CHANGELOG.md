@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.9.4
+
+- **Tabella (fix): «0 risultati» sotto righe ben visibili.** Il conteggio in fondo leggeva solo
+  `paginationInfo.total`, che le viste calcolate lato client non hanno (riepiloghi, KPI, elenchi
+  aggregati): con due righe a schermo il piede diceva «0 risultati». In mancanza di `paginationInfo`
+  il totale è ora il numero di righe consegnate dalla pagina.
+- **Tabella: niente controlli di pagina quando la pagina è una sola.** Il selettore 5/25/50/100 e le
+  frecce restavano anche con una riga, facendo sembrare l'elenco l'inizio di qualcosa di lungo. Ora
+  compaiono solo se c'è davvero più di una pagina; il conteggio resta sempre.
+  Test: `test/paged_datatable_footer_test.dart`.
+
 ## 5.9.3
 
 - **Buttons (fix):** un bottone a larghezza forzata (`fullWidth` o `width`) **e con testo**
