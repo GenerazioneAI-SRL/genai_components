@@ -431,7 +431,11 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
       _hasNextPage = pageIndicator.hasNextPageToken;
 
       lastPage = int.tryParse(pageIndicator.lastPageToken.toString()) ?? 1;
-      totalElement = pageIndicator.paginationInfo?.total ?? 0;
+      // Senza `paginationInfo` il totale non è zero: è quello che la pagina ha
+      // appena consegnato. Le viste che calcolano tutto lato client (riepiloghi,
+      // KPI, elenchi aggregati) non hanno una Pagination dal backend, e il
+      // footer scriveva "0 risultati" sotto due righe ben visibili.
+      totalElement = pageIndicator.paginationInfo?.total ?? pageIndicator.length;
       _currentPageIndex = page;
 
       // change state and notify listeners of update
