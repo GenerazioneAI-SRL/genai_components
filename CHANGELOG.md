@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.9.5
+
+- **Tabella: lo stato vuoto distingue due cose diverse.** «Nessun elemento trovato / prova a
+  modificare i filtri» compariva anche quando filtri non ce n'erano e la tabella era vuota perché
+  non c'era ancora niente: l'utente veniva mandato a cercare un filtro che non aveva impostato. Ora
+  con filtri attivi resta «Nessun risultato / prova a modificare i filtri», senza filtri diventa
+  «Non c'è ancora niente / qui compariranno gli elementi quando ce ne saranno», con l'icona
+  coerente (lente sbarrata solo se si stava cercando).
+
 ## 5.9.4
 
 - **Tabella (fix): «0 risultati» sotto righe ben visibili.** Il conteggio in fondo leggeva solo
