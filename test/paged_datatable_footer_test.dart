@@ -96,4 +96,14 @@ void main() {
     expect(find.text('1 – 25 di 120'), findsOneWidget);
     expect(find.text('100'), findsOneWidget);
   });
+
+  testWidgets('lista vuota senza filtri: «non c\'è ancora niente»', (tester) async {
+    await tester.pumpWidget(_harness(rows: const [], pagination: null));
+    await _settle(tester);
+
+    // Mandare a «modificare i filtri» chi non ne ha impostato nessuno è un
+    // vicolo cieco: la lista è vuota perché non c'è ancora niente.
+    expect(find.text('Non c\'è ancora niente'), findsOneWidget);
+    expect(find.text('Prova a modificare i filtri di ricerca'), findsNothing);
+  });
 }
