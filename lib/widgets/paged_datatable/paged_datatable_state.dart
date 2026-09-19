@@ -219,6 +219,29 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
     _dispatchCallback();
   }
 
+  /// Applica più valori di filtro e lancia UN solo fetch.
+  ///
+  /// Stessa cosa di [applyFilter] ripetuta, ma senza le richieste intermedie:
+  /// quelle darebbero risultati calcolati su un filtro incompleto, e l'ordine
+  /// di arrivo delle risposte non è garantito.
+  void applyFilterValues(Map<String, dynamic> values) {
+    var changed = false;
+    for (final entry in values.entries) {
+      final filter = filters[entry.key];
+      if (filter == null) {
+        throw TableError("Filter ${entry.key} not found.");
+      }
+      filter.value = entry.value;
+      changed = true;
+    }
+    if (!changed) return;
+
+    notifyListeners();
+    _resetPagination();
+    isNewSearchSort = true;
+    _dispatchCallback();
+  }
+
   void removeSort() {
     _sortModel = null;
     notifyListeners();
