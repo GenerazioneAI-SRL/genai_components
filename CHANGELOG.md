@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.9.6
+
+- **Tabella: `controller.setFilters({...})`** — imposta più filtri e ricarica **una volta sola**.
+  Con due `setFilter` consecutivi partivano due caricamenti e il primo usava un filtro a metà
+  (estremo nuovo + estremo vecchio): se quella risposta arrivava per ultima, a schermo restavano
+  righe che non corrispondevano al filtro. Serve a chiunque filtri per intervallo (`from`/`to`).
+  Test: `test/paged_datatable_filters_test.dart`.
+
 ## 5.9.5
 
 - **Tabella: lo stato vuoto distingue due cose diverse.** «Nessun elemento trovato / prova a
