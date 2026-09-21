@@ -148,9 +148,12 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
                       (column) => _DataTableCell<TResultId, TResult>(
                         column: column,
                         model: model,
+                        // Stesso fattore dell'intestazione: se le due larghezze
+                        // divergessero, le celle non starebbero più sotto la loro
+                        // colonna — il difetto peggiore di una tabella.
                         width: column.sizeFactor == null
                             ? state._nullSizeFactorColumnsWidth
-                            : widget.width * column.sizeFactor!,
+                            : widget.width * column.sizeFactor! * state.sizeFactorScale,
                       ),
                     ),
                     const Spacer(),

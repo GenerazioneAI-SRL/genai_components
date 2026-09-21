@@ -62,6 +62,18 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   final bool showShimmerLoading;
   late final double columnsSizeFactor;
   late final int lengthColumnsWithoutSizeFactor;
+
+  /// Il `sizeFactor` più piccolo fra le colonne: decide quanto si può
+  /// rimpicciolire prima che una colonna diventi illeggibile.
+  late final double _minSizeFactor;
+
+  /// Larghezza sotto la quale una colonna non dice più niente: ci sta un'icona,
+  /// non una data né un nome.
+  static const double _minColumnWidth = 48;
+
+  /// Lo spazio della tabella **prima** di sottrarre le colonne con fattore:
+  /// serve a ragionare in pixel, non in frazioni.
+  double _rawAvailableWidth = 0;
   int lastPage = 1;
 
   /// Contains a list of selected rows. If the page changes, this remain untouched.
@@ -92,11 +104,38 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
   }
 
   set availableWidth(double newWidth) {
+    _rawAvailableWidth = newWidth;
     _availableWidth = newWidth;
 
     // subtract all the columns that has a specific sizeFactor
-    _availableWidth = _availableWidth - (_availableWidth * columnsSizeFactor);
+    final occupato = (columnsSizeFactor * sizeFactorScale).clamp(0.0, 1.0);
+    _availableWidth = _availableWidth - (_availableWidth * occupato);
     _nullSizeFactorColumnsWidth = _availableWidth / lengthColumnsWithoutSizeFactor; // equally distributed
+  }
+
+  /// Quanto rimpicciolire le colonne perché la riga **stia nello schermo**.
+  ///
+  /// Ogni colonna è larga `spazio disponibile × sizeFactor`: se la somma dei
+  /// fattori supera 1, la riga è più larga della tabella e compare lo scroll
+  /// orizzontale — che su una lista di presenze significa non vedere mai insieme
+  /// il nome e le ore.
+  ///
+  /// Qui si riscala: somma 1,34 ⇒ fattore 0,746 e tutte le colonne rientrano.
+  /// **Non si scala mai in su**: una tabella che oggi occupa il 70% della
+  /// larghezza resta com'è, perché allargarla cambierebbe l'aspetto di pagine
+  /// che nessuno ha chiesto di toccare.
+  ///
+  /// Il limite: non si scende sotto [_minColumnWidth] per colonna. Oltre quella
+  /// soglia le colonne diventano illeggibili, e una riga illeggibile è peggio di
+  /// una riga da scorrere — lì si torna allo scroll, e il rimedio vero è
+  /// nascondere qualche colonna (Impostazioni HR › Colonne delle tabelle).
+  double get sizeFactorScale {
+    if (columnsSizeFactor <= 1 || _rawAvailableWidth <= 0) return 1;
+    final perStare = 1 / columnsSizeFactor;
+    if (_minSizeFactor <= 0) return perStare;
+    // Sotto questo fattore la colonna più stretta scenderebbe sotto il minimo.
+    final minimoLeggibile = _minColumnWidth / (_rawAvailableWidth * _minSizeFactor);
+    return perStare > minimoLeggibile ? perStare : minimoLeggibile.clamp(0.0, 1.0);
   }
 
   _PagedDataTableState({
@@ -544,7 +583,23 @@ class _PagedDataTableState<TKey extends Comparable, TResultId extends Comparable
 
     columnsSizeFactor = sizeFactorSum;
     lengthColumnsWithoutSizeFactor = withoutSizeFactor;
-    assert(columnsSizeFactor <= 1, "the sum of all sizeFactor must be less than or equals to 1, given $columnsSizeFactor");
+    _minSizeFactor = columns
+        .map((c) => c.sizeFactor)
+        .whereType<double>()
+        .fold<double>(double.infinity, (min, f) => f < min ? f : min);
+
+    // Era un `assert`: in debug faceva saltare la pagina, in release lasciava
+    // scorrere la tabella in silenzio — il peggio dei due mondi, e infatti
+    // l'Elenco Presenze è arrivato a 1,34 senza che nessuno se ne accorgesse.
+    // Ora la tabella si arrangia (vedi `sizeFactorScale`) e lo sviluppatore
+    // riceve comunque l'avviso, senza che l'utente perda la pagina.
+    if (columnsSizeFactor > 1) {
+      debugPrint(
+        'PagedDataTable: la somma dei sizeFactor è $columnsSizeFactor (> 1). '
+        'Le colonne vengono rimpicciolite per stare nello schermo; '
+        'per un risultato migliore, sistema i fattori o togli una colonna.',
+      );
+    }
   }
 
   @pragma("vm:prefer-inline")
