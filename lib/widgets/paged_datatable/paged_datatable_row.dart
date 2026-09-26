@@ -160,6 +160,9 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
                     if (!useSwipe && inlineActions.isNotEmpty)
                       Row(
                         mainAxisSize: MainAxisSize.min,
+                        // stretch: ogni bottone riceve tutta l'altezza della riga
+                        // come area di tocco (vedi `_InlineActionButton`).
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           for (var i = 0; i < inlineActions.length; i++) ...[
                             if (i > 0) SizedBox(width: m.gap),
@@ -178,16 +181,19 @@ class _HoverableRowState<TKey extends Comparable, TResultId extends Comparable,
                               : 0,
                           right: m.popupRightGap,
                         ),
+                        // Niente `Center` qui: centrerebbe il bersaglio sui 32px
+                        // dell'icona lasciando inerte il resto dello slot, che la
+                        // riga (opaque) si prende aprendo il dettaglio. Il
+                        // bottone riceve lo slot intero e lo centra al proprio
+                        // interno. Vedi `_ActionButton`.
                         child: SizedBox(
                           width: m.popupButtonSlot,
-                          child: Center(
-                            child: _ActionButton(
-                              iconKey: iconKey,
-                              actions: actions,
-                              model: model,
-                              actionsTitle: widget.actionsTitle,
-                              onDialogStateChange: (isOpen) {},
-                            ),
+                          child: _ActionButton(
+                            iconKey: iconKey,
+                            actions: actions,
+                            model: model,
+                            actionsTitle: widget.actionsTitle,
+                            onDialogStateChange: (isOpen) {},
                           ),
                         ),
                       )
@@ -410,15 +416,27 @@ class _InlineActionButton<TResultId extends Comparable, TResult extends Object>
         ? theme.primaryText
         : semantic;
 
-    // size from the SAME metric the reservation math uses (reserve == render).
-    return CLIconButton(
+    // Il bottone resta 32px (size = la stessa metrica con cui lo spazio viene
+    // riservato: reserve == render), ma l'area di tocco prende tutta l'altezza
+    // della riga: sopra e sotto l'icona il tap cadrebbe sulla riga, che e'
+    // opaque e aprirebbe il dettaglio.
+    // `behavior: opaque` serve proprio a fermarlo li'. Il tap sull'icona lo
+    // gestisce comunque il CLIconButton (il recognizer piu' interno vince),
+    // quindi hover e feedback di pressione restano quelli nativi.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => action.onTap(model.item),
-      iconData: action.icon,
-      backgroundColor: theme.muted,
-      iconColor: iconColor,
-      size: m.inlineButtonSide,
-      iconSize: theme.iconSizeCompact,
-      tooltip: action.label,
+      child: Center(
+        child: CLIconButton(
+          onTap: () => action.onTap(model.item),
+          iconData: action.icon,
+          backgroundColor: theme.muted,
+          iconColor: iconColor,
+          size: m.inlineButtonSide,
+          iconSize: theme.iconSizeCompact,
+          tooltip: action.label,
+        ),
+      ),
     );
   }
 }
