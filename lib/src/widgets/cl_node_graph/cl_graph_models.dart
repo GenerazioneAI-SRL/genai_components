@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'cl_graph_attributes.dart';
 
 /// Azione/indicatore su una card del grafo, resa come slot in alto a destra.
 /// Di norma un'icona tappabile (es. frecce ordine ▲▼); con [label] mostra invece
@@ -34,6 +35,13 @@ class CLGraphNode {
   /// ordine ▲▼). Vuoto ⇒ nessuna icona. L'host cabla il comportamento via
   /// `CLNodeGraph.onNodeAction`.
   final List<CLGraphNodeAction> actions;
+  /// Attributi definiti dall'utente (nome, tipo, nullable, default): una riga
+  /// ciascuno sotto l'intestazione, la card si allunga. Vuoto ⇒ card classica
+  /// 220×96, comportamento invariato. Modificabili via `CLNodeGraph.onAttributeChanged`.
+  final List<CLGraphNodeAttribute> attributes;
+  /// Valori correnti degli attributi, per nome. Chiave assente ⇒ default
+  /// dell'attributo (vedi `CLGraphNodeAttributes.attributeValue`).
+  final Map<String, Object?> attributeValues;
 
   const CLGraphNode({
     required this.id,
@@ -46,6 +54,8 @@ class CLGraphNode {
     this.badgeColor,
     this.data,
     this.actions = const [],
+    this.attributes = const [],
+    this.attributeValues = const {},
   });
 }
 

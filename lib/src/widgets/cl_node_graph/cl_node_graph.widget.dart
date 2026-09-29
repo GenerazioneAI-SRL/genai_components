@@ -6,6 +6,8 @@ import 'cl_graph_collapse.dart';
 import 'cl_graph_layout.dart';
 import 'cl_graph_edge_painter.dart';
 import 'cl_graph_geometry.dart';
+import 'cl_graph_attributes.dart';
+import 'cl_graph_attribute_fields.dart';
 
 const double kCardW = 220;
 const double kCardH = 96; // include la pill badge (modulo) sopra titolo+sottotitolo
@@ -17,6 +19,55 @@ const double _kActionSize = 24; // area cliccabile di ogni icona azione (top-rig
 const double _kActionGap = 4; // gap orizzontale tra icone azione adiacenti
 // _kTriDy vive in cl_graph_models.dart (kTriDy) — condiviso col painter.
 const double _kTrashR = 14; // raggio hit del cestino attorno al midpoint dell'arco
+const double _kAttrTop = kCardH - 12; // inizio (card-local) della sezione attributi: dentro il padding basso dell'intestazione
+
+/// Altezza della card di [node]: [kCardH] più una riga
+/// ([kGraphAttributeRowH]) per ogni attributo. Senza attributi è [kCardH].
+double clGraphNodeHeight(CLGraphNode node) => kCardH + node.attributes.length * kGraphAttributeRowH;
+
+/// Sotto vincoli stretti il canvas prende la misura della viewport invece della
+/// propria: le card che (in coordinate canvas) cadono oltre quella misura non
+/// ricevono l'hit-test standard, quindi i campi attributo non si potrebbero
+/// toccare. L'OverflowBox lascia al Transform la misura naturale del canvas.
+/// Attivo solo quando ci sono attributi, così i grafi senza restano identici.
+Widget _naturalCanvasSize({required bool enabled, required Widget child}) => enabled
+    ? OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: double.infinity,
+        maxHeight: double.infinity,
+        child: child,
+      )
+    : child;
+
+/// Riposiziona in verticale le card dopo il layout quando alcune sono più alte
+/// di [kCardH] (nodi con attributi). I layout ragionano su righe da [kCardH]:
+/// ogni "riga" (nodi con la stessa y) scende della somma delle altezze extra
+/// delle righe sopra, così le righe restano allineate e le distanze originali
+/// si conservano. Le x non cambiano. Se nessun nodo ha altezza extra restituisce
+/// [positions] invariato.
+Map<String, Offset> clSeparateTallNodes(List<CLGraphNode> nodes, Map<String, Offset> positions) {
+  final extraByRow = <double, double>{for (final p in positions.values) p.dy: 0};
+  var any = false;
+  for (final n in nodes) {
+    final p = positions[n.id];
+    if (p == null) continue;
+    final extra = clGraphNodeHeight(n) - kCardH;
+    if (extra <= 0) continue;
+    any = true;
+    if (extra > extraByRow[p.dy]!) extraByRow[p.dy] = extra;
+  }
+  if (!any) return positions;
+  final rows = extraByRow.keys.toList()..sort();
+  final shift = <double, double>{};
+  var acc = 0.0;
+  for (final y in rows) {
+    shift[y] = acc;
+    acc += extraByRow[y]!;
+  }
+  return {for (final e in positions.entries) e.key: e.value.translate(0, shift[e.value.dy]!)};
+}
 
 /// Ancora porta OUT (destra, "sblocca"): sul bordo destro della card (il pallino
 /// è disegnato a cavallo del bordo). Sorgente della linea pending. Stesso
@@ -34,7 +85,7 @@ double _actionSlotLeft(int i, int n) =>
 /// una sola pipeline pointer-raw hit-testa e smista — nessun GestureDetector
 /// annidato, quindi nessuna arena da vincere (era la causa del "a volte muove
 /// la card, a volte tutto il canvas").
-enum _Mode { none, node, port, chevron, action, edge, trash, pan }
+enum _Mode { none, node, port, chevron, action, edge, trash, pan, input }
 
 /// Canvas a nodi data-driven: render nodi+archi da `nodes`/`edges`, tap→select,
 /// drag-porta (dx→sx) per creare prereq, drag-corpo per spostare il nodo
@@ -65,6 +116,11 @@ class CLNodeGraph extends StatefulWidget {
   /// Tap su un'icona azione della card (`CLGraphNode.actions`). `globalPos` = la
   /// posizione globale del pointer al rilascio (per ancorare un popup lato host).
   final void Function(String nodeId, String actionId, Offset globalPos)? onNodeAction;
+  /// Modifica di un attributo dalla card (`CLGraphNode.attributes`): nuovo
+  /// valore, già valido per il tipo (`null` solo se l'attributo è nullable).
+  /// Il widget non aggiorna il nodo: l'host lo sostituisce, es. con
+  /// `node.withAttributeValue(attributeName, value)`. Null ⇒ attributi in sola lettura.
+  final void Function(String nodeId, String attributeName, Object? value)? onAttributeChanged;
 
   const CLNodeGraph({
     super.key,
@@ -85,6 +141,7 @@ class CLNodeGraph extends StatefulWidget {
     this.onToggleCollapse,
     this.canCollapse,
     this.onNodeAction,
+    this.onAttributeChanged,
   });
 
   @override
@@ -228,6 +285,13 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
           }
         }
       }
+      // Sezione attributi modificabili: il pointer va agli input (campo, menu,
+      // checkbox) e non trascina il nodo.
+      if (widget.onAttributeChanged != null && n.attributes.isNotEmpty) {
+        if (Rect.fromLTRB(r.left, r.top + _kAttrTop, r.right, r.bottom).contains(cp)) {
+          return (mode: _Mode.input, id: n.id);
+        }
+      }
       if (r.contains(cp)) return (mode: _Mode.node, id: n.id);
     }
     // 3) Arco prereq nel vuoto tra le card.
@@ -286,6 +350,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       case _Mode.edge:
       case _Mode.trash:
       case _Mode.none:
+      case _Mode.input:
         break; // target puntuale: il movimento non trascina nulla
     }
     _lastViewport = vp;
@@ -324,6 +389,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         if (!moved) setState(() => _selectedEdgeId = null); // tap nel vuoto ⇒ deseleziona
       case _Mode.none:
         break;
+      case _Mode.input:
+        break; // gestito dagli input della sezione attributi
     }
     _resetGesture();
   }
@@ -405,7 +472,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind));
     }
 
-    final positions = _layout(visibleNodes, effectiveEdges); // top-left per id
+    // top-left per id; con card allungate dagli attributi le righe sotto scendono.
+    final positions = clSeparateTallNodes(visibleNodes, _layout(visibleNodes, effectiveEdges));
 
     // Rect di ogni card + bounding box del canvas. La posizione manuale
     // (drag-move effimero) fa override del layout calcolato.
@@ -414,7 +482,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     for (final n in visibleNodes) {
       final p = _manualPos[n.id] ?? positions[n.id];
       if (p == null) continue;
-      final r = Rect.fromLTWH(p.dx, p.dy, kCardW, kCardH);
+      final r = Rect.fromLTWH(p.dx, p.dy, kCardW, clGraphNodeHeight(n));
       rects[n.id] = r;
       maxX = maxX > r.right ? maxX : r.right;
       maxY = maxY > r.bottom ? maxY : r.bottom;
@@ -469,7 +537,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 left: rects[n.id]!.left,
                 top: rects[n.id]!.top,
                 width: kCardW,
-                height: kCardH,
+                height: rects[n.id]!.height,
                 child: _nodeCard(context, theme, n),
               ),
           // Cestino dell'arco attivo al midpoint — visuale pura (il click è
@@ -499,10 +567,13 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 onPointerPanZoomStart: _onPanZoomStart,
                 onPointerPanZoomUpdate: _onPanZoomUpdate,
                 child: ClipRect(
-                  child: Transform(
-                    transform: _matrix,
-                    alignment: Alignment.topLeft,
-                    child: canvas,
+                  child: _naturalCanvasSize(
+                    enabled: visibleNodes.any((n) => n.attributes.isNotEmpty),
+                    child: Transform(
+                      transform: _matrix,
+                      alignment: Alignment.topLeft,
+                      child: canvas,
+                    ),
                   ),
                 ),
               ),
@@ -660,6 +731,25 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       ),
     ];
 
+    // Sezione attributi sotto l'intestazione: con `onAttributeChanged` è fatta
+    // di input (l'hit-test le riserva _Mode.input), altrimenti mostra i valori.
+    final cardH = clGraphNodeHeight(n);
+    if (n.attributes.isNotEmpty) {
+      children.add(Positioned(
+        left: 0,
+        right: 0,
+        top: _kAttrTop,
+        bottom: 0,
+        child: CLGraphAttributesSection(
+          node: n,
+          onChanged: widget.onAttributeChanged == null
+              ? null
+              : (name, value) => widget.onAttributeChanged!(n.id, name, value),
+          onInteract: () => widget.onNodeTap?.call(n.id),
+        ),
+      ));
+    }
+
     // Porte di connessione prereq, a cavallo del bordo (metà dentro/fuori) come
     // in fl_nodes. I nodi connettibili hanno OUT (dx) + IN (sx); i nodi con solo
     // `showOutPort` (es. modulo) hanno il solo pallino OUT decorativo.
@@ -667,14 +757,14 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     if (connectable || widget.showOutPort?.call(n) == true) {
       children.add(Positioned(
         right: -_kDotSize / 2,
-        top: (kCardH - _kDotSize) / 2,
+        top: (cardH - _kDotSize) / 2,
         child: _connDot(theme, active: n.id == _pendingFromId),
       ));
     }
     if (connectable) {
       children.add(Positioned(
         left: -_kDotSize / 2,
-        top: (kCardH - _kDotSize) / 2,
+        top: (cardH - _kDotSize) / 2,
         child: _connDot(theme, active: false),
       ));
     }
@@ -684,7 +774,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     if (widget.showLessonPort?.call(n) == true) {
       children.add(Positioned(
         right: -_kDotSize / 2,
-        top: kCardH / 2 + kTriDy - _kDotSize / 2,
+        top: cardH / 2 + kTriDy - _kDotSize / 2,
         child: Icon(Icons.play_arrow, size: _kDotSize + 2, color: theme.danger),
       ));
     }
