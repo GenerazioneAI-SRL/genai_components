@@ -1,0 +1,103 @@
+{
+  "format": "cl_node_graph",
+  "version": 1,
+  "exportedAt": null,
+  "nodes": [
+    {
+      "id": "p1",
+      "type": "phase",
+      "title": "12–9 mesi prima",
+      "subtitle": "Le fondamenta",
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": null,
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "budget",
+      "type": "task",
+      "title": "Definire il budget",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": "Sposi",
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": null,
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "location",
+      "type": "task",
+      "title": "Scegliere la location",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": "Wedding planner",
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": null,
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "p1/budget",
+      "fromNodeId": "p1",
+      "toNodeId": "budget",
+      "kind": "containment",
+      "hidden": false
+    },
+    {
+      "id": "p1/location",
+      "fromNodeId": "p1",
+      "toNodeId": "location",
+      "kind": "containment",
+      "hidden": true
+    },
+    {
+      "id": "budget>location",
+      "fromNodeId": "budget",
+      "toNodeId": "location",
+      "kind": "prerequisite",
+      "hidden": false
+    }
+  ],
+  "view": {
+    "layout": "moduleFlow",
+    "selectedNodeId": null,
+    "collapsedNodeIds": [
+      "p1"
+    ]
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "format": "cl_node_graph",
+  "version": 1,
+  "exportedAt": "2026-09-30T10:00:00.000Z",
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "trigger",
+      "title": "Nuovo lead",
+      "subtitle": "Form sito o DM Instagram",
+      "icon": {
+        "codePoint": 57582,
+        "fontFamily": "MaterialIcons",
+        "fontPackage": null,
+        "matchTextDirection": false
+      },
+      "accent": "#FFF59E0B",
+      "badge": "Trigger",
+      "badgeColor": null,
+      "data": {
+        "evento": "lead.created",
+        "canali": [
+          "Sito",
+          "Instagram"
+        ]
+      },
+      "actions": [],
+      "attributes": [
+        {
+          "name": "canale",
+          "type": "enumeration",
+          "nullable": false,
+          "defaultValue": "Sito",
+          "options": [
+            "Sito",
+            "Instagram",
+            "Fiera"
+          ],
+          "min": null,
+          "max": null,
+          "integer": false,
+          "maxLength": null,
+          "validator": null
+        },
+        {
+          "name": "solo nuovi contatti",
+          "type": "boolean",
+          "nullable": false,
+          "defaultValue": true,
+          "options": [],
+          "min": null,
+          "max": null,
+          "integer": false,
+          "maxLength": null,
+          "validator": null
+        }
+      ],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": [],
+        "outputTypes": [
+          "action"
+        ],
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 1,
+        "maxOutputs": 1
+      }
+    },
+    {
+      "id": "whatsapp",
+      "type": "action",
+      "title": "Reminder WhatsApp",
+      "subtitle": null,
+      "icon": {
+        "codePoint": 57685,
+        "fontFamily": "MaterialIcons",
+        "fontPackage": null,
+        "matchTextDirection": false
+      },
+      "accent": "#FF5B9BD5",
+      "badge": "No",
+      "badgeColor": "#FFDC2626",
+      "data": null,
+      "actions": [
+        {
+          "id": "remove",
+          "icon": {
+            "codePoint": 57706,
+            "fontFamily": "MaterialIcons",
+            "fontPackage": null,
+            "matchTextDirection": false
+          },
+          "label": null,
+          "tooltip": "Rimuovi step",
+          "interactive": true
+        }
+      ],
+      "attributes": [
+        {
+          "name": "messaggio",
+          "type": "string",
+          "nullable": false,
+          "defaultValue": null,
+          "options": [],
+          "min": null,
+          "max": null,
+          "integer": false,
+          "maxLength": 300,
+          "validator": null
+        },
+        {
+          "name": "invia alle",
+          "type": "time",
+          "nullable": false,
+          "defaultValue": "18:30",
+          "options": [],
+          "min": null,
+          "max": null,
+          "integer": false,
+          "maxLength": null,
+          "validator": "daytime"
+        },
+        {
+          "name": "link",
+          "type": "url",
+          "nullable": true,
+          "defaultValue": null,
+          "options": [],
+          "min": null,
+          "max": null,
+          "integer": false,
+          "maxLength": null,
+          "validator": null
+        },
+        {
+          "name": "tentativi",
+          "type": "numeric",
+          "nullable": false,
+          "defaultValue": 1,
+          "options": [],
+          "min": 1,
+          "max": 5,
+          "integer": true,
+          "maxLength": null,
+          "validator": null
+        },
+        {
+          "name": "solo se non ha risposto",
+          "type": "boolean",
+          "nullable": true,
+          "defaultValue": null,
+          "options": [],
+          "min": null,
+          "max": null,
+          "integer": false,
+          "maxLength": null,
+          "validator": null
+        }
+      ],
+      "attributeValues": {
+        "messaggio": "Ciao! Ti aspettiamo in atelier.",
+        "link": "https://www.atelier.it/prenota",
+        "tentativi": 2
+      },
+      "connectionRules": {
+        "inputTypes": [
+          "trigger",
+          "action"
+        ],
+        "outputTypes": null,
+        "minInputs": 1,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "done",
+      "type": "end",
+      "title": "Fine",
+      "subtitle": null,
+      "icon": {
+        "codePoint": 61563,
+        "fontFamily": "MaterialIcons",
+        "fontPackage": null,
+        "matchTextDirection": false
+      },
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [
+        {
+          "id": "count",
+          "icon": null,
+          "label": "12",
+          "tooltip": "12 lead arrivati qui",
+          "interactive": false
+        }
+      ],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": [],
+        "minInputs": 1,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "trigger>whatsapp",
+      "fromNodeId": "trigger",
+      "toNodeId": "whatsapp",
+      "kind": "prerequisite",
+      "hidden": false
+    },
+    {
+      "id": "whatsapp>done",
+      "fromNodeId": "whatsapp",
+      "toNodeId": "done",
+      "kind": "prerequisite",
+      "hidden": false
+    }
+  ],
+  "view": {
+    "layout": "prereqFlow",
+    "selectedNodeId": "whatsapp",
+    "collapsedNodeIds": []
+  }
+}

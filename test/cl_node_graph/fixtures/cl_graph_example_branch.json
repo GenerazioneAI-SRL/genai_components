@@ -1,0 +1,171 @@
+{
+  "format": "cl_node_graph",
+  "version": 1,
+  "exportedAt": null,
+  "nodes": [
+    {
+      "id": "lead",
+      "type": "trigger",
+      "title": "Nuovo lead",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": [],
+        "outputTypes": [
+          "condition"
+        ],
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 1,
+        "maxOutputs": 1
+      }
+    },
+    {
+      "id": "opened",
+      "type": "condition",
+      "title": "Ha aperto l'email?",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": [
+          "trigger"
+        ],
+        "outputTypes": [
+          "action"
+        ],
+        "minInputs": 1,
+        "maxInputs": 1,
+        "minOutputs": 2,
+        "maxOutputs": 2
+      }
+    },
+    {
+      "id": "booking",
+      "type": "action",
+      "title": "Proponi appuntamento",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": "Sì",
+      "badgeColor": "#FF16A34A",
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": [
+          "condition"
+        ],
+        "outputTypes": [
+          "end"
+        ],
+        "minInputs": 1,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "whatsapp",
+      "type": "action",
+      "title": "Reminder WhatsApp",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": "No",
+      "badgeColor": "#FFDC2626",
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": [
+          "condition"
+        ],
+        "outputTypes": [
+          "end"
+        ],
+        "minInputs": 1,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "done",
+      "type": "end",
+      "title": "Fine",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": [
+          "action"
+        ],
+        "outputTypes": [],
+        "minInputs": 1,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "lead>opened",
+      "fromNodeId": "lead",
+      "toNodeId": "opened",
+      "kind": "prerequisite",
+      "hidden": false
+    },
+    {
+      "id": "opened>booking",
+      "fromNodeId": "opened",
+      "toNodeId": "booking",
+      "kind": "prerequisite",
+      "hidden": false
+    },
+    {
+      "id": "opened>whatsapp",
+      "fromNodeId": "opened",
+      "toNodeId": "whatsapp",
+      "kind": "prerequisite",
+      "hidden": false
+    },
+    {
+      "id": "booking>done",
+      "fromNodeId": "booking",
+      "toNodeId": "done",
+      "kind": "prerequisite",
+      "hidden": false
+    },
+    {
+      "id": "whatsapp>done",
+      "fromNodeId": "whatsapp",
+      "toNodeId": "done",
+      "kind": "prerequisite",
+      "hidden": false
+    }
+  ],
+  "view": null
+}

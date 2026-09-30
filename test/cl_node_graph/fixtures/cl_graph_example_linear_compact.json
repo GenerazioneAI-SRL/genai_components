@@ -1,0 +1,13 @@
+{
+  "format": "cl_node_graph",
+  "version": 1,
+  "nodes": [
+    { "id": "lead", "type": "trigger", "title": "Nuovo lead" },
+    { "id": "welcome", "type": "action", "title": "Email di benvenuto" },
+    { "id": "assign", "type": "action", "title": "Assegna consulente" }
+  ],
+  "edges": [
+    { "id": "lead>welcome", "fromNodeId": "lead", "toNodeId": "welcome", "kind": "prerequisite" },
+    { "id": "welcome>assign", "fromNodeId": "welcome", "toNodeId": "assign", "kind": "prerequisite" }
+  ]
+}
