@@ -6,11 +6,11 @@ import 'cl_graph_collapse.dart';
 import 'cl_graph_layout.dart';
 import 'cl_graph_edge_painter.dart';
 import 'cl_graph_geometry.dart';
-import 'cl_graph_attributes.dart';
 import 'cl_graph_attribute_fields.dart';
+import 'cl_graph_card_metrics.dart';
+import 'cl_graph_connections.dart';
 
-const double kCardW = 220;
-const double kCardH = 96; // include la pill badge (modulo) sopra titolo+sottotitolo
+// kCardW / kCardH vivono in cl_graph_models.dart: condivisi con le misure delle card.
 const double _pad = 60; // margine attorno al bounding box
 const double _kDotSize = 16; // diametro del pallino di connessione prereq
 const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
@@ -19,11 +19,7 @@ const double _kActionSize = 24; // area cliccabile di ogni icona azione (top-rig
 const double _kActionGap = 4; // gap orizzontale tra icone azione adiacenti
 // _kTriDy vive in cl_graph_models.dart (kTriDy) — condiviso col painter.
 const double _kTrashR = 14; // raggio hit del cestino attorno al midpoint dell'arco
-const double _kAttrTop = kCardH - 12; // inizio (card-local) della sezione attributi: dentro il padding basso dell'intestazione
-
-/// Altezza della card di [node]: [kCardH] più una riga
-/// ([kGraphAttributeRowH]) per ogni attributo. Senza attributi è [kCardH].
-double clGraphNodeHeight(CLGraphNode node) => kCardH + node.attributes.length * kGraphAttributeRowH;
+const double _kDimmed = 0.35; // opacità dei bersagli non ammessi durante un collegamento
 
 /// Sotto vincoli stretti il canvas prende la misura della viewport invece della
 /// propria: le card che (in coordinate canvas) cadono oltre quella misura non
@@ -42,18 +38,18 @@ Widget _naturalCanvasSize({required bool enabled, required Widget child}) => ena
     : child;
 
 /// Riposiziona in verticale le card dopo il layout quando alcune sono più alte
-/// di [kCardH] (nodi con attributi). I layout ragionano su righe da [kCardH]:
-/// ogni "riga" (nodi con la stessa y) scende della somma delle altezze extra
-/// delle righe sopra, così le righe restano allineate e le distanze originali
-/// si conservano. Le x non cambiano. Se nessun nodo ha altezza extra restituisce
-/// [positions] invariato.
-Map<String, Offset> clSeparateTallNodes(List<CLGraphNode> nodes, Map<String, Offset> positions) {
+/// di [kCardH] (testo a capo, avvisi, attributi): [heights] = altezza di ogni
+/// card per id. I layout ragionano su righe da [kCardH]: ogni "riga" (nodi con
+/// la stessa y) scende della somma delle altezze extra delle righe sopra, così
+/// le righe restano allineate e le distanze originali si conservano. Le x non
+/// cambiano. Se nessuna card supera [kCardH] restituisce [positions] invariato.
+Map<String, Offset> clSeparateTallNodes(Map<String, Offset> positions, Map<String, double> heights) {
   final extraByRow = <double, double>{for (final p in positions.values) p.dy: 0};
   var any = false;
-  for (final n in nodes) {
-    final p = positions[n.id];
+  for (final e in heights.entries) {
+    final p = positions[e.key];
     if (p == null) continue;
-    final extra = clGraphNodeHeight(n) - kCardH;
+    final extra = e.value - kCardH;
     if (extra <= 0) continue;
     any = true;
     if (extra > extraByRow[p.dy]!) extraByRow[p.dy] = extra;
@@ -92,6 +88,16 @@ enum _Mode { none, node, port, chevron, action, edge, trash, pan, input }
 /// (effimero), hover arco→cestino per eliminare, "Ordina" per risnappare al
 /// layout. Nessun motore imperativo: si ridisegna dalle props.
 ///
+/// Collegamenti: le regole di ogni nodo (`CLGraphNode.connectionRules`)
+/// decidono quali porte mostrare e quali archi si possono creare. Durante un
+/// collegamento i bersagli non ammessi si attenuano e il motivo compare
+/// accanto al cursore; al rilascio su un bersaglio non ammesso scatta
+/// [onConnectionRejected] invece di [onEdgeCreate]. I minimi non rispettati
+/// compaiono come avviso nella card.
+///
+/// Testo: titolo, sottotitolo, etichette, valori ed errori vanno a capo e la
+/// card si allunga (larghezza fissa [kCardW]), niente puntini di troncamento.
+///
 /// Gesture: UN solo [Listener] raw a livello viewport. Su pointer-down un
 /// hit-test manuale (in coord canvas) decide il [_Mode]; move/up smistano di
 /// conseguenza. Zoom con rotella. Niente InteractiveViewer, niente
@@ -121,6 +127,12 @@ class CLNodeGraph extends StatefulWidget {
   /// Il widget non aggiorna il nodo: l'host lo sostituisce, es. con
   /// `node.withAttributeValue(attributeName, value)`. Null ⇒ attributi in sola lettura.
   final void Function(String nodeId, String attributeName, Object? value)? onAttributeChanged;
+  /// Rilascio di un collegamento su un bersaglio che le regole non ammettono
+  /// (o già collegato): nessun arco creato, [reason] è il messaggio mostrato.
+  final void Function(String fromNodeId, String toNodeId, String reason)? onConnectionRejected;
+  /// Nome leggibile di un tipo di nodo nei messaggi sui collegamenti (es.
+  /// 'action' ⇒ 'Azione'). Null ⇒ il tipo così com'è.
+  final String Function(String type)? typeLabel;
 
   const CLNodeGraph({
     super.key,
@@ -142,6 +154,8 @@ class CLNodeGraph extends StatefulWidget {
     this.canCollapse,
     this.onNodeAction,
     this.onAttributeChanged,
+    this.onConnectionRejected,
+    this.typeLabel,
   });
 
   @override
@@ -177,8 +191,57 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   // Geometria dell'ultimo frame, letta dagli handler pointer per l'hit-test.
   Map<String, Rect> _rects = const {};
+  Map<String, double> _sectionTops = const {}; // inizio (card-local) della sezione attributi
   List<({String id, Offset a, Offset b})> _segments = const [];
   List<CLGraphNode> _visibleNodes = const [];
+
+  CLGraphCardMetrics? _metrics; // ricreato solo se cambiano tema, stile base, textScaler o direzione
+  /// Testi dei campi non (ancora) validi, per nodo e attributo: la card li
+  /// misura (campo più alto, riga d'errore) invece del valore dell'host.
+  final Map<String, Map<String, CLGraphFieldDraft>> _drafts = {};
+
+  @override
+  void didUpdateWidget(covariant CLNodeGraph oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_drafts.isEmpty) return;
+    final ids = {for (final n in widget.nodes) n.id};
+    _drafts.removeWhere((id, _) => !ids.contains(id));
+  }
+
+  CLGraphCardMetrics _metricsFor(BuildContext context, CLTheme theme) {
+    final base = DefaultTextStyle.of(context).style;
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    final m = _metrics;
+    if (m != null && m.sameInputs(theme, base, scaler, direction)) return m;
+    return _metrics = CLGraphCardMetrics(theme: theme, baseStyle: base, textScaler: scaler, textDirection: direction);
+  }
+
+  void _onDraftChanged(String nodeId, String name, CLGraphFieldDraft? draft) {
+    if (!mounted) return;
+    setState(() {
+      final drafts = _drafts[nodeId] ??= {};
+      if (draft == null) {
+        drafts.remove(name);
+        if (drafts.isEmpty) _drafts.remove(nodeId);
+      } else {
+        drafts[name] = draft;
+      }
+    });
+  }
+
+  /// Motivo per cui [target] non può ricevere l'arco dalla sorgente [from], o
+  /// null se il collegamento è ammesso.
+  String? _targetProblem(CLGraphNode from, CLGraphNode target) {
+    if (widget.canConnect?.call(target) != true) return '«${target.title}» non si può collegare';
+    return clGraphConnectionProblem(from, target, widget.edges, typeLabel: widget.typeLabel);
+  }
+
+  /// Porta OUT attiva (si può trascinare per collegare).
+  bool _hasOutPort(CLGraphNode n) => widget.canConnect?.call(n) == true && n.connectionRules.acceptsOutputs;
+
+  /// Porta IN attiva (bersaglio di un collegamento).
+  bool _hasInPort(CLGraphNode n) => widget.canConnect?.call(n) == true && n.connectionRules.acceptsInputs;
 
   /// "Ordina": svuota le posizioni manuali → i nodi tornano al layout calcolato.
   void _arrange() => setState(() => _manualPos.clear());
@@ -193,6 +256,40 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final sx = st[0], sy = st[5];
     final tx = st[12], ty = st[13];
     return Offset((vp.dx - tx) / (sx == 0 ? 1 : sx), (vp.dy - ty) / (sy == 0 ? 1 : sy));
+  }
+
+  /// canvas-local → viewport (inversa di [_toCanvas]).
+  Offset _toViewport(Offset cp) {
+    final st = _matrix.storage;
+    return Offset(cp.dx * st[0] + st[12], cp.dy * st[5] + st[13]);
+  }
+
+  /// Messaggio del collegamento non ammesso, accanto al cursore [vp] (viewport):
+  /// a destra/sotto se c'è spazio, altrimenti a sinistra/sopra.
+  Widget _connectBubble(CLTheme theme, CLGraphCardMetrics metrics, String message, Offset vp, Size viewport) {
+    const gap = 14.0;
+    final leftSide = vp.dx > viewport.width / 2;
+    final above = vp.dy > viewport.height - 80;
+    return Positioned(
+      left: leftSide ? null : vp.dx + gap,
+      right: leftSide ? viewport.width - vp.dx + gap : null,
+      top: above ? null : vp.dy + gap,
+      bottom: above ? viewport.height - vp.dy + gap : null,
+      child: IgnorePointer(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 260),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: theme.gapXs),
+            decoration: BoxDecoration(
+              color: theme.danger,
+              borderRadius: BorderRadius.circular(theme.radiusChip),
+              boxShadow: theme.cardShadowSoft,
+            ),
+            child: Text(message, style: metrics.smallStyle.copyWith(color: Colors.white)),
+          ),
+        ),
+      ),
+    );
   }
 
   /// Fit iniziale (una volta): al primo frame utile fa entrare tutto il grafo
@@ -260,7 +357,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       final n = _visibleNodes[i];
       final r = _rects[n.id];
       if (r == null) continue;
-      if (widget.canConnect?.call(n) == true) {
+      if (_hasOutPort(n)) {
         final c = _outAnchor(r);
         if ((cp - c).distance <= _kDotSize / 2 + 4) return (mode: _Mode.port, id: n.id);
       }
@@ -287,8 +384,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       }
       // Sezione attributi modificabili: il pointer va agli input (campo, menu,
       // checkbox) e non trascina il nodo.
-      if (widget.onAttributeChanged != null && n.attributes.isNotEmpty) {
-        if (Rect.fromLTRB(r.left, r.top + _kAttrTop, r.right, r.bottom).contains(cp)) {
+      final sectionTop = _sectionTops[n.id];
+      if (widget.onAttributeChanged != null && sectionTop != null) {
+        if (Rect.fromLTRB(r.left, r.top + sectionTop, r.right, r.bottom).contains(cp)) {
           return (mode: _Mode.input, id: n.id);
         }
       }
@@ -472,8 +570,26 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind));
     }
 
-    // top-left per id; con card allungate dagli attributi le righe sotto scendono.
-    final positions = clSeparateTallNodes(visibleNodes, _layout(visibleNodes, effectiveEdges));
+    // Altezza di ogni card misurata sul testo (a capo, mai troncato), sugli
+    // avvisi dei collegamenti e sugli attributi con le loro bozze.
+    final metrics = _metricsFor(context, theme);
+    final editable = widget.onAttributeChanged != null;
+    final warnings = clGraphConnectionWarnings(widget.nodes, widget.edges);
+    final cards = {
+      for (final n in visibleNodes)
+        n.id: metrics.layout(
+          n,
+          warnings: warnings[n.id] ?? const [],
+          drafts: _drafts[n.id] ?? const {},
+          editable: editable,
+        ),
+    };
+
+    // top-left per id; con card allungate le righe sotto scendono.
+    final positions = clSeparateTallNodes(
+      _layout(visibleNodes, effectiveEdges),
+      {for (final e in cards.entries) e.key: e.value.height},
+    );
 
     // Rect di ogni card + bounding box del canvas. La posizione manuale
     // (drag-move effimero) fa override del layout calcolato.
@@ -482,7 +598,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     for (final n in visibleNodes) {
       final p = _manualPos[n.id] ?? positions[n.id];
       if (p == null) continue;
-      final r = Rect.fromLTWH(p.dx, p.dy, kCardW, clGraphNodeHeight(n));
+      final r = Rect.fromLTWH(p.dx, p.dy, kCardW, cards[n.id]!.height);
       rects[n.id] = r;
       maxX = maxX > r.right ? maxX : r.right;
       maxY = maxY > r.bottom ? maxY : r.bottom;
@@ -492,10 +608,31 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
     // Geometria letta dagli handler pointer per l'hit-test del prossimo gesto.
     _rects = rects;
+    _sectionTops = {
+      for (final n in visibleNodes)
+        if (n.attributes.isNotEmpty) n.id: cards[n.id]!.sectionTop(theme),
+    };
     _segments = segments;
     _visibleNodes = visibleNodes;
 
     final activeEdge = _hoveredEdgeId ?? _selectedEdgeId;
+
+    // Collegamento in corso: per ogni altro nodo visibile il motivo per cui non
+    // può essere il bersaglio (null ⇒ ammesso). Sotto il cursore: il nodo
+    // puntato, il cui motivo (o quello della sorgente senza uscite libere)
+    // compare in un fumetto.
+    final source = _pendingFromId == null ? null : _nodeById(_pendingFromId!);
+    final targetProblems = <String, String?>{
+      if (source != null)
+        for (final n in visibleNodes)
+          if (n.id != source.id) n.id: _targetProblem(source, n),
+    };
+    final hoverTargetId = source == null || _pendingCursor == null ? null : _cardAt(rects, _pendingCursor!, except: source.id);
+    final connectMessage = source == null
+        ? null
+        : hoverTargetId != null
+            ? targetProblems[hoverTargetId]
+            : clGraphOutputProblem(source, widget.edges);
 
     // Il canvas (dimensione naturale): SOLO rendering, nessun gesture — tutto
     // l'input passa dal Listener antenato.
@@ -526,7 +663,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 painter: _PendingEdgePainter(
                   from: _outAnchor(rects[_pendingFromId]!),
                   to: _pendingCursor!,
-                  color: theme.danger,
+                  color: connectMessage != null ? theme.mutedForeground : theme.danger,
                 ),
               ),
             ),
@@ -538,7 +675,17 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 top: rects[n.id]!.top,
                 width: kCardW,
                 height: rects[n.id]!.height,
-                child: _nodeCard(context, theme, n),
+                child: _nodeCard(
+                  context,
+                  theme,
+                  n,
+                  metrics: metrics,
+                  card: cards[n.id]!,
+                  warnings: warnings[n.id] ?? const [],
+                  // Durante un collegamento: attenuato se non ammesso, evidenziato se puntato e ammesso.
+                  dimmed: source != null && n.id != source.id && targetProblems[n.id] != null,
+                  connectTarget: n.id == hoverTargetId && targetProblems[n.id] == null,
+                ),
               ),
           // Cestino dell'arco attivo al midpoint — visuale pura (il click è
           // gestito dal Listener via hit-test). Sopra le card.
@@ -578,6 +725,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 ),
               ),
             ),
+            // Fumetto accanto al cursore: perché il collegamento non si può
+            // fare. In coordinate viewport (dimensione fissa a ogni zoom) e
+            // dal lato del cursore verso il centro, così non esce dal bordo.
+            if (connectMessage != null && _pendingCursor != null)
+              _connectBubble(theme, metrics, connectMessage, _toViewport(_pendingCursor!), constraints.biggest),
             // "Ordina": snap dei nodi al layout calcolato (svuota _manualPos).
             if (widget.showArrangeButton)
               Positioned(
@@ -666,16 +818,34 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   }
 
   /// Card del nodo: visuale pura (nessun gesture). Tap/drag/porte/chevron sono
-  /// gestiti dal Listener antenato via hit-test geometrico.
-  Widget _nodeCard(BuildContext context, CLTheme theme, CLGraphNode n) {
+  /// gestiti dal Listener antenato via hit-test geometrico. Altezze da [card]
+  /// (misurate da [metrics] con gli stessi stili usati qui): il testo va a capo.
+  /// [dimmed] = bersaglio non ammesso del collegamento in corso; [connectTarget]
+  /// = bersaglio ammesso sotto il cursore.
+  Widget _nodeCard(
+    BuildContext context,
+    CLTheme theme,
+    CLGraphNode n, {
+    required CLGraphCardMetrics metrics,
+    required CLGraphCardLayout card,
+    required List<String> warnings,
+    required bool dimmed,
+    required bool connectTarget,
+  }) {
     final accent = n.accent ?? theme.primary;
     final selected = n.id == widget.selectedNodeId;
-    final card = Container(
-      padding: EdgeInsets.all(theme.gapMd),
+    final titleLine = metrics.textHeight('Ag', metrics.titleStyle, double.infinity);
+    final border = selected || connectTarget ? kGraphCardBorderMax : kGraphCardBorder;
+    final body = Container(
+      // Il bordo più spesso mangia il padding, non il testo: stesse righe da selezionata.
+      padding: EdgeInsets.all(theme.gapMd + kGraphCardBorder - border),
       decoration: BoxDecoration(
         color: theme.secondaryBackground,
         borderRadius: BorderRadius.circular(theme.radiusCard),
-        border: Border.all(color: selected ? accent : theme.cardBorder, width: selected ? 2 : 1),
+        border: Border.all(
+          color: connectTarget ? theme.success : (selected ? accent : theme.cardBorder),
+          width: border,
+        ),
         boxShadow: theme.cardShadow,
       ),
       child: Column(
@@ -687,85 +857,111 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
             Padding(
               padding: EdgeInsets.only(bottom: theme.gapXs),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: kGraphBadgePadV),
                 decoration: BoxDecoration(
                   color: (n.badgeColor ?? n.accent ?? theme.primary).withValues(alpha: theme.opacitySoft),
                   borderRadius: BorderRadius.circular(theme.radiusChip),
                 ),
-                child: Text(n.badge!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.smallText.copyWith(color: n.badgeColor ?? n.accent ?? theme.primary)),
+                child: Text(n.badge!, maxLines: 1, overflow: TextOverflow.ellipsis, style: metrics.smallStyle.copyWith(color: n.badgeColor ?? n.accent ?? theme.primary)),
               ),
             ),
+          // Pallino e icona allineati alla prima riga del titolo, che va a capo.
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
+              Padding(
+                padding: EdgeInsets.only(top: (titleLine - kGraphDot) / 2),
+                child: Container(width: kGraphDot, height: kGraphDot, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
+              ),
               SizedBox(width: theme.gapIconText),
-              if (n.icon != null) ...[Icon(n.icon, size: theme.iconSizeCompact, color: accent), SizedBox(width: theme.gapIconText)],
+              if (n.icon != null) ...[
+                Padding(
+                  padding: EdgeInsets.only(top: (titleLine - theme.iconSizeCompact) / 2),
+                  child: Icon(n.icon, size: theme.iconSizeCompact, color: accent),
+                ),
+                SizedBox(width: theme.gapIconText),
+              ],
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(n.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.bodyText),
+                    Text(n.title, style: metrics.titleStyle),
                     if (n.subtitle != null && n.subtitle!.isNotEmpty)
-                      Text(n.subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.smallText.copyWith(color: theme.mutedForeground)),
+                      Text(n.subtitle!, style: metrics.smallStyle.copyWith(color: theme.mutedForeground)),
                   ],
                 ),
               ),
             ],
           ),
+          // Avvisi sui collegamenti (minimi non raggiunti, archi non ammessi).
+          if (warnings.isNotEmpty) ...[
+            SizedBox(height: theme.gapSm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(top: (metrics.smallLineHeight - kGraphWarningIcon) / 2),
+                  child: Icon(Icons.warning_amber_rounded, size: kGraphWarningIcon, color: theme.danger),
+                ),
+                SizedBox(width: theme.gapXs),
+                Expanded(child: Text(warnings.join('\n'), style: metrics.smallStyle.copyWith(color: theme.danger))),
+              ],
+            ),
+          ],
         ],
       ),
     );
 
-    final children = <Widget>[
-      Positioned.fill(
-        // Tap = selezione via gesture STANDARD (non la pipeline pointer-raw):
-        // onTapDown scatta alla pressione ed è affidabile su web, dove il "click"
-        // del trackpad può derivare oltre kTouchSlop e la rilevazione manuale lo
-        // scarterebbe (visto come drag). Il drag/pan resta gestito dal Listener.
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => widget.onNodeTap?.call(n.id),
-          child: card,
-        ),
-      ),
-    ];
+    // Tap = selezione via gesture STANDARD (non la pipeline pointer-raw):
+    // onTapDown scatta alla pressione ed è affidabile su web, dove il "click"
+    // del trackpad può derivare oltre kTouchSlop e la rilevazione manuale lo
+    // scarterebbe (visto come drag). Il drag/pan resta gestito dal Listener.
+    final tappable = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => widget.onNodeTap?.call(n.id),
+      child: body,
+    );
+    final children = <Widget>[Positioned.fill(child: tappable)];
 
     // Sezione attributi sotto l'intestazione: con `onAttributeChanged` è fatta
     // di input (l'hit-test le riserva _Mode.input), altrimenti mostra i valori.
-    final cardH = clGraphNodeHeight(n);
+    final cardH = card.height;
     if (n.attributes.isNotEmpty) {
       children.add(Positioned(
         left: 0,
         right: 0,
-        top: _kAttrTop,
+        top: card.sectionTop(theme),
         bottom: 0,
         child: CLGraphAttributesSection(
           node: n,
+          metrics: metrics,
+          drafts: _drafts[n.id] ?? const {},
           onChanged: widget.onAttributeChanged == null
               ? null
               : (name, value) => widget.onAttributeChanged!(n.id, name, value),
+          onDraftChanged: (name, draft) => _onDraftChanged(n.id, name, draft),
           onInteract: () => widget.onNodeTap?.call(n.id),
         ),
       ));
     }
 
     // Porte di connessione prereq, a cavallo del bordo (metà dentro/fuori) come
-    // in fl_nodes. I nodi connettibili hanno OUT (dx) + IN (sx); i nodi con solo
+    // in fl_nodes. I nodi connettibili hanno OUT (dx) + IN (sx), ciascuna solo
+    // se le regole del nodo ammettono archi su quel lato; i nodi con solo
     // `showOutPort` (es. modulo) hanno il solo pallino OUT decorativo.
-    final connectable = widget.canConnect?.call(n) == true;
-    if (connectable || widget.showOutPort?.call(n) == true) {
+    if (_hasOutPort(n) || widget.showOutPort?.call(n) == true) {
       children.add(Positioned(
         right: -_kDotSize / 2,
         top: (cardH - _kDotSize) / 2,
         child: _connDot(theme, active: n.id == _pendingFromId),
       ));
     }
-    if (connectable) {
+    if (_hasInPort(n)) {
       children.add(Positioned(
         left: -_kDotSize / 2,
         top: (cardH - _kDotSize) / 2,
-        child: _connDot(theme, active: false),
+        child: _connDot(theme, active: connectTarget),
       ));
     }
     // Triangolino handle link-lezione (dx, sotto il pallino OUT): è l'ancora degli
@@ -815,8 +1011,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       }
     }
 
-    if (children.length == 1) return card;
-    return Stack(clipBehavior: Clip.none, children: children);
+    final Widget result = children.length == 1 ? tappable : Stack(clipBehavior: Clip.none, children: children);
+    return dimmed ? Opacity(opacity: _kDimmed, child: result) : result;
   }
 
   /// Porta di connessione prereq (sx IN / dx OUT): ~16px, tinta `danger`.
@@ -835,8 +1031,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         ),
       );
 
-  /// Rilascio del drag-connect: se il cursore è sopra un nodo connettibile diverso
-  /// dalla sorgente, crea l'arco prereq (source OUT → target IN). Altrimenti annulla.
+  /// Rilascio del drag-connect: se il cursore è sopra un nodo diverso dalla
+  /// sorgente e le regole lo ammettono, crea l'arco prereq (source OUT → target
+  /// IN); se non lo ammettono lo segnala con `onConnectionRejected`. Nel vuoto annulla.
   void _completeConnectAtCursor(Map<String, Rect> rects) {
     final from = _pendingFromId, cursor = _pendingCursor;
     if (from == null || cursor == null) {
@@ -846,24 +1043,30 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       });
       return;
     }
-    String? targetId;
-    for (final e in rects.entries) {
-      if (e.key == from) continue;
-      if (e.value.contains(cursor)) {
-        targetId = e.key;
-        break;
-      }
-    }
-    if (targetId != null) {
-      final target = _nodeById(targetId);
-      if (target != null && widget.canConnect?.call(target) == true) {
-        widget.onEdgeCreate?.call(from, targetId, CLGraphEdgeKind.prerequisite);
+    final targetId = _cardAt(rects, cursor, except: from);
+    final source = _nodeById(from);
+    final target = targetId == null ? null : _nodeById(targetId);
+    if (source != null && target != null) {
+      final problem = _targetProblem(source, target);
+      if (problem == null) {
+        widget.onEdgeCreate?.call(from, target.id, CLGraphEdgeKind.prerequisite);
+      } else {
+        widget.onConnectionRejected?.call(from, target.id, problem);
       }
     }
     setState(() {
       _pendingFromId = null;
       _pendingCursor = null;
     });
+  }
+
+  /// Card sotto [p] (la più in alto se si sovrappongono), esclusa [except].
+  String? _cardAt(Map<String, Rect> rects, Offset p, {required String except}) {
+    String? hit;
+    for (final e in rects.entries) {
+      if (e.key != except && e.value.contains(p)) hit = e.key; // l'ultima disegnata sta sopra
+    }
+    return hit;
   }
 
   CLGraphNode? _nodeById(String id) {

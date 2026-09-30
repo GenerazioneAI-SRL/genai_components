@@ -1,30 +1,40 @@
 import 'cl_graph_models.dart';
-
-/// Altezza di una riga attributo nella card: la card di un nodo con N
-/// attributi è alta `kCardH + N * kGraphAttributeRowH` (vedi `clGraphNodeHeight`).
-const double kGraphAttributeRowH = 32;
+import 'cl_graph_values.dart';
 
 /// Tipo di valore di un [CLGraphNodeAttribute]. `enumeration` = scelta fra
 /// alternative fisse ([CLGraphNodeAttribute.options]); `enum` è parola riservata.
-enum CLGraphAttributeType { string, numeric, enumeration, boolean }
+/// `time` = orario "HH:MM" (stringa), `url` = link http/https (stringa).
+enum CLGraphAttributeType { string, numeric, enumeration, boolean, time, url }
 
-/// Attributo definito dall'utente su un nodo: nome, tipo, nullabilità, default
-/// e (solo per `enumeration`) le alternative ammesse. È la *definizione*: il
-/// valore corrente vive in `CLGraphNode.attributeValues[name]`.
+/// Controllo aggiuntivo su un valore già valido per tipo e vincoli: messaggio
+/// d'errore (mostrato sotto il campo) o null se il valore va bene. Con un
+/// costruttore `const` serve una funzione top-level o statica.
+typedef CLGraphAttributeValidator = String? Function(Object value);
+
+/// Attributo definito dall'utente su un nodo: nome, tipo, nullabilità, default,
+/// vincoli e (solo per `enumeration`) le alternative ammesse. È la
+/// *definizione*: il valore corrente vive in `CLGraphNode.attributeValues[name]`.
 ///
-/// La card mostra una riga per attributo sotto l'intestazione; con
-/// `CLNodeGraph.onAttributeChanged` la riga diventa un input (campo testo,
-/// campo numerico, menu di scelta, checkbox).
+/// La card mostra una riga per attributo sotto l'intestazione (etichetta sopra,
+/// campo sotto, testo mai troncato); con `CLNodeGraph.onAttributeChanged` il
+/// campo è un input (testo, numero, orario, link, menu di scelta, checkbox) che
+/// emette solo valori che passano [validate] e mostra l'errore sotto di sé.
 ///
 /// Valori ammessi per tipo: `string` → `String`, `numeric` → `num` finito,
-/// `enumeration` → una delle [options], `boolean` → `bool`; `null` solo se
-/// [nullable].
+/// `enumeration` → una delle [options], `boolean` → `bool`, `time` → `String`
+/// "HH:MM", `url` → `String` http/https; `null` solo se [nullable]. Una
+/// stringa vuota (o di soli spazi) conta come valore mancante.
 class CLGraphNodeAttribute {
   final String name; // chiave in attributeValues (univoca nel nodo) ed etichetta della riga
   final CLGraphAttributeType type;
   final bool nullable; // true ⇒ null è un valore ammesso (campo svuotabile, checkbox a tre stati)
   final Object? defaultValue; // valore quando attributeValues non contiene [name]
   final List<String> options; // solo enumeration: alternative ammesse, nell'ordine del menu
+  final num? min; // solo numeric: minimo incluso
+  final num? max; // solo numeric: massimo incluso
+  final bool integer; // solo numeric: niente decimali
+  final int? maxLength; // solo string: lunghezza massima in caratteri
+  final CLGraphAttributeValidator? validator; // controllo extra dopo quelli di tipo
 
   /// Costruttore generico (es. da JSON). Preferire i costruttori tipizzati, che
   /// vincolano il tipo del default a compile time.
@@ -34,53 +44,128 @@ class CLGraphNodeAttribute {
     this.nullable = false,
     this.defaultValue,
     this.options = const [],
+    this.min,
+    this.max,
+    this.integer = false,
+    this.maxLength,
+    this.validator,
   });
 
   const CLGraphNodeAttribute.string({
     required this.name,
     this.nullable = false,
     String? this.defaultValue,
+    this.maxLength,
+    this.validator,
   })  : type = CLGraphAttributeType.string,
-        options = const [];
+        options = const [],
+        min = null,
+        max = null,
+        integer = false;
 
   const CLGraphNodeAttribute.numeric({
     required this.name,
     this.nullable = false,
     num? this.defaultValue,
+    this.min,
+    this.max,
+    this.integer = false,
+    this.validator,
   })  : type = CLGraphAttributeType.numeric,
-        options = const [];
+        options = const [],
+        maxLength = null;
 
   const CLGraphNodeAttribute.enumeration({
     required this.name,
     required this.options,
     this.nullable = false,
     String? this.defaultValue,
-  }) : type = CLGraphAttributeType.enumeration;
+  })  : type = CLGraphAttributeType.enumeration,
+        min = null,
+        max = null,
+        integer = false,
+        maxLength = null,
+        validator = null;
 
   const CLGraphNodeAttribute.boolean({
     required this.name,
     this.nullable = false,
     bool? this.defaultValue,
   })  : type = CLGraphAttributeType.boolean,
-        options = const [];
+        options = const [],
+        min = null,
+        max = null,
+        integer = false,
+        maxLength = null,
+        validator = null;
 
-  /// true se [value] è un valore valido per questo attributo.
-  bool accepts(Object? value) {
-    if (value == null) return nullable;
+  /// Orario "HH:MM". Nel campo si scrivono solo le cifre: i due punti si
+  /// inseriscono da soli.
+  const CLGraphNodeAttribute.time({
+    required this.name,
+    this.nullable = false,
+    String? this.defaultValue,
+    this.validator,
+  })  : type = CLGraphAttributeType.time,
+        options = const [],
+        min = null,
+        max = null,
+        integer = false,
+        maxLength = null;
+
+  /// Link http/https. Nel campo si può omettere lo schema: "www.sito.it"
+  /// diventa "https://www.sito.it".
+  const CLGraphNodeAttribute.url({
+    required this.name,
+    this.nullable = false,
+    String? this.defaultValue,
+    this.validator,
+  })  : type = CLGraphAttributeType.url,
+        options = const [],
+        min = null,
+        max = null,
+        integer = false,
+        maxLength = null;
+
+  /// Messaggio d'errore per [value] (tipo, obbligatorietà, vincoli, poi
+  /// [validator]), o null se il valore è valido.
+  String? validate(Object? value) {
+    if (value == null || (value is String && value.trim().isEmpty && type != CLGraphAttributeType.string)) {
+      return nullable ? null : 'Obbligatorio';
+    }
     switch (type) {
       case CLGraphAttributeType.string:
-        return value is String;
+        if (value is! String) return 'Testo non valido';
+        if (!nullable && value.trim().isEmpty) return 'Obbligatorio';
+        final length = value.runes.length;
+        if (maxLength != null && length > maxLength!) return 'Massimo $maxLength caratteri (ora $length)';
       case CLGraphAttributeType.numeric:
-        return value is num && value.isFinite;
+        if (value is! num || !value.isFinite) return 'Numero non valido';
+        if (integer && value != value.truncateToDouble()) return 'Serve un numero intero';
+        final lo = min, hi = max;
+        if (lo != null && hi != null && (value < lo || value > hi)) {
+          return 'Valore tra ${clGraphFormatNum(lo)} e ${clGraphFormatNum(hi)}';
+        }
+        if (lo != null && value < lo) return 'Minimo ${clGraphFormatNum(lo)}';
+        if (hi != null && value > hi) return 'Massimo ${clGraphFormatNum(hi)}';
       case CLGraphAttributeType.enumeration:
-        return value is String && options.contains(value);
+        if (value is! String || !options.contains(value)) return 'Scelta non valida';
       case CLGraphAttributeType.boolean:
-        return value is bool;
+        if (value is! bool) return 'Valore non valido';
+      case CLGraphAttributeType.time:
+        if (value is! String || !clGraphIsValidTime(value)) return 'Orario non valido (HH:MM)';
+      case CLGraphAttributeType.url:
+        if (value is! String || !clGraphIsValidUrl(value)) return 'Link non valido (es. www.sito.it)';
     }
+    return validator?.call(value);
   }
 
-  /// Problema nella definizione (default non valido, alternative mancanti o
-  /// duplicate), o null se la definizione è coerente.
+  /// true se [value] è un valore valido per questo attributo.
+  bool accepts(Object? value) => validate(value) == null;
+
+  /// Problema nella definizione (vincoli incoerenti o sul tipo sbagliato,
+  /// alternative mancanti o duplicate, default non valido), o null se la
+  /// definizione è coerente.
   String? get definitionProblem {
     if (name.isEmpty) return 'nome vuoto';
     if (type == CLGraphAttributeType.enumeration) {
@@ -89,8 +174,16 @@ class CLGraphNodeAttribute {
     } else if (options.isNotEmpty) {
       return '"$name": options ammesse solo per enumeration';
     }
-    if (defaultValue != null && !accepts(defaultValue)) {
-      return '"$name": default $defaultValue non valido per ${type.name}';
+    if (type != CLGraphAttributeType.numeric && (min != null || max != null || integer)) {
+      return '"$name": min, max e integer ammessi solo per numeric';
+    }
+    if (min != null && max != null && min! > max!) return '"$name": min maggiore di max';
+    if (maxLength != null && (type != CLGraphAttributeType.string || maxLength! <= 0)) {
+      return '"$name": maxLength ammesso solo per string, maggiore di zero';
+    }
+    if (defaultValue != null) {
+      final problem = validate(defaultValue);
+      if (problem != null) return '"$name": default $defaultValue non valido ($problem)';
     }
     return null;
   }
@@ -107,7 +200,7 @@ extension CLGraphNodeAttributes on CLGraphNode {
   }
 
   /// Valore effettivo di [name]: quello in `attributeValues` se presente e
-  /// valido per il tipo, altrimenti il default. Null se l'attributo non esiste.
+  /// valido, altrimenti il default. Null se l'attributo non esiste.
   Object? attributeValue(String name) {
     final a = attribute(name);
     if (a == null) return null;
@@ -137,11 +230,15 @@ extension CLGraphNodeAttributes on CLGraphNode {
         actions: actions,
         attributes: attributes,
         attributeValues: {...attributeValues, name: value},
+        connectionRules: connectionRules,
       );
 
-  /// Problema nelle definizioni degli attributi del nodo (nomi duplicati o
-  /// definizione incoerente), o null. Controllato in debug dal widget.
+  /// Problema nelle definizioni degli attributi o nelle regole di collegamento
+  /// del nodo (nomi duplicati, definizioni incoerenti), o null. Controllato in
+  /// debug dal widget.
   String? get attributesProblem {
+    final rules = connectionRules.definitionProblem;
+    if (rules != null) return 'nodo "$id": regole di collegamento, $rules';
     final seen = <String>{};
     for (final a in attributes) {
       if (!seen.add(a.name)) return 'nodo "$id": attributo "${a.name}" duplicato';
@@ -154,7 +251,7 @@ extension CLGraphNodeAttributes on CLGraphNode {
   Object? _effectiveValue(CLGraphNodeAttribute a) {
     if (attributeValues.containsKey(a.name)) {
       final v = attributeValues[a.name];
-      if (a.accepts(v)) return v;
+      if (a.accepts(v)) return v; // anche null esplicito se nullable: svuotato dall'utente
     }
     return a.accepts(a.defaultValue) ? a.defaultValue : null;
   }

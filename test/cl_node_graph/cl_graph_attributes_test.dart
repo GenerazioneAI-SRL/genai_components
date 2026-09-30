@@ -91,22 +91,10 @@ void main() {
     });
   });
 
-  group('altezza e separazione delle card', () {
-    CLGraphNode n(String id, int attrs) => CLGraphNode(
-          id: id,
-          type: 't',
-          title: id,
-          attributes: [for (var i = 0; i < attrs; i++) CLGraphNodeAttribute.string(name: 'a$i')],
-        );
-
-    test('clGraphNodeHeight', () {
-      expect(clGraphNodeHeight(n('a', 0)), kCardH);
-      expect(clGraphNodeHeight(n('a', 2)), kCardH + 2 * kGraphAttributeRowH);
-    });
-
-    test('senza attributi le posizioni restano identiche', () {
+  group('separazione delle card alte', () {
+    test('se nessuna card supera kCardH le posizioni restano identiche', () {
       final positions = {'a': Offset.zero, 'b': const Offset(0, 130), 'c': const Offset(300, 0)};
-      final out = clSeparateTallNodes([n('a', 0), n('b', 0), n('c', 0)], positions);
+      final out = clSeparateTallNodes(positions, {'a': kCardH, 'b': kCardH, 'c': kCardH});
       expect(out, same(positions));
     });
 
@@ -118,14 +106,12 @@ void main() {
         'd': const Offset(300, 130),
         'e': const Offset(300, 260),
       };
-      final out = clSeparateTallNodes([n('a', 3), n('b', 0), n('c', 1), n('d', 0), n('e', 0)], positions);
-      const extraRow0 = 3 * kGraphAttributeRowH;
-      const extraRow1 = 1 * kGraphAttributeRowH;
+      final out = clSeparateTallNodes(positions, {'a': kCardH + 90, 'b': kCardH, 'c': kCardH + 30, 'd': kCardH, 'e': kCardH});
       expect(out['a'], Offset.zero);
       expect(out['b'], const Offset(300, 0)); // stessa riga: non si muove
-      expect(out['c'], const Offset(0, 130 + extraRow0));
-      expect(out['d'], const Offset(300, 130 + extraRow0)); // riga allineata
-      expect(out['e'], const Offset(300, 260 + extraRow0 + extraRow1));
+      expect(out['c'], const Offset(0, 130 + 90));
+      expect(out['d'], const Offset(300, 130 + 90)); // riga allineata
+      expect(out['e'], const Offset(300, 260 + 90 + 30));
     });
   });
 }

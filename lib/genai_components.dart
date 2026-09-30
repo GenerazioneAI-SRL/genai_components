@@ -131,6 +131,7 @@ export 'widgets/cl_survey/models/question_result.dart';
 // Node graph (widget data-driven custom: Stack + CustomPaint)
 export 'src/widgets/cl_node_graph/cl_graph_models.dart';
 export 'src/widgets/cl_node_graph/cl_graph_attributes.dart';
+export 'src/widgets/cl_node_graph/cl_graph_connections.dart';
 export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, clPrereqFlowLayout, clModuleFlowLayout, classifyGraphLink, CLGraphLinkRole;
 export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
 

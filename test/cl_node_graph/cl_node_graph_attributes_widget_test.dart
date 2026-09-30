@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:genai_components/src/widgets/cl_node_graph/cl_graph_attributes.dart';
+import 'package:genai_components/src/widgets/cl_node_graph/cl_graph_card_metrics.dart';
 import 'package:genai_components/src/widgets/cl_node_graph/cl_graph_models.dart';
 import 'package:genai_components/src/widgets/cl_node_graph/cl_node_graph.widget.dart';
 
@@ -63,7 +64,11 @@ void main() {
   testWidgets('la card senza attributi resta 220×96, quella con attributi si allunga', (tester) async {
     await _pump(tester);
     expect(tester.getSize(_cardOf('AAA')), const Size(kCardW, kCardH));
-    expect(tester.getSize(_cardOf('BBB')), const Size(kCardW, kCardH + 5 * kGraphAttributeRowH));
+    final b = tester.getSize(_cardOf('BBB'));
+    expect(b.width, kCardW);
+    expect(b.height, greaterThan(kCardH + 5 * kGraphFieldH)); // etichetta sopra ogni campo
+    // L'ultima riga (checkbox "confermato") sta dentro la card.
+    expect(tester.getRect(find.byType(Checkbox).last).bottom, lessThan(tester.getRect(_cardOf('BBB')).bottom));
   });
 
   testWidgets('string: il testo viene emesso, il campo vuoto diventa null se nullable', (tester) async {
