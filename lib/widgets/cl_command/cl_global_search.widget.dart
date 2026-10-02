@@ -10,7 +10,7 @@ import 'package:genai_components/widgets/buttons/cl_icon_button.widget.dart';
 ///
 /// [compact] true → solo icona (mobile, `CLIconButton`); false → pill card
 /// `secondaryBackground` + `cardShadowSoft` con label + chip scorciatoia.
-/// Token coerenti col trigger di skillera_admin.
+/// Token coerenti col trigger di skillera_hr.
 class CLGlobalSearch extends StatelessWidget {
   const CLGlobalSearch({
     super.key,

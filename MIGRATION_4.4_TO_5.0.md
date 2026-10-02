@@ -2,7 +2,7 @@
 
 **Target version:** `5.0.0`
 **Status:** Draft (initial version)
-**Audience:** Maintainers and consumers of `genai_components` (notably `skillera_admin` and downstream apps).
+**Audience:** Maintainers and consumers of `genai_components` (notably `skillera_hr` and downstream apps).
 
 ---
 
@@ -82,4 +82,4 @@ These shipped in 4.4.x as additive; adopting them before bumping to 5.0.0 reduce
 
 ## 7. References
 
-- Refactoring roadmap: [`docs/ROADMAP_REFACTORING.md`](../skillera_admin/docs/ROADMAP_REFACTORING.md) (in `skillera_admin`).
+- Refactoring roadmap: [`docs/ROADMAP_REFACTORING.md`](../skillera_hr/docs/ROADMAP_REFACTORING.md) (in `skillera_hr`).
