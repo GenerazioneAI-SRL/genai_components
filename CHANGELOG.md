@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.10.1
+
+- **Widgets:** Updated 20 components
+- **Core:** Updated 4 components
+- **Package:** Updated Pubspec Yaml
+- **Example:** Updated 5 components
+- **Tests:** Updated 7 components
+
+
 ## 5.9.6
 
 - **Tabella: `controller.setFilters({...})`** — imposta più filtri e ricarica **una volta sola**.
