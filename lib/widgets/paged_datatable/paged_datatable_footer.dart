@@ -38,6 +38,12 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
   Widget _buildDesktopFooter(BuildContext context, _PagedDataTableState<TKey, TResultId, TResult> state) {
     final t = CLTheme.of(context);
     final pageSizes = themeData.configuration.pageSizes ?? [5, 25, 50, 100];
+    // Una pagina sola: nessuna pagina prima, nessuna dopo, e le righe stanno
+    // tutte nella più piccola delle dimensioni di pagina offerte.
+    final smallestPageSize = pageSizes.isEmpty ? 25 : pageSizes.first;
+    final singlePage = !state.hasPreviousPage &&
+        !state.hasNextPage &&
+        state.totalElement <= smallestPageSize;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -66,18 +72,24 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                   ),
                 ),
               ),
-              SizedBox(width: t.gapLg),
-              _PageSizeControls(
-                  pageSizes: pageSizes,
-                  currentPageSize: state._pageSize,
-                  onChanged: (size) => state.setPageSize(size),
-                  theme: t),
+              // Con una pagina sola non c'è niente da scegliere né da sfogliare:
+              // il selettore 5/25/50/100 e le frecce restano fuori, il conteggio
+              // resta. Una tabella con tre righe non deve sembrare l'inizio di
+              // un elenco lungo.
+              if (!singlePage) ...[
+                SizedBox(width: t.gapLg),
+                _PageSizeControls(
+                    pageSizes: pageSizes,
+                    currentPageSize: state._pageSize,
+                    onChanged: (size) => state.setPageSize(size),
+                    theme: t),
+              ],
             ],
           ),
         ),
 
         // ── Destra: paginazione ───────────────────────────────────
-        _PaginationControls(state: state, theme: t),
+        if (!singlePage) _PaginationControls(state: state, theme: t),
       ],
     );
   }

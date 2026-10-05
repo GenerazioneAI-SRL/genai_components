@@ -77,8 +77,16 @@ class _ShimmerRows<TKey extends Comparable, TResultId extends Comparable, TResul
 }
 
 /// Empty state shown when there are no items.
+///
+/// Distingue due situazioni che a schermo sembravano la stessa: **non c'è
+/// ancora niente** (e allora «prova a modificare i filtri» manda l'utente a
+/// cercare un filtro che non ha impostato) e **nessun risultato per questi
+/// filtri** (dove invece il consiglio è giusto).
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({this.hasActiveFilters = false});
+
+  /// `true` se almeno un filtro o una ricerca è attiva.
+  final bool hasActiveFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -110,14 +118,14 @@ class _EmptyState extends StatelessWidget {
                 border: Border.all(color: _effectiveTablePrimary(context).withValues(alpha: theme.opacitySoft)),
               ),
               child: Icon(
-                LucideIcons.searchX,
+                hasActiveFilters ? LucideIcons.searchX : LucideIcons.inbox,
                 size: 28,
                 color: _effectiveTablePrimary(context).withValues(alpha: theme.opacityDisabled),
               ),
             ),
             const SizedBox(height: Sizes.padding),
             Text(
-              'Nessun elemento trovato',
+              hasActiveFilters ? 'Nessun risultato' : 'Non c\'è ancora niente',
               style: theme.bodyText.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.primaryText,
@@ -125,7 +133,9 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: Sizes.small * 0.5),
             Text(
-              'Prova a modificare i filtri di ricerca',
+              hasActiveFilters
+                  ? 'Prova a modificare i filtri di ricerca'
+                  : 'Qui compariranno gli elementi quando ce ne saranno',
               style: theme.smallLabel.copyWith(
                 color: theme.secondaryText.withValues(alpha: 0.6),
               ),

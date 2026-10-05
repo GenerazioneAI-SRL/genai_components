@@ -1,14 +1,41 @@
 # Changelog
 
-## 5.9.3
+## 5.10.1
 
-- **Widgets:** Updated 56 components
-- **Layout:** Updated Sizes Constant
-- **Theme:** Updated Cl Theme
+- **Widgets:** Updated 20 components
 - **Core:** Updated 4 components
 - **Package:** Updated Pubspec Yaml
 - **Example:** Updated 5 components
+- **Tests:** Updated 7 components
 
+
+## 5.9.6
+
+- **Tabella: `controller.setFilters({...})`** — imposta più filtri e ricarica **una volta sola**.
+  Con due `setFilter` consecutivi partivano due caricamenti e il primo usava un filtro a metà
+  (estremo nuovo + estremo vecchio): se quella risposta arrivava per ultima, a schermo restavano
+  righe che non corrispondevano al filtro. Serve a chiunque filtri per intervallo (`from`/`to`).
+  Test: `test/paged_datatable_filters_test.dart`.
+
+## 5.9.5
+
+- **Tabella: lo stato vuoto distingue due cose diverse.** «Nessun elemento trovato / prova a
+  modificare i filtri» compariva anche quando filtri non ce n'erano e la tabella era vuota perché
+  non c'era ancora niente: l'utente veniva mandato a cercare un filtro che non aveva impostato. Ora
+  con filtri attivi resta «Nessun risultato / prova a modificare i filtri», senza filtri diventa
+  «Non c'è ancora niente / qui compariranno gli elementi quando ce ne saranno», con l'icona
+  coerente (lente sbarrata solo se si stava cercando).
+
+## 5.9.4
+
+- **Tabella (fix): «0 risultati» sotto righe ben visibili.** Il conteggio in fondo leggeva solo
+  `paginationInfo.total`, che le viste calcolate lato client non hanno (riepiloghi, KPI, elenchi
+  aggregati): con due righe a schermo il piede diceva «0 risultati». In mancanza di `paginationInfo`
+  il totale è ora il numero di righe consegnate dalla pagina.
+- **Tabella: niente controlli di pagina quando la pagina è una sola.** Il selettore 5/25/50/100 e le
+  frecce restavano anche con una riga, facendo sembrare l'elenco l'inizio di qualcosa di lungo. Ora
+  compaiono solo se c'è davvero più di una pagina; il conteggio resta sempre.
+  Test: `test/paged_datatable_footer_test.dart`.
 
 ## 5.9.3
 
@@ -23,6 +50,12 @@
 - **CLButton:** il contenuto viene limitato a `larghezza − padding orizzontale`, così il
   `TextOverflow.ellipsis` della label tronca davvero invece di far traboccare il bottone. Su
   outline/soft/ghost una label molto più larga del bottone trabocca ancora.
+- **Widgets:** Updated 56 components
+- **Layout:** Updated Sizes Constant
+- **Theme:** Updated Cl Theme
+- **Core:** Updated 4 components
+- **Package:** Updated Pubspec Yaml
+- **Example:** Updated 5 components
 
 ## 5.9.2
 

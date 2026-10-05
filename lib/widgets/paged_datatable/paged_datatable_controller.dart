@@ -75,6 +75,16 @@ class PagedDataTableController<TKey extends Comparable,
     _state.applyFilter(id, value);
   }
 
+  /// Imposta più filtri insieme e ricarica **una volta sola**.
+  ///
+  /// Serve a chi filtra per intervallo: impostare `from` e poi `to` con due
+  /// `setFilter` fa partire due caricamenti, e il primo parte con l'intervallo
+  /// ancora a metà (estremo nuovo + estremo vecchio). Se quella risposta arriva
+  /// per ultima, a schermo restano le righe sbagliate.
+  void setFilters(Map<String, dynamic> values) {
+    _state.applyFilterValues(values);
+  }
+
   /// Removes a filter and fetches items from source.
   void removeFilter(String id) {
     _state.removeFilter(id);

@@ -1,0 +1,90 @@
+{
+  "format": "cl_node_graph",
+  "version": 1,
+  "exportedAt": null,
+  "nodes": [
+    {
+      "id": "lead",
+      "type": "trigger",
+      "title": "Nuovo lead",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": null,
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "welcome",
+      "type": "action",
+      "title": "Email di benvenuto",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": null,
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    },
+    {
+      "id": "assign",
+      "type": "action",
+      "title": "Assegna consulente",
+      "subtitle": null,
+      "icon": null,
+      "accent": null,
+      "badge": null,
+      "badgeColor": null,
+      "data": null,
+      "actions": [],
+      "attributes": [],
+      "attributeValues": {},
+      "connectionRules": {
+        "inputTypes": null,
+        "outputTypes": null,
+        "minInputs": 0,
+        "maxInputs": null,
+        "minOutputs": 0,
+        "maxOutputs": null
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "lead>welcome",
+      "fromNodeId": "lead",
+      "toNodeId": "welcome",
+      "kind": "prerequisite",
+      "hidden": false
+    },
+    {
+      "id": "welcome>assign",
+      "fromNodeId": "welcome",
+      "toNodeId": "assign",
+      "kind": "prerequisite",
+      "hidden": false
+    }
+  ],
+  "view": null
+}

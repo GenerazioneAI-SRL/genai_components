@@ -20,16 +20,29 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
 
-    return CLIconButton(
-      key: iconKey,
+    // L'icona resta 32px, ma il bersaglio e' tutto lo slot: la riga e' alta
+    // almeno `buttonHeightLarge + gapXs` (di piu' con le celle a due righe),
+    // quindi sopra e sotto l'icona restavano ~20px per lato che la riga
+    // (opaque) intercettava aprendo il dettaglio invece del menu.
+    // `behavior: opaque` chiude quel varco. Sul tap all'icona vince il
+    // recognizer interno del CLIconButton, che conserva hover e pressione;
+    // `iconKey` resta sul bottone, cosi' il popup si ancora all'icona vista.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => _showActionsMenu(context),
-      iconData: LucideIcons.ellipsisVertical,
-      backgroundColor: Colors.transparent,
-      iconColor: theme.secondaryText,
-      size: theme.buttonHeightCompact,
-      iconSize: theme.iconSizeCompact,
-      borderRadius: theme.radiusControl,
-      tooltip: actionsTitle?.call(model.item) ?? 'Azioni',
+      child: Center(
+        child: CLIconButton(
+          key: iconKey,
+          onTap: () => _showActionsMenu(context),
+          iconData: LucideIcons.ellipsisVertical,
+          backgroundColor: Colors.transparent,
+          iconColor: theme.secondaryText,
+          size: theme.buttonHeightCompact,
+          iconSize: theme.iconSizeCompact,
+          borderRadius: theme.radiusControl,
+          tooltip: actionsTitle?.call(model.item) ?? 'Azioni',
+        ),
+      ),
     );
   }
 

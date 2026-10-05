@@ -108,7 +108,12 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
 
     if (state._rowsState.isEmpty &&
         state.tableState == _TableState.displaying) {
-      final empty = noItemsFoundBuilder?.call(context) ?? const _EmptyState();
+      // «Nessun risultato» solo se qualcosa è stato davvero filtrato: senza
+      // filtri attivi la lista è vuota perché non c'è ancora niente, e mandare
+      // l'utente a cambiare filtri inesistenti è un vicolo cieco.
+      final hasActiveFilters = state.filters.values.any((f) => f.hasValue);
+      final empty = noItemsFoundBuilder?.call(context) ??
+          _EmptyState(hasActiveFilters: hasActiveFilters);
       // In fillHeight lo stato vuoto si centra nello spazio disponibile.
       return fillHeight ? Center(child: empty) : empty;
     }

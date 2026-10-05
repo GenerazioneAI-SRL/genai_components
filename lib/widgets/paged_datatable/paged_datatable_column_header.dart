@@ -104,7 +104,12 @@ class _PagedDataTableHeaderRow<TKey extends Comparable, TResultId extends Compar
                       final isSorted = state.hasSortModel && state._sortModel!.columnId == column.id;
 
                       return SizedBox(
-                        width: column.sizeFactor == null ? state._nullSizeFactorColumnsWidth : width * column.sizeFactor!,
+                        // `sizeFactorScale` rimpicciolisce le colonne quando la
+                        // somma dei fattori supera 1, così la riga sta nello
+                        // schermo invece di farsi scorrere.
+                        width: column.sizeFactor == null
+                            ? state._nullSizeFactorColumnsWidth
+                            : width * column.sizeFactor! * state.sizeFactorScale,
                         child: _ColumnHeader(
                           column: column,
                           isSorted: isSorted,
