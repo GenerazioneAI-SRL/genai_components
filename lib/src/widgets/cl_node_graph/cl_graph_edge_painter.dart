@@ -11,6 +11,10 @@ Offset _inAnchor(Rect r) => Offset(r.left, r.center.dy);
 /// sotto il centro (allineata al triangolino renderizzato dal widget). Il pallino
 /// OUT (centro) resta per la propedeuticità; il link-lezione parte da qui.
 Offset _lessonAnchor(Rect r) => Offset(r.right, r.center.dy + kTriDy);
+/// Ancore delle porte a rombo della propedeuticità: [kPropDy] px sopra il centro,
+/// OUT sul bordo destro della sorgente, IN sul bordo sinistro del bersaglio.
+Offset clPropOutAnchor(Rect r) => Offset(r.right, r.center.dy - kPropDy);
+Offset clPropInAnchor(Rect r) => Offset(r.left, r.center.dy - kPropDy);
 
 /// Offset di controllo del bezier: adattivo alla distanza (stile fl_nodes),
 /// clamp 40–320. OUT esce verso destra, IN entra da sinistra.
@@ -37,10 +41,14 @@ List<({String id, Offset a, Offset b})> prereqSegments(
 ) {
   final out = <({String id, Offset a, Offset b})>[];
   for (final e in edges) {
-    if (e.kind != CLGraphEdgeKind.prerequisite) continue;
+    if (!e.deletable) continue; // né hover né cestino
     final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
     if (from == null || to == null) continue;
-    out.add((id: e.id, a: _outAnchor(from), b: _inAnchor(to)));
+    if (e.kind == CLGraphEdgeKind.prerequisite) {
+      out.add((id: e.id, a: _outAnchor(from), b: _inAnchor(to)));
+    } else if (e.kind == CLGraphEdgeKind.propaedeutic) {
+      out.add((id: e.id, a: clPropOutAnchor(from), b: clPropInAnchor(to)));
+    }
   }
   return out;
 }
@@ -52,6 +60,8 @@ class CLGraphEdgePainter extends CustomPainter {
   final Color linkColor;
   final Color orderColor;
   final Color selectedColor;
+  /// Colore degli archi [CLGraphEdgeKind.propaedeutic] (tratteggiati). Null ⇒ [linkColor].
+  final Color? propaedeuticColor;
   final String? selectedEdgeId;
 
   CLGraphEdgePainter({
@@ -61,6 +71,7 @@ class CLGraphEdgePainter extends CustomPainter {
     required this.linkColor,
     required this.orderColor,
     required this.selectedColor,
+    this.propaedeuticColor,
     this.selectedEdgeId,
   });
 
@@ -116,6 +127,35 @@ class CLGraphEdgePainter extends CustomPainter {
         ..style = PaintingStyle.stroke;
       canvas.drawPath(clLinkPath(_lessonAnchor(from), _inAnchor(to)), paint);
     }
+    // 5) propedeuticità (curva TRATTEGGIATA dalle porte a rombo, freccia sul
+    // bersaglio; selezionabile ed eliminabile come il prereq).
+    for (final e in edges) {
+      if (e.kind != CLGraphEdgeKind.propaedeutic) continue;
+      final from = nodeRects[e.fromNodeId], to = nodeRects[e.toNodeId];
+      if (from == null || to == null) continue;
+      final selected = e.id == selectedEdgeId;
+      final color = propaedeuticColor ?? linkColor;
+      final paint = Paint()
+        ..color = color
+        ..strokeWidth = selected ? 2.6 : 1.8
+        ..style = PaintingStyle.stroke;
+      final a = clPropOutAnchor(from), b = clPropInAnchor(to);
+      _drawDashedPath(canvas, clLinkPath(a, b), paint);
+      // La curva entra orizzontale nel bersaglio ⇒ freccia verso destra.
+      _arrowHead(canvas, b, 0, paint);
+    }
+  }
+
+  void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
+    const dash = 7.0, gap = 5.0;
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        final end = (d + dash).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(d, end), paint);
+        d += dash + gap;
+      }
+    }
   }
 
   void _drawDashedLine(Canvas canvas, Offset a, Offset b, Paint paint) {
@@ -149,5 +189,6 @@ class CLGraphEdgePainter extends CustomPainter {
       old.linkColor != linkColor ||
       old.orderColor != orderColor ||
       old.selectedColor != selectedColor ||
+      old.propaedeuticColor != propaedeuticColor ||
       old.containmentColor != containmentColor;
 }

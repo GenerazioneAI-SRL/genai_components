@@ -1,5 +1,19 @@
 # Changelog
 
+## 5.11.0
+
+- **CLNodeGraph: propedeuticità.** Nuovo `CLGraphEdgeKind.propaedeutic` con porte proprie a **rombo**
+  (OUT a destra, IN a sinistra, `kPropDy` sopra il pallino di flusso), attivate da
+  `canConnectPropaedeutic`. Il trascinamento dal rombo chiama `onEdgeCreate(from, to,
+  CLGraphEdgeKind.propaedeutic)`; gli archi sono **tratteggiati** nel colore `propaedeuticColor`
+  (default `theme.info`), selezionabili ed eliminabili, e non contano per i layout.
+  `propaedeuticProblem` attenua i bersagli non ammessi e mostra il motivo (self e duplicati li rifiuta
+  già il widget), `propaedeuticTooltip` (default «Propedeuticità») è il tooltip della porta.
+- **`CLGraphEdge.deletable`** (default `true`): `false` ⇒ arco disegnato ma senza hover né cestino
+  (archi derivati dai dati). Letto e scritto anche da `CLGraphJson`.
+- `onEdgeDelete` riceve il tipo vero dell'arco (prima sempre `prerequisite`).
+- Test: `test/cl_node_graph/cl_node_graph_propaedeutic_widget_test.dart`.
+
 ## 5.10.1
 
 - **Widgets:** Updated 20 components

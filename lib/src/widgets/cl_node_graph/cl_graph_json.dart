@@ -157,6 +157,7 @@ class CLGraphJson {
         'toNodeId': e.toNodeId,
         'kind': e.kind.name,
         'hidden': e.hidden,
+        if (!e.deletable) 'deletable': false,
       };
 
   Map<String, Object?> _view(CLGraphView v) => {
@@ -371,6 +372,7 @@ class CLGraphJson {
       toNodeId: m.req<String>('toNodeId'),
       kind: m.enumValue('kind', CLGraphEdgeKind.values),
       hidden: m.opt<bool>('hidden') ?? false,
+      deletable: m.opt<bool>('deletable') ?? true,
     );
   }
 

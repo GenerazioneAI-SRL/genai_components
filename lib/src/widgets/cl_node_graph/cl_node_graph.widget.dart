@@ -13,6 +13,7 @@ import 'cl_graph_connections.dart';
 // kCardW / kCardH vivono in cl_graph_models.dart: condivisi con le misure delle card.
 const double _pad = 60; // margine attorno al bounding box
 const double _kDotSize = 16; // diametro del pallino di connessione prereq
+const double _kDiamond = 12; // lato del rombo (porta propedeuticità), prima della rotazione
 const double _kDotInset = 4; // gap del pallino dal bordo inferiore della card
 const double _kChevron = 24; // area cliccabile chevron collasso (top-left card)
 const double _kActionSize = 24; // area cliccabile di ogni icona azione (top-right card) — mirror _kChevron
@@ -133,6 +134,20 @@ class CLNodeGraph extends StatefulWidget {
   /// Nome leggibile di un tipo di nodo nei messaggi sui collegamenti (es.
   /// 'action' ⇒ 'Azione'). Null ⇒ il tipo così com'è.
   final String Function(String type)? typeLabel;
+  /// true ⇒ il nodo ha le porte a ROMBO della propedeuticità (OUT a destra e IN
+  /// a sinistra, [kPropDy] sopra il centro), distinte dal pallino di flusso.
+  /// Trascinando dal rombo di A sul nodo B scatta `onEdgeCreate(A, B,
+  /// CLGraphEdgeKind.propaedeutic)`: «A è propedeutica a B». Null ⇒ nessuna porta.
+  final bool Function(CLGraphNode node)? canConnectPropaedeutic;
+  /// Motivo per cui [to] non può ricevere la propedeuticità da [from] (es. ambito
+  /// diverso), o null se ammessa. Il bersaglio si attenua e il motivo compare
+  /// accanto al cursore, come per le regole di flusso. Self e duplicati li
+  /// rifiuta già il widget.
+  final String? Function(CLGraphNode from, CLGraphNode to)? propaedeuticProblem;
+  /// Tooltip della porta a rombo.
+  final String propaedeuticTooltip;
+  /// Colore di porte e archi della propedeuticità. Null ⇒ `theme.info`.
+  final Color? propaedeuticColor;
 
   const CLNodeGraph({
     super.key,
@@ -156,6 +171,10 @@ class CLNodeGraph extends StatefulWidget {
     this.onAttributeChanged,
     this.onConnectionRejected,
     this.typeLabel,
+    this.canConnectPropaedeutic,
+    this.propaedeuticProblem,
+    this.propaedeuticTooltip = 'Propedeuticità',
+    this.propaedeuticColor,
   });
 
   @override
@@ -169,6 +188,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   // da A; la linea segue il cursore fino al rilascio sulla porta IN (sx) di B che
   // crea l'arco, o al rilascio nel vuoto che annulla. Coord canvas-local.
   String? _pendingFromId; // sorgente della connessione in corso
+  CLGraphEdgeKind _pendingKind = CLGraphEdgeKind.prerequisite; // flusso (pallino) o propedeuticità (rombo)
+  CLGraphEdgeKind _hitPortKind = CLGraphEdgeKind.prerequisite; // porta colpita dall'ultimo hit-test
   Offset? _pendingCursor; // posizione cursore canvas-local (destinazione linea pending)
   final Map<String, Offset> _manualPos = {}; // override effimero del layout (drag-move)
   Matrix4 _matrix = Matrix4.identity(); // pan/zoom — aggiornata via setState (stesso path del drag-nodo)
@@ -233,9 +254,28 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   /// Motivo per cui [target] non può ricevere l'arco dalla sorgente [from], o
   /// null se il collegamento è ammesso.
   String? _targetProblem(CLGraphNode from, CLGraphNode target) {
+    if (_pendingKind == CLGraphEdgeKind.propaedeutic) return _propTargetProblem(from, target);
     if (widget.canConnect?.call(target) != true) return '«${target.title}» non si può collegare';
     return clGraphConnectionProblem(from, target, widget.edges, typeLabel: widget.typeLabel);
   }
+
+  /// Come [_targetProblem] per la propedeuticità (porta a rombo).
+  String? _propTargetProblem(CLGraphNode from, CLGraphNode target) {
+    if (!_hasPropPort(target)) return '«${target.title}» non può avere propedeuticità';
+    if (from.id == target.id) return 'Un blocco non può essere propedeutico a se stesso';
+    if (widget.edges.any((e) => e.kind == CLGraphEdgeKind.propaedeutic && e.fromNodeId == from.id && e.toNodeId == target.id)) {
+      return '«${from.title}» è già propedeutico a «${target.title}»';
+    }
+    return widget.propaedeuticProblem?.call(from, target);
+  }
+
+  /// Porte a rombo della propedeuticità (OUT e IN).
+  bool _hasPropPort(CLGraphNode n) => widget.canConnectPropaedeutic?.call(n) == true;
+
+  Color _propColor(CLTheme theme) => widget.propaedeuticColor ?? theme.info;
+
+  /// Ancora di partenza della linea pending: rombo o pallino OUT.
+  Offset _pendingAnchor(Rect r) => _pendingKind == CLGraphEdgeKind.propaedeutic ? clPropOutAnchor(r) : _outAnchor(r);
 
   /// Porta OUT attiva (si può trascinare per collegare).
   bool _hasOutPort(CLGraphNode n) => widget.canConnect?.call(n) == true && n.connectionRules.acceptsOutputs;
@@ -357,9 +397,19 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       final n = _visibleNodes[i];
       final r = _rects[n.id];
       if (r == null) continue;
+      if (_hasPropPort(n)) {
+        final c = clPropOutAnchor(r);
+        if ((cp - c).distance <= _kDiamond / 2 + 5) {
+          _hitPortKind = CLGraphEdgeKind.propaedeutic;
+          return (mode: _Mode.port, id: n.id);
+        }
+      }
       if (_hasOutPort(n)) {
         final c = _outAnchor(r);
-        if ((cp - c).distance <= _kDotSize / 2 + 4) return (mode: _Mode.port, id: n.id);
+        if ((cp - c).distance <= _kDotSize / 2 + 4) {
+          _hitPortKind = CLGraphEdgeKind.prerequisite;
+          return (mode: _Mode.port, id: n.id);
+        }
       }
       if (widget.canCollapse?.call(n) == true) {
         final ch = Rect.fromLTWH(r.left + _kDotInset, r.top + _kDotInset, _kChevron, _kChevron);
@@ -419,6 +469,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     _targetId = hit.id;
     if (_mode == _Mode.port) {
       setState(() {
+        _pendingKind = _hitPortKind;
         _pendingFromId = hit.id;
         _pendingCursor = cp;
         _selectedEdgeId = null;
@@ -477,7 +528,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         if (!moved) setState(() => _selectedEdgeId = _targetId);
       case _Mode.trash:
         if (!moved) {
-          widget.onEdgeDelete?.call(_targetId!, CLGraphEdgeKind.prerequisite);
+          widget.onEdgeDelete?.call(_targetId!, _edgeKind(_targetId!));
           setState(() {
             _hoveredEdgeId = null;
             _selectedEdgeId = null;
@@ -567,7 +618,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       }
       final a = vis(e.fromNodeId), b = vis(e.toNodeId);
       if (a == b) continue; // entrambi gli estremi collassati nello stesso antenato
-      effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind));
+      effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind, deletable: e.deletable));
     }
 
     // Altezza di ogni card misurata sul testo (a capo, mai troncato), sugli
@@ -632,7 +683,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         ? null
         : hoverTargetId != null
             ? targetProblems[hoverTargetId]
-            : clGraphOutputProblem(source, widget.edges);
+            : _pendingKind == CLGraphEdgeKind.propaedeutic
+                ? null
+                : clGraphOutputProblem(source, widget.edges);
 
     // Il canvas (dimensione naturale): SOLO rendering, nessun gesture — tutto
     // l'input passa dal Listener antenato.
@@ -652,6 +705,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 linkColor: theme.danger, // prereq rossi come i pallini di connessione
                 orderColor: theme.mutedForeground,
                 selectedColor: theme.danger,
+                propaedeuticColor: _propColor(theme),
                 selectedEdgeId: activeEdge,
               ),
             ),
@@ -661,9 +715,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
             Positioned.fill(
               child: CustomPaint(
                 painter: _PendingEdgePainter(
-                  from: _outAnchor(rects[_pendingFromId]!),
+                  from: _pendingAnchor(rects[_pendingFromId]!),
                   to: _pendingCursor!,
-                  color: connectMessage != null ? theme.mutedForeground : theme.danger,
+                  color: connectMessage != null
+                      ? theme.mutedForeground
+                      : (_pendingKind == CLGraphEdgeKind.propaedeutic ? _propColor(theme) : theme.danger),
                 ),
               ),
             ),
@@ -954,14 +1010,36 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       children.add(Positioned(
         right: -_kDotSize / 2,
         top: (cardH - _kDotSize) / 2,
-        child: _connDot(theme, active: n.id == _pendingFromId),
+        child: _connDot(theme, active: n.id == _pendingFromId && _pendingKind == CLGraphEdgeKind.prerequisite),
       ));
     }
     if (_hasInPort(n)) {
       children.add(Positioned(
         left: -_kDotSize / 2,
         top: (cardH - _kDotSize) / 2,
-        child: _connDot(theme, active: connectTarget),
+        child: _connDot(theme, active: connectTarget && _pendingKind == CLGraphEdgeKind.prerequisite),
+      ));
+    }
+    // Porte a rombo della propedeuticità, [kPropDy] sopra il pallino: OUT (dx,
+    // con tooltip) e IN (sx). Stesse ancore del painter (clPropOutAnchor/InAnchor).
+    if (_hasPropPort(n)) {
+      const box = _kDiamond * 1.5; // il rombo ruotato occupa ~lato·√2
+      children.add(Positioned(
+        right: -box / 2,
+        top: cardH / 2 - kPropDy - box / 2,
+        width: box,
+        height: box,
+        child: Tooltip(
+          message: widget.propaedeuticTooltip,
+          child: Center(child: _propDiamond(theme, active: n.id == _pendingFromId && _pendingKind == CLGraphEdgeKind.propaedeutic)),
+        ),
+      ));
+      children.add(Positioned(
+        left: -box / 2,
+        top: cardH / 2 - kPropDy - box / 2,
+        width: box,
+        height: box,
+        child: Center(child: _propDiamond(theme, active: connectTarget && _pendingKind == CLGraphEdgeKind.propaedeutic)),
       ));
     }
     // Triangolino handle link-lezione (dx, sotto il pallino OUT): è l'ancora degli
@@ -1031,6 +1109,32 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         ),
       );
 
+  /// Porta della propedeuticità: rombo [_kDiamond] nel colore della
+  /// propedeuticità. [active] = sorgente o bersaglio del collegamento in corso.
+  Widget _propDiamond(CLTheme theme, {required bool active}) => Transform.rotate(
+        angle: 0.785398, // π/4
+        child: Container(
+          width: _kDiamond,
+          height: _kDiamond,
+          decoration: BoxDecoration(
+            color: _propColor(theme),
+            border: Border.all(
+              color: active ? theme.primaryText : theme.secondaryBackground,
+              width: active ? 2.5 : 1.5,
+            ),
+            boxShadow: theme.cardShadowSoft,
+          ),
+        ),
+      );
+
+  /// Tipo dell'arco [edgeId] (per `onEdgeDelete`).
+  CLGraphEdgeKind _edgeKind(String edgeId) {
+    for (final e in widget.edges) {
+      if (e.id == edgeId) return e.kind;
+    }
+    return CLGraphEdgeKind.prerequisite;
+  }
+
   /// Rilascio del drag-connect: se il cursore è sopra un nodo diverso dalla
   /// sorgente e le regole lo ammettono, crea l'arco prereq (source OUT → target
   /// IN); se non lo ammettono lo segnala con `onConnectionRejected`. Nel vuoto annulla.
@@ -1049,7 +1153,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     if (source != null && target != null) {
       final problem = _targetProblem(source, target);
       if (problem == null) {
-        widget.onEdgeCreate?.call(from, target.id, CLGraphEdgeKind.prerequisite);
+        widget.onEdgeCreate?.call(from, target.id, _pendingKind);
       } else {
         widget.onConnectionRejected?.call(from, target.id, problem);
       }

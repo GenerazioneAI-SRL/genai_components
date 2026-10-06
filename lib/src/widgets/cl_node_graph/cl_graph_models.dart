@@ -130,10 +130,19 @@ const double kCardH = 96;
 /// la porta e l'arco restano allineati da un'unica sorgente di verità.
 const double kTriDy = 26;
 
-/// Tipo di arco: contenimento (gerarchia), propedeuticità, ordine, o link-lezione.
-/// [lessonLink] parte dalla porta triangolino (non dal pallino prereq): il pallino
-/// resta riservato alla propedeuticità.
-enum CLGraphEdgeKind { containment, prerequisite, order, lessonLink }
+/// Offset verticale (SOPRA il centro, su entrambi i bordi) delle porte a rombo
+/// degli archi [CLGraphEdgeKind.propaedeutic]: OUT a destra, IN a sinistra.
+/// Condiviso tra widget (porte) e painter (ancore degli archi).
+const double kPropDy = 26;
+
+/// Tipo di arco: contenimento (gerarchia), flusso (`prerequisite`, porta a
+/// pallino), ordine, link-lezione o propedeuticità.
+/// - [prerequisite]: arco di flusso, pallino OUT (dx, centro) → pallino IN (sx, centro);
+///   conta per i layout.
+/// - [lessonLink]: parte dalla porta triangolino (sotto il pallino).
+/// - [propaedeutic]: «A è propedeutica a B», porta a rombo sopra il pallino
+///   (vedi [kPropDy]), tratteggiato; NON conta per i layout.
+enum CLGraphEdgeKind { containment, prerequisite, order, lessonLink, propaedeutic }
 
 class CLGraphEdge {
   final String id;
@@ -143,6 +152,9 @@ class CLGraphEdge {
   /// Arco strutturale (conta per il layout) ma NON disegnato. Utile per il
   /// containment verso risorse già collegate visivamente da una freccia prereq.
   final bool hidden;
+  /// false ⇒ l'arco si disegna ma non si seleziona né si elimina (niente
+  /// cestino): per archi derivati dai dati (es. la sequenza da un ordine).
+  final bool deletable;
 
   const CLGraphEdge({
     required this.id,
@@ -150,6 +162,7 @@ class CLGraphEdge {
     required this.toNodeId,
     required this.kind,
     this.hidden = false,
+    this.deletable = true,
   });
 }
 
