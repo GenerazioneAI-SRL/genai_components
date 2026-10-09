@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.12.0
+
+- **CL Survey v2.** Nuovo modello (`CLSurvey`, `CLSurveyQuestion`, `CLSurveyOption`, `CLSurveyScale`,
+  `CLSurveyResponse`, `CLSurveyAnswer`, `CLSurveySummary`) con id stabili, quattro tipi (scelta singola,
+  multipla, scala con etichette, testo con `maxLength`), obbligatorietà, aiuto e JSON `schemaVersion: 2`;
+  legge anche il formato legacy. Nuovi parametri opzionali: `CLSurveyBuilder(survey:, onChanged:,
+  showValidation:)`, `CLSurveyViewer(survey:, initialResponse:, onDraftChanged:, onSubmit:, mode:,
+  readOnly:)`, `CLSurveyResultViewer.summary(...)` / `.response(...)`. API legacy invariate.
+- Fix: `CLSurveyResultViewer.fromJson` mostrava sempre lo stato vuoto; `SurveyState.deleteQuestion` non
+  notificava `onSurveyChange`; `CLPagination` con 2 pagine lanciava `ArgumentError`.
+- Test: `test/cl_survey/`.
+
 ## 5.11.0
 
 - **CLNodeGraph: propedeuticità.** Nuovo `CLGraphEdgeKind.propaedeutic` con porte proprie a **rombo**

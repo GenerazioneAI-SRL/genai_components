@@ -37,6 +37,7 @@ class SurveyState extends ChangeNotifier {
 
   void deleteQuestion(int index) {
     questions.removeAt(index);
+    onSurveyChange?.call(questions);
     notifyListeners();
   }
 }
