@@ -1,23 +1,67 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
+import '../buttons/cl_ghost_button.widget.dart';
+import '../buttons/cl_icon_button.widget.dart';
+import '../buttons/cl_outline_button.widget.dart';
+import '../cl_checkbox.widget.dart';
+import '../cl_container.widget.dart';
 import '../cl_dropdown/cl_dropdown.dart';
+import '../cl_empty_state.widget.dart';
+import '../cl_view_toggle.widget.dart';
 import './survey.state.dart';
 import '../cl_text_field.widget.dart';
 import '../buttons/cl_button.widget.dart';
+import 'cl_survey_viewer.widget.dart';
+import 'models/cl_survey.model.dart';
 import 'models/option.dart';
 import 'models/question.dart';
 
+/// Editor del sondaggio (lato autore).
+///
+/// **Modello v2** (consigliato): passa [survey] (per un sondaggio nuovo
+/// `const CLSurvey()`) e [onChanged]. L'editor permette di aggiungere,
+/// riordinare (trascinando o con Su/Giù), duplicare ed eliminare domande,
+/// cambiarne il tipo, modificare opzioni/scala/lunghezza massima e vedere
+/// l'anteprima. Gli errori ([CLSurvey.validate]) compaiono sulla domanda appena
+/// toccata, o su tutte con [showValidation] (es. dopo un tentativo di
+/// pubblicazione fallito).
+///
+/// **Legacy** (schema 1): senza [survey] usa [questions]/[surveyJson] e
+/// [onSurveyChange] con l'editor storico; comportamento invariato.
 class CLSurveyBuilder extends StatefulWidget {
-  const CLSurveyBuilder({super.key, this.surveyJson, required this.onSurveyChange, this.questions});
+  const CLSurveyBuilder({
+    super.key,
+    this.surveyJson,
+    this.onSurveyChange,
+    this.questions,
+    this.survey,
+    this.onChanged,
+    this.showValidation = false,
+  });
 
+  /// Legacy: domande schema 1 in JSON (stringa).
   final String? surveyJson;
+
+  /// Legacy: domande schema 1.
   final List<Question>? questions;
 
-  final Function(List<Question>) onSurveyChange;
+  /// Legacy: notifica del template schema 1. Obbligatorio nell'uso legacy.
+  final Function(List<Question>)? onSurveyChange;
+
+  /// v2: schema di partenza. Se cambia (oggetto diverso da quello appena
+  /// notificato con [onChanged]) l'editor riparte da lì.
+  final CLSurvey? survey;
+
+  /// v2: chiamato a ogni modifica con lo schema aggiornato.
+  final ValueChanged<CLSurvey>? onChanged;
+
+  /// v2: mostra subito gli errori di tutte le domande.
+  final bool showValidation;
 
   @override
   CLSurveyBuilderState createState() => CLSurveyBuilderState();
@@ -34,6 +78,14 @@ class CLSurveyBuilder extends StatefulWidget {
 class CLSurveyBuilderState extends State<CLSurveyBuilder> {
   List<Question> questions = [];
 
+  // ── Stato v2 ───────────────────────────────────────────────────────────
+  CLSurvey _survey = const CLSurvey();
+  CLSurvey? _lastEmitted;
+  bool _preview = false;
+
+  /// v2: schema corrente.
+  CLSurvey get currentSurvey => _survey;
+
   List<Question> rebuildQuestions(List<Map<String, dynamic>> jsonList) {
     return jsonList.map((json) => Question.fromJson(json)).toList();
   }
@@ -41,6 +93,10 @@ class CLSurveyBuilderState extends State<CLSurveyBuilder> {
   @override
   void initState() {
     super.initState();
+    if (widget.survey != null) {
+      _survey = widget.survey!;
+      return;
+    }
     if (widget.surveyJson != null) {
       questions = rebuildQuestions(jsonDecode(widget.surveyJson!));
     } else {
@@ -48,11 +104,39 @@ class CLSurveyBuilderState extends State<CLSurveyBuilder> {
         questions = widget.questions!;
       }
     }
-    widget.onSurveyChange(questions);
+    widget.onSurveyChange?.call(questions);
+  }
+
+  @override
+  void didUpdateWidget(covariant CLSurveyBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final incoming = widget.survey;
+    if (incoming != null &&
+        !identical(incoming, oldWidget.survey) &&
+        !identical(incoming, _lastEmitted) &&
+        incoming != _survey) {
+      _survey = incoming;
+    }
+  }
+
+  void _update(List<CLSurveyQuestion> questions) {
+    final next = CLSurvey(questions: questions);
+    setState(() => _survey = next);
+    _lastEmitted = next;
+    widget.onChanged?.call(next);
+  }
+
+  void _move(int from, int to) {
+    if (to < 0 || to >= _survey.questions.length || from == to) return;
+    final list = List.of(_survey.questions);
+    final item = list.removeAt(from);
+    list.insert(to, item);
+    _update(list);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.survey != null) return _buildV2(context);
     return ChangeNotifierProvider<SurveyState>(
       create: (context) => SurveyState(questions: questions, onSurveyChange: widget.onSurveyChange),
       builder: (context, child) {
@@ -92,6 +176,108 @@ class CLSurveyBuilderState extends State<CLSurveyBuilder> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildV2(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final qs = _survey.questions;
+    final issueCount = _survey.validate().length;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: Sizes.gapMd),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${qs.length} ${qs.length == 1 ? 'domanda' : 'domande'}',
+                  style: theme.bodyLabel.copyWith(color: theme.secondaryText, fontWeight: FontWeight.w600),
+                ),
+              ),
+              CLViewToggle<bool>(
+                compact: false,
+                selected: _preview,
+                onChanged: (v) => setState(() => _preview = v),
+                items: const [
+                  CLViewToggleItem(icon: LucideIcons.pencil, label: 'Modifica', tooltip: 'Modifica le domande', value: false),
+                  CLViewToggleItem(icon: LucideIcons.eye, label: 'Anteprima', tooltip: 'Come lo vedrà chi risponde', value: true),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (_preview)
+          CLSurveyViewer(survey: _survey)
+        else ...[
+          if (qs.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: Sizes.gapMd),
+              child: CLEmptyState(
+                title: 'Nessuna domanda',
+                message: 'Aggiungi la prima domanda del sondaggio.',
+                icon: LucideIcons.listChecks,
+                compact: true,
+              ),
+            ),
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            itemCount: qs.length,
+            proxyDecorator: (child, index, animation) => Material(
+              type: MaterialType.transparency,
+              child: DecoratedBox(
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(Sizes.radiusCard), boxShadow: theme.popoverShadow),
+                child: child,
+              ),
+            ),
+            // onReorder resta (non onReorderItem) per compilare anche con Flutter < 3.41.
+            // ignore: deprecated_member_use
+            onReorder: (from, to) => _move(from, to > from ? to - 1 : to),
+            itemBuilder: (context, i) => Padding(
+              key: ValueKey(qs[i].id),
+              padding: const EdgeInsets.only(bottom: Sizes.gapMd),
+              child: _QuestionEditorCard(
+                question: qs[i],
+                index: i,
+                total: qs.length,
+                showValidation: widget.showValidation,
+                onChanged: (q) => _update([for (final x in qs) x.id == q.id ? q : x]),
+                onMove: (to) => _move(i, to),
+                onDuplicate: () => _update([...qs.sublist(0, i + 1), qs[i].duplicate(), ...qs.sublist(i + 1)]),
+                onDelete: () => _update([for (final x in qs) if (x.id != qs[i].id) x]),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              height: Sizes.buttonHeightLarge,
+              child: CLOutlineButton.primary(
+                text: 'Aggiungi domanda',
+                icon: LucideIcons.plus,
+                onTap: () => _update([...qs, CLSurveyQuestion.create(type: qs.isEmpty ? CLSurveyQuestionType.singleChoice : qs.last.type)]),
+                context: context,
+              ),
+            ),
+          ),
+          if (widget.showValidation && issueCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: Sizes.gapMd),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  issueCount == 1 ? '1 problema da correggere prima di pubblicare.' : '$issueCount problemi da correggere prima di pubblicare.',
+                  style: theme.smallText.copyWith(color: theme.danger),
+                ),
+              ),
+            ),
+        ],
+      ],
     );
   }
 }
@@ -648,5 +834,404 @@ class OptionEditorState extends State<OptionEditor> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+}
+
+/// Card di modifica di una domanda v2 (interna a [CLSurveyBuilder]).
+class _QuestionEditorCard extends StatefulWidget {
+  const _QuestionEditorCard({
+    required this.question,
+    required this.index,
+    required this.total,
+    required this.showValidation,
+    required this.onChanged,
+    required this.onMove,
+    required this.onDuplicate,
+    required this.onDelete,
+  });
+
+  final CLSurveyQuestion question;
+  final int index;
+  final int total;
+  final bool showValidation;
+  final ValueChanged<CLSurveyQuestion> onChanged;
+  final ValueChanged<int> onMove;
+  final VoidCallback onDuplicate;
+  final VoidCallback onDelete;
+
+  @override
+  State<_QuestionEditorCard> createState() => _QuestionEditorCardState();
+}
+
+class _QuestionEditorCardState extends State<_QuestionEditorCard> {
+  late final TextEditingController _text;
+  late final TextEditingController _help;
+  late final TextEditingController _min;
+  late final TextEditingController _max;
+  late final TextEditingController _minLabel;
+  late final TextEditingController _maxLabel;
+  late final TextEditingController _maxLength;
+  final Map<String, TextEditingController> _options = {};
+  bool _touched = false;
+
+  CLSurveyQuestion get q => widget.question;
+
+  @override
+  void initState() {
+    super.initState();
+    _text = TextEditingController(text: q.text);
+    _help = TextEditingController(text: q.help ?? '');
+    _min = TextEditingController(text: '${q.scale.min}');
+    _max = TextEditingController(text: '${q.scale.max}');
+    _minLabel = TextEditingController(text: q.scale.minLabel ?? '');
+    _maxLabel = TextEditingController(text: q.scale.maxLabel ?? '');
+    _maxLength = TextEditingController(text: q.maxLength?.toString() ?? '');
+    for (final o in q.options) {
+      _options[o.id] = TextEditingController(text: o.label);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuestionEditorCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.question, q)) return;
+    // Riallinea i campi solo quando il modello arriva diverso da ciò che
+    // contengono (cambio esterno): durante la digitazione coincidono.
+    void sync(TextEditingController c, String value) {
+      if (c.text != value) c.text = value;
+    }
+
+    void syncInt(TextEditingController c, int? value) {
+      if (int.tryParse(c.text.trim()) != value) c.text = value?.toString() ?? '';
+    }
+
+    sync(_text, q.text);
+    sync(_help, q.help ?? '');
+    syncInt(_min, q.scale.min);
+    syncInt(_max, q.scale.max);
+    sync(_minLabel, q.scale.minLabel ?? '');
+    sync(_maxLabel, q.scale.maxLabel ?? '');
+    syncInt(_maxLength, q.maxLength);
+    final ids = q.options.map((o) => o.id).toSet();
+    _options.removeWhere((id, c) {
+      if (ids.contains(id)) return false;
+      c.dispose();
+      return true;
+    });
+    for (final o in q.options) {
+      final c = _options.putIfAbsent(o.id, () => TextEditingController(text: o.label));
+      sync(c, o.label);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_text, _help, _min, _max, _minLabel, _maxLabel, _maxLength, ..._options.values]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _emit(CLSurveyQuestion next) {
+    _touched = true;
+    widget.onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CLTheme.of(context);
+    final showErrors = widget.showValidation || _touched;
+    final issues = showErrors ? q.validate() : const <CLSurveyIssue>[];
+    String? issueFor(CLSurveyIssueField field, {String? optionId}) {
+      for (final i in issues) {
+        if (i.field == field && i.optionId == optionId) return i.message;
+      }
+      return null;
+    }
+
+    final errorStyle = theme.smallText.copyWith(color: theme.danger);
+    final textError = issueFor(CLSurveyIssueField.text);
+    final scaleError = issueFor(CLSurveyIssueField.scale);
+    final maxLengthError = issueFor(CLSurveyIssueField.maxLength);
+    final hasIssues = issues.isNotEmpty;
+
+    final Widget typeEditor = switch (q.type) {
+      CLSurveyQuestionType.singleChoice || CLSurveyQuestionType.multipleChoice => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Opzioni', style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: Sizes.gapSm),
+            for (var i = 0; i < q.options.length; i++) ...[
+              Row(
+                children: [
+                  Icon(
+                    q.type == CLSurveyQuestionType.singleChoice ? LucideIcons.circle : LucideIcons.square,
+                    size: Sizes.iconSizeCompact,
+                    color: theme.mutedForeground,
+                  ),
+                  const SizedBox(width: Sizes.gapSm),
+                  Expanded(
+                    child: CLTextField(
+                      controller: _options[q.options[i].id]!,
+                      labelText: '',
+                      hintText: 'Opzione ${i + 1}',
+                      onChanged: (v) async => _emit(q.copyWith(options: [
+                        for (final o in q.options) o.id == q.options[i].id ? o.copyWith(label: v) : o,
+                      ])),
+                    ),
+                  ),
+                  const SizedBox(width: Sizes.gapXs),
+                  CLIconButton(
+                    iconData: LucideIcons.x,
+                    tooltip: 'Rimuovi opzione',
+                    semanticLabel: 'Rimuovi opzione ${i + 1}',
+                    iconColor: theme.secondaryText,
+                    backgroundColor: Colors.transparent,
+                    onTap: () => _emit(q.copyWith(options: [
+                      for (final o in q.options)
+                        if (o.id != q.options[i].id) o,
+                    ])),
+                  ),
+                ],
+              ),
+              if (issueFor(CLSurveyIssueField.options, optionId: q.options[i].id) case final String e)
+                Padding(
+                  padding: const EdgeInsets.only(left: Sizes.iconSizeCompact + Sizes.gapSm, top: Sizes.gapXs),
+                  child: Text(e, style: errorStyle),
+                ),
+              const SizedBox(height: Sizes.gapSm),
+            ],
+            if (issueFor(CLSurveyIssueField.options) case final String e)
+              Padding(padding: const EdgeInsets.only(bottom: Sizes.gapSm), child: Text(e, style: errorStyle)),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CLGhostButton.primary(
+                text: 'Aggiungi opzione',
+                icon: LucideIcons.plus,
+                onTap: () => _emit(q.copyWith(options: [...q.options, CLSurveyOption.create()])),
+                context: context,
+              ),
+            ),
+          ],
+        ),
+      CLSurveyQuestionType.scale => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Scala', style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: Sizes.gapSm),
+            Wrap(
+              spacing: Sizes.gapMd,
+              runSpacing: Sizes.gapMd,
+              children: [
+                SizedBox(
+                  width: Sizes.gap4Xl * 2,
+                  child: CLTextField.number(
+                    controller: _min,
+                    labelText: 'Da',
+                    onChanged: (v) async {
+                      final n = int.tryParse(v.trim());
+                      if (n != null) _emit(q.copyWith(scale: q.scale.copyWith(min: n)));
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: Sizes.gap4Xl * 2,
+                  child: CLTextField.number(
+                    controller: _max,
+                    labelText: 'A',
+                    onChanged: (v) async {
+                      final n = int.tryParse(v.trim());
+                      if (n != null) _emit(q.copyWith(scale: q.scale.copyWith(max: n)));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Sizes.gapMd),
+            CLTextField(
+              controller: _minLabel,
+              labelText: 'Etichetta del minimo (facoltativa)',
+              hintText: 'Es. Per niente',
+              onChanged: (v) async => _emit(q.copyWith(scale: CLSurveyScale(
+                    min: q.scale.min,
+                    max: q.scale.max,
+                    minLabel: v.trim().isEmpty ? null : v,
+                    maxLabel: q.scale.maxLabel,
+                  ))),
+            ),
+            const SizedBox(height: Sizes.gapMd),
+            CLTextField(
+              controller: _maxLabel,
+              labelText: 'Etichetta del massimo (facoltativa)',
+              hintText: 'Es. Moltissimo',
+              onChanged: (v) async => _emit(q.copyWith(scale: CLSurveyScale(
+                    min: q.scale.min,
+                    max: q.scale.max,
+                    minLabel: q.scale.minLabel,
+                    maxLabel: v.trim().isEmpty ? null : v,
+                  ))),
+            ),
+            if (scaleError != null) Padding(padding: const EdgeInsets.only(top: Sizes.gapSm), child: Text(scaleError, style: errorStyle)),
+          ],
+        ),
+      CLSurveyQuestionType.text => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: Sizes.gap4Xl * 4,
+                child: CLTextField.number(
+                  controller: _maxLength,
+                  labelText: 'Lunghezza massima (caratteri)',
+                  onChanged: (v) async {
+                    final t = v.trim();
+                    if (t.isEmpty) {
+                      _emit(q.copyWith(clearMaxLength: true));
+                    } else if (int.tryParse(t) case final int n) {
+                      _emit(q.copyWith(maxLength: n));
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: Sizes.gapXs),
+            Text('Vuoto = nessun limite.', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
+            if (maxLengthError != null)
+              Padding(padding: const EdgeInsets.only(top: Sizes.gapSm), child: Text(maxLengthError, style: errorStyle)),
+          ],
+        ),
+    };
+
+    return CLContainer(
+      contentPadding: const EdgeInsets.all(Sizes.gapLg),
+      backgroundColor:
+          hasIssues ? Color.alphaBlend(theme.danger.withValues(alpha: theme.opacityFaint), theme.secondaryBackground) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              ReorderableDragStartListener(
+                index: widget.index,
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.grab,
+                  child: Tooltip(
+                    message: 'Trascina per riordinare',
+                    child: SizedBox(
+                      width: Sizes.iconSizeLarge,
+                      height: theme.buttonHeightDefault,
+                      child: Icon(LucideIcons.gripVertical, size: Sizes.iconSizeDefault, color: theme.mutedForeground),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: Sizes.gapXs),
+              Expanded(
+                child: Text(
+                  'Domanda ${widget.index + 1}',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, color: theme.primaryText),
+                ),
+              ),
+              CLIconButton(
+                iconData: LucideIcons.arrowUp,
+                tooltip: 'Sposta su',
+                semanticLabel: 'Sposta su la domanda ${widget.index + 1}',
+                enabled: widget.index > 0,
+                iconColor: theme.secondaryText,
+                backgroundColor: Colors.transparent,
+                onTap: () => widget.onMove(widget.index - 1),
+              ),
+              CLIconButton(
+                iconData: LucideIcons.arrowDown,
+                tooltip: 'Sposta giù',
+                semanticLabel: 'Sposta giù la domanda ${widget.index + 1}',
+                enabled: widget.index < widget.total - 1,
+                iconColor: theme.secondaryText,
+                backgroundColor: Colors.transparent,
+                onTap: () => widget.onMove(widget.index + 1),
+              ),
+              CLIconButton(
+                iconData: LucideIcons.copy,
+                tooltip: 'Duplica',
+                semanticLabel: 'Duplica la domanda ${widget.index + 1}',
+                iconColor: theme.secondaryText,
+                backgroundColor: Colors.transparent,
+                onTap: widget.onDuplicate,
+              ),
+              CLIconButton(
+                iconData: LucideIcons.trash2,
+                tooltip: 'Elimina',
+                semanticLabel: 'Elimina la domanda ${widget.index + 1}',
+                iconColor: theme.danger,
+                backgroundColor: Colors.transparent,
+                onTap: widget.onDelete,
+              ),
+            ],
+          ),
+          const SizedBox(height: Sizes.gapMd),
+          CLTextField(
+            controller: _text,
+            labelText: 'Domanda',
+            hintText: 'Es. Il corso ti è stato utile?',
+            isRequired: true,
+            onChanged: (v) async => _emit(q.copyWith(text: v)),
+          ),
+          if (textError != null) Padding(padding: const EdgeInsets.only(top: Sizes.gapXs), child: Text(textError, style: errorStyle)),
+          const SizedBox(height: Sizes.gapMd),
+          CLTextField(
+            controller: _help,
+            labelText: 'Aiuto (facoltativo)',
+            hintText: 'Spiegazione mostrata sotto la domanda',
+            onChanged: (v) async => _emit(v.trim().isEmpty ? q.copyWith(clearHelp: true) : q.copyWith(help: v)),
+          ),
+          const SizedBox(height: Sizes.gapMd),
+          LayoutBuilder(
+            builder: (context, constraints) => Wrap(
+              spacing: Sizes.gapLg,
+              runSpacing: Sizes.gapMd,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: constraints.maxWidth < Sizes.gap4Xl * 6 ? constraints.maxWidth : Sizes.gap4Xl * 5,
+                  child: CLDropdown<CLSurveyQuestionType>.singleSync(
+                    key: ValueKey('type-${q.id}-${q.type.name}'),
+                    hint: 'Tipo di domanda',
+                    items: CLSurveyQuestionType.values,
+                    valueToShow: (t) => t.label,
+                    itemBuilder: (context, t) => Text(t.label),
+                    selectedValues: q.type,
+                    onSelectItem: (t) {
+                      if (t == null || t == q.type) return;
+                      _emit(q.copyWith(
+                        type: t,
+                        options: t.isChoice && q.options.isEmpty ? [CLSurveyOption.create(), CLSurveyOption.create()] : null,
+                        maxLength: t == CLSurveyQuestionType.text && q.maxLength == null ? CLSurveyQuestion.defaultMaxLength : null,
+                      ));
+                    },
+                  ),
+                ),
+                MergeSemantics(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CLCheckbox(value: q.required, onChanged: (v) => _emit(q.copyWith(required: v ?? false))),
+                      const SizedBox(width: Sizes.gapSm),
+                      GestureDetector(
+                        onTap: () => _emit(q.copyWith(required: !q.required)),
+                        child: Text('Obbligatoria', style: theme.bodyText),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Sizes.gapLg),
+          typeEditor,
+        ],
+      ),
+    );
   }
 }

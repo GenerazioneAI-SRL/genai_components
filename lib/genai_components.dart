@@ -127,6 +127,7 @@ export 'widgets/cl_survey/cl_survey_viewer.widget.dart';
 export 'widgets/cl_survey/cl_survey_result_viewer.widget.dart';
 export 'widgets/cl_survey/models/question.dart';
 export 'widgets/cl_survey/models/question_result.dart';
+export 'widgets/cl_survey/models/cl_survey.model.dart';
 
 // Node graph (widget data-driven custom: Stack + CustomPaint)
 export 'src/widgets/cl_node_graph/cl_graph_models.dart';

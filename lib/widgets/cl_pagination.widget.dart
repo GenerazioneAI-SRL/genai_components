@@ -38,7 +38,8 @@ class CLPagination extends StatelessWidget {
     tokens.add(0);
 
     final start = (currentPage - window).clamp(1, last);
-    final end = (currentPage + window).clamp(1, last - 1);
+    // Con 2 pagine `last - 1` vale 0: clamp(1, 0) lancerebbe ArgumentError.
+    final end = (currentPage + window).clamp(1, last - 1 < 1 ? 1 : last - 1);
 
     if (start > 1) tokens.add(null); // leading ellipsis
 
