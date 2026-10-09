@@ -318,9 +318,32 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   /// misura (campo più alto, riga d'errore) invece del valore dell'host.
   final Map<String, Map<String, CLGraphFieldDraft>> _drafts = {};
 
+  /// Card già costruite per i `setState` interni (trascinamento, hover, pan):
+  /// lo stesso widget ⇒ Flutter salta la ricostruzione della card. La chiave
+  /// raccoglie tutto ciò che cambia senza un widget nuovo; si svuota a ogni
+  /// widget nuovo, cambio di dipendenze o di misure. Esclusi i nodi con
+  /// attributi (le bozze dei campi cambiano dentro lo stato).
+  final Map<String, (Object, Widget)> _cardCache = {};
+
+  Widget _cachedCard(CLGraphNode n, Object key, Widget Function() build) {
+    if (n.attributes.isNotEmpty) return build();
+    final hit = _cardCache[n.id];
+    if (hit != null && hit.$1 == key) return hit.$2;
+    final card = build();
+    _cardCache[n.id] = (key, card);
+    return card;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cardCache.clear();
+  }
+
   @override
   void didUpdateWidget(covariant CLNodeGraph oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _cardCache.clear();
     if (_drafts.isEmpty) return;
     final ids = {for (final n in widget.nodes) n.id};
     _drafts.removeWhere((id, _) => !ids.contains(id));
@@ -332,6 +355,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final direction = Directionality.of(context);
     final m = _metrics;
     if (m != null && m.sameInputs(theme, base, scaler, direction)) return m;
+    _cardCache.clear();
     return _metrics = CLGraphCardMetrics(theme: theme, baseStyle: base, textScaler: scaler, textDirection: direction);
   }
 
@@ -1103,20 +1127,29 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 top: rects[n.id]!.top,
                 width: kCardW,
                 height: rects[n.id]!.height,
-                child: _nodeCard(
-                  context,
-                  theme,
-                  n,
-                  metrics: metrics,
-                  card: cards[n.id]!,
-                  warnings: warnings[n.id] ?? const [],
+                child: () {
                   // Durante un collegamento: attenuato se non ammesso, evidenziato se puntato e ammesso.
-                  dimmed: source != null && n.id != source.id && targetProblems[n.id] != null,
-                  connectTarget: n.id == hoverTargetId && hoverProblem == null,
-                  hoverPortId: n.id == hoverTargetId && flowPending && hoverProblem == null
-                      ? _inPortAt(n, _pendingCursor!)?.id
-                      : null,
-                ),
+                  final dimmed = source != null && n.id != source.id && targetProblems[n.id] != null;
+                  final connectTarget = n.id == hoverTargetId && hoverProblem == null;
+                  final hoverPortId =
+                      n.id == hoverTargetId && flowPending && hoverProblem == null ? _inPortAt(n, _pendingCursor!)?.id : null;
+                  final pendingHere = n.id == _pendingFromId ? '${_pendingKind.name}/$_pendingPortId' : null;
+                  return _cachedCard(
+                    n,
+                    (dimmed, connectTarget, hoverPortId, pendingHere, cards[n.id]!.height),
+                    () => _nodeCard(
+                      context,
+                      theme,
+                      n,
+                      metrics: metrics,
+                      card: cards[n.id]!,
+                      warnings: warnings[n.id] ?? const [],
+                      dimmed: dimmed,
+                      connectTarget: connectTarget,
+                      hoverPortId: hoverPortId,
+                    ),
+                  );
+                }(),
               ),
           // Cestino dell'arco attivo al midpoint — visuale pura (il click è
           // gestito dal Listener via hit-test). Sopra le card.

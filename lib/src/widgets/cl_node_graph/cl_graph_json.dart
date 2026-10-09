@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'cl_graph_attributes.dart';
 import 'cl_graph_layout.dart';
 import 'cl_graph_models.dart';
+import 'cl_graph_ports.dart';
 
 /// Stato di vista che l'app può salvare insieme al grafo. Non fa parte del
 /// grafo: posizioni trascinate, zoom e pan restano interni al widget e non si
@@ -65,6 +66,7 @@ class CLGraphJson {
     'hierarchical': clHierarchicalLayout,
     'prereqFlow': clPrereqFlowLayout,
     'moduleFlow': clModuleFlowLayout,
+    'flow': clFlowLayout,
   };
 
   /// Nome di un layout della libreria, o null se è un layout dell'app.
@@ -119,6 +121,17 @@ class CLGraphJson {
           for (final e in n.attributeValues.entries) e.key: _checkJson(e.value, '$path.attributeValues.${e.key}'),
         },
         'connectionRules': _rules(n.connectionRules),
+        // Porte con nome (5.14.0): scritte solo se presenti, così i grafi senza restano identici.
+        if (n.inputPorts.isNotEmpty) 'inputPorts': [for (final p in n.inputPorts) _port(p)],
+        if (n.outputPorts.isNotEmpty) 'outputPorts': [for (final p in n.outputPorts) _port(p)],
+      };
+
+  Map<String, Object?> _port(CLGraphPort p) => {
+        'id': p.id,
+        if (p.label != null) 'label': p.label,
+        if (p.tooltip != null) 'tooltip': p.tooltip,
+        if (p.color != null) 'color': _color(p.color!),
+        if (p.maxConnections != null) 'maxConnections': p.maxConnections,
       };
 
   Map<String, Object?> _action(CLGraphNodeAction a) => {
@@ -158,6 +171,9 @@ class CLGraphJson {
         'kind': e.kind.name,
         'hidden': e.hidden,
         if (!e.deletable) 'deletable': false,
+        if (e.fromPortId != null) 'fromPortId': e.fromPortId,
+        if (e.toPortId != null) 'toPortId': e.toPortId,
+        if (e.label != null) 'label': e.label,
       };
 
   Map<String, Object?> _view(CLGraphView v) => {
@@ -299,6 +315,8 @@ class CLGraphJson {
       attributes: attributes,
       attributeValues: values,
       connectionRules: rulesJson == null ? CLGraphConnectionRules.any : _readRules(rulesJson),
+      inputPorts: [for (final p in m.list('inputPorts')) _readPort(p)],
+      outputPorts: [for (final p in m.list('outputPorts')) _readPort(p)],
     );
     final problem = node.attributesProblem;
     if (problem != null) r.fail(null, problem);
@@ -308,6 +326,17 @@ class CLGraphJson {
       if (error != null) warnings.add('${r.path}.attributeValues.${a.name}: $error (vale il default)');
     }
     return node;
+  }
+
+  CLGraphPort _readPort(_R r) {
+    final m = r.map();
+    return CLGraphPort(
+      id: m.req<String>('id'),
+      label: m.opt<String>('label'),
+      tooltip: m.opt<String>('tooltip'),
+      color: _readColor(m, 'color'),
+      maxConnections: m.opt<int>('maxConnections'),
+    );
   }
 
   CLGraphNodeAction _readAction(_R r, List<String> warnings) {
@@ -373,6 +402,9 @@ class CLGraphJson {
       kind: m.enumValue('kind', CLGraphEdgeKind.values),
       hidden: m.opt<bool>('hidden') ?? false,
       deletable: m.opt<bool>('deletable') ?? true,
+      fromPortId: m.opt<String>('fromPortId'),
+      toPortId: m.opt<String>('toPortId'),
+      label: m.opt<String>('label'),
     );
   }
 
