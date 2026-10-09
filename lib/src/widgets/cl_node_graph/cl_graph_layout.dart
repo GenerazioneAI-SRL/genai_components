@@ -241,3 +241,94 @@ enum CLGraphLinkRole { containment, link, invalid }
   }
   return (role: CLGraphLinkRole.invalid, sourceIsFrom: false);
 }
+
+/// Layout per i grafi di archi [CLGraphEdgeKind.flow] (editor a porte con
+/// nome): colonna = cammino più lungo dagli inizi (nodi senza ingressi flow),
+/// riga = visita in profondità dagli inizi, con i rami ordinati per porta
+/// d'uscita (il primo ramo, es. `sì`, resta sulla riga del padre; gli altri
+/// scendono sulla prima riga libera della loro colonna). Ignora gli altri tipi
+/// di arco. Deterministico; i cicli non lo bloccano (l'arco che chiude il ciclo
+/// non sposta colonne).
+Map<String, Offset> clFlowLayout(List<CLGraphNode> nodes, List<CLGraphEdge> edges) {
+  final byId = {for (final n in nodes) n.id: n};
+  final incoming = <String, List<String>>{for (final n in nodes) n.id: <String>[]};
+  final outgoing = <String, List<CLGraphEdge>>{for (final n in nodes) n.id: <CLGraphEdge>[]};
+  for (final e in edges) {
+    if (e.kind != CLGraphEdgeKind.flow) continue;
+    if (!byId.containsKey(e.fromNodeId) || !byId.containsKey(e.toNodeId)) continue;
+    incoming[e.toNodeId]!.add(e.fromNodeId);
+    outgoing[e.fromNodeId]!.add(e);
+  }
+  // Rami nell'ordine delle porte d'uscita della sorgente, poi in ordine d'input.
+  for (final entry in outgoing.entries) {
+    final ports = byId[entry.key]!.outputPorts;
+    int portIndex(CLGraphEdge e) {
+      final i = ports.indexWhere((p) => p.id == e.fromPortId);
+      return i < 0 ? ports.length : i;
+    }
+
+    final original = List.of(entry.value);
+    entry.value.sort((a, b) {
+      final c = portIndex(a).compareTo(portIndex(b));
+      return c != 0 ? c : original.indexOf(a).compareTo(original.indexOf(b));
+    });
+  }
+
+  final col = <String, int>{};
+  final visiting = <String>{};
+  int computeCol(String id) {
+    final cached = col[id];
+    if (cached != null) return cached;
+    if (!visiting.add(id)) return 0; // ciclo
+    var c = 0;
+    for (final p in incoming[id]!) {
+      final pc = computeCol(p) + 1;
+      if (pc > c) c = pc;
+    }
+    visiting.remove(id);
+    return col[id] = c;
+  }
+
+  for (final n in nodes) {
+    computeCol(n.id);
+  }
+
+  final row = <String, int>{};
+  final used = <String>{};
+  int freeRow(int c, int from) {
+    var r = from;
+    while (used.contains('$c:$r')) {
+      r++;
+    }
+    return r;
+  }
+
+  void place(String id, int wanted) {
+    if (row.containsKey(id)) return;
+    final c = col[id]!;
+    final r = freeRow(c, wanted);
+    row[id] = r;
+    used.add('$c:$r');
+    for (final e in outgoing[id]!) {
+      place(e.toNodeId, r);
+    }
+  }
+
+  var nextRoot = 0;
+  void placeRoot(String id) {
+    place(id, nextRoot);
+    var maxRow = 0;
+    for (final r in row.values) {
+      if (r > maxRow) maxRow = r;
+    }
+    nextRoot = maxRow + 1;
+  }
+
+  for (final n in nodes) {
+    if (incoming[n.id]!.isEmpty) placeRoot(n.id);
+  }
+  for (final n in nodes) {
+    if (!row.containsKey(n.id)) placeRoot(n.id); // solo cicli senza inizio
+  }
+  return {for (final n in nodes) n.id: Offset(col[n.id]! * _flowColStep, row[n.id]! * _flowRowStep)};
+}

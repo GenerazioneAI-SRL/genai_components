@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'cl_graph_attributes.dart';
+import 'cl_graph_ports.dart';
 
 /// Azione/indicatore su una card del grafo, resa come slot in alto a destra.
 /// Di norma un'icona tappabile (es. frecce ordine ▲▼); con [label] mostra invece
@@ -99,6 +100,11 @@ class CLGraphNode {
   final Map<String, Object?> attributeValues;
   /// Quali nodi può avere in ingresso e in uscita. Default: nessun vincolo.
   final CLGraphConnectionRules connectionRules;
+  /// Porte d'ingresso con nome, sul bordo sinistro (vedi [CLGraphPort]). Vuoto
+  /// (default) ⇒ nessuna porta con nome: la card si comporta come prima.
+  final List<CLGraphPort> inputPorts;
+  /// Porte d'uscita con nome, sul bordo destro (es. `sì`/`no`).
+  final List<CLGraphPort> outputPorts;
 
   const CLGraphNode({
     required this.id,
@@ -114,7 +120,28 @@ class CLGraphNode {
     this.attributes = const [],
     this.attributeValues = const {},
     this.connectionRules = CLGraphConnectionRules.any,
+    this.inputPorts = const [],
+    this.outputPorts = const [],
   });
+
+  /// Il nodo ha porte con nome (su almeno un lato).
+  bool get hasNamedPorts => inputPorts.isNotEmpty || outputPorts.isNotEmpty;
+
+  /// Porta d'ingresso [id], o null.
+  CLGraphPort? inputPort(String id) {
+    for (final p in inputPorts) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// Porta d'uscita [id], o null.
+  CLGraphPort? outputPort(String id) {
+    for (final p in outputPorts) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
 }
 
 /// Larghezza fissa di ogni card (i layout ragionano su colonne larghe così).
@@ -142,7 +169,11 @@ const double kPropDy = 26;
 /// - [lessonLink]: parte dalla porta triangolino (sotto il pallino).
 /// - [propaedeutic]: «A è propedeutica a B», porta a rombo sopra il pallino
 ///   (vedi [kPropDy]), tratteggiato; NON conta per i layout.
-enum CLGraphEdgeKind { containment, prerequisite, order, lessonLink, propaedeutic }
+/// - [flow]: arco generico da una porta d'uscita con nome a una porta
+///   d'ingresso con nome (`CLGraphEdge.fromPortId`/`toPortId`), con etichetta
+///   facoltativa a metà arco; conta per `clFlowLayout`. Non è soggetto a
+///   `CLGraphConnectionRules` (si valida con `CLNodeGraph.canConnectPorts`).
+enum CLGraphEdgeKind { containment, prerequisite, order, lessonLink, propaedeutic, flow }
 
 class CLGraphEdge {
   final String id;
@@ -155,6 +186,14 @@ class CLGraphEdge {
   /// false ⇒ l'arco si disegna ma non si seleziona né si elimina (niente
   /// cestino): per archi derivati dai dati (es. la sequenza da un ordine).
   final bool deletable;
+  /// Porta d'uscita della sorgente ([CLGraphEdgeKind.flow]). Null ⇒ prima porta
+  /// d'uscita del nodo (o il bordo destro se non ne ha).
+  final String? fromPortId;
+  /// Porta d'ingresso del bersaglio ([CLGraphEdgeKind.flow]). Null ⇒ prima
+  /// porta d'ingresso del nodo (o il bordo sinistro se non ne ha).
+  final String? toPortId;
+  /// Etichetta a metà arco (solo [CLGraphEdgeKind.flow]), es. la condizione.
+  final String? label;
 
   const CLGraphEdge({
     required this.id,
@@ -163,6 +202,9 @@ class CLGraphEdge {
     required this.kind,
     this.hidden = false,
     this.deletable = true,
+    this.fromPortId,
+    this.toPortId,
+    this.label,
   });
 }
 
