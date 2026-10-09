@@ -31,6 +31,20 @@
 //   }
 // }
 //
+// Domande collegate (dal 5.13.0): un'opzione di una domanda a scelta può avere
+// `nested`, domande figlie mostrate solo se quell'opzione è scelta. Gli id delle
+// domande sono unici su tutto l'albero, le risposte restano una mappa piatta per
+// id; al massimo [CLSurvey.maxDepth] livelli (le figlie non hanno figlie).
+// Un'opzione senza figlie non scrive `nested`: gli schemi v2 di prima restano
+// identici.
+//
+// {"id": "figura", "type": "select", "text": "Quale figura?", "required": true,
+//  "options": [{"id": "p1_contabile", "label": "Contabile"},
+//              {"id": "altro", "label": "Altro",
+//               "nested": [{"id": "figura_altro", "type": "text", "order": 0,
+//                           "text": "Indica la tua figura", "required": true,
+//                           "maxLength": 200}]}]}
+//
 // Il formato legacy (lista di `Question`, schema 1) si legge con
 // [CLSurvey.fromJson] (riconosce la lista) o [CLSurvey.fromLegacyQuestions].
 
@@ -48,6 +62,10 @@ enum CLSurveyQuestionType {
   /// Una o più scelte fra le opzioni.
   multipleChoice('multipleChoice', 'Scelta multipla'),
 
+  /// Una sola scelta da un elenco a tendina con ricerca: per le liste lunghe
+  /// (fino a [CLSurvey.maxSelectOptions] opzioni).
+  select('select', 'Elenco a tendina'),
+
   /// Valore intero fra `scale.min` e `scale.max`, con etichette agli estremi.
   scale('scale', 'Scala'),
 
@@ -63,7 +81,13 @@ enum CLSurveyQuestionType {
   final String label;
 
   /// Vero per i tipi che hanno opzioni.
-  bool get isChoice => this == singleChoice || this == multipleChoice;
+  bool get isChoice => this == singleChoice || this == multipleChoice || this == select;
+
+  /// Vero per i tipi con una sola opzione scelta.
+  bool get isSingleAnswer => this == singleChoice || this == select;
+
+  /// Numero massimo di opzioni per il tipo.
+  int get maxOptions => this == select ? CLSurvey.maxSelectOptions : CLSurvey.maxChoiceOptions;
 
   /// Tipo dal valore JSON; `null` se sconosciuto.
   static CLSurveyQuestionType? fromJsonValue(Object? value) {
@@ -100,16 +124,23 @@ class CLSurveyIds {
 
 /// Opzione di una domanda a scelta.
 class CLSurveyOption extends Equatable {
-  const CLSurveyOption({required this.id, required this.label});
+  const CLSurveyOption({required this.id, required this.label, this.nested = const []});
 
   /// Opzione nuova con id generato.
   factory CLSurveyOption.create({String label = ''}) => CLSurveyOption(id: CLSurveyIds.option(), label: label);
 
-  factory CLSurveyOption.fromJson(Map<String, dynamic> json) => CLSurveyOption(
-        id: json['id']?.toString() ?? '',
-        // `text` è la chiave del formato legacy: accettata in lettura.
-        label: (json['label'] ?? json['text'])?.toString() ?? '',
-      );
+  factory CLSurveyOption.fromJson(Map<String, dynamic> json) {
+    final raw = json['nested'];
+    return CLSurveyOption(
+      id: json['id']?.toString() ?? '',
+      // `text` è la chiave del formato legacy: accettata in lettura.
+      label: (json['label'] ?? json['text'])?.toString() ?? '',
+      // Nel legacy `nested` è una lista di `Question` (chiave `question`): non è v2, si ignora.
+      nested: raw is List && raw.whereType<Map>().every((m) => m['type'] != null || m['question'] == null)
+          ? _questionsFromJson(raw)
+          : const [],
+    );
+  }
 
   /// Id stabile, unico nella domanda.
   final String id;
@@ -117,12 +148,20 @@ class CLSurveyOption extends Equatable {
   /// Testo dell'opzione.
   final String label;
 
-  CLSurveyOption copyWith({String? label}) => CLSurveyOption(id: id, label: label ?? this.label);
+  /// Domande collegate: mostrate solo se questa opzione è scelta. Vuoto = nessuna.
+  final List<CLSurveyQuestion> nested;
 
-  Map<String, dynamic> toJson() => {'id': id, 'label': label};
+  CLSurveyOption copyWith({String? label, List<CLSurveyQuestion>? nested}) =>
+      CLSurveyOption(id: id, label: label ?? this.label, nested: nested ?? this.nested);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'label': label,
+        if (nested.isNotEmpty) 'nested': [for (var i = 0; i < nested.length; i++) nested[i].toJson(order: i)],
+      };
 
   @override
-  List<Object?> get props => [id, label];
+  List<Object?> get props => [id, label, nested];
 }
 
 /// Configurazione di una domanda a scala.
@@ -260,11 +299,40 @@ class CLSurveyQuestion extends Equatable {
         maxLength: clearMaxLength ? null : (maxLength ?? this.maxLength),
       );
 
-  /// Copia con id nuovi (domanda e opzioni): per «Duplica».
+  /// Copia con id nuovi (domanda, opzioni e domande collegate): per «Duplica».
   CLSurveyQuestion duplicate() => copyWith(
         id: CLSurveyIds.question(),
-        options: [for (final o in options) CLSurveyOption(id: CLSurveyIds.option(), label: o.label)],
+        options: [
+          for (final o in options)
+            CLSurveyOption(id: CLSurveyIds.option(), label: o.label, nested: [for (final n in o.nested) n.duplicate()]),
+        ],
       );
+
+  /// Domande collegate a tutte le opzioni (solo il livello sotto), nell'ordine
+  /// delle opzioni. Vuoto se il tipo non ha opzioni.
+  List<CLSurveyQuestion> get nestedQuestions => type.isChoice ? [for (final o in options) ...o.nested] : const [];
+
+  /// La risposta [answer] ripulita per questa domanda (opzioni sconosciute,
+  /// valori fuori scala, testo oltre `maxLength`), `null` se non resta nulla.
+  CLSurveyAnswer? sanitizeAnswer(CLSurveyAnswer? answer) {
+    final a = answer;
+    if (a == null) return null;
+    switch (type) {
+      case CLSurveyQuestionType.singleChoice:
+      case CLSurveyQuestionType.multipleChoice:
+      case CLSurveyQuestionType.select:
+        final ids = a.optionIds.where((id) => optionById(id) != null).toSet().toList();
+        final limited = type.isSingleAnswer && ids.length > 1 ? [ids.first] : ids;
+        return limited.isEmpty ? null : CLSurveyAnswer(optionIds: limited);
+      case CLSurveyQuestionType.scale:
+        final v = a.value;
+        return v != null && v >= scale.min && v <= scale.max ? CLSurveyAnswer(value: v) : null;
+      case CLSurveyQuestionType.text:
+        var t = (a.text ?? '').trim();
+        if (maxLength != null && t.length > maxLength!) t = t.substring(0, maxLength!);
+        return t.isEmpty ? null : CLSurveyAnswer(text: t);
+    }
+  }
 
   /// Opzione per id, `null` se non c'è.
   CLSurveyOption? optionById(String id) {
@@ -283,8 +351,12 @@ class CLSurveyQuestion extends Equatable {
     switch (type) {
       case CLSurveyQuestionType.singleChoice:
       case CLSurveyQuestionType.multipleChoice:
+      case CLSurveyQuestionType.select:
         if (options.length < 2) {
           issues.add(CLSurveyIssue(questionId: id, field: CLSurveyIssueField.options, message: 'Servono almeno due opzioni.'));
+        } else if (options.length > type.maxOptions) {
+          issues.add(CLSurveyIssue(
+              questionId: id, field: CLSurveyIssueField.options, message: 'Al massimo ${type.maxOptions} opzioni.'));
         }
         for (final o in options) {
           if (o.label.trim().isEmpty) {
@@ -321,6 +393,7 @@ class CLSurveyQuestion extends Equatable {
     if (empty) return required ? 'Questa domanda è obbligatoria.' : null;
     switch (type) {
       case CLSurveyQuestionType.singleChoice:
+      case CLSurveyQuestionType.select:
         if (answer.optionIds.length > 1) return 'Scegli una sola risposta.';
       case CLSurveyQuestionType.multipleChoice:
         break;
@@ -337,7 +410,8 @@ class CLSurveyQuestion extends Equatable {
   /// Vero se [answer] non contiene una risposta utile per questo tipo.
   bool isAnswerEmpty(CLSurveyAnswer answer) => switch (type) {
         CLSurveyQuestionType.singleChoice ||
-        CLSurveyQuestionType.multipleChoice =>
+        CLSurveyQuestionType.multipleChoice ||
+        CLSurveyQuestionType.select =>
           !answer.optionIds.any((id) => optionById(id) != null),
         CLSurveyQuestionType.scale => answer.value == null,
         CLSurveyQuestionType.text => (answer.text ?? '').trim().isEmpty,
@@ -377,14 +451,38 @@ class CLSurveyIssue extends Equatable {
   List<Object?> get props => [questionId, field, optionId, message];
 }
 
-/// Schema del sondaggio v2: elenco ordinato di domande.
+/// Una domanda nell'albero del sondaggio, con la sua posizione: livello
+/// ([depth], 0 = domanda principale), domanda e opzione da cui dipende.
+class CLSurveyNode {
+  const CLSurveyNode({required this.question, this.depth = 0, this.parent, this.parentOption, required this.rootIndex});
+
+  final CLSurveyQuestion question;
+
+  /// 0 per le domande principali, 1 per le collegate.
+  final int depth;
+
+  /// Domanda da cui dipende (`null` per le principali).
+  final CLSurveyQuestion? parent;
+
+  /// Opzione di [parent] che la mostra (`null` per le principali).
+  final CLSurveyOption? parentOption;
+
+  /// Posizione della domanda principale a cui appartiene (sé stessa se principale).
+  final int rootIndex;
+
+  bool get isRoot => depth == 0;
+}
+
+/// Schema del sondaggio v2: elenco ordinato di domande, ognuna con eventuali
+/// domande collegate alle opzioni ([CLSurveyOption.nested]).
 class CLSurvey extends Equatable {
   const CLSurvey({this.questions = const []});
 
   /// Legge lo schema v2 (`{"schemaVersion": 2, "questions": [...]}`) oppure il
   /// formato legacy (lista di `Question`). Le domande sono ordinate per
-  /// `order` (a parità, per posizione); id mancanti o duplicati vengono
-  /// rigenerati perché le risposte non collidano.
+  /// `order` (a parità, per posizione), anche fra le collegate; id mancanti o
+  /// duplicati (su tutto l'albero) vengono rigenerati perché le risposte non
+  /// collidano.
   factory CLSurvey.fromJson(Object? json) {
     if (json is List) {
       return CLSurvey.fromLegacyQuestions(
@@ -393,43 +491,41 @@ class CLSurvey extends Equatable {
     if (json is! Map) return const CLSurvey();
     final raw = json['questions'];
     if (raw is! List) return const CLSurvey();
-    final indexed = <(int, int, CLSurveyQuestion)>[];
-    var i = 0;
-    for (final item in raw.whereType<Map>()) {
-      final map = Map<String, dynamic>.from(item);
-      indexed.add((_asInt(map['order']) ?? i, i, CLSurveyQuestion.fromJson(map)));
-      i++;
-    }
-    indexed.sort((a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2));
-    final seen = <String>{};
-    final questions = <CLSurveyQuestion>[];
-    for (final (_, _, q) in indexed) {
+    return CLSurvey(questions: _fixIds(_questionsFromJson(raw), <String>{}));
+  }
+
+  static List<CLSurveyQuestion> _fixIds(List<CLSurveyQuestion> list, Set<String> seen) {
+    final out = <CLSurveyQuestion>[];
+    for (final q in list) {
       var question = q.id.isEmpty || seen.contains(q.id) ? q.copyWith(id: CLSurveyIds.question()) : q;
       seen.add(question.id);
       final optionIds = <String>{};
-      if (question.options.any((o) => o.id.isEmpty || !optionIds.add(o.id))) {
-        final fixed = <String>{};
-        question = question.copyWith(options: [
-          for (final o in question.options)
-            o.id.isEmpty || !fixed.add(o.id) ? CLSurveyOption(id: CLSurveyIds.option(), label: o.label) : o,
-        ]);
+      final options = <CLSurveyOption>[];
+      for (final o in question.options) {
+        final option = o.id.isEmpty || !optionIds.add(o.id) ? CLSurveyOption(id: CLSurveyIds.option(), label: o.label, nested: o.nested) : o;
+        optionIds.add(option.id);
+        options.add(option.nested.isEmpty ? option : option.copyWith(nested: _fixIds(option.nested, seen)));
       }
-      questions.add(question);
+      question = question.copyWith(options: options);
+      out.add(question);
     }
-    return CLSurvey(questions: questions);
+    return out;
   }
 
   /// Converte il formato legacy (`List<Question>`, schema 1). Le domande con
   /// opzioni diventano scelta singola o multipla (secondo `singleChoice`),
   /// `isRating`/`isStarRating` senza opzioni diventano una scala 1–5, il resto
-  /// testo libero. Gli id delle domande sono deterministici (`legacy_q<n>`),
-  /// quelli delle opzioni restano quelli legacy. Le domande subordinate
-  /// (`Option.nested`) non hanno equivalente e vengono scartate.
-  factory CLSurvey.fromLegacyQuestions(List<Question> legacy) {
+  /// testo libero. Gli id delle domande sono deterministici (`legacy_q<n>`,
+  /// le collegate `legacy_q<n>_<opzione>_<k>`), quelli delle opzioni restano
+  /// quelli legacy. Le domande subordinate (`Option.nested`) diventano domande
+  /// collegate fino a [maxDepth] livelli; quelle più in profondità si perdono.
+  factory CLSurvey.fromLegacyQuestions(List<Question> legacy) => CLSurvey(questions: _fromLegacy(legacy, 'legacy_q', 0));
+
+  static List<CLSurveyQuestion> _fromLegacy(List<Question> legacy, String prefix, int depth) {
     final questions = <CLSurveyQuestion>[];
     for (var i = 0; i < legacy.length; i++) {
       final q = legacy[i];
-      final id = 'legacy_q${i + 1}';
+      final id = '$prefix${i + 1}';
       if (q.options.isNotEmpty) {
         final seen = <String>{};
         questions.add(CLSurveyQuestion(
@@ -442,6 +538,9 @@ class CLSurvey extends Equatable {
               CLSurveyOption(
                 id: q.options[j].id.isEmpty || !seen.add(q.options[j].id) ? '${id}_o${j + 1}' : q.options[j].id,
                 label: q.options[j].text,
+                nested: depth + 1 < maxDepth && (q.options[j].nested?.isNotEmpty ?? false)
+                    ? _fromLegacy(q.options[j].nested!, '${id}_${j + 1}_', depth + 1)
+                    : const [],
               ),
           ],
         ));
@@ -451,63 +550,130 @@ class CLSurvey extends Equatable {
         questions.add(CLSurveyQuestion(id: id, type: CLSurveyQuestionType.text, text: q.question, required: q.isMandatory));
       }
     }
-    return CLSurvey(questions: questions);
+    return questions;
   }
 
   /// Versione corrente dello schema JSON.
   static const int currentSchemaVersion = 2;
 
+  /// Livelli di domande ammessi: le principali e le loro collegate (le
+  /// collegate non ne hanno altre).
+  static const int maxDepth = 2;
+
+  /// Opzioni al massimo per scelta singola e multipla.
+  static const int maxChoiceOptions = 50;
+
+  /// Opzioni al massimo per l'elenco a tendina ([CLSurveyQuestionType.select]).
+  static const int maxSelectOptions = 200;
+
+  /// Domande principali, nell'ordine.
   final List<CLSurveyQuestion> questions;
 
   bool get isEmpty => questions.isEmpty;
 
-  /// Domanda per id, `null` se non c'è.
+  /// Tutte le domande dell'albero in profondità (ogni principale seguita dalle
+  /// sue collegate, nell'ordine delle opzioni).
+  List<CLSurveyNode> get nodes {
+    final out = <CLSurveyNode>[];
+    for (var i = 0; i < questions.length; i++) {
+      _walk(questions[i], 0, null, null, i, out, null);
+    }
+    return out;
+  }
+
+  /// Tutte le domande, principali e collegate (vedi [nodes]).
+  List<CLSurveyQuestion> get allQuestions => [for (final n in nodes) n.question];
+
+  /// Domande visibili con le risposte [response]: le principali sempre, una
+  /// collegata solo se la domanda da cui dipende è visibile e ha scelta la sua
+  /// opzione (nella risposta ripulita), fino a [maxDepth] livelli.
+  List<CLSurveyNode> visibleNodes(CLSurveyResponse response) {
+    final out = <CLSurveyNode>[];
+    for (var i = 0; i < questions.length; i++) {
+      _walk(questions[i], 0, null, null, i, out, response);
+    }
+    return out;
+  }
+
+  static void _walk(CLSurveyQuestion q, int depth, CLSurveyQuestion? parent, CLSurveyOption? option, int root,
+      List<CLSurveyNode> out, CLSurveyResponse? response) {
+    out.add(CLSurveyNode(question: q, depth: depth, parent: parent, parentOption: option, rootIndex: root));
+    if (!q.type.isChoice) return;
+    if (response != null) {
+      if (depth + 1 >= maxDepth) return;
+      final chosen = q.sanitizeAnswer(response.answers[q.id])?.optionIds ?? const <String>[];
+      for (final o in q.options) {
+        if (!chosen.contains(o.id)) continue;
+        for (final n in o.nested) {
+          _walk(n, depth + 1, q, o, root, out, response);
+        }
+      }
+    } else {
+      for (final o in q.options) {
+        for (final n in o.nested) {
+          _walk(n, depth + 1, q, o, root, out, null);
+        }
+      }
+    }
+  }
+
+  /// Domanda per id (anche collegata), `null` se non c'è.
   CLSurveyQuestion? questionById(String id) {
-    for (final q in questions) {
-      if (q.id == id) return q;
+    for (final n in nodes) {
+      if (n.question.id == id) return n.question;
     }
     return null;
   }
 
   CLSurvey copyWith({List<CLSurveyQuestion>? questions}) => CLSurvey(questions: questions ?? this.questions);
 
-  /// Tutti i problemi dello schema (vuoto = pubblicabile). Un sondaggio senza
-  /// domande non è valido.
-  List<CLSurveyIssue> validate() => [for (final q in questions) ...q.validate()];
+  /// Tutti i problemi dello schema (vuoto = pubblicabile), domande collegate
+  /// comprese: in più id di domanda ripetuti nell'albero e collegate oltre
+  /// [maxDepth] livelli. Un sondaggio senza domande non è valido.
+  List<CLSurveyIssue> validate() {
+    final issues = <CLSurveyIssue>[];
+    final seen = <String>{};
+    for (final n in nodes) {
+      final q = n.question;
+      issues.addAll(q.validate());
+      if (!seen.add(q.id)) {
+        issues.add(CLSurveyIssue(questionId: q.id, field: CLSurveyIssueField.text, message: 'Due domande hanno lo stesso id.'));
+      }
+      if (n.depth + 1 >= maxDepth && q.type.isChoice) {
+        for (final o in q.options) {
+          if (o.nested.isNotEmpty) {
+            issues.add(CLSurveyIssue(
+              questionId: q.id,
+              optionId: o.id,
+              field: CLSurveyIssueField.options,
+              message: 'Una domanda collegata non può avere altre domande collegate.',
+            ));
+          }
+        }
+      }
+    }
+    return issues;
+  }
 
   /// Vero se lo schema è pubblicabile: almeno una domanda e nessun problema.
   bool get isValid => questions.isNotEmpty && validate().isEmpty;
 
-  /// Errori della risposta per domanda (solo le domande con errore).
+  /// Errori della risposta per domanda (solo le domande visibili con errore:
+  /// una collegata è obbligatoria solo se si vede).
   Map<String, String> validateResponse(CLSurveyResponse response) => {
-        for (final q in questions)
-          if (q.validateAnswer(response.answers[q.id]) case final String error) q.id: error,
+        for (final n in visibleNodes(response))
+          if (n.question.validateAnswer(response.answers[n.question.id]) case final String error) n.question.id: error,
       };
 
-  /// Toglie dalla risposta ciò che lo schema non conosce: domande e opzioni
-  /// inesistenti, risposte vuote, valori fuori scala; taglia il testo a
-  /// `maxLength`. È la forma che il viewer passa a `onSubmit`.
+  /// Toglie dalla risposta ciò che lo schema non conosce o non mostra: domande
+  /// e opzioni inesistenti, domande collegate non visibili, risposte vuote,
+  /// valori fuori scala; taglia il testo a `maxLength`. È la forma che il
+  /// viewer passa a `onSubmit`.
   CLSurveyResponse sanitizeResponse(CLSurveyResponse response) {
     final clean = <String, CLSurveyAnswer>{};
-    for (final q in questions) {
-      final a = response.answers[q.id];
-      if (a == null) continue;
-      CLSurveyAnswer? kept;
-      switch (q.type) {
-        case CLSurveyQuestionType.singleChoice:
-        case CLSurveyQuestionType.multipleChoice:
-          final ids = a.optionIds.where((id) => q.optionById(id) != null).toSet().toList();
-          final limited = q.type == CLSurveyQuestionType.singleChoice && ids.length > 1 ? [ids.first] : ids;
-          if (limited.isNotEmpty) kept = CLSurveyAnswer(optionIds: limited);
-        case CLSurveyQuestionType.scale:
-          final v = a.value;
-          if (v != null && v >= q.scale.min && v <= q.scale.max) kept = CLSurveyAnswer(value: v);
-        case CLSurveyQuestionType.text:
-          var t = (a.text ?? '').trim();
-          if (q.maxLength != null && t.length > q.maxLength!) t = t.substring(0, q.maxLength!);
-          if (t.isNotEmpty) kept = CLSurveyAnswer(text: t);
-      }
-      if (kept != null) clean[q.id] = kept;
+    for (final n in visibleNodes(response)) {
+      final kept = n.question.sanitizeAnswer(response.answers[n.question.id]);
+      if (kept != null) clean[n.question.id] = kept;
     }
     return CLSurveyResponse(answers: clean);
   }
@@ -604,9 +770,21 @@ class CLSurveyQuestionSummary {
     required this.optionCounts,
     required this.valueCounts,
     required this.texts,
+    this.depth = 0,
+    this.parent,
+    this.parentOption,
   });
 
   final CLSurveyQuestion question;
+
+  /// 0 per le domande principali, 1 per le collegate.
+  final int depth;
+
+  /// Domanda collegata: la domanda da cui dipende.
+  final CLSurveyQuestion? parent;
+
+  /// Domanda collegata: l'opzione di [parent] che la mostra.
+  final CLSurveyOption? parentOption;
 
   /// Quanti compilatori hanno risposto a questa domanda.
   final int answeredCount;
@@ -639,12 +817,16 @@ class CLSurveyQuestionSummary {
 class CLSurveySummary {
   CLSurveySummary._(this.responseCount, this.questions);
 
-  /// Calcola il riepilogo. Le risposte passano da [CLSurvey.sanitizeResponse],
-  /// quindi opzioni o valori che lo schema non conosce non vengono contati.
+  /// Calcola il riepilogo, una voce per ogni domanda dell'albero
+  /// ([CLSurvey.nodes]: ogni principale seguita dalle collegate). Le risposte
+  /// passano da [CLSurvey.sanitizeResponse], quindi opzioni o valori che lo
+  /// schema non conosce, e le collegate che il compilatore non vedeva, non
+  /// vengono contati.
   factory CLSurveySummary.compute(CLSurvey survey, List<CLSurveyResponse> responses) {
     final clean = responses.map(survey.sanitizeResponse).toList();
     final summaries = <CLSurveyQuestionSummary>[];
-    for (final q in survey.questions) {
+    for (final node in survey.nodes) {
+      final q = node.question;
       final optionCounts = {for (final o in q.options) o.id: 0};
       final valueCounts = {for (final v in q.scale.values) v: 0};
       final texts = <String>[];
@@ -656,6 +838,7 @@ class CLSurveySummary {
         switch (q.type) {
           case CLSurveyQuestionType.singleChoice:
           case CLSurveyQuestionType.multipleChoice:
+          case CLSurveyQuestionType.select:
             for (final id in a.optionIds) {
               optionCounts[id] = (optionCounts[id] ?? 0) + 1;
             }
@@ -671,6 +854,9 @@ class CLSurveySummary {
         optionCounts: q.type.isChoice ? optionCounts : const {},
         valueCounts: q.type == CLSurveyQuestionType.scale ? valueCounts : const {},
         texts: texts,
+        depth: node.depth,
+        parent: node.parent,
+        parentOption: node.parentOption,
       ));
     }
     return CLSurveySummary._(responses.length, summaries);
@@ -679,7 +865,7 @@ class CLSurveySummary {
   /// Numero di risposte (compilatori) considerate.
   final int responseCount;
 
-  /// Riepilogo per domanda, nell'ordine dello schema.
+  /// Riepilogo per domanda (collegate comprese), nell'ordine di [CLSurvey.nodes].
   final List<CLSurveyQuestionSummary> questions;
 }
 
@@ -693,4 +879,17 @@ int? _asInt(Object? v) => switch (v) {
 String? _nonEmpty(Object? v) {
   final s = v?.toString();
   return s == null || s.trim().isEmpty ? null : s;
+}
+
+/// Domande da una lista JSON, ordinate per `order` (a parità per posizione).
+List<CLSurveyQuestion> _questionsFromJson(List raw) {
+  final indexed = <(int, int, CLSurveyQuestion)>[];
+  var i = 0;
+  for (final item in raw.whereType<Map>()) {
+    final map = Map<String, dynamic>.from(item);
+    indexed.add((_asInt(map['order']) ?? i, i, CLSurveyQuestion.fromJson(map)));
+    i++;
+  }
+  indexed.sort((a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2));
+  return [for (final (_, _, q) in indexed) q];
 }

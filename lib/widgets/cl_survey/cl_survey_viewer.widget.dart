@@ -8,6 +8,7 @@ import '../../cl_theme.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_outline_button.widget.dart';
 import '../cl_container.widget.dart';
+import '../cl_dropdown/cl_dropdown.dart';
 import '../cl_empty_state.widget.dart';
 import '../cl_progress.widget.dart';
 import '../cl_text_field.widget.dart';
@@ -37,6 +38,12 @@ enum CLSurveyViewerMode {
 /// gestisce modalità una-per-schermata o tutte-in-pagina ([mode]), barra di
 /// avanzamento, validazione delle obbligatorie, bozza ([onDraftChanged]),
 /// invio ([onSubmit]) e sola lettura ([readOnly]).
+///
+/// Le domande collegate ([CLSurveyOption.nested]) compaiono dentro la card
+/// della domanda principale, sotto il controllo, solo quando la loro opzione è
+/// scelta: una schermata è sempre una domanda principale con le sue collegate
+/// visibili. Le risposte alle collegate nascoste restano in bozza (tornando
+/// sull'opzione ricompaiono) ma non arrivano a [onSubmit].
 ///
 /// Con altezza vincolata (es. `Expanded`) il viewer scorre da sé e, in
 /// modalità una-per-schermata, tiene i bottoni fermi in basso; con altezza
@@ -158,6 +165,8 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
   final Set<String> _errorsVisible = {};
   final Map<String, TextEditingController> _textControllers = {};
   final Map<String, GlobalKey> _questionKeys = {};
+  final ScrollController _pageScroll = ScrollController();
+  final GlobalKey _topKey = GlobalKey();
   Timer? _draftTimer;
   bool _submitAttempted = false;
 
@@ -193,7 +202,7 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
     }
     final survey = widget.survey;
     if (survey != null) {
-      final ids = survey.questions.map((q) => q.id).toSet();
+      final ids = survey.allQuestions.map((q) => q.id).toSet();
       _textControllers.removeWhere((id, c) {
         if (ids.contains(id)) return false;
         c.dispose();
@@ -210,6 +219,7 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
     for (final c in _textControllers.values) {
       c.dispose();
     }
+    _pageScroll.dispose();
     super.dispose();
   }
 
@@ -242,12 +252,32 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
     _flushDraft();
     FocusScope.of(context).unfocus();
     setState(() => _page = page);
+    _scrollToTop();
+  }
+
+  /// La schermata nuova parte dall'inizio: lo scroll interno (altezza
+  /// vincolata) torna a 0, e se il viewer sta in uno scroll del genitore la sua
+  /// cima torna in vista (solo se era uscita sopra).
+  void _scrollToTop() {
+    if (_pageScroll.hasClients) _pageScroll.jumpTo(0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pageScroll.hasClients && _pageScroll.offset != 0) _pageScroll.jumpTo(0);
+      final ctx = _topKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        Scrollable.ensureVisible(ctx, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart);
+      }
+    });
   }
 
   void _next(CLSurvey survey) {
-    final q = survey.questions[_page];
-    if (q.validateAnswer(_response.answers[q.id]) != null) {
-      setState(() => _errorsVisible.add(q.id));
+    final visible = survey.visibleNodes(_response).where((n) => n.rootIndex == _page);
+    final invalid = [
+      for (final n in visible)
+        if (n.question.validateAnswer(_response.answers[n.question.id]) != null) n.question.id,
+    ];
+    if (invalid.isNotEmpty) {
+      setState(() => _errorsVisible.addAll(invalid));
       return;
     }
     _goTo(_page + 1);
@@ -257,13 +287,16 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
     _flushDraft();
     final errors = survey.validateResponse(_response);
     if (errors.isNotEmpty) {
+      final first = survey.visibleNodes(_response).firstWhere((n) => errors.containsKey(n.question.id));
+      final pageChanged = paged && _page != first.rootIndex;
       setState(() {
         _submitAttempted = true;
         _errorsVisible.addAll(errors.keys);
-        if (paged) _page = survey.questions.indexWhere((q) => errors.containsKey(q.id));
+        if (paged) _page = first.rootIndex;
       });
+      if (pageChanged) _scrollToTop();
       if (!paged) {
-        final firstId = survey.questions.firstWhere((q) => errors.containsKey(q.id)).id;
+        final firstId = first.question.id;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final ctx = _questionKeys[firstId]?.currentContext;
           if (ctx != null && ctx.mounted) {
@@ -310,10 +343,14 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
       );
     }
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    // Pagine e numerazione: le domande principali. Conteggio delle risposte:
+    // le domande visibili, collegate comprese.
     final total = survey.questions.length;
-    final answered = survey.questions.where((q) {
-      final a = _response.answers[q.id];
-      return a != null && !q.isAnswerEmpty(a);
+    final visible = survey.visibleNodes(_response);
+    final visibleTotal = visible.length;
+    final answered = visible.where((n) {
+      final a = _response.answers[n.question.id];
+      return a != null && !n.question.isAnswerEmpty(a);
     }).length;
 
     return LayoutBuilder(builder: (context, constraints) {
@@ -323,22 +360,32 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
       final bounded = constraints.hasBoundedHeight;
       final narrow = constraints.maxWidth < CLSurveyViewer.pagedBreakpoint;
 
-      Widget card(CLSurveyQuestion q, int index) => _SurveyQuestionCard(
+      _SurveyQuestionCard questionCard(CLSurveyQuestion q, int index, {bool embedded = false, List<Widget> nested = const []}) =>
+          _SurveyQuestionCard(
             key: _questionKeys.putIfAbsent(q.id, GlobalKey.new),
             question: q,
             index: index,
             total: total,
-            showIndex: !paged,
+            showIndex: !paged && !embedded,
             large: paged,
+            embedded: embedded,
             answer: _response.answers[q.id],
             error: _errorsVisible.contains(q.id) ? q.validateAnswer(_response.answers[q.id]) : null,
             readOnly: widget.readOnly,
             textController: q.type == CLSurveyQuestionType.text && !widget.readOnly ? _controllerFor(q) : null,
             onChanged: (update, {bool debounce = false}) => _setAnswer(q, update, debounce: debounce),
+            nested: nested,
+            reduceMotion: reduceMotion,
           );
+
+      Widget card(CLSurveyQuestion q, int index) => questionCard(q, index, nested: [
+            for (final n in visible)
+              if (n.rootIndex == index && !n.isRoot) questionCard(n.question, index, embedded: true),
+          ]);
 
       final header = widget.showHeader
           ? Padding(
+              key: _topKey,
               padding: const EdgeInsets.only(bottom: Sizes.gapLg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -353,24 +400,24 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
                                 ? 'Domanda ${_page + 1} di $total'
                                 : widget.readOnly
                                     ? '$total ${total == 1 ? 'domanda' : 'domande'}'
-                                    : '$answered di $total risposte',
+                                    : '$answered di $visibleTotal risposte',
                             style: theme.bodyLabel.copyWith(color: theme.secondaryText, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
                       if (paged)
-                        Text('$answered/$total risposte', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
+                        Text('$answered/$visibleTotal risposte', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
                     ],
                   ),
                   if (!widget.readOnly) ...[
                     const SizedBox(height: Sizes.gapSm),
                     Semantics(
                       label: 'Avanzamento',
-                      value: paged ? '${_page + 1} di $total' : '$answered di $total',
+                      value: paged ? '${_page + 1} di $total' : '$answered di $visibleTotal',
                       child: ExcludeSemantics(
                         child: CLProgress(
-                          value: paged ? (_page + 1) / total : answered / total,
-                          variant: answered == total ? CLProgressVariant.success : CLProgressVariant.primary,
+                          value: paged ? (_page + 1) / total : answered / visibleTotal,
+                          variant: answered == visibleTotal ? CLProgressVariant.success : CLProgressVariant.primary,
                           height: Sizes.gapSm,
                         ),
                       ),
@@ -379,7 +426,7 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
                 ],
               ),
             )
-          : const SizedBox.shrink();
+          : SizedBox.shrink(key: _topKey);
 
       final submitText = widget.saveText ?? 'Invia';
 
@@ -446,7 +493,7 @@ class CLSurveyViewerState extends State<CLSurveyViewer> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               header,
-              Expanded(child: SingleChildScrollView(child: body)),
+              Expanded(child: SingleChildScrollView(controller: _pageScroll, child: body)),
               nav,
             ],
           );
@@ -604,6 +651,9 @@ class _SurveyQuestionCard extends StatelessWidget {
     required this.readOnly,
     required this.textController,
     required this.onChanged,
+    this.embedded = false,
+    this.nested = const [],
+    this.reduceMotion = false,
   });
 
   final CLSurveyQuestion question;
@@ -611,6 +661,13 @@ class _SurveyQuestionCard extends StatelessWidget {
   final int total;
   final bool showIndex;
   final bool large;
+
+  /// Domanda collegata: dentro la card della principale, senza card propria.
+  final bool embedded;
+
+  /// Domande collegate visibili, mostrate sotto il controllo.
+  final List<Widget> nested;
+  final bool reduceMotion;
   final CLSurveyAnswer? answer;
   final String? error;
   final bool readOnly;
@@ -625,7 +682,38 @@ class _SurveyQuestionCard extends StatelessWidget {
     final hasError = error != null;
     final answerText = answer?.text ?? '';
 
+    Widget readOnlyBox(String value) => Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(Sizes.gapMd),
+          decoration: BoxDecoration(
+            color: theme.primaryBackground,
+            borderRadius: BorderRadius.circular(Sizes.radiusControl),
+            border: Border.all(color: theme.borderColor),
+          ),
+          child: Text(
+            value.isEmpty ? 'Nessuna risposta' : value,
+            style: theme.bodyText.copyWith(
+              color: value.isEmpty ? theme.secondaryText : theme.primaryText,
+              fontStyle: value.isEmpty ? FontStyle.italic : FontStyle.normal,
+            ),
+          ),
+        );
+
+    final selectedOption = selected.isEmpty ? null : q.optionById(selected.first);
+
     final Widget control = switch (q.type) {
+      CLSurveyQuestionType.select => readOnly
+          ? readOnlyBox(selectedOption?.label ?? '')
+          : CLDropdown<CLSurveyOption>.singleSync(
+              key: ValueKey('select-${q.id}'),
+              hint: '',
+              items: q.options,
+              valueToShow: (o) => o.label,
+              itemBuilder: (context, o) => Text(o.label),
+              searchCallback: (value) async => _filterOptions(q.options, value),
+              selectedValues: selectedOption,
+              onSelectItem: (o) => onChanged((_) => o == null ? null : CLSurveyAnswer(optionIds: [o.id])),
+            ),
       CLSurveyQuestionType.singleChoice || CLSurveyQuestionType.multipleChoice => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -661,22 +749,7 @@ class _SurveyQuestionCard extends StatelessWidget {
           onChanged: readOnly ? null : (v) => onChanged((_) => CLSurveyAnswer(value: v)),
         ),
       CLSurveyQuestionType.text => readOnly
-          ? Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(Sizes.gapMd),
-              decoration: BoxDecoration(
-                color: theme.primaryBackground,
-                borderRadius: BorderRadius.circular(Sizes.radiusControl),
-                border: Border.all(color: theme.borderColor),
-              ),
-              child: Text(
-                answerText.isEmpty ? 'Nessuna risposta' : answerText,
-                style: theme.bodyText.copyWith(
-                  color: answerText.isEmpty ? theme.secondaryText : theme.primaryText,
-                  fontStyle: answerText.isEmpty ? FontStyle.italic : FontStyle.normal,
-                ),
-              ),
-            )
+          ? readOnlyBox(answerText)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -707,11 +780,7 @@ class _SurveyQuestionCard extends StatelessWidget {
             ),
     };
 
-    return CLContainer(
-      contentPadding: const EdgeInsets.all(Sizes.gapLg),
-      backgroundColor:
-          hasError ? Color.alphaBlend(theme.danger.withValues(alpha: theme.opacityFaint), theme.secondaryBackground) : null,
-      child: Column(
+    final content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (showIndex)
@@ -728,7 +797,8 @@ class _SurveyQuestionCard extends StatelessWidget {
                 TextSpan(text: q.text),
                 if (q.required) TextSpan(text: ' *', style: TextStyle(color: theme.danger)),
               ]),
-              style: (large ? theme.heading4 : theme.title).copyWith(color: theme.primaryText, fontWeight: FontWeight.w600),
+              style: (embedded ? theme.bodyText : (large ? theme.heading4 : theme.title))
+                  .copyWith(color: theme.primaryText, fontWeight: FontWeight.w600),
             ),
           ),
           if (q.help != null) ...[
@@ -738,6 +808,10 @@ class _SurveyQuestionCard extends StatelessWidget {
           if (q.type == CLSurveyQuestionType.multipleChoice && !readOnly) ...[
             const SizedBox(height: Sizes.gapXs),
             Text('Puoi scegliere più risposte', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
+          ],
+          if (q.type == CLSurveyQuestionType.select && !readOnly) ...[
+            const SizedBox(height: Sizes.gapXs),
+            Text('Apri l\'elenco e scrivi per cercare', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
           ],
           const SizedBox(height: Sizes.gapMd),
           control,
@@ -756,10 +830,61 @@ class _SurveyQuestionCard extends StatelessWidget {
                 ),
               ),
             ),
+          // Collegate: compaiono e spariscono con l'opzione che le mostra.
+          AnimatedSize(
+            duration: reduceMotion ? Duration.zero : theme.durationBase,
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: nested.isEmpty
+                ? const SizedBox(width: double.infinity)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [for (final w in nested) Padding(padding: const EdgeInsets.only(top: Sizes.gapLg), child: w)],
+                  ),
+          ),
         ],
-      ),
+      );
+
+    if (embedded) {
+      // Rientro con filetto a sinistra: si legge come parte della domanda sopra.
+      return Container(
+        padding: const EdgeInsets.only(left: Sizes.gapMd),
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: hasError ? theme.danger : theme.primary, width: 2)),
+        ),
+        child: content,
+      );
+    }
+    return CLContainer(
+      contentPadding: const EdgeInsets.all(Sizes.gapLg),
+      backgroundColor:
+          hasError ? Color.alphaBlend(theme.danger.withValues(alpha: theme.opacityFaint), theme.secondaryBackground) : null,
+      child: content,
     );
   }
+}
+
+/// Filtro dell'elenco a tendina: ogni parola cercata deve comparire
+/// nell'etichetta, senza badare a maiuscole e accenti.
+List<CLSurveyOption> _filterOptions(List<CLSurveyOption> options, String query) {
+  final words = _fold(query).split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.isEmpty) return options;
+  return [
+    for (final o in options)
+      if (words.every(_fold(o.label).contains)) o,
+  ];
+}
+
+String _fold(String s) {
+  const from = 'àáâäèéêëìíîïòóôöùúûüç';
+  const to = 'aaaaeeeeiiiioooouuuuc';
+  final lower = s.toLowerCase();
+  final b = StringBuffer();
+  for (final ch in lower.split('')) {
+    final i = from.indexOf(ch);
+    b.write(i >= 0 ? to[i] : ch);
+  }
+  return b.toString();
 }
 
 /// Riga grande da toccare per un'opzione (radio o checkbox), ≥ 48 px.

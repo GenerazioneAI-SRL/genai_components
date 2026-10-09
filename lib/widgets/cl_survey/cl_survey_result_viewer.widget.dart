@@ -149,6 +149,14 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
     }
     final summary = CLSurveySummary.compute(survey, responses);
     final total = summary.responseCount;
+    // Numero della domanda principale di ogni voce (le collegate prendono
+    // quello della principale da cui dipendono).
+    final rootNumbers = <int>[];
+    var root = 0;
+    for (final s in summary.questions) {
+      if (s.depth == 0) root++;
+      rootNumbers.add(root);
+    }
     final barLabel = theme.smallLabel.copyWith(color: theme.secondaryText, fontFeatures: const [FontFeature.tabularFigures()]);
 
     return Column(
@@ -169,14 +177,24 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
             child: Builder(builder: (context) {
               final s = summary.questions[i];
               final q = s.question;
+              // Elenco a tendina: solo le opzioni scelte almeno una volta, dalla più scelta.
+              final shownOptions = q.type == CLSurveyQuestionType.select
+                  ? ([for (final o in q.options) if ((s.optionCounts[o.id] ?? 0) > 0) o]
+                    ..sort((a, b) => (s.optionCounts[b.id] ?? 0).compareTo(s.optionCounts[a.id] ?? 0)))
+                  : q.options;
               final pageCount = (s.texts.length / widget.textPageSize).ceil();
               final page = (_textPages[q.id] ?? 0).clamp(0, pageCount == 0 ? 0 : pageCount - 1);
 
               final Widget body = switch (q.type) {
-                CLSurveyQuestionType.singleChoice || CLSurveyQuestionType.multipleChoice => Column(
+                CLSurveyQuestionType.singleChoice ||
+                CLSurveyQuestionType.multipleChoice ||
+                CLSurveyQuestionType.select =>
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final o in q.options)
+                      if (shownOptions.isEmpty)
+                        Text('Nessuna risposta', style: theme.bodyText.copyWith(color: theme.secondaryText, fontStyle: FontStyle.italic)),
+                      for (final o in shownOptions)
                         Padding(
                           padding: const EdgeInsets.only(bottom: Sizes.gapMd),
                           child: Semantics(
@@ -205,6 +223,11 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
                       if (q.type == CLSurveyQuestionType.multipleChoice)
                         Text(
                           'Scelta multipla: le percentuali sono su chi ha risposto e possono superare il 100%.',
+                          style: theme.smallLabel.copyWith(color: theme.mutedForeground),
+                        ),
+                      if (q.type == CLSurveyQuestionType.select && shownOptions.length < q.options.length)
+                        Text(
+                          'Elenco a tendina: sono mostrate solo le ${shownOptions.length} opzioni scelte su ${q.options.length}.',
                           style: theme.smallLabel.copyWith(color: theme.mutedForeground),
                         ),
                     ],
@@ -295,7 +318,7 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
                       ),
               };
 
-              return CLContainer(
+              final card = CLContainer(
                 contentPadding: const EdgeInsets.all(Sizes.gapLg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -305,7 +328,12 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
                       runSpacing: Sizes.gapXs,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('Domanda ${i + 1}', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
+                        Text(
+                          s.depth == 0
+                              ? 'Domanda ${rootNumbers[i]}'
+                              : 'Domanda ${rootNumbers[i]} · se «${s.parentOption?.label ?? ''}»',
+                          style: theme.smallLabel.copyWith(color: theme.mutedForeground),
+                        ),
                         CLPill(pillColor: theme.secondaryText, pillText: q.type.label),
                       ],
                     ),
@@ -321,6 +349,8 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
                   ],
                 ),
               );
+              // Collegata: rientrata sotto la principale.
+              return s.depth == 0 ? card : Padding(padding: EdgeInsets.only(left: Sizes.gapLg * s.depth), child: card);
             }),
           ),
       ],
@@ -333,37 +363,49 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
       return const CLEmptyState(title: 'Nessuna domanda', message: 'Il sondaggio non contiene domande.', icon: LucideIcons.listChecks, compact: true);
     }
     final clean = survey.sanitizeResponse(response);
+    // Le collegate compaiono solo se erano visibili a chi ha risposto.
+    final nodes = survey.visibleNodes(clean);
 
     return CLContainer(
       contentPadding: const EdgeInsets.all(Sizes.gapLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < survey.questions.length; i++) ...[
-            if (i > 0)
+          for (var i = 0; i < nodes.length; i++) ...[
+            if (i > 0 && nodes[i].isRoot)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: Sizes.gapMd),
                 child: Divider(height: 1, thickness: 1, color: theme.borderColor),
-              ),
+              )
+            else if (i > 0)
+              const SizedBox(height: Sizes.gapMd),
             Builder(builder: (context) {
-              final q = survey.questions[i];
+              final node = nodes[i];
+              final q = node.question;
               final a = clean.answers[q.id];
               final String? text = a == null
                   ? null
                   : switch (q.type) {
-                      CLSurveyQuestionType.singleChoice || CLSurveyQuestionType.multipleChoice =>
+                      CLSurveyQuestionType.singleChoice ||
+                      CLSurveyQuestionType.multipleChoice ||
+                      CLSurveyQuestionType.select =>
                         a.optionIds.map((id) => q.optionById(id)?.label ?? '').where((l) => l.isNotEmpty).join(' · '),
                       CLSurveyQuestionType.scale => '${a.value} su ${q.scale.max}'
                           '${a.value == q.scale.min && q.scale.minLabel != null ? ' (${q.scale.minLabel})' : ''}'
                           '${a.value == q.scale.max && q.scale.maxLabel != null ? ' (${q.scale.maxLabel})' : ''}',
                       CLSurveyQuestionType.text => a.text,
                     };
-              return Semantics(
+              final column = Semantics(
                 container: true,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Domanda ${i + 1}', style: theme.smallLabel.copyWith(color: theme.mutedForeground)),
+                    Text(
+                      node.isRoot
+                          ? 'Domanda ${node.rootIndex + 1}'
+                          : 'Domanda ${node.rootIndex + 1} · se «${node.parentOption?.label ?? ''}»',
+                      style: theme.smallLabel.copyWith(color: theme.mutedForeground),
+                    ),
                     const SizedBox(height: Sizes.gapXs),
                     Text(q.text, style: theme.bodyText.copyWith(fontWeight: FontWeight.w600, color: theme.primaryText)),
                     const SizedBox(height: Sizes.gapXs),
@@ -376,6 +418,12 @@ class CLSurveyResultViewerState extends State<CLSurveyResultViewer> {
                     ),
                   ],
                 ),
+              );
+              if (node.isRoot) return column;
+              return Container(
+                padding: const EdgeInsets.only(left: Sizes.gapMd),
+                decoration: BoxDecoration(border: Border(left: BorderSide(color: theme.borderColor, width: 2))),
+                child: column,
               );
             }),
           ],
