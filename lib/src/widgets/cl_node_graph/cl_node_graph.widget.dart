@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:genai_components/cl_theme.dart';
 import 'cl_graph_models.dart';
 import 'cl_graph_collapse.dart';
@@ -9,6 +10,8 @@ import 'cl_graph_geometry.dart';
 import 'cl_graph_attribute_fields.dart';
 import 'cl_graph_card_metrics.dart';
 import 'cl_graph_connections.dart';
+import 'cl_graph_ports.dart';
+import 'cl_node_palette.widget.dart';
 
 // kCardW / kCardH vivono in cl_graph_models.dart: condivisi con le misure delle card.
 const double _pad = 60; // margine attorno al bounding box
@@ -21,6 +24,8 @@ const double _kActionGap = 4; // gap orizzontale tra icone azione adiacenti
 // _kTriDy vive in cl_graph_models.dart (kTriDy) — condiviso col painter.
 const double _kTrashR = 14; // raggio hit del cestino attorno al midpoint dell'arco
 const double _kDimmed = 0.35; // opacità dei bersagli non ammessi durante un collegamento
+const double _kStatusBadge = 20; // diametro del bollino di stato / errori sull'angolo della card
+const double _kZoomButton = 40; // lato dei pulsanti zoom
 
 /// Sotto vincoli stretti il canvas prende la misura della viewport invece della
 /// propria: le card che (in coordinate canvas) cadono oltre quella misura non
@@ -103,6 +108,15 @@ enum _Mode { none, node, port, chevron, action, edge, trash, pan, input }
 /// hit-test manuale (in coord canvas) decide il [_Mode]; move/up smistano di
 /// conseguenza. Zoom con rotella. Niente InteractiveViewer, niente
 /// GestureDetector annidati → interazione deterministica.
+///
+/// **Editor a porte con nome** (opt-in, dal 5.14.0): nodi con
+/// `CLGraphNode.inputPorts`/`outputPorts`, archi [CLGraphEdgeKind.flow] da porta
+/// a porta ([onFlowEdgeCreate], [canConnectPorts]), posizioni salvate
+/// dall'host ([nodePositions], [onNodeMoved], [onArrange]), rilascio dalla
+/// `CLNodePalette` ([onNodeDrop]), stato di esecuzione ed errori di
+/// validazione sui nodi ([nodeStatuses], [nodeErrors]), cammino percorso
+/// ([highlightedEdgeIds]). Senza questi parametri il widget si comporta come
+/// prima.
 class CLNodeGraph extends StatefulWidget {
   final List<CLGraphNode> nodes;
   final List<CLGraphEdge> edges;
@@ -149,6 +163,58 @@ class CLNodeGraph extends StatefulWidget {
   /// Colore di porte e archi della propedeuticità. Null ⇒ `theme.info`.
   final Color? propaedeuticColor;
 
+  // ── Porte con nome e archi flow ─────────────────────────────────────────
+  /// Trascinamento da una porta d'uscita con nome a una porta d'ingresso con
+  /// nome (rilascio sulla porta o sulla card: vale la porta d'ingresso più
+  /// vicina al cursore). Null ⇒ si usa [onEdgeCreate] con
+  /// [CLGraphEdgeKind.flow]. Senza nessuno dei due le porte sono decorative.
+  final void Function(CLGraphPortRef from, CLGraphPortRef to)? onFlowEdgeCreate;
+  /// Motivo per cui l'arco flow [from] → [to] non è ammesso, o null. Chiamato
+  /// al volo durante il trascinamento: il bersaglio si attenua e il motivo
+  /// compare accanto al cursore. Self, duplicati e `CLGraphPort.maxConnections`
+  /// li controlla già il widget.
+  final String? Function(CLGraphPortRef from, CLGraphPortRef to)? canConnectPorts;
+  /// Colore di porte con nome e archi flow. Null ⇒ `theme.mutedForeground`.
+  final Color? flowColor;
+
+  // ── Posizioni salvate ───────────────────────────────────────────────────
+  /// Posizioni (angolo in alto a sinistra) dei nodi decise dall'host, per id.
+  /// I nodi presenti qui non seguono [layout]; quelli assenti sì. Valori
+  /// negativi ammessi (il canvas si allarga).
+  final Map<String, Offset>? nodePositions;
+  /// Fine del trascinamento di un nodo, con la posizione nuova nelle stesse
+  /// coordinate di [nodePositions]. Con [nodePositions] il nodo resta dove
+  /// l'host lo mette (se l'host non aggiorna la mappa torna indietro).
+  final void Function(String nodeId, Offset position)? onNodeMoved;
+  /// Pulsante «Ordina» ([showArrangeButton]): posizioni nuove calcolate con
+  /// [layout] per tutti i nodi visibili, da salvare in [nodePositions].
+  final void Function(Map<String, Offset> positions)? onArrange;
+
+  // ── Palette ─────────────────────────────────────────────────────────────
+  /// Rilascio di una voce della `CLNodePalette` sul canvas: [type] del nodo e
+  /// posizione (angolo in alto a sinistra, coordinate di [nodePositions]) con
+  /// la card centrata sul puntatore. Null ⇒ il canvas non accetta rilasci.
+  final void Function(String type, Offset position)? onNodeDrop;
+
+  // ── Stato ───────────────────────────────────────────────────────────────
+  /// Stato di esecuzione per nodo: bordo colorato e bollino sull'angolo in alto
+  /// a sinistra con tooltip; [CLGraphNodeStatus.skipped] attenua la card.
+  final Map<String, CLGraphNodeStatus>? nodeStatuses;
+  /// Errori di validazione per nodo: bordo `danger` e bollino «!» sull'angolo
+  /// in alto a destra con i messaggi nel tooltip.
+  final Map<String, List<String>>? nodeErrors;
+  /// Archi del cammino percorso, disegnati più spessi in [highlightColor].
+  final Set<String>? highlightedEdgeIds;
+  /// Colore del cammino percorso. Null ⇒ `theme.success`.
+  final Color? highlightColor;
+  /// Etichetta di uno stato (tooltip e lettore di schermo). Null ⇒
+  /// [clGraphNodeStatusLabel].
+  final String Function(CLGraphNodeStatus status)? statusLabel;
+
+  // ── Selezione ───────────────────────────────────────────────────────────
+  /// Tocco nel vuoto del canvas (es. per chiudere il pannello del nodo).
+  final VoidCallback? onBackgroundTap;
+
   const CLNodeGraph({
     super.key,
     required this.nodes,
@@ -175,6 +241,19 @@ class CLNodeGraph extends StatefulWidget {
     this.propaedeuticProblem,
     this.propaedeuticTooltip = 'Propedeuticità',
     this.propaedeuticColor,
+    this.onFlowEdgeCreate,
+    this.canConnectPorts,
+    this.flowColor,
+    this.nodePositions,
+    this.onNodeMoved,
+    this.onArrange,
+    this.onNodeDrop,
+    this.nodeStatuses,
+    this.nodeErrors,
+    this.highlightedEdgeIds,
+    this.highlightColor,
+    this.statusLabel,
+    this.onBackgroundTap,
   });
 
   @override
@@ -191,6 +270,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   CLGraphEdgeKind _pendingKind = CLGraphEdgeKind.prerequisite; // flusso (pallino) o propedeuticità (rombo)
   CLGraphEdgeKind _hitPortKind = CLGraphEdgeKind.prerequisite; // porta colpita dall'ultimo hit-test
   Offset? _pendingCursor; // posizione cursore canvas-local (destinazione linea pending)
+  String? _pendingPortId; // porta d'uscita con nome della connessione flow in corso
+  String? _hitPortId; // porta con nome colpita dall'ultimo hit-test
   final Map<String, Offset> _manualPos = {}; // override effimero del layout (drag-move)
   Matrix4 _matrix = Matrix4.identity(); // pan/zoom — aggiornata via setState (stesso path del drag-nodo)
   bool _fitApplied = false; // fit iniziale applicato una sola volta
@@ -215,15 +296,54 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   Map<String, double> _sectionTops = const {}; // inizio (card-local) della sezione attributi
   List<({String id, Offset a, Offset b})> _segments = const [];
   List<CLGraphNode> _visibleNodes = const [];
+  Map<String, Offset> _edgeMids = const {}; // punto medio (cestino) di ogni arco selezionabile
+  Map<String, Map<String, Offset>> _inPortAnchors = const {}; // porte d'ingresso con nome, canvas-local
+  Map<String, Map<String, Offset>> _outPortAnchors = const {}; // porte d'uscita con nome, canvas-local
+  Offset _shift = Offset.zero; // coordinate host (nodePositions) → canvas: canvas = host + _shift
+  List<CLGraphEdge> _effectiveEdges = const []; // archi del frame (per «Ordina» con onArrange)
+  Map<String, double> _heights = const {}; // altezze delle card del frame
+  Size _viewport = Size.zero; // misura del viewport (zoom da tastiera)
+  final GlobalKey _viewportKey = GlobalKey(); // per convertire il punto di rilascio della palette
+  final FocusNode _focus = FocusNode(debugLabel: 'CLNodeGraph');
+  bool _dropHover = false; // una voce della palette è sopra il canvas
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
 
   CLGraphCardMetrics? _metrics; // ricreato solo se cambiano tema, stile base, textScaler o direzione
   /// Testi dei campi non (ancora) validi, per nodo e attributo: la card li
   /// misura (campo più alto, riga d'errore) invece del valore dell'host.
   final Map<String, Map<String, CLGraphFieldDraft>> _drafts = {};
 
+  /// Card già costruite per i `setState` interni (trascinamento, hover, pan):
+  /// lo stesso widget ⇒ Flutter salta la ricostruzione della card. La chiave
+  /// raccoglie tutto ciò che cambia senza un widget nuovo; si svuota a ogni
+  /// widget nuovo, cambio di dipendenze o di misure. Esclusi i nodi con
+  /// attributi (le bozze dei campi cambiano dentro lo stato).
+  final Map<String, (Object, Widget)> _cardCache = {};
+
+  Widget _cachedCard(CLGraphNode n, Object key, Widget Function() build) {
+    if (n.attributes.isNotEmpty) return build();
+    final hit = _cardCache[n.id];
+    if (hit != null && hit.$1 == key) return hit.$2;
+    final card = build();
+    _cardCache[n.id] = (key, card);
+    return card;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cardCache.clear();
+  }
+
   @override
   void didUpdateWidget(covariant CLNodeGraph oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _cardCache.clear();
     if (_drafts.isEmpty) return;
     final ids = {for (final n in widget.nodes) n.id};
     _drafts.removeWhere((id, _) => !ids.contains(id));
@@ -235,6 +355,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final direction = Directionality.of(context);
     final m = _metrics;
     if (m != null && m.sameInputs(theme, base, scaler, direction)) return m;
+    _cardCache.clear();
     return _metrics = CLGraphCardMetrics(theme: theme, baseStyle: base, textScaler: scaler, textDirection: direction);
   }
 
@@ -254,6 +375,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   /// Motivo per cui [target] non può ricevere l'arco dalla sorgente [from], o
   /// null se il collegamento è ammesso.
   String? _targetProblem(CLGraphNode from, CLGraphNode target) {
+    if (_pendingKind == CLGraphEdgeKind.flow) return _flowNodeProblem(from, target);
     if (_pendingKind == CLGraphEdgeKind.propaedeutic) return _propTargetProblem(from, target);
     if (widget.canConnect?.call(target) != true) return '«${target.title}» non si può collegare';
     return clGraphConnectionProblem(from, target, widget.edges, typeLabel: widget.typeLabel);
@@ -269,13 +391,115 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     return widget.propaedeuticProblem?.call(from, target);
   }
 
+  // ── Porte con nome ───────────────────────────────────────────────────────
+
+  /// Le porte con nome si possono trascinare (c'è chi riceve l'arco).
+  bool get _portsConnectable => widget.onFlowEdgeCreate != null || widget.onEdgeCreate != null;
+
+  Color _flowColor(CLTheme theme) => widget.flowColor ?? theme.mutedForeground;
+
+  /// Porta effettiva di un estremo flow: quella dichiarata dall'arco o la prima del lato.
+  static String? _resolvedPort(List<CLGraphPort> ports, String? id) =>
+      id ?? (ports.isEmpty ? null : ports.first.id);
+
+  /// Archi flow sulla porta [portId] di [nodeId] ([output]: in uscita).
+  int _portEdgeCount(CLGraphNode node, String portId, {required bool output}) {
+    var n = 0;
+    for (final e in widget.edges) {
+      if (e.kind != CLGraphEdgeKind.flow) continue;
+      if (output) {
+        if (e.fromNodeId == node.id && _resolvedPort(node.outputPorts, e.fromPortId) == portId) n++;
+      } else {
+        if (e.toNodeId == node.id && _resolvedPort(node.inputPorts, e.toPortId) == portId) n++;
+      }
+    }
+    return n;
+  }
+
+  static String _portName(CLGraphPort p) => p.label ?? p.id;
+
+  /// Motivo per cui dalla porta [portId] di [from] non può partire un arco, o null.
+  String? _flowSourceProblem(CLGraphNode from, String portId) {
+    final port = from.outputPort(portId);
+    if (port?.maxConnections case final max?) {
+      if (_portEdgeCount(from, portId, output: true) >= max) {
+        return 'L\'uscita «${_portName(port!)}» di «${from.title}» è già collegata';
+      }
+    }
+    return null;
+  }
+
+  /// Motivo per cui l'arco flow [from].[fromPort] → [to].[toPort] non è ammesso, o null.
+  String? _flowProblem(CLGraphNode from, String fromPort, CLGraphNode to, CLGraphPort toPort) {
+    if (from.id == to.id) return 'Un blocco non si può collegare a se stesso';
+    final src = _flowSourceProblem(from, fromPort);
+    if (src != null) return src;
+    final dup = widget.edges.any((e) =>
+        e.kind == CLGraphEdgeKind.flow &&
+        e.fromNodeId == from.id &&
+        e.toNodeId == to.id &&
+        _resolvedPort(from.outputPorts, e.fromPortId) == fromPort &&
+        _resolvedPort(to.inputPorts, e.toPortId) == toPort.id);
+    if (dup) return '«${from.title}» è già collegato a «${to.title}»';
+    if (toPort.maxConnections case final max?) {
+      if (_portEdgeCount(to, toPort.id, output: false) >= max) {
+        return 'L\'ingresso «${_portName(toPort)}» di «${to.title}» è già collegato';
+      }
+    }
+    return widget.canConnectPorts?.call(CLGraphPortRef(from.id, fromPort), CLGraphPortRef(to.id, toPort.id));
+  }
+
+  /// Per l'attenuazione: null se almeno una porta d'ingresso di [to] accetta l'arco.
+  String? _flowNodeProblem(CLGraphNode from, CLGraphNode to) {
+    if (to.inputPorts.isEmpty) return '«${to.title}» non ha ingressi';
+    final fromPort = _pendingPortId;
+    if (fromPort == null) return '«${from.title}» non ha uscite';
+    String? first;
+    for (final p in to.inputPorts) {
+      final problem = _flowProblem(from, fromPort, to, p);
+      if (problem == null) return null;
+      first ??= problem;
+    }
+    return first;
+  }
+
+  /// Porta d'ingresso di [to] più vicina (in verticale) al cursore [cp], o null.
+  CLGraphPort? _inPortAt(CLGraphNode to, Offset cp) {
+    if (to.inputPorts.isEmpty) return null;
+    final anchors = _inPortAnchors[to.id] ?? const {};
+    CLGraphPort? best;
+    var bestD = double.infinity;
+    for (final p in to.inputPorts) {
+      final a = anchors[p.id];
+      final d = a == null ? double.infinity : (a.dy - cp.dy).abs();
+      if (best == null || d < bestD) {
+        best = p;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /// Motivo del bersaglio [to] per il cursore [cp] (porta più vicina).
+  String? _flowHoverProblem(CLGraphNode from, CLGraphNode to, Offset cp) {
+    final port = _inPortAt(to, cp);
+    if (port == null) return '«${to.title}» non ha ingressi';
+    return _flowProblem(from, _pendingPortId!, to, port);
+  }
+
   /// Porte a rombo della propedeuticità (OUT e IN).
   bool _hasPropPort(CLGraphNode n) => widget.canConnectPropaedeutic?.call(n) == true;
 
   Color _propColor(CLTheme theme) => widget.propaedeuticColor ?? theme.info;
 
   /// Ancora di partenza della linea pending: rombo o pallino OUT.
-  Offset _pendingAnchor(Rect r) => _pendingKind == CLGraphEdgeKind.propaedeutic ? clPropOutAnchor(r) : _outAnchor(r);
+  Offset _pendingAnchor(Rect r) {
+    if (_pendingKind == CLGraphEdgeKind.flow) {
+      final a = _outPortAnchors[_pendingFromId]?[_pendingPortId];
+      if (a != null) return a;
+    }
+    return _pendingKind == CLGraphEdgeKind.propaedeutic ? clPropOutAnchor(r) : _outAnchor(r);
+  }
 
   /// Porta OUT attiva (si può trascinare per collegare).
   bool _hasOutPort(CLGraphNode n) => widget.canConnect?.call(n) == true && n.connectionRules.acceptsOutputs;
@@ -284,7 +508,16 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
   bool _hasInPort(CLGraphNode n) => widget.canConnect?.call(n) == true && n.connectionRules.acceptsInputs;
 
   /// "Ordina": svuota le posizioni manuali → i nodi tornano al layout calcolato.
-  void _arrange() => setState(() => _manualPos.clear());
+  /// Con [CLNodeGraph.onArrange] restituisce all'host le posizioni del layout.
+  void _arrange() {
+    setState(() => _manualPos.clear());
+    final cb = widget.onArrange;
+    if (cb == null) return;
+    cb(clSeparateTallNodes(_layout(_visibleNodes, _effectiveEdges), _heights));
+  }
+
+  /// Posizione host (coordinate di [CLNodeGraph.nodePositions]) di un punto canvas.
+  Offset _toHost(Offset canvas) => canvas - _shift;
 
   CLGraphLayout get _layout => widget.layout ?? clHierarchicalLayout;
 
@@ -384,12 +617,8 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     //    reso sopra le card e piccolo.
     final active = _hoveredEdgeId ?? _selectedEdgeId;
     if (active != null) {
-      for (final s in _segments) {
-        if (s.id != active) continue;
-        final mid = Offset((s.a.dx + s.b.dx) / 2, (s.a.dy + s.b.dy) / 2);
-        if ((cp - mid).distance <= _kTrashR) return (mode: _Mode.trash, id: active);
-        break;
-      }
+      final mid = _edgeMids[active];
+      if (mid != null && (cp - mid).distance <= _kTrashR) return (mode: _Mode.trash, id: active);
     }
     // 2) Nodi, dal più in alto (ultimo disegnato) al più in basso: prima porta
     //    OUT, poi chevron, poi corpo.
@@ -397,6 +626,18 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       final n = _visibleNodes[i];
       final r = _rects[n.id];
       if (r == null) continue;
+      // Porte d'uscita con nome (trascinabili solo se c'è chi riceve l'arco).
+      if (_portsConnectable && n.outputPorts.isNotEmpty) {
+        final anchors = _outPortAnchors[n.id] ?? const {};
+        for (final p in n.outputPorts) {
+          final c = anchors[p.id];
+          if (c != null && (cp - c).distance <= kGraphPortDot / 2 + 5) {
+            _hitPortKind = CLGraphEdgeKind.flow;
+            _hitPortId = p.id;
+            return (mode: _Mode.port, id: n.id);
+          }
+        }
+      }
       if (_hasPropPort(n)) {
         final c = clPropOutAnchor(r);
         if ((cp - c).distance <= _kDiamond / 2 + 5) {
@@ -467,9 +708,12 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final hit = _hitTest(cp);
     _mode = hit.mode;
     _targetId = hit.id;
+    // Fuoco da tastiera (Esc, Canc, +/−), ma non sugli input degli attributi.
+    if (_mode != _Mode.input && !_focus.hasFocus) _focus.requestFocus();
     if (_mode == _Mode.port) {
       setState(() {
         _pendingKind = _hitPortKind;
+        _pendingPortId = _hitPortKind == CLGraphEdgeKind.flow ? _hitPortId : null;
         _pendingFromId = hit.id;
         _pendingCursor = cp;
         _selectedEdgeId = null;
@@ -485,9 +729,12 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     switch (_mode) {
       case _Mode.node:
         final id = _targetId!;
+        // Con posizioni salvate il nodo non esce dal canvas a sinistra/in alto.
+        final clamp = widget.nodePositions != null || widget.onNodeMoved != null;
         setState(() {
           final base = _manualPos[id] ?? _rects[id]?.topLeft ?? cp;
-          _manualPos[id] = base + (cp - _lastCanvas);
+          final next = base + (cp - _lastCanvas);
+          _manualPos[id] = clamp ? Offset(next.dx < 0 ? 0 : next.dx, next.dy < 0 ? 0 : next.dy) : next;
         });
       case _Mode.port:
         setState(() => _pendingCursor = cp);
@@ -511,7 +758,14 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     final moved = _moved;
     switch (_mode) {
       case _Mode.node:
-        break; // il tap-selezione è del GestureDetector sulla card; qui solo il drag
+        // il tap-selezione è del GestureDetector sulla card; qui solo il drag
+        final id = _targetId!;
+        final pos = _manualPos[id];
+        if (moved && pos != null && widget.onNodeMoved != null) {
+          widget.onNodeMoved!(id, _toHost(pos));
+          // Posizioni dell'host: da qui in poi vale la sua mappa.
+          if (widget.nodePositions != null) setState(() => _manualPos.remove(id));
+        }
       case _Mode.port:
         // Drag-connect: chiude al rilascio. Click semplice (nessun drag): lascia
         // la sorgente ARMATA → il prossimo click sul bersaglio chiude (click-to-connect).
@@ -535,7 +789,10 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
           });
         }
       case _Mode.pan:
-        if (!moved) setState(() => _selectedEdgeId = null); // tap nel vuoto ⇒ deseleziona
+        if (!moved) {
+          setState(() => _selectedEdgeId = null); // tap nel vuoto ⇒ deseleziona
+          widget.onBackgroundTap?.call();
+        }
       case _Mode.none:
         break;
       case _Mode.input:
@@ -546,13 +803,60 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   void _onPointerCancel(PointerCancelEvent e) {
     if (e.pointer != _activePointer) return;
-    if (_mode == _Mode.port) {
-      setState(() {
+    if (_mode == _Mode.port) _cancelPending();
+    _resetGesture();
+  }
+
+  void _cancelPending() => setState(() {
         _pendingFromId = null;
         _pendingCursor = null;
+        _pendingPortId = null;
       });
+
+  /// Tastiera (canvas a fuoco): Esc annulla il collegamento in corso e
+  /// deseleziona l'arco; Canc/Backspace elimina l'arco flow selezionato; +/−
+  /// zoom attorno al centro.
+  KeyEventResult _onKey(FocusNode node, KeyEvent e) {
+    if (e is! KeyDownEvent && e is! KeyRepeatEvent) return KeyEventResult.ignored;
+    final k = e.logicalKey;
+    if (k == LogicalKeyboardKey.escape) {
+      if (_pendingFromId == null && _selectedEdgeId == null) return KeyEventResult.ignored;
+      _cancelPending();
+      setState(() => _selectedEdgeId = null);
+      return KeyEventResult.handled;
     }
-    _resetGesture();
+    if (k == LogicalKeyboardKey.delete || k == LogicalKeyboardKey.backspace) {
+      final id = _selectedEdgeId;
+      if (id == null || widget.onEdgeDelete == null) return KeyEventResult.ignored;
+      final edge = widget.edges.where((x) => x.id == id).firstOrNull;
+      if (edge == null || edge.kind != CLGraphEdgeKind.flow || !edge.deletable) return KeyEventResult.ignored;
+      widget.onEdgeDelete!(id, edge.kind);
+      setState(() {
+        _selectedEdgeId = null;
+        _hoveredEdgeId = null;
+      });
+      return KeyEventResult.handled;
+    }
+    final center = _viewport.center(Offset.zero);
+    if (k == LogicalKeyboardKey.equal || k == LogicalKeyboardKey.add || k == LogicalKeyboardKey.numpadAdd) {
+      _zoom(1.2, center);
+      return KeyEventResult.handled;
+    }
+    if (k == LogicalKeyboardKey.minus || k == LogicalKeyboardKey.numpadSubtract) {
+      _zoom(1 / 1.2, center);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  /// Rilascio di una voce della palette: punto globale del puntatore → canvas
+  /// → coordinate host, con la card centrata sul puntatore.
+  void _onPaletteDrop(DragTargetDetails<CLNodePaletteItem> d) {
+    setState(() => _dropHover = false);
+    final box = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final cp = _toCanvas(box.globalToLocal(d.offset));
+    widget.onNodeDrop?.call(d.data.type, _toHost(cp - const Offset(kCardW / 2, kCardH / 2)));
   }
 
   void _resetGesture() {
@@ -618,7 +922,16 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       }
       final a = vis(e.fromNodeId), b = vis(e.toNodeId);
       if (a == b) continue; // entrambi gli estremi collassati nello stesso antenato
-      effectiveEdges.add(CLGraphEdge(id: e.id, fromNodeId: a, toNodeId: b, kind: e.kind, deletable: e.deletable));
+      effectiveEdges.add(CLGraphEdge(
+        id: e.id,
+        fromNodeId: a,
+        toNodeId: b,
+        kind: e.kind,
+        deletable: e.deletable,
+        fromPortId: e.fromPortId,
+        toPortId: e.toPortId,
+        label: e.label,
+      ));
     }
 
     // Altezza di ogni card misurata sul testo (a capo, mai troncato), sugli
@@ -636,11 +949,28 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         ),
     };
 
-    // top-left per id; con card allungate le righe sotto scendono.
-    final positions = clSeparateTallNodes(
-      _layout(visibleNodes, effectiveEdges),
-      {for (final e in cards.entries) e.key: e.value.height},
-    );
+    // top-left per id; con card allungate le righe sotto scendono. Con le
+    // posizioni dell'host il layout serve solo ai nodi che non ne hanno.
+    final heights = {for (final e in cards.entries) e.key: e.value.height};
+    final host = widget.nodePositions;
+    final needsLayout = host == null || visibleNodes.any((n) => !host.containsKey(n.id));
+    final layoutPositions = needsLayout ? clSeparateTallNodes(_layout(visibleNodes, effectiveEdges), heights) : const <String, Offset>{};
+    // Posizioni host negative: tutto il canvas scorre di _shift (riportato
+    // indietro in onNodeMoved / onNodeDrop).
+    var minX = 0.0, minY = 0.0;
+    if (host != null) {
+      for (final n in visibleNodes) {
+        final p = host[n.id];
+        if (p == null) continue;
+        if (p.dx < minX) minX = p.dx;
+        if (p.dy < minY) minY = p.dy;
+      }
+    }
+    final shift = Offset(-minX, -minY);
+    final positions = <String, Offset>{
+      for (final n in visibleNodes)
+        if (host?[n.id] case final p?) n.id: p + shift else if (layoutPositions[n.id] case final p?) n.id: p,
+    };
 
     // Rect di ogni card + bounding box del canvas. La posizione manuale
     // (drag-move effimero) fa override del layout calcolato.
@@ -656,6 +986,44 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     }
     final canvasSize = Size(maxX + _pad, maxY + _pad);
     final segments = prereqSegments(rects, effectiveEdges);
+    final edgeMids = <String, Offset>{
+      for (final s in segments) s.id: Offset((s.a.dx + s.b.dx) / 2, (s.a.dy + s.b.dy) / 2),
+    };
+
+    // Porte con nome: ancore (bordo sinistro/destro, centro della porta).
+    final inAnchors = <String, Map<String, Offset>>{};
+    final outAnchors = <String, Map<String, Offset>>{};
+    for (final n in visibleNodes) {
+      final r = rects[n.id];
+      if (r == null || !n.hasNamedPorts) continue;
+      final card = cards[n.id]!;
+      inAnchors[n.id] = {
+        for (var i = 0; i < n.inputPorts.length; i++)
+          n.inputPorts[i].id: Offset(r.left, r.top + card.portY(theme, i, n.inputPorts.length)),
+      };
+      outAnchors[n.id] = {
+        for (var i = 0; i < n.outputPorts.length; i++)
+          n.outputPorts[i].id: Offset(r.right, r.top + card.portY(theme, i, n.outputPorts.length)),
+      };
+    }
+    // Archi flow: dalla porta d'uscita alla porta d'ingresso (o dal bordo se il
+    // nodo non ha porte con nome); hit-test sulla curva campionata.
+    final flowEnds = <String, CLGraphFlowEnds>{};
+    final byIdVisible = {for (final n in visibleNodes) n.id: n};
+    for (final e in effectiveEdges) {
+      if (e.kind != CLGraphEdgeKind.flow || e.hidden) continue;
+      final from = rects[e.fromNodeId], to = rects[e.toNodeId];
+      final fromNode = byIdVisible[e.fromNodeId], toNode = byIdVisible[e.toNodeId];
+      if (from == null || to == null || fromNode == null || toNode == null) continue;
+      final outPort = _resolvedPort(fromNode.outputPorts, e.fromPortId);
+      final inPort = _resolvedPort(toNode.inputPorts, e.toPortId);
+      final a = outAnchors[e.fromNodeId]?[outPort] ?? _outAnchor(from);
+      final b = inAnchors[e.toNodeId]?[inPort] ?? Offset(to.left, to.center.dy);
+      flowEnds[e.id] = (a: a, b: b);
+      if (!e.deletable) continue;
+      segments.addAll(clSampledLinkSegments(e.id, a, b));
+      edgeMids[e.id] = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+    }
 
     // Geometria letta dagli handler pointer per l'hit-test del prossimo gesto.
     _rects = rects;
@@ -665,6 +1033,12 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     };
     _segments = segments;
     _visibleNodes = visibleNodes;
+    _edgeMids = edgeMids;
+    _inPortAnchors = inAnchors;
+    _outPortAnchors = outAnchors;
+    _shift = shift;
+    _effectiveEdges = effectiveEdges;
+    _heights = heights;
 
     final activeEdge = _hoveredEdgeId ?? _selectedEdgeId;
 
@@ -678,14 +1052,23 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         for (final n in visibleNodes)
           if (n.id != source.id) n.id: _targetProblem(source, n),
     };
-    final hoverTargetId = source == null || _pendingCursor == null ? null : _cardAt(rects, _pendingCursor!, except: source.id);
+    final hoverTargetId = source == null || _pendingCursor == null ? null : _targetAt(rects, _pendingCursor!, except: source.id);
+    final flowPending = source != null && _pendingKind == CLGraphEdgeKind.flow && _pendingPortId != null;
+    // Flow: il motivo sotto il cursore è quello della porta d'ingresso più vicina.
+    final hoverProblem = hoverTargetId == null
+        ? null
+        : flowPending
+            ? _flowHoverProblem(source, _nodeById(hoverTargetId)!, _pendingCursor!)
+            : targetProblems[hoverTargetId];
     final connectMessage = source == null
         ? null
         : hoverTargetId != null
-            ? targetProblems[hoverTargetId]
-            : _pendingKind == CLGraphEdgeKind.propaedeutic
-                ? null
-                : clGraphOutputProblem(source, widget.edges);
+            ? hoverProblem
+            : flowPending
+                ? _flowSourceProblem(source, _pendingPortId!)
+                : _pendingKind == CLGraphEdgeKind.propaedeutic
+                    ? null
+                    : clGraphOutputProblem(source, widget.edges);
 
     // Il canvas (dimensione naturale): SOLO rendering, nessun gesture — tutto
     // l'input passa dal Listener antenato.
@@ -707,9 +1090,18 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 selectedColor: theme.danger,
                 propaedeuticColor: _propColor(theme),
                 selectedEdgeId: activeEdge,
+                flowEnds: flowEnds,
+                flowColor: _flowColor(theme),
+                flowSelectedColor: theme.primary,
+                highlightedEdgeIds: widget.highlightedEdgeIds ?? const {},
+                highlightColor: widget.highlightColor ?? theme.success,
               ),
             ),
           ),
+          // Etichette degli archi flow a metà arco (nascoste sotto il cestino).
+          for (final e in effectiveEdges)
+            if (e.kind == CLGraphEdgeKind.flow && e.label != null && e.label!.isNotEmpty && e.id != activeEdge)
+              if (flowEnds[e.id] case final ends?) _edgeLabel(theme, metrics, e.label!, ends),
           // linea pending (sopra gli archi): dal pallino sorgente al cursore
           if (_pendingFromId != null && _pendingCursor != null && rects[_pendingFromId] != null)
             Positioned.fill(
@@ -719,7 +1111,11 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                   to: _pendingCursor!,
                   color: connectMessage != null
                       ? theme.mutedForeground
-                      : (_pendingKind == CLGraphEdgeKind.propaedeutic ? _propColor(theme) : theme.danger),
+                      : switch (_pendingKind) {
+                          CLGraphEdgeKind.propaedeutic => _propColor(theme),
+                          CLGraphEdgeKind.flow => theme.primary,
+                          _ => theme.danger,
+                        },
                 ),
               ),
             ),
@@ -731,21 +1127,33 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 top: rects[n.id]!.top,
                 width: kCardW,
                 height: rects[n.id]!.height,
-                child: _nodeCard(
-                  context,
-                  theme,
-                  n,
-                  metrics: metrics,
-                  card: cards[n.id]!,
-                  warnings: warnings[n.id] ?? const [],
+                child: () {
                   // Durante un collegamento: attenuato se non ammesso, evidenziato se puntato e ammesso.
-                  dimmed: source != null && n.id != source.id && targetProblems[n.id] != null,
-                  connectTarget: n.id == hoverTargetId && targetProblems[n.id] == null,
-                ),
+                  final dimmed = source != null && n.id != source.id && targetProblems[n.id] != null;
+                  final connectTarget = n.id == hoverTargetId && hoverProblem == null;
+                  final hoverPortId =
+                      n.id == hoverTargetId && flowPending && hoverProblem == null ? _inPortAt(n, _pendingCursor!)?.id : null;
+                  final pendingHere = n.id == _pendingFromId ? '${_pendingKind.name}/$_pendingPortId' : null;
+                  return _cachedCard(
+                    n,
+                    (dimmed, connectTarget, hoverPortId, pendingHere, cards[n.id]!.height),
+                    () => _nodeCard(
+                      context,
+                      theme,
+                      n,
+                      metrics: metrics,
+                      card: cards[n.id]!,
+                      warnings: warnings[n.id] ?? const [],
+                      dimmed: dimmed,
+                      connectTarget: connectTarget,
+                      hoverPortId: hoverPortId,
+                    ),
+                  );
+                }(),
               ),
           // Cestino dell'arco attivo al midpoint — visuale pura (il click è
           // gestito dal Listener via hit-test). Sopra le card.
-          if (activeEdge != null) ..._edgeDeleteVisual(segments, activeEdge, theme),
+          if (activeEdge != null) ..._edgeDeleteVisual(edgeMids, activeEdge, theme),
         ],
       ),
     );
@@ -756,10 +1164,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _applyInitialFit(constraints.biggest, canvasSize);
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: Listener(
+        _viewport = constraints.biggest;
+        Widget viewport = Listener(
+                key: _viewportKey,
                 behavior: HitTestBehavior.opaque,
                 onPointerDown: _onPointerDown,
                 onPointerMove: _onPointerMove,
@@ -779,6 +1186,40 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                     ),
                   ),
                 ),
+              );
+        // Rilascio dalla palette: il canvas accetta le voci di CLNodePalette.
+        if (widget.onNodeDrop != null) {
+          final inner = viewport;
+          viewport = DragTarget<CLNodePaletteItem>(
+            onWillAcceptWithDetails: (_) {
+              if (!_dropHover) setState(() => _dropHover = true);
+              return true;
+            },
+            onLeave: (_) => setState(() => _dropHover = false),
+            onAcceptWithDetails: _onPaletteDrop,
+            builder: (context, candidates, rejected) => Stack(children: [
+              Positioned.fill(child: inner),
+              if (_dropHover)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.primary.withValues(alpha: theme.opacityFaint),
+                        border: Border.all(color: theme.primary, width: kGraphCardBorderMax),
+                      ),
+                    ),
+                  ),
+                ),
+            ]),
+          );
+        }
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Focus(
+                focusNode: _focus,
+                onKeyEvent: _onKey,
+                child: viewport,
               ),
             ),
             // Fumetto accanto al cursore: perché il collegamento non si può
@@ -820,24 +1261,15 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
                 clipBehavior: Clip.antiAlias,
                 elevation: 0,
                 child: SizedBox(
-                  width: 40,
+                  width: _kZoomButton,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      InkWell(
-                        onTap: () => _zoom(1.2, constraints.biggest.center(Offset.zero)),
-                        child: SizedBox(height: 40, child: Center(child: Icon(Icons.add, size: theme.iconSizeCompact, color: theme.primaryText))),
-                      ),
+                      _zoomButton(theme, Icons.add, 'Ingrandisci', () => _zoom(1.2, constraints.biggest.center(Offset.zero))),
                       Divider(height: 1, thickness: 1, color: theme.borderColor),
-                      InkWell(
-                        onTap: () => _zoom(1 / 1.2, constraints.biggest.center(Offset.zero)),
-                        child: SizedBox(height: 40, child: Center(child: Icon(Icons.remove, size: theme.iconSizeCompact, color: theme.primaryText))),
-                      ),
+                      _zoomButton(theme, Icons.remove, 'Riduci', () => _zoom(1 / 1.2, constraints.biggest.center(Offset.zero))),
                       Divider(height: 1, thickness: 1, color: theme.borderColor),
-                      InkWell(
-                        onTap: () => _fitView(constraints.biggest, canvasSize),
-                        child: SizedBox(height: 40, child: Center(child: Icon(Icons.crop_free, size: theme.iconSizeCompact, color: theme.primaryText))),
-                      ),
+                      _zoomButton(theme, Icons.crop_free, 'Adatta alla vista', () => _fitView(constraints.biggest, canvasSize)),
                     ],
                   ),
                 ),
@@ -851,11 +1283,9 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
 
   /// Cestino (visuale) al midpoint dell'arco [edgeId]. Il click è intercettato
   /// dal Listener (hit-test `_Mode.trash`); qui solo il disegno + il cursore.
-  List<Widget> _edgeDeleteVisual(List<({String id, Offset a, Offset b})> segments, String edgeId, CLTheme theme) {
-    final seg = segments.where((s) => s.id == edgeId);
-    if (seg.isEmpty) return const [];
-    final s = seg.first;
-    final mid = Offset((s.a.dx + s.b.dx) / 2, (s.a.dy + s.b.dy) / 2);
+  List<Widget> _edgeDeleteVisual(Map<String, Offset> mids, String edgeId, CLTheme theme) {
+    final mid = mids[edgeId];
+    if (mid == null) return const [];
     return [
       Positioned(
         left: mid.dx - 12,
@@ -873,6 +1303,43 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     ];
   }
 
+  Widget _zoomButton(CLTheme theme, IconData icon, String tooltip, VoidCallback onTap) => Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: _kZoomButton,
+            child: Center(child: Icon(icon, size: theme.iconSizeCompact, color: theme.primaryText, semanticLabel: tooltip)),
+          ),
+        ),
+      );
+
+  /// Etichetta di un arco flow, centrata a metà curva. Visuale pura.
+  Widget _edgeLabel(CLTheme theme, CLGraphCardMetrics metrics, String label, CLGraphFlowEnds ends) {
+    final mid = Offset((ends.a.dx + ends.b.dx) / 2, (ends.a.dy + ends.b.dy) / 2);
+    return Positioned(
+      left: mid.dx,
+      top: mid.dy,
+      child: IgnorePointer(
+        child: FractionalTranslation(
+          translation: const Offset(-0.5, -0.5),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: kCardW / 2),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: theme.gapSm, vertical: kGraphBadgePadV),
+              decoration: BoxDecoration(
+                color: theme.secondaryBackground,
+                borderRadius: BorderRadius.circular(theme.radiusChip),
+                border: Border.all(color: theme.cardBorder),
+              ),
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: metrics.smallStyle.copyWith(color: theme.mutedForeground)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Card del nodo: visuale pura (nessun gesture). Tap/drag/porte/chevron sono
   /// gestiti dal Listener antenato via hit-test geometrico. Altezze da [card]
   /// (misurate da [metrics] con gli stessi stili usati qui): il testo va a capo.
@@ -887,11 +1354,23 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
     required List<String> warnings,
     required bool dimmed,
     required bool connectTarget,
+    String? hoverPortId,
   }) {
     final accent = n.accent ?? theme.primary;
     final selected = n.id == widget.selectedNodeId;
     final titleLine = metrics.textHeight('Ag', metrics.titleStyle, double.infinity);
-    final border = selected || connectTarget ? kGraphCardBorderMax : kGraphCardBorder;
+    final status = widget.nodeStatuses?[n.id];
+    final errors = widget.nodeErrors?[n.id] ?? const <String>[];
+    // Colore di stato del bordo: errori di validazione, poi stato di esecuzione.
+    final stateColor = errors.isNotEmpty
+        ? theme.danger
+        : switch (status) {
+            CLGraphNodeStatus.done => theme.success,
+            CLGraphNodeStatus.waiting => theme.warning,
+            CLGraphNodeStatus.error => theme.danger,
+            CLGraphNodeStatus.skipped || null => null,
+          };
+    final border = selected || connectTarget || stateColor != null ? kGraphCardBorderMax : kGraphCardBorder;
     final body = Container(
       // Il bordo più spesso mangia il padding, non il testo: stesse righe da selezionata.
       padding: EdgeInsets.all(theme.gapMd + kGraphCardBorder - border),
@@ -899,7 +1378,7 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
         color: theme.secondaryBackground,
         borderRadius: BorderRadius.circular(theme.radiusCard),
         border: Border.all(
-          color: connectTarget ? theme.success : (selected ? accent : theme.cardBorder),
+          color: connectTarget ? theme.success : (selected ? accent : (stateColor ?? theme.cardBorder)),
           width: border,
         ),
         boxShadow: theme.cardShadow,
@@ -1089,8 +1568,128 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       }
     }
 
-    final Widget result = children.length == 1 ? tappable : Stack(clipBehavior: Clip.none, children: children);
+    // Porte con nome: pallini a cavallo del bordo (ingressi a sinistra, uscite
+    // a destra) con l'etichetta all'interno; stesse ancore di hit-test e archi
+    // (`CLGraphCardLayout.portY`).
+    if (n.hasNamedPorts) _addNamedPorts(children, theme, metrics, card, n, hoverPortId: hoverPortId);
+
+    // Bollini sugli angoli: stato (sinistra) ed errori (destra), con tooltip.
+    if (status != null) {
+      final label = (widget.statusLabel ?? clGraphNodeStatusLabel)(status);
+      final (icon, color) = switch (status) {
+        CLGraphNodeStatus.done => (Icons.check, theme.success),
+        CLGraphNodeStatus.waiting => (Icons.hourglass_empty, theme.warning),
+        CLGraphNodeStatus.error => (Icons.close, theme.danger),
+        CLGraphNodeStatus.skipped => (Icons.skip_next, theme.mutedForeground),
+      };
+      children.add(Positioned(
+        left: -_kStatusBadge / 2,
+        top: -_kStatusBadge / 2,
+        child: _cornerBadge(theme, icon, color, label),
+      ));
+    }
+    if (errors.isNotEmpty) {
+      children.add(Positioned(
+        right: -_kStatusBadge / 2,
+        top: -_kStatusBadge / 2,
+        child: _cornerBadge(theme, Icons.priority_high, theme.danger, errors.join('\n')),
+      ));
+    }
+
+    Widget result = children.length == 1 ? tappable : Stack(clipBehavior: Clip.none, children: children);
+    if (status == CLGraphNodeStatus.skipped) result = Opacity(opacity: theme.opacityDisabled, child: result);
+    // Lettore di schermo: titolo, stato, numero di errori, selezione.
+    if (status != null || errors.isNotEmpty || n.hasNamedPorts) {
+      final parts = [
+        n.title,
+        if (status != null) (widget.statusLabel ?? clGraphNodeStatusLabel)(status),
+        if (errors.isNotEmpty) errors.length == 1 ? '1 errore' : '${errors.length} errori',
+      ];
+      result = Semantics(container: true, label: parts.join(', '), selected: selected, child: result);
+    }
     return dimmed ? Opacity(opacity: _kDimmed, child: result) : result;
+  }
+
+  /// Bollino rotondo sull'angolo della card, con tooltip.
+  Widget _cornerBadge(CLTheme theme, IconData icon, Color color, String tooltip) => Tooltip(
+        message: tooltip,
+        child: Container(
+          width: _kStatusBadge,
+          height: _kStatusBadge,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: theme.secondaryBackground, width: kGraphCardBorderMax),
+            boxShadow: theme.cardShadowSoft,
+          ),
+          child: Icon(icon, size: theme.iconSizeCompact - theme.gapXs, color: theme.primaryForeground),
+        ),
+      );
+
+  /// Pallini ed etichette delle porte con nome di [n].
+  void _addNamedPorts(
+    List<Widget> children,
+    CLTheme theme,
+    CLGraphCardMetrics metrics,
+    CLGraphCardLayout card,
+    CLGraphNode n, {
+    String? hoverPortId,
+  }) {
+    final labelStyle = metrics.smallStyle.copyWith(color: theme.mutedForeground);
+    final rowH = card.portRowHeight;
+    for (final output in const [false, true]) {
+      final ports = output ? n.outputPorts : n.inputPorts;
+      for (var i = 0; i < ports.length; i++) {
+        final p = ports[i];
+        final y = card.portY(theme, i, ports.length);
+        final active = output
+            ? (n.id == _pendingFromId && _pendingKind == CLGraphEdgeKind.flow && p.id == _pendingPortId)
+            : p.id == hoverPortId;
+        Widget dot = Container(
+          width: kGraphPortDot,
+          height: kGraphPortDot,
+          decoration: BoxDecoration(
+            color: p.color ?? _flowColor(theme),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: active ? theme.primaryText : theme.secondaryBackground,
+              width: active ? 2.5 : 1.5,
+            ),
+            boxShadow: theme.cardShadowSoft,
+          ),
+        );
+        final tip = p.tooltip ?? p.label;
+        if (tip != null && tip.isNotEmpty) dot = Tooltip(message: tip, child: dot);
+        dot = Semantics(label: '${output ? 'Uscita' : 'Ingresso'} ${_portName(p)}', child: dot);
+        children.add(Positioned(
+          left: output ? null : -kGraphPortDot / 2,
+          right: output ? -kGraphPortDot / 2 : null,
+          top: y - kGraphPortDot / 2,
+          child: dot,
+        ));
+        if (p.label != null && rowH > 0) {
+          children.add(Positioned(
+            left: output ? null : kGraphPortDot / 2 + theme.gapXs,
+            right: output ? kGraphPortDot / 2 + theme.gapXs : null,
+            top: y - rowH / 2,
+            width: metrics.portLabelWidth,
+            height: rowH,
+            child: IgnorePointer(
+              child: Align(
+                alignment: output ? Alignment.centerRight : Alignment.centerLeft,
+                child: Text(
+                  p.label!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: output ? TextAlign.right : TextAlign.left,
+                  style: labelStyle,
+                ),
+              ),
+            ),
+          ));
+        }
+      }
+    }
   }
 
   /// Porta di connessione prereq (sx IN / dx OUT): ~16px, tinta `danger`.
@@ -1147,9 +1746,25 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       });
       return;
     }
-    final targetId = _cardAt(rects, cursor, except: from);
+    final targetId = _targetAt(rects, cursor, except: from);
     final source = _nodeById(from);
     final target = targetId == null ? null : _nodeById(targetId);
+    if (_pendingKind == CLGraphEdgeKind.flow) {
+      final fromPort = _pendingPortId;
+      if (source != null && target != null && fromPort != null) {
+        final toPort = _inPortAt(target, cursor);
+        final problem = toPort == null ? '«${target.title}» non ha ingressi' : _flowProblem(source, fromPort, target, toPort);
+        if (problem != null) {
+          widget.onConnectionRejected?.call(from, target.id, problem);
+        } else if (widget.onFlowEdgeCreate != null) {
+          widget.onFlowEdgeCreate!(CLGraphPortRef(from, fromPort), CLGraphPortRef(target.id, toPort!.id));
+        } else {
+          widget.onEdgeCreate?.call(from, target.id, CLGraphEdgeKind.flow);
+        }
+      }
+      _cancelPending();
+      return;
+    }
     if (source != null && target != null) {
       final problem = _targetProblem(source, target);
       if (problem == null) {
@@ -1162,6 +1777,21 @@ class _CLNodeGraphState extends State<CLNodeGraph> {
       _pendingFromId = null;
       _pendingCursor = null;
     });
+  }
+
+  /// Bersaglio del collegamento in corso sotto [p]: la card, oppure (flow) il
+  /// nodo di una porta d'ingresso con nome entro il raggio del pallino, che
+  /// sporge per metà fuori dalla card.
+  String? _targetAt(Map<String, Rect> rects, Offset p, {required String except}) {
+    final card = _cardAt(rects, p, except: except);
+    if (card != null || _pendingKind != CLGraphEdgeKind.flow) return card;
+    for (final e in _inPortAnchors.entries) {
+      if (e.key == except) continue;
+      for (final a in e.value.values) {
+        if ((p - a).distance <= kGraphPortDot / 2 + 5) return e.key;
+      }
+    }
+    return null;
   }
 
   /// Card sotto [p] (la più in alto se si sovrappongono), esclusa [except].

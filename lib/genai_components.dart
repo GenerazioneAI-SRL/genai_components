@@ -134,8 +134,11 @@ export 'src/widgets/cl_node_graph/cl_graph_models.dart';
 export 'src/widgets/cl_node_graph/cl_graph_attributes.dart';
 export 'src/widgets/cl_node_graph/cl_graph_connections.dart';
 export 'src/widgets/cl_node_graph/cl_graph_json.dart';
-export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, clPrereqFlowLayout, clModuleFlowLayout, classifyGraphLink, CLGraphLinkRole;
+export 'src/widgets/cl_node_graph/cl_graph_layout.dart' show clHierarchicalLayout, clPrereqFlowLayout, clModuleFlowLayout, clFlowLayout, classifyGraphLink, CLGraphLinkRole;
+export 'src/widgets/cl_node_graph/cl_graph_ports.dart';
 export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
+export 'src/widgets/cl_node_graph/cl_node_palette.widget.dart';
+export 'src/widgets/cl_node_graph/cl_node_editor_layout.widget.dart';
 
 // Grid
 export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';

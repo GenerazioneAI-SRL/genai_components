@@ -1,5 +1,35 @@
 # Changelog
 
+## 5.14.0
+
+- **CLNodeGraph: editor a porte con nome** (per il «Flusso del percorso»). Tutto opt-in: senza i
+  parametri nuovi il widget si comporta come prima (test di regressione con la configurazione del
+  Builder del piano).
+  - **Porte con nome**: `CLGraphNode.inputPorts` / `outputPorts` (`CLGraphPort`: id, etichetta,
+    tooltip, colore, `maxConnections`), pallini sul bordo con l'etichetta. Drag da una porta d'uscita a
+    una porta d'ingresso (sulla porta o sulla card: vale la più vicina) → `onFlowEdgeCreate(from, to)`
+    con `CLGraphPortRef`, o `onEdgeCreate(.., CLGraphEdgeKind.flow)` se manca. Validazione al volo
+    con `canConnectPorts` (fumetto accanto al cursore, `onConnectionRejected`).
+  - **Arco `CLGraphEdgeKind.flow`**: `CLGraphEdge.fromPortId` / `toPortId` / `label` (a metà arco),
+    cestino all'hover e Canc da tastiera; hit-test sulla curva campionata. Layout `clFlowLayout`
+    (anche in `CLGraphJson.builtInLayouts['flow']`).
+  - **Posizioni salvate**: `nodePositions` (id → Offset, anche negative), `onNodeMoved` a fine
+    trascinamento, `onArrange` dal pulsante «Ordina» con le posizioni del layout.
+  - **Palette**: `onNodeDrop(type, position)` sul canvas; nuovo `CLNodePalette` (`CLNodePaletteItem`,
+    gruppi per categoria, ricerca senza accenti, trascinabile; sotto 600 px un menu con foglio dal
+    basso).
+  - **Stato**: `nodeStatuses` (`CLGraphNodeStatus` fatto/in attesa/errore/saltato) e `nodeErrors`
+    (bordo e bollini con tooltip), `highlightedEdgeIds` per il cammino percorso, `onBackgroundTap`.
+  - **Layout dell'editor**: nuovo `CLNodeEditorLayout` (palette | canvas | pannello; su schermi
+    stretti palette a menu e pannello come foglio dal basso).
+  - Accessibilità: tooltip su porte e pulsanti zoom, etichette semantiche delle card con stato o
+    porte, tastiera a canvas a fuoco (Esc, Canc, +/−).
+  - Prestazioni: le card che non cambiano non si ricostruiscono durante trascinamento e hover.
+- `CLGraphJson`: porte, porte degli archi ed etichetta scritte solo se presenti (i JSON esistenti
+  non cambiano).
+- Test: `test/cl_node_graph/cl_node_graph_{ports,flow_edges,positions,status,builder_regression,perf}_widget_test.dart`,
+  `cl_node_palette_widget_test.dart`, `cl_node_editor_layout_widget_test.dart`.
+
 ## 5.13.0
 
 - **CL Survey v2: domande collegate.** `CLSurveyOption.nested` (JSON `options[].nested`): domande figlie
