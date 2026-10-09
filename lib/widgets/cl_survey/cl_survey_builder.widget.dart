@@ -26,7 +26,8 @@ import 'models/question.dart';
 /// **Modello v2** (consigliato): passa [survey] (per un sondaggio nuovo
 /// `const CLSurvey()`) e [onChanged]. L'editor permette di aggiungere,
 /// riordinare (trascinando o con Su/Giù), duplicare ed eliminare domande,
-/// cambiarne il tipo, modificare opzioni/scala/lunghezza massima e vedere
+/// cambiarne il tipo, modificare opzioni/scala/lunghezza massima, aggiungere
+/// domande collegate a un'opzione (un livello, [CLSurvey.maxDepth]) e vedere
 /// l'anteprima. Gli errori ([CLSurvey.validate]) compaiono sulla domanda appena
 /// toccata, o su tutte con [showValidation] (es. dopo un tentativo di
 /// pubblicazione fallito).
@@ -840,6 +841,7 @@ class OptionEditorState extends State<OptionEditor> {
 /// Card di modifica di una domanda v2 (interna a [CLSurveyBuilder]).
 class _QuestionEditorCard extends StatefulWidget {
   const _QuestionEditorCard({
+    super.key,
     required this.question,
     required this.index,
     required this.total,
@@ -848,11 +850,16 @@ class _QuestionEditorCard extends StatefulWidget {
     required this.onMove,
     required this.onDuplicate,
     required this.onDelete,
+    this.depth = 0,
   });
 
   final CLSurveyQuestion question;
   final int index;
   final int total;
+
+  /// 0 per le domande principali (trascinabili, in card), 1 per le collegate
+  /// a un'opzione (rientrate dentro la card della principale).
+  final int depth;
   final bool showValidation;
   final ValueChanged<CLSurveyQuestion> onChanged;
   final ValueChanged<int> onMove;
@@ -955,17 +962,86 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
     final maxLengthError = issueFor(CLSurveyIssueField.maxLength);
     final hasIssues = issues.isNotEmpty;
 
-    final Widget typeEditor = switch (q.type) {
-      CLSurveyQuestionType.singleChoice || CLSurveyQuestionType.multipleChoice => Column(
+    final canNest = widget.depth + 1 < CLSurvey.maxDepth;
+
+    // Sostituisce le collegate dell'opzione [optionId].
+    void setNested(String optionId, List<CLSurveyQuestion> nested) => _emit(q.copyWith(options: [
+          for (final o in q.options) o.id == optionId ? o.copyWith(nested: nested) : o,
+        ]));
+
+    Widget nestedEditors(CLSurveyOption option) {
+      final list = option.nested;
+      return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Opzioni', style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600)),
+            for (var k = 0; k < list.length; k++)
+              Padding(
+                padding: const EdgeInsets.only(top: Sizes.gapSm),
+                child: _QuestionEditorCard(
+                  key: ValueKey(list[k].id),
+                  question: list[k],
+                  index: k,
+                  total: list.length,
+                  depth: widget.depth + 1,
+                  showValidation: widget.showValidation,
+                  onChanged: (n) => setNested(option.id, [for (final x in list) x.id == n.id ? n : x]),
+                  onMove: (to) {
+                    if (to < 0 || to >= list.length) return;
+                    final next = List.of(list);
+                    next.insert(to, next.removeAt(k));
+                    setNested(option.id, next);
+                  },
+                  onDuplicate: () => setNested(option.id, [...list.sublist(0, k + 1), list[k].duplicate(), ...list.sublist(k + 1)]),
+                  onDelete: () => setNested(option.id, [for (final x in list) if (x.id != list[k].id) x]),
+                ),
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CLGhostButton.primary(
+                text: 'Domanda se scelta',
+                icon: LucideIcons.cornerDownRight,
+                onTap: () => setNested(option.id, [...list, CLSurveyQuestion.create(type: CLSurveyQuestionType.text)]),
+                context: context,
+              ),
+            ),
+          ],
+      );
+    }
+
+    final Widget typeEditor = switch (q.type) {
+      CLSurveyQuestionType.singleChoice || CLSurveyQuestionType.multipleChoice || CLSurveyQuestionType.select => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              q.type == CLSurveyQuestionType.select ? 'Opzioni (${q.options.length}/${q.type.maxOptions})' : 'Opzioni',
+              style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600),
+            ),
+            if (q.type == CLSurveyQuestionType.select)
+              Padding(
+                padding: const EdgeInsets.only(top: Sizes.gapXs),
+                child: Text(
+                  'Chi risponde le sceglie da un elenco a tendina con ricerca: adatto alle liste lunghe.',
+                  style: theme.smallLabel.copyWith(color: theme.mutedForeground),
+                ),
+              ),
+            if (canNest)
+              Padding(
+                padding: const EdgeInsets.only(top: Sizes.gapXs),
+                child: Text(
+                  'Con «Domanda se scelta» aggiungi una domanda che compare solo a chi sceglie quell\'opzione.',
+                  style: theme.smallLabel.copyWith(color: theme.mutedForeground),
+                ),
+              ),
             const SizedBox(height: Sizes.gapSm),
             for (var i = 0; i < q.options.length; i++) ...[
               Row(
                 children: [
                   Icon(
-                    q.type == CLSurveyQuestionType.singleChoice ? LucideIcons.circle : LucideIcons.square,
+                    q.type == CLSurveyQuestionType.multipleChoice
+                        ? LucideIcons.square
+                        : q.type == CLSurveyQuestionType.select
+                            ? LucideIcons.list
+                            : LucideIcons.circle,
                     size: Sizes.iconSizeCompact,
                     color: theme.mutedForeground,
                   ),
@@ -984,7 +1060,9 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
                   CLIconButton(
                     iconData: LucideIcons.x,
                     tooltip: 'Rimuovi opzione',
-                    semanticLabel: 'Rimuovi opzione ${i + 1}',
+                    semanticLabel: q.options[i].nested.isEmpty
+                        ? 'Rimuovi opzione ${i + 1}'
+                        : 'Rimuovi opzione ${i + 1} e le sue domande collegate',
                     iconColor: theme.secondaryText,
                     backgroundColor: Colors.transparent,
                     onTap: () => _emit(q.copyWith(options: [
@@ -999,19 +1077,21 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
                   padding: const EdgeInsets.only(left: Sizes.iconSizeCompact + Sizes.gapSm, top: Sizes.gapXs),
                   child: Text(e, style: errorStyle),
                 ),
+              if (canNest) nestedEditors(q.options[i]),
               const SizedBox(height: Sizes.gapSm),
             ],
             if (issueFor(CLSurveyIssueField.options) case final String e)
               Padding(padding: const EdgeInsets.only(bottom: Sizes.gapSm), child: Text(e, style: errorStyle)),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: CLGhostButton.primary(
-                text: 'Aggiungi opzione',
-                icon: LucideIcons.plus,
-                onTap: () => _emit(q.copyWith(options: [...q.options, CLSurveyOption.create()])),
-                context: context,
+            if (q.options.length < q.type.maxOptions)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: CLGhostButton.primary(
+                  text: 'Aggiungi opzione',
+                  icon: LucideIcons.plus,
+                  onTap: () => _emit(q.copyWith(options: [...q.options, CLSurveyOption.create()])),
+                  context: context,
+                ),
               ),
-            ),
           ],
         ),
       CLSurveyQuestionType.scale => Column(
@@ -1103,33 +1183,35 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
         ),
     };
 
-    return CLContainer(
-      contentPadding: const EdgeInsets.all(Sizes.gapLg),
-      backgroundColor:
-          hasIssues ? Color.alphaBlend(theme.danger.withValues(alpha: theme.opacityFaint), theme.secondaryBackground) : null,
-      child: Column(
+    final nested = widget.depth > 0;
+    final label = nested ? 'Domanda collegata ${widget.index + 1}' : 'Domanda ${widget.index + 1}';
+    final content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              ReorderableDragStartListener(
-                index: widget.index,
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.grab,
-                  child: Tooltip(
-                    message: 'Trascina per riordinare',
-                    child: SizedBox(
-                      width: Sizes.iconSizeLarge,
-                      height: theme.buttonHeightDefault,
-                      child: Icon(LucideIcons.gripVertical, size: Sizes.iconSizeDefault, color: theme.mutedForeground),
+              // Le collegate si riordinano solo con Su/Giù: la maniglia vale per la lista principale.
+              if (nested)
+                Icon(LucideIcons.cornerDownRight, size: Sizes.iconSizeCompact, color: theme.mutedForeground)
+              else
+                ReorderableDragStartListener(
+                  index: widget.index,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.grab,
+                    child: Tooltip(
+                      message: 'Trascina per riordinare',
+                      child: SizedBox(
+                        width: Sizes.iconSizeLarge,
+                        height: theme.buttonHeightDefault,
+                        child: Icon(LucideIcons.gripVertical, size: Sizes.iconSizeDefault, color: theme.mutedForeground),
+                      ),
                     ),
                   ),
                 ),
-              ),
               const SizedBox(width: Sizes.gapXs),
               Expanded(
                 child: Text(
-                  'Domanda ${widget.index + 1}',
+                  label,
                   overflow: TextOverflow.ellipsis,
                   style: theme.bodyLabel.copyWith(fontWeight: FontWeight.w600, color: theme.primaryText),
                 ),
@@ -1137,7 +1219,7 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
               CLIconButton(
                 iconData: LucideIcons.arrowUp,
                 tooltip: 'Sposta su',
-                semanticLabel: 'Sposta su la domanda ${widget.index + 1}',
+                semanticLabel: 'Sposta su ${label.toLowerCase()}',
                 enabled: widget.index > 0,
                 iconColor: theme.secondaryText,
                 backgroundColor: Colors.transparent,
@@ -1146,7 +1228,7 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
               CLIconButton(
                 iconData: LucideIcons.arrowDown,
                 tooltip: 'Sposta giù',
-                semanticLabel: 'Sposta giù la domanda ${widget.index + 1}',
+                semanticLabel: 'Sposta giù ${label.toLowerCase()}',
                 enabled: widget.index < widget.total - 1,
                 iconColor: theme.secondaryText,
                 backgroundColor: Colors.transparent,
@@ -1155,7 +1237,7 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
               CLIconButton(
                 iconData: LucideIcons.copy,
                 tooltip: 'Duplica',
-                semanticLabel: 'Duplica la domanda ${widget.index + 1}',
+                semanticLabel: 'Duplica ${label.toLowerCase()}',
                 iconColor: theme.secondaryText,
                 backgroundColor: Colors.transparent,
                 onTap: widget.onDuplicate,
@@ -1163,7 +1245,7 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
               CLIconButton(
                 iconData: LucideIcons.trash2,
                 tooltip: 'Elimina',
-                semanticLabel: 'Elimina la domanda ${widget.index + 1}',
+                semanticLabel: 'Elimina ${label.toLowerCase()}',
                 iconColor: theme.danger,
                 backgroundColor: Colors.transparent,
                 onTap: widget.onDelete,
@@ -1231,7 +1313,21 @@ class _QuestionEditorCardState extends State<_QuestionEditorCard> {
           const SizedBox(height: Sizes.gapLg),
           typeEditor,
         ],
-      ),
+      );
+    if (nested) {
+      return Container(
+        padding: const EdgeInsets.only(left: Sizes.gapMd, top: Sizes.gapSm, bottom: Sizes.gapSm),
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: hasIssues ? theme.danger : theme.primary, width: 2)),
+        ),
+        child: content,
+      );
+    }
+    return CLContainer(
+      contentPadding: const EdgeInsets.all(Sizes.gapLg),
+      backgroundColor:
+          hasIssues ? Color.alphaBlend(theme.danger.withValues(alpha: theme.opacityFaint), theme.secondaryBackground) : null,
+      child: content,
     );
   }
 }

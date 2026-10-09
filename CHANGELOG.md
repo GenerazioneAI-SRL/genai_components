@@ -1,5 +1,25 @@
 # Changelog
 
+## 5.13.0
+
+- **CL Survey v2: domande collegate.** `CLSurveyOption.nested` (JSON `options[].nested`): domande figlie
+  mostrate solo se l'opzione è scelta. Id unici su tutto l'albero, risposte sempre piatte per id, al
+  massimo `CLSurvey.maxDepth` = 2 livelli. Una collegata è obbligatoria solo se visibile;
+  `sanitizeResponse` scarta le risposte alle collegate nascoste. Nuovi `CLSurvey.nodes`,
+  `allQuestions`, `visibleNodes(response)`, `CLSurveyNode`, `CLSurveyQuestion.sanitizeAnswer` e
+  `nestedQuestions`; `CLSurveySummary` contiene anche le collegate (`depth`, `parent`, `parentOption`).
+  Un'opzione senza figlie non scrive `nested`: gli schemi esistenti restano identici. Il legacy
+  converte le `Option.nested` in collegate (un livello).
+- **Tipo `select`** (elenco a tendina con ricerca, una risposta): nel viewer `CLDropdown.singleSync` con
+  ricerca (maiuscole e accenti ignorati); fino a `CLSurvey.maxSelectOptions` = 200 opzioni, 50 per scelta
+  singola e multipla (`CLSurvey.maxChoiceOptions`, ora controllato anche da `validate`).
+- Builder: «Domanda se scelta» sotto ogni opzione, collegate rientrate con Su/Giù, Duplica, Elimina.
+  Viewer: collegate dentro la card della principale (una schermata = una principale con le sue
+  collegate). Risultati: collegate rientrate sotto la principale; il select mostra solo le opzioni scelte.
+- Fix: in modalità a schermate la domanda successiva si apriva già scrollata (scroll interno non
+  azzerato, o cima fuori vista dentro lo scroll del genitore).
+- Test: `test/cl_survey/cl_survey_nested_*_test.dart`.
+
 ## 5.12.0
 
 - **CL Survey v2.** Nuovo modello (`CLSurvey`, `CLSurveyQuestion`, `CLSurveyOption`, `CLSurveyScale`,
