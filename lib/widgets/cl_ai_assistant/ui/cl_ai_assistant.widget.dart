@@ -1,7 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:genai_components/cl_theme.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
@@ -91,12 +90,10 @@ class CLAiAssistant extends StatefulWidget {
 class _CLAiAssistantState extends State<CLAiAssistant> {
   // ── chat state ─────────────────────────────────────────────────────────────
   final _textController = TextEditingController();
-  final _scrollController = ScrollController();
   final _focusNode = FocusNode();
 
   AiAssistantController? _controller;
   bool _prevWaitingForUserResponse = false;
-  bool _inputFocused = false;
 
   // Glass bars: header/footer fluttuano sopra la lista; misuro le loro altezze
   // per dare il padding giusto alla lista (i messaggi scorrono sotto il blur).
@@ -120,19 +117,6 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
   }
 
   // ── lifecycle ──────────────────────────────────────────────────────────────
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(_onFocusChanged);
-  }
-
-  void _onFocusChanged() {
-    if (!mounted) return;
-    if (_focusNode.hasFocus != _inputFocused) {
-      setState(() => _inputFocused = _focusNode.hasFocus);
-    }
-  }
 
   @override
   void didChangeDependencies() {
@@ -161,27 +145,8 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
       });
     }
     _prevWaitingForUserResponse = nowWaiting;
+    // Lo scroll in fondo lo fa CLAiChatView (solo se l'utente è già in fondo).
     setState(() {});
-    _scrollToBottom();
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  void _send() {
-    final text = _textController.text.trim();
-    if (text.isEmpty || _controller == null) return;
-    _textController.clear();
-    _controller!.sendMessage(text);
-    _focusNode.requestFocus();
   }
 
   void _handleClose(BuildContext context) {
@@ -216,9 +181,7 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
   @override
   void dispose() {
     _controller?.removeListener(_onControllerChanged);
-    _focusNode.removeListener(_onFocusChanged);
     _textController.dispose();
-    _scrollController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -383,8 +346,7 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
             children: [
               const Icon(LucideIcons.sparkle300, color: Colors.white, size: Sizes.iconSizeDefault),
               const SizedBox(width: Sizes.gapSm),
-              Text('Skillera Ai',
-                  style: theme.bodyLabel.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
+              Text('Skillera Ai', style: theme.bodyLabel.copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -466,338 +428,66 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
     );
   }
 
-  // ── shared chat body: messages list ───────────────────────────────────────
-
-  // ── empty state: saluto gradiente + chip ancorate in basso ────────────────
-
-  Widget _emptyState(BuildContext context, CLTheme theme, {required double topInset, required double bottomInset}) {
-    final gradient = LinearGradient(colors: [theme.primary, theme.accentPurple]);
-    final rawName = _controller?.config.userNameProvider?.call()?.trim();
-    final hasName = rawName != null && rawName.isNotEmpty;
-    final suggestions = _controller?.config.initialSuggestions ?? const [];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final padTop = topInset + Sizes.gap2Xl;
-        final padBottom = bottomInset + Sizes.padding;
-        return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(Sizes.gap2Xl, padTop, Sizes.gap2Xl, padBottom),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight - padTop - padBottom),
-            child: Column(
-              // Tutto ancorato in basso: saluto subito sopra le chip rapide.
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (b) => gradient.createShader(Offset.zero & b.size),
-                      blendMode: BlendMode.srcIn,
-                      child: Text(
-                        hasName ? 'Ciao $rawName' : 'Ciao',
-                        style: theme.heading2.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    const SizedBox(height: Sizes.gapXs),
-                    Text(
-                      'Come posso aiutarti oggi?',
-                      style: theme.heading2.copyWith(color: theme.secondaryText, fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-                if (suggestions.isNotEmpty) ...[
-                  const SizedBox(height: Sizes.gapLg),
-                  Wrap(
-                    spacing: Sizes.gapSm,
-                    runSpacing: Sizes.gapSm,
-                    children: [
-                      for (final chip in suggestions)
-                        CLSoftButton.primary(
-                          text: chip.label,
-                          icon: chip.icon,
-                          context: context,
-                          borderRadius: theme.radiusPill,
-                          onTap: () {
-                            _controller!.sendSuggestion(chip.label, chip.message);
-                            setState(() {});
-                          },
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // ── shared chat body: messages list (CLAiChatView senza composer) ─────────
 
   Widget _chatMessages(BuildContext context, CLTheme theme, bool isDark,
       {double topInset = 0, double bottomInset = 0}) {
-    final messages = _controller?.messages ?? [];
-
-    if (messages.isEmpty) {
-      return _emptyState(context, theme, topInset: topInset, bottomInset: bottomInset);
-    }
-
-    final showTyping =
-        _controller!.isProcessing && !_controller!.isWaitingForUserResponse;
-
-    return ListView.builder(
-      controller: _scrollController,
-      padding: EdgeInsets.fromLTRB(
-        Sizes.padding,
-        topInset + Sizes.padding / 2,
-        Sizes.padding,
-        bottomInset + Sizes.padding / 2,
-      ),
-      itemCount: messages.length + (showTyping ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == messages.length) {
-          return _chatTypingIndicator(theme);
-        }
-        final msg = messages[index];
-        final isUser = msg.role == AiMessageRole.user;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: Sizes.gapMd),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            children: [
-              if (!isUser) ...[
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: theme.primary.withValues(alpha: 0.12),
-                    borderRadius:
-                        BorderRadius.circular(Sizes.radiusControl),
-                  ),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: Sizes.iconSizeCompact,
-                    color: theme.primary,
-                  ),
-                ),
-                const SizedBox(width: Sizes.gapSm),
-              ],
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Sizes.gapMd + 2,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? theme.primary
-                            .withValues(alpha: isDark ? 0.25 : 0.12)
-                        : (isDark
-                            ? theme.primaryBackground
-                            : theme.primaryBackground
-                                .withValues(alpha: 0.7)),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(Sizes.gap2Xl / 1.5),
-                      topRight: const Radius.circular(Sizes.gap2Xl / 1.5),
-                      bottomLeft: Radius.circular(isUser ? Sizes.gap2Xl / 1.5 : 4),
-                      bottomRight:
-                          Radius.circular(isUser ? 4 : Sizes.gap2Xl / 1.5),
-                    ),
-                    border: Border.all(
-                      color: theme.borderColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: SelectableText(
-                    msg.content,
-                    style: theme.bodyText.copyWith(
-                      fontSize: 13.5,
-                      height: 1.45,
-                      color: theme.primaryText,
-                    ),
-                  ),
-                ),
-              ),
-              if (isUser) const SizedBox(width: Sizes.gapSm),
-            ],
+    final controller = _controller;
+    final rawName = controller?.config.userNameProvider?.call()?.trim();
+    final hasName = rawName != null && rawName.isNotEmpty;
+    return CLAiChatView(
+      showComposer: false,
+      padding: EdgeInsets.fromLTRB(theme.gapLg, topInset + theme.gapSm, theme.gapLg, bottomInset + theme.gapSm),
+      messages: [
+        for (final m in controller?.messages ?? const <AiChatMessage>[])
+          CLAiChatMessage(
+            id: m.id,
+            role: m.role == AiMessageRole.user
+                ? MessageRole.user
+                : m.role == AiMessageRole.system
+                    ? MessageRole.system
+                    : MessageRole.assistant,
+            text: m.content,
+            markdown: m.role != AiMessageRole.user,
+            createdAt: m.timestamp,
           ),
-        );
+      ],
+      isThinking: (controller?.isProcessing ?? false) && !(controller?.isWaitingForUserResponse ?? false),
+      thinkingLabel: controller?.progressText ?? 'Sto elaborando...',
+      emptyTitle: hasName ? 'Ciao $rawName' : 'Ciao',
+      suggestions: [
+        for (final chip in controller?.config.initialSuggestions ?? const <AiSuggestionChip>[])
+          CLAiChatSuggestion(label: chip.label, message: chip.message, icon: chip.icon),
+      ],
+      onSuggestionTap: (s) {
+        controller?.sendSuggestion(s.label, s.text);
+        setState(() {});
       },
     );
   }
 
-  // ── shared chat body: typing indicator ────────────────────────────────────
-
-  Widget _chatTypingIndicator(CLTheme theme) {
-    final progressText = _controller?.progressText;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Sizes.gapMd),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: theme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(Sizes.radiusControl),
-            ),
-            child: Icon(
-              Icons.auto_awesome,
-              size: Sizes.iconSizeCompact,
-              color: theme.primary,
-            ),
-          ),
-          const SizedBox(width: Sizes.gapSm),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Sizes.gapMd + 2,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: theme.primaryBackground,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                  bottomLeft: Radius.circular(4),
-                  bottomRight: Radius.circular(16),
-                ),
-                border: Border.all(
-                  color: theme.borderColor.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: Sizes.iconSizeCompact,
-                    height: Sizes.iconSizeCompact,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      progressText ?? 'Sto elaborando...',
-                      style: theme.bodyLabel.copyWith(
-                        color: theme.secondaryText,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── shared chat body: input bar ────────────────────────────────────────────
+  // ── shared chat body: input bar (CLAiChatComposer) ────────────────────────
 
   Widget _chatInputBar(BuildContext context, CLTheme theme, bool isDark) {
     final isProcessing = _controller?.isProcessing ?? false;
     final isWaiting = _controller?.isWaitingForUserResponse ?? false;
-    final canType = !isProcessing || isWaiting;
-    final showStop = isProcessing && !isWaiting;
-
-    final canSend = _textController.text.trim().isNotEmpty && canType;
-
-    return Padding(
-      padding: const EdgeInsets.all(Sizes.padding * 0.75),
-      // Text area sopra, tasto invio FUORI dal box, in basso a destra.
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Text area custom: focus = ring 1px gradiente blu/viola, no glow.
-          Container(
-            padding: const EdgeInsets.all(1),
-            decoration: BoxDecoration(
-              gradient: _inputFocused
-                  ? LinearGradient(colors: [theme.primary, theme.accentPurple])
-                  : null,
-              color: _inputFocused ? null : theme.borderColor,
-              borderRadius: BorderRadius.circular(theme.radiusModal),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.gapLg, vertical: Sizes.gapMd),
-              decoration: BoxDecoration(
-                color: theme.secondaryBackground,
-                borderRadius: BorderRadius.circular(theme.radiusModal - 1),
-              ),
-              child: TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                enabled: canType,
-                minLines: 2,
-                maxLines: 6,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                onChanged: (_) => setState(() {}),
-                style: theme.bodyText.copyWith(fontSize: 13.5),
-                cursorColor: theme.primary,
-                decoration: InputDecoration(
-                  hintText: isWaiting
-                      ? 'Rispondi...'
-                      : isProcessing
-                          ? 'Attendi la risposta...'
-                          : 'Scrivi un messaggio...',
-                  hintStyle: theme.bodyLabel.copyWith(color: theme.secondaryText, fontSize: 13.5),
-                  border: InputBorder.none,
-                  isCollapsed: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: Sizes.gapSm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Material(
-                color: showStop
-                    ? theme.secondaryText.withValues(alpha: 0.3)
-                    : (canSend ? theme.primary : theme.primary.withValues(alpha: 0.4)),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: showStop ? () => _controller?.requestStop() : (canSend ? _send : null),
-                  child: SizedBox(
-                    width: Sizes.buttonHeightDefault,
-                    height: Sizes.buttonHeightDefault,
-                    child: Center(
-                      child: Icon(
-                        showStop ? Icons.stop_rounded : Icons.arrow_upward_rounded,
-                        color: Colors.white,
-                        size: Sizes.iconSizeDefault,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Sizes.gapSm),
-          // Informativa privacy Skillera AI.
-          Text.rich(
-            TextSpan(
-              style: theme.smallLabel.copyWith(color: theme.secondaryText),
-              children: const [
-                TextSpan(
-                  text: 'Skillera AI opera nel rispetto dei tuoi permessi e del GDPR. '
-                      'Verifica sempre le risposte.',
-                ),
-              ],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+    return CLAiChatComposer(
+      controller: _textController,
+      focusNode: _focusNode,
+      enabled: !isProcessing || isWaiting,
+      busy: isProcessing && !isWaiting,
+      onStop: () => _controller?.requestStop(),
+      onSend: _controller == null ? null : (text) => _controller!.sendMessage(text),
+      hintText: isWaiting
+          ? 'Rispondi...'
+          : isProcessing
+              ? 'Attendi la risposta...'
+              : 'Scrivi un messaggio...',
+      // Informativa privacy Skillera AI.
+      footer: Text(
+        'Skillera AI opera nel rispetto dei tuoi permessi e del GDPR. Verifica sempre le risposte.',
+        style: theme.smallLabel.copyWith(color: theme.secondaryText),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -828,15 +518,6 @@ class _HistorySheetState extends State<_HistorySheet> {
     setState(() => _future = f);
   }
 
-  String _relative(DateTime d) {
-    final now = DateTime.now();
-    if (d.year == now.year && d.month == now.month && d.day == now.day) return 'oggi';
-    final diff = now.difference(d).inDays;
-    if (diff <= 1) return 'ieri';
-    if (diff < 7) return '${diff}g fa';
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
-  }
-
   Widget _newButton(BuildContext context) => CLSoftButton.primary(
         text: 'Nuova',
         context: context,
@@ -850,47 +531,22 @@ class _HistorySheetState extends State<_HistorySheet> {
   Widget _convList(BuildContext context, CLTheme theme) {
     return FutureBuilder<List<AiConversationSummary>>(
       future: _future,
-      builder: (ctx, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return const Padding(
-            padding: EdgeInsets.all(Sizes.padding),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final items = snap.data ?? const [];
-        if (items.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(Sizes.padding),
-            child: Text('Nessuna conversazione salvata',
-                style: theme.bodyLabel.copyWith(color: theme.secondaryText)),
-          );
-        }
-        return ListView.separated(
-          shrinkWrap: true,
-          itemCount: items.length,
-          separatorBuilder: (_, __) => Divider(height: 1, color: theme.borderColor),
-          itemBuilder: (c, i) {
-            final conv = items[i];
-            return ListTile(
-              title: Text(conv.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.bodyText),
-              subtitle: Text(_relative(conv.updatedAt),
-                  style: theme.smallLabel.copyWith(color: theme.secondaryText)),
-              trailing: IconButton(
-                icon: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: theme.secondaryText, size: 18),
-                tooltip: 'Elimina',
-                onPressed: () async {
-                  await widget.controller.deleteConversation(conv.id);
-                  _reload();
-                },
-              ),
-              onTap: () async {
-                await widget.controller.loadConversation(conv.id);
-                if (context.mounted) Navigator.of(context).pop();
-              },
-            );
-          },
-        );
-      },
+      builder: (ctx, snap) => CLAiConversationList(
+        shrinkWrap: true,
+        loading: snap.connectionState != ConnectionState.done,
+        items: [
+          for (final conv in snap.data ?? const <AiConversationSummary>[])
+            CLAiConversationItem(id: conv.id, title: conv.title, updatedAt: conv.updatedAt),
+        ],
+        onDelete: (id) async {
+          await widget.controller.deleteConversation(id);
+          _reload();
+        },
+        onSelect: (id) async {
+          await widget.controller.loadConversation(id);
+          if (context.mounted) Navigator.of(context).pop();
+        },
+      ),
     );
   }
 
@@ -931,7 +587,8 @@ class _HistorySheetState extends State<_HistorySheet> {
                 ],
               ),
             ),
-            Flexible(child: ConstrainedBox(constraints: BoxConstraints(maxHeight: maxH), child: _convList(context, theme))),
+            Flexible(
+                child: ConstrainedBox(constraints: BoxConstraints(maxHeight: maxH), child: _convList(context, theme))),
             SizedBox(height: theme.gapLg),
           ],
         ),

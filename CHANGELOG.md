@@ -1,5 +1,30 @@
 # Changelog
 
+## 5.15.0
+
+- **CL AI Assistant: componenti di chat senza agente** (per l'assistente di Skillera Ops collegato al
+  servizio AI). Solo dati in ingresso e callback in uscita, token del tema, nessun legame con
+  `AiAssistantController`/`OpenAiProvider`. Esportati dal barrel e da `flutter_ai_assistant.dart`
+  (che ora esporta anche `MessageRole`).
+  - `CLAiChatView`: lista messaggi con entrata animata (solo i nuovi), riga «sta pensando» con passi
+    facoltativi (`thinkingSteps`), stato vuoto con saluto e suggerimenti cliccabili
+    (`CLAiChatSuggestion`), composer, «Stop» facoltativo (`onStop`), scroll automatico che segue i
+    messaggi solo se l'utente è in fondo (altrimenti pulsante «Vai in fondo»), `showComposer: false`
+    per un guscio che ha il suo composer.
+  - `CLAiChatMessage` (id, `MessageRole` user/assistant/tool/system, testo, `markdown`,
+    `CLAiChatStatus` sending/pending/done/error, `onRetry`, `onEdit` con «Modifica», `citations` di
+    `CLAiCitation` con segnaposto `[n]` cliccabili, `footer` per card azione).
+  - `CLAiMessageBubble`: il singolo messaggio (markdown di base, citazioni, stati, modifica).
+  - `CLAiChatComposer`: Invio invia, Maiusc+Invio a capo, ⌘/Ctrl+Invio inviano sempre
+    (`enterToSend`), niente invio durante la composizione IME.
+  - `CLAiConversationList` (`CLAiConversationItem`): storico con titolo, data relativa, selezione,
+    «Nuova», «Archivia», «Elimina», caricamento e vuoto.
+- `CLAiAssistant` (firma invariata) usa i nuovi componenti dentro: lista messaggi e stato vuoto
+  (`CLAiChatView`), campo di scrittura (`CLAiChatComposer`), storico (`CLAiConversationList`).
+  Cambi visibili: le risposte dell'assistente sono rese in markdown, **Invio ora invia** (prima
+  andava a capo; a capo con Maiusc+Invio), lo scroll non salta in fondo se l'utente sta rileggendo.
+- Test: `test/cl_ai_assistant/cl_ai_chat_view_test.dart`, `cl_ai_assistant_panel_test.dart`.
+
 ## 5.14.0
 
 - **CLNodeGraph: editor a porte con nome** (per il «Flusso del percorso»). Tutto opt-in: senza i

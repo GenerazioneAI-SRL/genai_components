@@ -164,6 +164,12 @@ export 'widgets/cl_ai_assistant/src/core/ai_assistant_config.dart';
 export 'widgets/cl_ai_assistant/src/core/ai_conversation_store.dart';
 export 'widgets/cl_ai_assistant/src/llm/providers/openai_provider.dart';
 export 'widgets/cl_ai_assistant/src/tools/tool_definition.dart';
+// AI Assistant — componenti di chat senza agente (5.15.0)
+export 'widgets/cl_ai_assistant/chat/cl_ai_chat_message.model.dart';
+export 'widgets/cl_ai_assistant/chat/cl_ai_chat_view.widget.dart';
+export 'widgets/cl_ai_assistant/chat/cl_ai_chat_composer.widget.dart';
+export 'widgets/cl_ai_assistant/chat/cl_ai_message_bubble.widget.dart';
+export 'widgets/cl_ai_assistant/chat/cl_ai_conversation_list.widget.dart';
 
 // Command Palette
 export 'widgets/cl_command/cl_command_item.model.dart';
