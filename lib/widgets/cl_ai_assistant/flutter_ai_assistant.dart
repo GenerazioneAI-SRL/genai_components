@@ -51,3 +51,11 @@ export 'src/voice/voice_output_service.dart';
 
 // UI widgets
 export 'ui/cl_ai_assistant.widget.dart';
+
+// Componenti di chat senza agente (anche dal barrel genai_components.dart)
+export '../../enums/message_role.enum.dart';
+export 'chat/cl_ai_chat_message.model.dart';
+export 'chat/cl_ai_chat_view.widget.dart';
+export 'chat/cl_ai_chat_composer.widget.dart';
+export 'chat/cl_ai_message_bubble.widget.dart';
+export 'chat/cl_ai_conversation_list.widget.dart';
