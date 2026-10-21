@@ -139,6 +139,8 @@ export 'src/widgets/cl_node_graph/cl_graph_ports.dart';
 export 'src/widgets/cl_node_graph/cl_node_graph.widget.dart';
 export 'src/widgets/cl_node_graph/cl_node_palette.widget.dart';
 export 'src/widgets/cl_node_graph/cl_node_editor_layout.widget.dart';
+export 'src/widgets/cl_force_graph/cl_force_layout.dart';
+export 'src/widgets/cl_force_graph/cl_force_graph.widget.dart';
 
 // Grid
 export 'widgets/cl_responsive_grid/flutter_responsive_flex_grid.dart';
