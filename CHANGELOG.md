@@ -1,5 +1,15 @@
 # Changelog
 
+## 5.16.0
+
+- **`CLForceGraph`**, grafo a forze esplorativo nella famiglia «Org chart e Node graph» (per Sinapsi di Skillera Ops, tappa N6):
+  `CustomPaint` con simulazione a forze a passi (`CLForceLayout`: repulsione Barnes-Hut con quadtree, molle sugli archi, gravità,
+  smorzamento, posizioni iniziali deterministiche dal seme) e `CLForceQuadTree` per il tocco. Cerchi che crescono col grado
+  (`CLForceNode.degree`), colori dei gruppi dai token (`CLTheme.generateColorFromText`, o `groupColor`), nodi tenui (`muted`),
+  archi tratteggiati (`CLForceEdge.dashed`), etichette oltre `labelScale` e sempre per il nodo evidenziato e i suoi vicini. Rotella
+  e pizzico per lo zoom, trascinamento del fondo, passaggio del mouse che evidenzia i vicini, tocco (`onNodeTap`), trascinamento che
+  fissa un nodo (doppio tocco lo libera). `animate: false` per assestare subito (test). Solo aggiunte.
+
 ## 5.15.0
 
 - **CL AI Assistant: componenti di chat senza agente** (per l'assistente di Skillera Ops collegato al
