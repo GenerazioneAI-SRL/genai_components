@@ -120,6 +120,8 @@ class CLForceGraphState extends State<CLForceGraph> with SingleTickerProviderSta
 
   @override
   void dispose() {
+    // Fermo prima di liberarlo: il mixin vuole un ticker spento allo smontaggio.
+    _ticker?.stop();
     _ticker?.dispose();
     super.dispose();
   }
