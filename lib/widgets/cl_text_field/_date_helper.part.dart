@@ -68,13 +68,13 @@ class _TextFieldDateHelper extends _Helper {
         lastDate: DateTime(DateTime.now().year + 100),
         monthPickerDialogSettings: MonthPickerDialogSettings(
           actionBarSettings: PickerActionBarSettings(
-            confirmWidget: _actionBtn(context, 'Conferma', theme.primary, Colors.white),
+            confirmWidget: _actionBtn(context, clL10n.common.actions.confirm, theme.primary, theme.primaryForeground),
             cancelWidget:
-                _actionBtn(context, 'Annulla', theme.mutedForeground.withValues(alpha: theme.opacitySoft), theme.mutedForeground),
+                _actionBtn(context, clL10n.common.actions.cancel, theme.mutedForeground.withValues(alpha: theme.opacitySoft), theme.mutedForeground),
           ),
           headerSettings: PickerHeaderSettings(
             headerBackgroundColor: theme.primary,
-            headerCurrentPageTextStyle: theme.heading6.override(color: Colors.white),
+            headerCurrentPageTextStyle: theme.heading6.override(color: theme.primaryForeground),
           ),
           dateButtonsSettings: PickerDateButtonsSettings(
             buttonBorder: RoundedRectangleBorder(
@@ -86,7 +86,7 @@ class _TextFieldDateHelper extends _Helper {
           dialogSettings: PickerDialogSettings(
             scrollAnimationMilliseconds: 0,
             dialogBackgroundColor: theme.secondaryBackground,
-            locale: const Locale('it', 'IT'),
+            locale: Locale(CLLocale.current),
             dialogRoundedCornersRadius: Sizes.radiusControl,
           ),
         ),

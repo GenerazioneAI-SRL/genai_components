@@ -97,7 +97,7 @@ class _DateTimeRangePicker extends HookWidget {
 
     return CLTextField(
       controller: textController,
-      labelText: decoration?.labelText?.toString() ?? 'Seleziona periodo',
+      labelText: decoration?.labelText?.toString() ?? clL10n.table.selectPeriod,
       isReadOnly: true,
       onTap: () async {
         currentValueRef.value = await showCalendarDatePicker2Dialog(

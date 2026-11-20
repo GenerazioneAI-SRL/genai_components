@@ -125,7 +125,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: Sizes.padding),
             Text(
-              hasActiveFilters ? 'Nessun risultato' : 'Non c\'è ancora niente',
+              hasActiveFilters ? clL10n.table.empty.noResults : clL10n.table.empty.nothingYet,
               style: theme.bodyText.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.primaryText,
@@ -134,8 +134,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: Sizes.small * 0.5),
             Text(
               hasActiveFilters
-                  ? 'Prova a modificare i filtri di ricerca'
-                  : 'Qui compariranno gli elementi quando ce ne saranno',
+                  ? clL10n.table.empty.tryFiltersSearch
+                  : clL10n.table.empty.willAppear,
               style: theme.smallLabel.copyWith(
                 color: theme.secondaryText.withValues(alpha: 0.6),
               ),
@@ -190,7 +190,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: Sizes.padding),
             Text(
-              'Si è verificato un errore',
+              clL10n.table.error.generic,
               style: theme.bodyText.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.primaryText,
@@ -198,7 +198,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: Sizes.small * 0.5),
             Text(
-              error?.toString() ?? 'Errore sconosciuto',
+              error?.toString() ?? clL10n.table.error.unknown,
               style: theme.smallLabel.copyWith(color: theme.secondaryText.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),

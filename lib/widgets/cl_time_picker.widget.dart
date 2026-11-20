@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart' show TimeOfDay, DayPeriod;
+import '../src/i18n/l10n.dart';
 // Budella Shad: nucleo interno = ShadTimePicker reale (campi ora/minuti[/secondi]
 // [/AM-PM] nativi). Solo i simboli usati (show). API CL su `TimeOfDay` (tipo
 // usato dall'app). Tono dai colori CL via il bridge ShadTheme.
@@ -50,9 +51,9 @@ class CLTimePicker extends StatelessWidget {
         onChanged: _emit,
         showSeconds: showSeconds,
         fieldWidth: fieldWidth,
-        hourLabel: const Text('Ore'),
-        minuteLabel: const Text('Minuti'),
-        secondLabel: const Text('Secondi'),
+        hourLabel: Text(clL10n.form.time.hours),
+        minuteLabel: Text(clL10n.form.time.minutes),
+        secondLabel: Text(clL10n.form.time.seconds),
       );
     }
     return ShadTimePicker.period(
@@ -63,9 +64,9 @@ class CLTimePicker extends StatelessWidget {
       initialDayPeriod: (initial != null && initial!.period == DayPeriod.pm)
           ? ShadDayPeriod.pm
           : ShadDayPeriod.am,
-      hourLabel: const Text('Ore'),
-      minuteLabel: const Text('Minuti'),
-      secondLabel: const Text('Secondi'),
+      hourLabel: Text(clL10n.form.time.hours),
+      minuteLabel: Text(clL10n.form.time.minutes),
+      secondLabel: Text(clL10n.form.time.seconds),
       periodLabel: const Text('AM/PM'),
     );
   }

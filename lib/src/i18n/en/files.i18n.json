@@ -1,0 +1,26 @@
+{
+  "invalidFile": "The file $name isn't valid. Allowed extensions: $extensions.",
+  "noValidFile": "No valid file selected.",
+  "pickCancelled": "File selection cancelled.",
+  "pickerFailed": "Couldn't open the file picker: $error",
+  "dropOrClick": "Drag files here or click to upload",
+  "dropHere": "Drop the files here",
+  "limits": "Max $count files • $extensions",
+  "kinds": {
+    "image": "Image",
+    "video": "Video",
+    "word": "Word document",
+    "excel": "Excel spreadsheet",
+    "zip": "ZIP archive",
+    "archive": "Archive",
+    "file": "File"
+  },
+  "viewer": {
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "zoomReset": "Reset zoom",
+    "pdfFailed": "Couldn't load the PDF"
+  }
+}

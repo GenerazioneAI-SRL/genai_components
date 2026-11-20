@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'dart:math';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../cl_theme.dart';
+import '../../src/i18n/l10n.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_button.widget.dart';
 import '../buttons/cl_outline_button.widget.dart';
@@ -622,7 +623,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                                  clL10n.table.selectedCount(n: selectedCount),
                                   style: clTheme.smallLabel.copyWith(
                                     color: tablePrimary,
                                     fontWeight: FontWeight.w600,
@@ -637,7 +638,7 @@ class PagedDataTable<TKey extends Comparable, TResultId extends Comparable, TRes
                               if (isDesktop)
                                 CLButton(
                                   context: context,
-                                  text: deselectAllLabel ?? 'Deseleziona tutto',
+                                  text: deselectAllLabel ?? clL10n.table.deselectAll,
                                   onTap: () => st.clearAllSelections(),
                                   iconAlignment: IconAlignment.start,
                                   isCompact: true,
@@ -1094,7 +1095,7 @@ class _DesktopBulkActionsFloatingCard<TKey extends Comparable, TResultId extends
                 children: [
                   // Conteggio + deseleziona = unico bottone muted (icona X + testo).
                   CLButton(
-                    text: '$selectedCount selezionat${selectedCount == 1 ? 'o' : 'i'}',
+                    text: clL10n.table.selectedCount(n: selectedCount),
                     iconData: LucideIcons.x400,
                     iconAlignment: IconAlignment.start,
                     backgroundColor: clTheme.muted,

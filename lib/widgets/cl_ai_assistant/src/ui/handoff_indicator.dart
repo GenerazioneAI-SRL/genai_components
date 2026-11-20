@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:genai_components/genai_components.dart';
+import 'package:genai_components/src/i18n/l10n.dart';
 
 import '../core/ai_assistant_controller.dart';
 
@@ -70,7 +71,7 @@ class _HandoffIndicatorState extends State<HandoffIndicator>
 
   @override
   Widget build(BuildContext context) {
-    final buttonLabel = widget.controller.handoffButtonLabel ?? 'Confirm';
+    final buttonLabel = widget.controller.handoffButtonLabel ?? clL10n.common.actions.confirm;
     final summary = widget.controller.handoffSummary ?? '';
 
     return SafeArea(
@@ -104,6 +105,11 @@ class _HandoffIndicatorState extends State<HandoffIndicator>
   // ── Card ──────────────────────────────────────────────────────────────────
 
   Widget _buildCard(String buttonLabel, String summary) {
+    // Una frase sola nelle traduzioni («Tocca «$label» per confermare»): il nome del pulsante va in evidenza dove
+    // la lingua lo mette.
+    final tapParts = clL10n.assistant.overlay.tapToConfirm(label: '\u0000').split('\u0000');
+    final tapBefore = tapParts.first;
+    final tapAfter = tapParts.length > 1 ? tapParts.last : '';
     return AnimatedBuilder(
       animation: _glowCtrl,
       builder: (_, child) {
@@ -168,16 +174,16 @@ class _HandoffIndicatorState extends State<HandoffIndicator>
                             height: 1.3,
                           ),
                           children: [
-                            const TextSpan(text: 'Tap '),
+                            TextSpan(text: tapBefore),
                             TextSpan(
-                              text: '"$buttonLabel"',
+                              text: buttonLabel,
                               style: const TextStyle(
                                 color: _green,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
                               ),
                             ),
-                            const TextSpan(text: ' to confirm'),
+                            TextSpan(text: tapAfter),
                           ],
                         ),
                       ),

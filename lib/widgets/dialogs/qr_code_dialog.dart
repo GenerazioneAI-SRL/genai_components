@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../cl_theme.dart';
 import '_dialog_chrome.dart';
+import '../../src/i18n/l10n.dart';
 
 /// A dialog that displays a QR code rendered from [data] along with the
 /// raw textual payload for accessibility and copy/paste.
@@ -42,7 +43,7 @@ class QRCodeDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           DialogHeader(
-            title: title ?? 'QR Code',
+            title: title ?? clL10n.dialogs.qr.title,
             subtitle: subtitle,
             leading: IconBadge(
               icon: Icons.qr_code_2_rounded,
@@ -73,7 +74,7 @@ class QRCodeDialog extends StatelessWidget {
           DialogFooter(
             actions: [
               CLDialogButton(
-                label: 'Copia',
+                label: clL10n.dialogs.qr.copy,
                 icon: Icons.copy_rounded,
                 tone: CLDialogButtonTone.ghost,
                 onPressed: () async {
@@ -81,7 +82,7 @@ class QRCodeDialog extends StatelessWidget {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Codice copiato'),
+                        content: Text(clL10n.dialogs.qr.copied),
                         backgroundColor: cl.primary,
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 2),
@@ -91,7 +92,7 @@ class QRCodeDialog extends StatelessWidget {
                 },
               ),
               CLDialogButton(
-                label: 'Chiudi',
+                label: clL10n.common.actions.close,
                 tone: CLDialogButtonTone.primary,
                 autofocus: true,
                 onPressed: () => Navigator.of(context).pop(),

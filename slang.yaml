@@ -1,0 +1,32 @@
+# Traduzioni della libreria: `dart run slang` genera `lib/src/i18n/strings*.g.dart` dai JSON
+# di `lib/src/i18n/<lingua>/<namespace>.i18n.json`. Convenzioni: README, «Traduzioni».
+# Le stesse del kit di Ops (`skillera_ops_kit`, `slang.yaml`) e di skillera_emp (`docs/i18n.md`):
+# la variabile è `clL10n` e i nomi delle classi sono della libreria (non si scontrano con quelli
+# delle app), niente slang_flutter.
+base_locale: it
+# Una chiave che manca in una lingua mostra l'italiano invece di rompere la build;
+# `dart run tool/i18n_check.dart` (e il test `test/i18n/i18n_keys_test.dart`) dice quali mancano.
+fallback_strategy: base_locale
+input_directory: lib/src/i18n
+input_file_pattern: .i18n.json
+output_directory: lib/src/i18n
+output_file_name: strings.g.dart
+# Le lingue diverse dall'italiano si caricano a richiesta, come quelle dell'app e del
+# kit di Ops: sul web sono file a parte. Le carica `CLLocale.set`, che l'app aspetta
+# all'avvio e a ogni cambio di lingua. Una lingua non ancora caricata mostra l'italiano.
+lazy: true
+# Niente slang_flutter: la libreria non usa `TranslationProvider`.
+flutter_integration: false
+translate_var: clL10n
+enum_name: CLAppLocale
+class_name: CLTranslations
+# Un file per famiglia di componenti: `clL10n.<namespace>.<chiave>`.
+namespaces: true
+key_case: camel
+param_case: camel
+string_interpolation: dart
+# Senza data nel file generato: il diff resta solo quello dei testi.
+timestamp: false
+pluralization:
+  auto: cardinal
+  default_parameter: n

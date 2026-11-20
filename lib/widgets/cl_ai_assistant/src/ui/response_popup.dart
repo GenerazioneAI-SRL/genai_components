@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:genai_components/genai_components.dart';
+import 'package:genai_components/src/i18n/l10n.dart';
 
 import '../core/ai_assistant_controller.dart';
 import '../models/chat_message.dart';
@@ -234,7 +235,7 @@ class _ResponsePopupState extends State<ResponsePopup>
                 children: [
                   const SizedBox(width: 34), // Align with text above avatar.
                   Text(
-                    _isAction ? 'Tap to view chat' : 'Tap to see more',
+                    _isAction ? clL10n.assistant.overlay.tapToViewChat : clL10n.assistant.overlay.tapToSeeMore,
                     style: TextStyle(
                       color: accentColor.withValues(alpha: 0.7),
                       fontSize: 11,

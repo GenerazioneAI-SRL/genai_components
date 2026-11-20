@@ -8,6 +8,7 @@ import 'package:shadcn_ui/shadcn_ui.dart'
     show ShadSelect, ShadOption, ShadSelectController;
 
 import '../../cl_theme.dart';
+import '../../src/i18n/l10n.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../buttons/cl_loading_spinner.widget.dart';
 import '../foundation/cl_pressable.widget.dart';
@@ -304,7 +305,7 @@ class _CLDropdownState<T extends Object> extends State<CLDropdown<T>> {
             !widget.isMultiple && state.selectedItem != null;
         final String triggerText = hasSingleValue
             ? widget.valueToShow(state.selectedItem!)
-            : 'Seleziona…';
+            : clL10n.dropdown.placeholder;
         // Valore per la validazione form (label selezionata / vuoto).
         final String formValue = widget.isMultiple
             ? (state.selectedItems.isEmpty
@@ -652,7 +653,7 @@ class _ClDropdownShadState<T extends Object> extends State<_ClDropdownShad<T>>
     final theme = CLTheme.of(context);
     final bool hasSearch = widget.syncSearchCallback != null;
 
-    final Widget placeholder = Text('Seleziona…',
+    final Widget placeholder = Text(clL10n.dropdown.placeholder,
         style: theme.bodyText
             .copyWith(color: theme.mutedForeground, height: 1.0));
     final EdgeInsets padding = EdgeInsets.symmetric(
@@ -724,7 +725,7 @@ class _ClDropdownShadState<T extends Object> extends State<_ClDropdownShad<T>>
                         options: options(),
                         padding: padding,
                         allowDeselection: true,
-                        searchPlaceholder: Text('Cerca',
+                        searchPlaceholder: Text(clL10n.common.actions.search,
                             style: theme.bodyText.copyWith(
                                 color: theme.mutedForeground, height: 1.0)),
                         onSearchChanged: _runSearch,

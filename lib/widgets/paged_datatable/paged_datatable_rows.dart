@@ -127,7 +127,9 @@ class _PagedDataTableRows<TKey extends Comparable, TResultId extends Comparable,
     final rowCount = state._rowsState.length;
     // In infinite scroll una voce in coda: loader se c'è altro, messaggio di
     // fine lista altrimenti.
-    final showTail = infiniteScroll && rowCount > 0;
+    // Il messaggio di fine lista solo dopo aver caricato almeno una seconda pagina:
+    // con un elenco che sta tutto nella prima («2 elementi») non dice niente.
+    final showTail = infiniteScroll && rowCount > 0 && (state.hasNextPage || state.hasPreviousPage);
     final list = ListView.separated(
       // In fillHeight la lista scorre da sola nello spazio assegnato.
       physics: fillHeight
@@ -214,7 +216,7 @@ class _InfiniteScrollEnd extends StatelessWidget {
       padding: const EdgeInsets.all(Sizes.gapLg),
       alignment: Alignment.center,
       child: Text(
-        'Non ci sono altri risultati',
+        clL10n.table.endOfList,
         style: theme.smallLabel.copyWith(color: theme.secondaryText),
       ),
     );

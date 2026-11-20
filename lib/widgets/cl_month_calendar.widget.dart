@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import '../cl_theme.dart';
 import '../layout/constants/sizes.constant.dart';
 import 'cl_container.widget.dart';
+import '../src/i18n/l10n.dart';
+
+const _kItalianWeek = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 /// Modello per i dati di un giorno nel calendario
 class CLCalendarDayData {
@@ -173,8 +177,7 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
 
   String get _monthDisplayName {
     final date = DateTime.parse('$_currentMonth-01');
-    final monthName = DateFormat('MMMM', 'it_IT').format(date);
-    return '${monthName[0].toUpperCase()}${monthName.substring(1)} ${date.year}';
+    return clL10n.common.date.monthYear(month: clL10n.common.date.monthsTitle[date.month - 1], year: date.year);
   }
 
   @override
@@ -222,7 +225,7 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
                 _NavButton(
                   icon: HugeIcons.strokeRoundedArrowLeft01,
                   onTap: _previousMonth,
-                  tooltip: 'Mese precedente',
+                  tooltip: clL10n.calendar.previousMonth,
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -246,7 +249,7 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
                 _NavButton(
                   icon: HugeIcons.strokeRoundedArrowRight01,
                   onTap: _nextMonth,
-                  tooltip: 'Mese successivo',
+                  tooltip: clL10n.calendar.nextMonth,
                 ),
               ],
             );
@@ -263,7 +266,7 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
               _NavButton(
                 icon: HugeIcons.strokeRoundedArrowLeft01,
                 onTap: _previousMonth,
-                tooltip: 'Mese precedente',
+                tooltip: clL10n.calendar.previousMonth,
               ),
               const SizedBox(width: Sizes.padding),
               Container(
@@ -285,12 +288,12 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
               _NavButton(
                 icon: HugeIcons.strokeRoundedArrowRight01,
                 onTap: _nextMonth,
-                tooltip: 'Mese successivo',
+                tooltip: clL10n.calendar.nextMonth,
               ),
               if (widget.showTodayButton) ...[
                 const SizedBox(width: Sizes.padding * 1.5),
                 _TodayButton(
-                  label: widget.todayLabel,
+                  label: clDefault(widget.todayLabel, 'Oggi', clL10n.common.date.today),
                   onTap: _goToToday,
                 ),
               ],
@@ -347,7 +350,7 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
           primaryColor: primaryColor,
           secondaryColor: secondaryColor,
           warningColor: warningColor,
-          emptyTooltip: widget.emptyDayTooltip,
+          emptyTooltip: clDefault(widget.emptyDayTooltip, 'Nessun dato', clL10n.calendar.noData),
           tooltipBuilder: widget.tooltipBuilder,
           onTap: () => widget.onDayTap?.call(date),
         );
@@ -404,7 +407,11 @@ class _CLMonthCalendarState extends State<CLMonthCalendar> {
 
   Widget _buildWeekHeader(CLTheme theme) {
     return Row(
-      children: widget.dayWeekLabels.asMap().entries.map((entry) {
+      // I nomi di serie (in italiano) seguono la lingua dell'app; quelli passati da chi lo usa restano.
+      children: (listEquals(widget.dayWeekLabels, _kItalianWeek) ? clL10n.common.date.weekdaysTitle : widget.dayWeekLabels)
+          .asMap()
+          .entries
+          .map((entry) {
         final index = entry.key;
         final day = entry.value;
         final isWeekend = index >= 5;
@@ -507,7 +514,7 @@ class _TodayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = CLTheme.of(context);
     return Tooltip(
-      message: 'Vai ad oggi',
+      message: clL10n.calendar.goToToday,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(Sizes.radiusControl),
@@ -593,7 +600,7 @@ class _DayCell extends StatelessWidget {
       final parts = <String>[];
       if (dayData!.primaryCount > 0) parts.add('${dayData!.primaryCount}');
       if (dayData!.secondaryCount > 0) parts.add('${dayData!.secondaryCount}');
-      if (hasWarning) parts.add('Con avvisi');
+      if (hasWarning) parts.add(clL10n.calendar.withWarnings);
       tooltip = parts.join(' - ');
     } else {
       tooltip = emptyTooltip;

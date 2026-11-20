@@ -21,6 +21,26 @@ class ColorUtils {
       '${(color.b * 255.0).round().clamp(0, 255).toRadixString(16).padLeft(2, '0')}';
 }
 
+/// Il rapporto di contrasto WCAG fra due colori (da 1 a 21): ≥ 4,5 per il testo, ≥ 3 per
+/// i bordi dei controlli e il testo grande.
+double clContrastRatio(Color a, Color b) {
+  final la = a.computeLuminance(), lb = b.computeLuminance();
+  final hi = max(la, lb), lo = min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+final _readableBorders = <(int, int, int, int), Color>{};
+
+/// [border] portato verso [toward] (a passi del 5%) finché si vede (≥ 3:1) sui due fondi.
+Color _readableBorder(Color border, Color toward, Color card, Color page) =>
+    _readableBorders.putIfAbsent((border.toARGB32(), toward.toARGB32(), card.toARGB32(), page.toARGB32()), () {
+      var c = border;
+      for (var i = 1; i <= 20 && min(clContrastRatio(c, card), clContrastRatio(c, page)) < 3; i++) {
+        c = Color.lerp(border, toward, i / 20)!;
+      }
+      return c;
+    });
+
 /// --- Theme root ----------------------------------------------------------
 
 abstract class CLTheme {
@@ -234,9 +254,31 @@ abstract class CLTheme {
   double get radiusChip => 6.0;
 
   /// Colore contrasto su `primary` (checkmark checkbox, testo su fill primario).
-  /// Bianco in light e dark: `primary` è blu mid-sat in entrambi. Allineato al
-  /// `primaryForeground` dello ShadColorScheme.
+  /// Bianco di serie in light e dark: `primary` è blu mid-sat in entrambi. Un tema
+  /// col `primary` chiaro (l'azzurro scuro di skillera_emp) lo sovrascrive con un
+  /// colore scuro. È anche il `primaryForeground` dello ShadColorScheme ([toShadTheme])
+  /// e il testo dei pulsanti pieni dei dialoghi (`CLDialogButton`).
   Color get primaryForeground => const Color(0xFFFFFFFF);
+
+  /// Il bordo dei controlli (casella di spunta, campo della chat AI): si vede (≥ 3:1)
+  /// sul fondo delle card e su quello della pagina (WCAG 1.4.11). [borderColor] è il
+  /// filo delle card e dei separatori, troppo chiaro per un controllo (1,2:1).
+  ///
+  /// Di serie è [borderColor] portato verso [secondaryText] quanto basta; un tema col suo
+  /// token dei controlli (l'`input` di skillera_emp) lo sovrascrive.
+  Color get inputBorder => _readableBorder(borderColor, secondaryText, secondaryBackground, primaryBackground);
+
+  /// Il colore del testo e delle icone sopra un pieno [fill] che non ha un suo colore di
+  /// contrasto (il rosso di `danger`, un colore d'azienda): il primo che si legge
+  /// (≥ 4,5:1) fra [primaryForeground] e il bianco; se nessuno dei due, il nero o il
+  /// bianco, quello che si legge di più. Per il pieno di `primary` vale [primaryForeground].
+  Color onFill(Color fill) {
+    const white = Color(0xFFFFFFFF);
+    const black = Color(0xFF000000);
+    if (clContrastRatio(primaryForeground, fill) >= 4.5) return primaryForeground;
+    if (clContrastRatio(white, fill) >= 4.5) return white;
+    return clContrastRatio(black, fill) >= clContrastRatio(white, fill) ? black : white;
+  }
 
   /// 12px — radius controlli (bottoni, input).
   double get radiusControl => 12.0;
@@ -330,7 +372,6 @@ abstract class CLTheme {
   /// derivata dalla luminanza dello sfondo — nessun getter dedicato, non tocca
   /// la gerarchia CLTheme.
   shad.ShadThemeData toShadTheme() {
-    const white = Color(0xFFFFFFFF);
     final isDark = secondaryBackground.computeLuminance() < 0.5;
     return shad.ShadThemeData(
       brightness: isDark ? Brightness.dark : Brightness.light,
@@ -342,7 +383,7 @@ abstract class CLTheme {
         popover: secondaryBackground,
         popoverForeground: primaryText,
         primary: primary,
-        primaryForeground: white,
+        primaryForeground: primaryForeground,
         secondary: muted, // grigio Shad, NON il blu brand
         secondaryForeground: accentForeground,
         muted: muted,
@@ -350,7 +391,7 @@ abstract class CLTheme {
         accent: accent,
         accentForeground: accentForeground,
         destructive: danger,
-        destructiveForeground: white,
+        destructiveForeground: onFill(danger),
         border: borderColor,
         input: borderColor,
         ring: ring,

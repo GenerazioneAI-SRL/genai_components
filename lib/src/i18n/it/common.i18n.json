@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "apply": "Applica",
+    "cancel": "Annulla",
+    "close": "Chiudi",
+    "confirm": "Conferma",
+    "copy": "Copia",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "more": "Altro",
+    "remove": "Rimuovi",
+    "reset": "Ripristina",
+    "retry": "Riprova",
+    "save": "Salva",
+    "search": "Cerca"
+  },
+  "copied": "Copiato",
+  "copiedText": "Testo $text copiato",
+  "error": "Errore",
+  "errorCode": "Codice $code",
+  "warning": "Attenzione",
+  "info": "Info",
+  "home": "Home",
+  "date": {
+    "today": "Oggi",
+    "monthYear": "$month $year",
+    "monthsTitle": ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"],
+    "weekdaysTitle": ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
+  }
+}

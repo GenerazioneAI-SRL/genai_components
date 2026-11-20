@@ -8,6 +8,7 @@ import 'package:shadcn_ui/shadcn_ui.dart' show ShadDialog;
 
 import '../cl_theme.dart';
 import 'dialogs/_dialog_chrome.dart';
+import '../src/i18n/l10n.dart';
 
 /// Base class for CL dialogs with title, optional subtitle, and confirm/cancel actions.
 ///
@@ -147,7 +148,7 @@ abstract class CLDialog<T> extends StatelessWidget {
       actionsMainAxisAlignment: MainAxisAlignment.end,
       actions: [
         CLDialogButton(
-          label: cancelLabel,
+          label: clDefault(cancelLabel, 'Annulla', clL10n.common.actions.cancel),
           tone: CLDialogButtonTone.ghost,
           onPressed: () {
             onCancel?.call();
@@ -156,7 +157,7 @@ abstract class CLDialog<T> extends StatelessWidget {
         ),
         if (onConfirm != null)
           CLDialogButton(
-            label: confirmLabel,
+            label: clDefault(confirmLabel, 'Conferma', clL10n.common.actions.confirm),
             tone: CLDialogButtonTone.primary,
             autofocus: true,
             onPressed: () async {

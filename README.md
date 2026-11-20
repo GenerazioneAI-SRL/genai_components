@@ -183,6 +183,38 @@ AiAssistantConfig(
 
 ---
 
+## Traduzioni
+
+La libreria parla le cinque lingue di skillera_emp: italiano (la base), inglese, tedesco, francese, spagnolo. Le traduzioni
+sono fatte come nell'app e nel kit di Ops (`skillera_ops_kit`, README «Traduzioni»): slang, un file JSON per namespace.
+
+- **L'app chiama `CLLocale.set(code)`** (dal barrel) all'avvio e a ogni cambio di lingua, e **aspetta che finisca**: carica
+  i testi di quella lingua (sul web un file a parte, `lazy: true`) e la imposta. `code` è la lingua, anche con la regione
+  (`en_GB`, `fr-CA`). Una lingua che la libreria non ha non cambia niente. Un'app che non la chiama (l'LMS) vede l'italiano.
+- In slang la lingua è una sola per tutta l'app: una lingua già caricata la libreria la segue anche quando la cambia l'app.
+- **Firme invariate.** Un parametro pubblico con un testo italiano di serie (`confirmLabel = 'Conferma'`) resta un `String`
+  con lo stesso default; dove si usa passa da `clDefault(valore, 'Conferma', clL10n.common.actions.confirm)`: se chi usa il
+  componente non l'ha cambiato si vede il testo tradotto.
+- Nei file della libreria: `import '../src/i18n/l10n.dart';` (percorso relativo) e `clL10n.<namespace>.<chiave>`, sempre
+  dentro `build` o un metodo, mai in un `const` o in un `static final`.
+
+| Cosa | Dove |
+|---|---|
+| Configurazione | `slang.yaml` |
+| Testi | `lib/src/i18n/<lingua>/<namespace>.i18n.json` (`it` è la base: ogni chiave nasce lì) |
+| Codice generato | `lib/src/i18n/strings*.g.dart`, **committato** (le app prendono la libreria da git) |
+| Lingua (API pubblica) | `lib/src/i18n/cl_locale.dart` (`CLLocale`) |
+
+```bash
+dart run slang                         # rigenera i .g.dart dopo aver toccato un JSON
+dart run tool/i18n_check.dart          # stesse chiavi e stessi parametri nelle cinque lingue (anche in test/i18n/)
+dart run tool/i18n_scan.dart lib/widgets/paged_datatable   # testi che non passano dalle traduzioni (candidati)
+```
+
+Non ancora tradotti (non li mostrano le app di oggi): `cl_survey`, `cl_node_graph` e il motore dell'agente
+(`cl_ai_assistant/src/llm`, `tools`, `action`: testi per il modello, non per le persone), `cl_announcement`, `cl_faq`,
+`cl_entity_tabs`, i formatter delle date.
+
 ## Local Development
 
 Use the `cl` CLI tool to work on the library inside a consumer project:

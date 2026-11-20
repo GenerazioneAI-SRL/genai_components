@@ -177,7 +177,9 @@ class _PagedDataTableBoxed<
     final rowCount = state._rowsState.length;
     // In infinite scroll una voce in coda: loader se c'è altro, messaggio di
     // fine lista altrimenti.
-    final showTail = infiniteScroll && rowCount > 0;
+    // Il messaggio di fine lista solo dopo aver caricato almeno una seconda pagina:
+    // con un elenco che sta tutto nella prima («2 elementi») non dice niente.
+    final showTail = infiniteScroll && rowCount > 0 && (state.hasNextPage || state.hasPreviousPage);
     final list = ListView.separated(
       // In fillHeight la lista scorre da sola nello spazio assegnato.
       physics: fillHeight
@@ -266,11 +268,11 @@ class _PagedDataTableBoxed<
                       .withValues(alpha: theme.opacityDisabled)),
             ),
             const SizedBox(height: Sizes.padding),
-            Text('Nessun elemento trovato',
+            Text(clL10n.table.empty.noneFound,
                 style: theme.bodyText.copyWith(
                     fontWeight: FontWeight.w600, color: theme.secondaryText)),
             const SizedBox(height: Sizes.small * 0.5),
-            Text('Prova a modificare i filtri',
+            Text(clL10n.table.empty.tryFilters,
                 style: theme.smallLabel.copyWith(
                     color: theme.secondaryText.withValues(alpha: 0.6))),
           ],
@@ -315,10 +317,10 @@ class _PagedDataTableBoxed<
                   size: 24, color: theme.danger.withValues(alpha: 0.8)),
             ),
             const SizedBox(height: Sizes.padding),
-            Text('Errore di caricamento',
+            Text(clL10n.table.error.loading,
                 style: theme.bodyText.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: Sizes.small * 0.5),
-            Text(error?.toString() ?? 'Errore sconosciuto',
+            Text(error?.toString() ?? clL10n.table.error.unknown,
                 style: theme.smallLabel.copyWith(
                     color: theme.secondaryText.withValues(alpha: 0.7)),
                 textAlign: TextAlign.center),
@@ -486,7 +488,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                   iconColor: theme.primaryText,
                   size: Sizes.buttonHeightDefault,
                   iconSize: Sizes.iconSizeDefault,
-                  tooltip: 'Azioni',
+                  tooltip: clL10n.table.actions,
                 ),
               ],
             ],
@@ -568,7 +570,7 @@ class _MobileCardState<TKey extends Comparable, TResultId extends Comparable,
                   children: [
                     Expanded(
                       child: Text(
-                        widget.actionsTitle?.call(model.item) ?? 'Azioni',
+                        widget.actionsTitle?.call(model.item) ?? clL10n.table.actions,
                         style: theme.bodyText
                             .copyWith(fontWeight: FontWeight.w600),
                       ),

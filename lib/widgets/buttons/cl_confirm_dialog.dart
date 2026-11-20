@@ -3,6 +3,7 @@ import 'package:responsive_framework/responsive_framework.dart';
 
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
+import '../../src/i18n/l10n.dart';
 
 /// Legacy confirmation dialog. Public API preserved verbatim:
 ///   ConfirmationDialog({Key?, String? confirmationMessage, required Function() onTap})
@@ -78,7 +79,7 @@ class ConfirmationDialog extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Conferma',
+                                  clL10n.common.actions.confirm,
                                   style: cl.heading4.copyWith(
                                     color: cl.primaryText,
                                     fontSize: 18,
@@ -87,8 +88,7 @@ class ConfirmationDialog extends StatelessWidget {
                                 ),
                                 SizedBox(height: cl.gapSm),
                                 Text(
-                                  confirmationMessage ??
-                                      "Sei sicuro di voler effettuare quest'operazione?",
+                                  confirmationMessage ?? clL10n.dialogs.confirmMessage,
                                   style: cl.bodyText.copyWith(
                                     color: cl.secondaryText,
                                     height: 1.6,
@@ -115,13 +115,13 @@ class ConfirmationDialog extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           _LegacyDialogButton(
-                            label: 'Annulla',
+                            label: clL10n.common.actions.cancel,
                             tone: _LegacyTone.ghost,
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                           SizedBox(width: cl.gapMd),
                           _LegacyDialogButton(
-                            label: 'Conferma',
+                            label: clL10n.common.actions.confirm,
                             tone: _LegacyTone.primary,
                             autofocus: true,
                             onPressed: onTap,
@@ -210,7 +210,7 @@ class _LegacyDialogButtonState extends State<_LegacyDialogButton> {
                 Colors.black.withValues(alpha: _hover ? cl.opacitySoft : 0),
                 cl.primary,
               );
-        foreground = disabled ? cl.mutedForeground : Colors.white;
+        foreground = disabled ? cl.mutedForeground : cl.primaryForeground;
         break;
       case _LegacyTone.ghost:
         background = _hover ? cl.muted : Colors.transparent;

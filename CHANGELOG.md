@@ -1,5 +1,32 @@
 # Changelog
 
+## 5.17.0
+
+- **Traduzioni dei testi della libreria** (italiano, inglese, tedesco, francese, spagnolo; base italiano), con slang come
+  skillera_emp e il kit di Ops: `lib/src/i18n/<lingua>/<namespace>.i18n.json`, codice generato committato, lingue diverse
+  dall'italiano caricate a richiesta (`lazy: true`). L'app imposta la lingua con **`CLLocale.set(code)`** (nel barrel) e la
+  aspetta; un'app che non la chiama vede l'italiano, come prima. Tradotti: tabella paginata (`PagedDataTable`: righe vuote,
+  errori, filtri, ordinamento, piè, selezione), `CLDropdown` («Seleziona…», «Cerca», «Nessun risultato»), dialoghi
+  (`CLDialog`, `CLConfirmationDialog`, `ConfirmationDialog`, `AssignEntitiesModal`, `QRCodeDialog`), assistente AI e chat
+  (`CLAiAssistant`, `CLAiChatView`, `CLAiChatComposer`, `CLAiMessageBubble`, `CLAiConversationList`, overlay), palette
+  ⌘K e `CLGlobalSearch`, `CLMonthCalendar`, `CLDatePicker`, `CLTimePicker`, `ClFilePicker`, `CLMediaViewer`,
+  `CLErrorPage`, `CLClipboardWidget`, `Validators`, «Altro» di `CLBottomBar`. **Firme invariate**: un parametro che ha un
+  testo italiano come valore di serie (`confirmLabel = 'Conferma'`) resta com'è; se chi lo usa non lo cambia si vede il testo
+  nella lingua dell'app. Strumenti: `dart run tool/i18n_check.dart`, `dart run tool/i18n_scan.dart`, test in `test/i18n/`.
+- **`CLCheckbox`**: non scelta è un quadrato vuoto (fondo della card, bordo dei controlli da 1,5 px, ≥ 3:1), non più un
+  quadrato grigio pieno; spunta in `primaryForeground`; area di tocco 44 × 44. Nuovi, facoltativi: `label` (etichetta
+  toccabile accanto, riga alta almeno 44) e `compact` (solo il quadrato, dentro una riga già toccabile).
+- **`CLTheme.inputBorder`** (nuovo getter con un valore di serie): il bordo dei controlli, ≥ 3:1 sul fondo delle card e della
+  pagina (di serie `borderColor` portato verso `secondaryText`). **`CLTheme.onFill(color)`**: il testo sopra un pieno
+  senza colore di contrasto suo. **`clContrastRatio(a, b)`**: il rapporto di contrasto WCAG.
+- **Pulsanti pieni dei dialoghi** (`CLDialogButton`, `ConfirmationDialog`, `CLErrorPage`): testo in `primaryForeground` del
+  tema invece del bianco fisso (in un tema scuro con l'azzurro chiaro era 1,73:1); il pieno rosso con `onFill(danger)`.
+  `toShadTheme()` passa `primaryForeground` e `onFill(danger)` a Shad invece del bianco.
+- **`CLAiChatComposer`**: il pulsante d'invio sta nella riga del campo (non più sotto), bordo a riposo `inputBorder`. Nuovi,
+  facoltativi: `leading` (a sinistra del campo) e `padding`. L'assistente parte da una riga sola.
+- **`PagedDataTable`** a scorrimento infinito: «Non ci sono altri risultati» solo dopo aver caricato una seconda pagina.
+- **`ClFilePicker`**: la superficie «Trascina i file qui» cresce col testo (alta almeno 140) invece di traboccare sul telefono.
+
 ## 5.16.0
 
 - **`CLForceGraph`**, grafo a forze esplorativo nella famiglia «Org chart e Node graph» (per Sinapsi di Skillera Ops, tappa N6):

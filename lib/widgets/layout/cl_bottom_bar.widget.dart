@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'cl_shell_tokens.dart';
 import 'cl_destination.dart';
+import '../../src/i18n/l10n.dart';
 
 /// Voce fissa custom della bottom bar (es. menu, AI, profilo, ricerca) — non
 /// legata alle destinations nav. Usata via [CLBottomBar.items] / shell
@@ -117,7 +118,7 @@ class CLBottomBar extends StatelessWidget {
           Expanded(
             child: _BottomItem(
               icon: (c) => Icon(Icons.more_horiz, color: c, size: iconSize),
-              label: overflowLabel,
+              label: clDefault(overflowLabel, 'Altro', clL10n.common.actions.more),
               selected: false,
               onTap: onOverflow,
             ),

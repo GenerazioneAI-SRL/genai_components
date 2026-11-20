@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../cl_theme.dart';
+import '../../src/i18n/l10n.dart';
 import '../../layout/constants/sizes.constant.dart';
 import 'cl_command_item.model.dart';
 
@@ -276,7 +277,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
                           onChanged: _onSearch,
                           style: theme.bodyText,
                           decoration: InputDecoration(
-                            hintText: widget.hintText ?? 'Cerca…',
+                            hintText: widget.hintText ?? clL10n.command.hint,
                             hintStyle: theme.bodyText.copyWith(color: theme.mutedForeground),
                             border: InputBorder.none,
                             isDense: true,
@@ -312,7 +313,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
                           ? Padding(
                               padding: EdgeInsets.all(theme.gap2Xl),
                               child: Text(
-                                _loading ? 'Ricerca…' : (widget.emptyText ?? 'Nessun risultato'),
+                                _loading ? clL10n.command.searching : (widget.emptyText ?? clL10n.command.noResults),
                                 style: theme.bodyLabel,
                                 textAlign: TextAlign.center,
                               ),
@@ -389,7 +390,7 @@ class _CLCommandPaletteState extends State<CLCommandPalette> {
           SizedBox(width: theme.gapSm),
           Expanded(
             child: Text(
-              widget.askAiLabel ?? 'Chiedi all’AI: “$query”',
+              widget.askAiLabel ?? clL10n.command.askAi(query: query),
               style: theme.title.copyWith(color: theme.primary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

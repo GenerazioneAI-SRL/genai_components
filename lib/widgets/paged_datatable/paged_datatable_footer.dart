@@ -60,8 +60,8 @@ class _PagedDataTableFooter<TKey extends Comparable, TResultId extends Comparabl
                   duration: t.durationBase,
                   child: Text(
                     state.totalElement > 0
-                        ? '${state.rangeStart} – ${state.rangeEnd} di ${state.totalElement}'
-                        : '0 risultati',
+                        ? clL10n.table.footer.range(start: state.rangeStart, end: state.rangeEnd, total: state.totalElement)
+                        : clL10n.table.footer.none,
                     key: ValueKey('${state.rangeStart}-${state.rangeEnd}-${state.totalElement}'),
                     style: t.smallLabel.copyWith(
                       color: t.secondaryText,

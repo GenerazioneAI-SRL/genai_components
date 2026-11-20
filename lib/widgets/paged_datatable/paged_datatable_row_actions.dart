@@ -40,7 +40,7 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
           size: theme.buttonHeightCompact,
           iconSize: theme.iconSizeCompact,
           borderRadius: theme.radiusControl,
-          tooltip: actionsTitle?.call(model.item) ?? 'Azioni',
+          tooltip: actionsTitle?.call(model.item) ?? clL10n.table.actions,
         ),
       ),
     );
@@ -52,7 +52,7 @@ class _ActionButton<TResultId extends Comparable, TResult extends Object> extend
     await CLPopupMenu.show(
       context: context,
       anchorKey: iconKey,
-      title: actionsTitle?.call(model.item) ?? 'Azioni',
+      title: actionsTitle?.call(model.item) ?? clL10n.table.actions,
       items: actions
           .map((a) => CLPopupMenuItem(content: a.content, onTap: () => a.onTap(model.item)))
           .toList(),

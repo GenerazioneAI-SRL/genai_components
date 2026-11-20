@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../cl_theme.dart';
+import '../../../../src/i18n/l10n.dart';
 import '../cl_ai_chat_message.model.dart';
 
 /// Testo di un messaggio: markdown di base (se [markdown]) e segnaposto `[n]` delle [citations]
@@ -190,7 +191,7 @@ class AiMarkdownBody extends StatelessWidget {
             message: c.subtitle == null ? c.label : '${c.label} · ${c.subtitle}',
             child: Semantics(
               button: c.onTap != null,
-              label: 'Fonte $n: ${c.label}',
+              label: clL10n.assistant.message.source(n: n, label: c.label),
               child: MouseRegion(
                 cursor: c.onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
                 child: GestureDetector(

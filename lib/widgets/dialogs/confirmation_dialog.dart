@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../cl_theme.dart';
 import '../cl_popup_surface.widget.dart';
 import '_dialog_chrome.dart';
+import '../../src/i18n/l10n.dart';
 
 /// A simple yes/no confirmation dialog.
 ///
@@ -128,12 +129,12 @@ class CLConfirmationDialog extends StatelessWidget {
           DialogFooter(
             actions: [
               CLDialogButton(
-                label: cancelLabel,
+                label: clDefault(cancelLabel, 'Annulla', clL10n.common.actions.cancel),
                 tone: CLDialogButtonTone.ghost,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               CLDialogButton(
-                label: confirmLabel,
+                label: clDefault(confirmLabel, 'Conferma', clL10n.common.actions.confirm),
                 tone: isDestructive
                     ? CLDialogButtonTone.danger
                     : CLDialogButtonTone.primary,

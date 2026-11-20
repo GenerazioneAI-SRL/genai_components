@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/src/i18n/l10n.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
 
 import '../core/ai_assistant_controller.dart';
