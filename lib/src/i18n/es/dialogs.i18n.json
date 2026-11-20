@@ -1,0 +1,22 @@
+{
+  "confirmMessage": "¿Seguro que quieres realizar esta operación?",
+  "assign": {
+    "pickMany": "Selecciona uno o más elementos",
+    "pickOne": "Selecciona un elemento",
+    "selected": {
+      "one": "$n seleccionado",
+      "other": "$n seleccionados"
+    },
+    "assign": "Asignar",
+    "assignCount": "Asignar ($count)",
+    "search": "Buscar...",
+    "empty": "No hay elementos disponibles",
+    "noResults": "Sin resultados",
+    "noMatch": "Ninguna coincidencia para «$query»"
+  },
+  "qr": {
+    "title": "Código QR",
+    "copy": "Copiar",
+    "copied": "Código copiado"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "selectPeriod": "Zeitraum wählen",
+  "selectedCount": {
+    "one": "$n ausgewählt",
+    "other": "$n ausgewählt"
+  },
+  "deselectAll": "Alle abwählen",
+  "deselect": "Abwählen",
+  "actions": "Aktionen",
+  "moreActions": "Weitere Aktionen",
+  "download": "Herunterladen",
+  "endOfList": "Keine weiteren Ergebnisse",
+  "empty": {
+    "noneFound": "Keine Einträge gefunden",
+    "tryFilters": "Versuche, die Filter zu ändern",
+    "noResults": "Keine Ergebnisse",
+    "nothingYet": "Hier ist noch nichts",
+    "tryFiltersSearch": "Versuche, die Suchfilter zu ändern",
+    "willAppear": "Hier erscheinen die Einträge, sobald es welche gibt"
+  },
+  "error": {
+    "loading": "Laden fehlgeschlagen",
+    "generic": "Es ist ein Fehler aufgetreten",
+    "unknown": "Unbekannter Fehler"
+  },
+  "filter": {
+    "title": "Filter",
+    "searchFilters": "Suchfilter",
+    "filterWith": "Filtern nach...",
+    "searchBy": "Suchen nach $title",
+    "filterBy": "Filtern nach $title",
+    "chip": "$title: $value"
+  },
+  "sort": {
+    "by": "Sortieren nach",
+    "short": "Sortieren",
+    "ascending": "$column - Aufsteigend",
+    "descending": "$column - Absteigend"
+  },
+  "footer": {
+    "range": "$start – $end von $total",
+    "none": "0 Ergebnisse"
+  }
+}

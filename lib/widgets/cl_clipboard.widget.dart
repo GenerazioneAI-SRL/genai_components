@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import './alertmanager/alert_manager.dart';
 
 import '../cl_theme.dart';
+import '../src/i18n/l10n.dart';
 
 /// CLClipboardWidget — testo + bottone copia con feedback visivo.
 ///
@@ -47,7 +48,7 @@ class _CLClipboardWidgetState extends State<CLClipboardWidget> {
       if (mounted) setState(() => _copied = false);
     });
     if (widget.showAlert) {
-      AlertManager.showInfo("Info", "Testo ${widget.text} copiato");
+      AlertManager.showInfo(clL10n.common.info, clL10n.common.copiedText(text: widget.text));
     }
   }
 
@@ -66,7 +67,7 @@ class _CLClipboardWidgetState extends State<CLClipboardWidget> {
         ),
         SizedBox(width: theme.gapXs),
         Tooltip(
-          message: _copied ? 'Copiato' : 'Copia',
+          message: _copied ? clL10n.common.copied : clL10n.common.actions.copy,
           child: InkWell(
             onTap: _handleCopy,
             borderRadius: BorderRadius.circular(theme.radiusControl),

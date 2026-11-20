@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../cl_theme.dart';
+import '../src/i18n/l10n.dart';
 import '../layout/constants/sizes.constant.dart';
 
 /// Standard error page widget for the GenAI Components framework.
@@ -98,7 +99,7 @@ class CLErrorPage extends StatelessWidget {
                       SizedBox(height: cl.gap2Xl),
                       if (errorCode != null) ...[
                         Text(
-                          'CODICE $errorCode',
+                          clL10n.common.errorCode(code: '$errorCode').toUpperCase(),
                           style: cl.smallLabel.copyWith(
                             color: cl.mutedForeground,
                             letterSpacing: 1.6,
@@ -108,7 +109,7 @@ class CLErrorPage extends StatelessWidget {
                         SizedBox(height: cl.gapSm),
                       ],
                       Text(
-                        title ?? 'Errore',
+                        title ?? clL10n.common.error,
                         style: cl.heading2.copyWith(color: cl.primaryText),
                         textAlign: TextAlign.center,
                       ),
@@ -152,11 +153,11 @@ class CLErrorPage extends StatelessWidget {
                             if (onRetry != null)
                               Expanded(
                                 child: _PrimaryButton(
-                                  label: 'Riprova',
+                                  label: clL10n.common.actions.retry,
                                   icon: Icons.refresh_rounded,
                                   onPressed: onRetry,
                                   background: cl.primary,
-                                  foreground: Colors.white,
+                                  foreground: cl.primaryForeground,
                                 ),
                               ),
                             if (onRetry != null && onGoHome != null)
@@ -164,7 +165,7 @@ class CLErrorPage extends StatelessWidget {
                             if (onGoHome != null)
                               Expanded(
                                 child: _GhostButton(
-                                  label: 'Home',
+                                  label: clL10n.common.home,
                                   icon: Icons.home_outlined,
                                   onPressed: onGoHome,
                                   borderColor: cl.borderColor,

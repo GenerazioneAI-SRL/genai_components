@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/src/i18n/l10n.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'package:genai_components/widgets/buttons/cl_icon_button.widget.dart';
 
@@ -46,7 +47,7 @@ class CLGlobalSearch extends StatelessWidget {
         iconColor: theme.primaryText,
         size: h,
         iconSize: Sizes.iconSizeDefault,
-        tooltip: 'Cerca',
+        tooltip: clL10n.common.actions.search,
       );
     }
 
@@ -68,7 +69,7 @@ class CLGlobalSearch extends StatelessWidget {
             SizedBox(width: theme.gapSm),
             Expanded(
               child: Text(
-                label,
+                clDefault(label, 'Cerca…', clL10n.command.hint),
                 style: theme.bodyText.copyWith(color: theme.mutedForeground),
                 overflow: TextOverflow.ellipsis,
               ),

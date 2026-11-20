@@ -1,0 +1,17 @@
+{
+  "pickFile": "Seleziona file",
+  "pickDate": "Seleziona data",
+  "pickRange": "Seleziona intervallo",
+  "time": {
+    "hours": "Ore",
+    "minutes": "Minuti",
+    "seconds": "Secondi"
+  },
+  "validation": {
+    "required": "Questo campo non può essere vuoto",
+    "minLength": "Deve avere almeno $min caratteri",
+    "email": "Inserisci un'email valida",
+    "passwordEmpty": "La password non può essere vuota",
+    "passwordWeak": "La password deve avere almeno 8 caratteri, una maiuscola, una minuscola, un numero e un simbolo"
+  }
+}

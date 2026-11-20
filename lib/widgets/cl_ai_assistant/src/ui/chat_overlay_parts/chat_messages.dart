@@ -94,8 +94,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: Sizes.gapSm),
-            const Text(
-              'Chiedimi informazioni su presenze, turni,\nanomalìe o naviga nelle sezioni.',
+            Text(
+              clL10n.assistant.overlay.intro,
               textAlign: TextAlign.center,
               style: TextStyle(color: _textD, fontSize: 13, height: 1.5),
             ),

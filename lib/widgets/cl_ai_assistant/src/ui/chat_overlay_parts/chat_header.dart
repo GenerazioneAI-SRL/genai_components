@@ -117,13 +117,13 @@ class _StatusRow extends StatelessWidget {
 
     if (controller.isWaitingForUserResponse) {
       dotColor = _cyan;
-      label = 'Waiting for you...';
+      label = clL10n.assistant.overlay.waitingForYou;
     } else if (controller.isProcessing) {
       dotColor = _accentAlt;
-      label = 'Processing...';
+      label = clL10n.assistant.working;
     } else {
       dotColor = _green;
-      label = 'Ready';
+      label = clL10n.assistant.overlay.ready;
     }
 
     return Row(

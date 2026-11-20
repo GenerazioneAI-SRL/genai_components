@@ -1,0 +1,46 @@
+{
+  "newConversation": "Neue Unterhaltung",
+  "greeting": "Hallo",
+  "greetingName": "Hallo $name",
+  "howCanIHelp": "Wie kann ich dir heute helfen?",
+  "thinking": "Ich denke nach…",
+  "working": "Wird bearbeitet...",
+  "scrollToBottom": "Nach unten",
+  "privacy": "Skillera AI respektiert deine Berechtigungen und die DSGVO. Prüfe die Antworten immer.",
+  "composer": {
+    "hint": "Nachricht schreiben...",
+    "reply": "Antworten...",
+    "wait": "Warte auf die Antwort...",
+    "send": "Senden (Enter)",
+    "stop": "Stopp"
+  },
+  "conversations": {
+    "title": "Unterhaltungen",
+    "newConversation": "Neu",
+    "empty": "Keine gespeicherten Unterhaltungen",
+    "archive": "Archivieren",
+    "today": "heute",
+    "yesterday": "gestern",
+    "daysAgo": {
+      "one": "vor $n Tag",
+      "other": "vor $n Tagen"
+    }
+  },
+  "message": {
+    "sending": "Wird gesendet…",
+    "notSent": "Nachricht nicht gesendet",
+    "replyFailed": "Antwort fehlgeschlagen",
+    "source": "Quelle $n: $label"
+  },
+  "overlay": {
+    "ask": "Frag etwas...",
+    "intro": "Frag mich nach Anwesenheit, Schichten,\nAuffälligkeiten oder wechsle zwischen den Bereichen.",
+    "ready": "Bereit",
+    "waitingForYou": "Ich warte auf dich...",
+    "waitingForResponse": "Ich warte auf deine Antwort...",
+    "workingOnRequest": "Ich bearbeite deine Anfrage...",
+    "tapToConfirm": "Tippe auf „$label“, um zu bestätigen",
+    "tapToViewChat": "Tippen, um den Chat zu sehen",
+    "tapToSeeMore": "Tippen, um mehr zu sehen"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "selectPeriod": "Select period",
+  "selectedCount": {
+    "one": "$n selected",
+    "other": "$n selected"
+  },
+  "deselectAll": "Deselect all",
+  "deselect": "Deselect",
+  "actions": "Actions",
+  "moreActions": "More actions",
+  "download": "Download",
+  "endOfList": "No more results",
+  "empty": {
+    "noneFound": "No items found",
+    "tryFilters": "Try changing the filters",
+    "noResults": "No results",
+    "nothingYet": "Nothing here yet",
+    "tryFiltersSearch": "Try changing the search filters",
+    "willAppear": "Items will appear here when there are some"
+  },
+  "error": {
+    "loading": "Couldn't load",
+    "generic": "Something went wrong",
+    "unknown": "Unknown error"
+  },
+  "filter": {
+    "title": "Filters",
+    "searchFilters": "Search filters",
+    "filterWith": "Filter by...",
+    "searchBy": "Search by $title",
+    "filterBy": "Filter by $title",
+    "chip": "$title: $value"
+  },
+  "sort": {
+    "by": "Sort by",
+    "short": "Sort",
+    "ascending": "$column - Ascending",
+    "descending": "$column - Descending"
+  },
+  "footer": {
+    "range": "$start – $end of $total",
+    "none": "0 results"
+  }
+}

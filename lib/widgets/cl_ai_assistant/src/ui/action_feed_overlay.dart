@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:genai_components/genai_components.dart';
+import 'package:genai_components/src/i18n/l10n.dart';
 
 import '../core/ai_assistant_controller.dart';
 import '../models/action_step.dart';
@@ -142,10 +143,10 @@ class _ActionFeedOverlayState extends State<ActionFeedOverlay>
       children: [
         _PulsingDot(color: _cyan),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Text(
-            'Waiting for your response...',
-            style: TextStyle(
+            clL10n.assistant.overlay.waitingForResponse,
+            style: const TextStyle(
               color: _cyan,
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -179,7 +180,7 @@ class _ActionFeedOverlayState extends State<ActionFeedOverlay>
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              text ?? 'Working on your request...',
+              text ?? clL10n.assistant.overlay.workingOnRequest,
               style: const TextStyle(
                 color: _textH,
                 fontSize: 13,

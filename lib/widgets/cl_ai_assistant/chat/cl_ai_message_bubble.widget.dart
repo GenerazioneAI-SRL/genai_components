@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../cl_theme.dart';
+import '../../../src/i18n/l10n.dart';
 import '../../../enums/message_role.enum.dart';
 import '../../buttons/cl_link_button.widget.dart';
 import 'cl_ai_chat_message.model.dart';
@@ -129,7 +130,7 @@ class _CLAiMessageBubbleState extends State<CLAiMessageBubble> {
                 spacing: theme.gapMd,
                 children: [
                   CLLinkButton.secondary(
-                    text: 'Annulla',
+                    text: clL10n.common.actions.cancel,
                     context: context,
                     isCompact: true,
                     onTap: () => _endEdit(save: false),
@@ -137,7 +138,7 @@ class _CLAiMessageBubbleState extends State<CLAiMessageBubble> {
                   KeyedSubtree(
                     key: ValueKey('$keyPrefix-edit-save'),
                     child: CLLinkButton.primary(
-                      text: 'Salva',
+                      text: clL10n.common.actions.save,
                       context: context,
                       isCompact: true,
                       onTap: () => _endEdit(save: true),
@@ -193,21 +194,21 @@ class _CLAiMessageBubbleState extends State<CLAiMessageBubble> {
     );
 
     final status = switch (msg.status) {
-      CLAiChatStatus.sending => Text('Invio…', style: theme.smallLabel),
+      CLAiChatStatus.sending => Text(clL10n.assistant.message.sending, style: theme.smallLabel),
       CLAiChatStatus.error => Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: theme.gapSm,
           children: [
             Icon(LucideIcons.circleAlert, size: theme.iconSizeCompact - theme.gapXs, color: theme.danger),
             Text(
-              msg.errorText ?? (isUser ? 'Messaggio non inviato' : 'Risposta non riuscita'),
+              msg.errorText ?? (isUser ? clL10n.assistant.message.notSent : clL10n.assistant.message.replyFailed),
               style: theme.smallLabel.copyWith(color: theme.danger),
             ),
             if (msg.onRetry != null)
               KeyedSubtree(
                 key: ValueKey('$keyPrefix-retry'),
                 child: CLLinkButton.primary(
-                  text: widget.retryLabel,
+                  text: clDefault(widget.retryLabel, 'Riprova', clL10n.common.actions.retry),
                   icon: LucideIcons.rotateCcw,
                   context: context,
                   isCompact: true,
@@ -236,7 +237,7 @@ class _CLAiMessageBubbleState extends State<CLAiMessageBubble> {
                 KeyedSubtree(
                   key: ValueKey('$keyPrefix-edit-start'),
                   child: CLLinkButton.secondary(
-                    text: widget.editLabel,
+                    text: clDefault(widget.editLabel, 'Modifica', clL10n.common.actions.edit),
                     icon: LucideIcons.pencil,
                     context: context,
                     isCompact: true,

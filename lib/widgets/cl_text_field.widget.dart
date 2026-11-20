@@ -16,6 +16,8 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'buttons/cl_soft_button.widget.dart';
 import 'cl_calendar.widget.dart';
 import 'cl_popup_surface.widget.dart';
+import '../src/i18n/cl_locale.dart';
+import '../src/i18n/l10n.dart';
 import 'formatters/date_mask_formatter.dart';
 import 'textfield_validator.dart';
 import 'foundation/cl_focus_ring.dart';

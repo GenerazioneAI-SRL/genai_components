@@ -301,7 +301,7 @@ class _TextFieldUiHelper extends _Helper {
               padding: const EdgeInsets.only(right: 4),
               child: CLSoftButton.primary(
                 icon: Icons.description,
-                text: 'Seleziona file',
+                text: clL10n.form.pickFile,
                 onTap: () {},
                 context: context,
                 isCompact: true,

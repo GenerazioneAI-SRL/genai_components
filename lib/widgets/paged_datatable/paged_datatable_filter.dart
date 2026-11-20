@@ -112,7 +112,7 @@ class TextTableFilter extends TableFilter<String> {
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
-                  hintText: "Cerca per $title",
+                  hintText: clL10n.table.filter.searchBy(title: title),
                   hintStyle: theme.bodyText.copyWith(color: theme.secondaryText, height: 1.0),
                 ),
                 onChanged: onFieldChanged,
@@ -128,7 +128,7 @@ class TextTableFilter extends TableFilter<String> {
       fillColor: theme.secondaryBackground,
       controller: _controller!,
       focusNode: _focusNode,
-      labelText: "Filtra per $title",
+      labelText: clL10n.table.filter.filterBy(title: title),
       prefixIcon: Icon(
         LucideIcons.search,
         color: theme.secondaryText,

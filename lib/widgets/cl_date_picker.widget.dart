@@ -6,11 +6,11 @@ import 'package:flutter/widgets.dart';
 import 'package:shadcn_ui/shadcn_ui.dart'
     show ShadDatePicker, ShadDateTimeRange;
 
-const List<String> _months = [
-  'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
-];
-const List<String> _weekdays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+import '../src/i18n/l10n.dart';
+
+// Nomi di mesi e giorni nella lingua dell'app (letti a ogni uso, mai in una costante).
+List<String> get _months => clL10n.common.date.monthsTitle;
+List<String> get _weekdays => clL10n.common.date.weekdaysTitle;
 
 String _fmt(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -88,7 +88,7 @@ class CLDatePicker extends StatelessWidget {
             ? null
             : ShadDateTimeRange(start: rangeStart, end: rangeEnd),
         onRangeChanged: (r) => onRangeChanged?.call(r?.start, r?.end),
-        placeholder: Text(placeholder ?? 'Seleziona intervallo'),
+        placeholder: Text(placeholder ?? clL10n.form.pickRange),
         closeOnSelection: closeOnSelect,
         width: width,
         selectableDayPredicate: _selectable,
@@ -106,7 +106,7 @@ class CLDatePicker extends StatelessWidget {
     return ShadDatePicker(
       selected: selected,
       onChanged: onChanged,
-      placeholder: Text(placeholder ?? 'Seleziona data'),
+      placeholder: Text(placeholder ?? clL10n.form.pickDate),
       closeOnSelection: closeOnSelect,
       width: width,
       selectableDayPredicate: _selectable,

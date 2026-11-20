@@ -1,0 +1,17 @@
+{
+  "pickFile": "Datei auswählen",
+  "pickDate": "Datum wählen",
+  "pickRange": "Zeitraum wählen",
+  "time": {
+    "hours": "Stunden",
+    "minutes": "Minuten",
+    "seconds": "Sekunden"
+  },
+  "validation": {
+    "required": "Dieses Feld darf nicht leer sein",
+    "minLength": "Mindestens $min Zeichen",
+    "email": "Gib eine gültige E-Mail-Adresse ein",
+    "passwordEmpty": "Das Passwort darf nicht leer sein",
+    "passwordWeak": "Das Passwort braucht mindestens 8 Zeichen, einen Groß- und einen Kleinbuchstaben, eine Zahl und ein Sonderzeichen"
+  }
+}

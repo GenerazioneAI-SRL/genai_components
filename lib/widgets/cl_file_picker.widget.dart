@@ -7,6 +7,7 @@ import 'package:flutter_dropzone/flutter_dropzone.dart';
 import './loading.widget.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../cl_theme.dart';
+import '../src/i18n/l10n.dart';
 import 'package:flutter/foundation.dart';
 
 import 'alertmanager/alert_manager.dart';
@@ -124,7 +125,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
           String extension = file.extension?.toLowerCase() ?? "";
           bool validFile = widget.allowedExtensions.contains(extension);
           if (!validFile) {
-            AlertManager.showDanger("Errore", "Il file ${file.name} non valido. L'estensioni abilitare sono ${widget.allowedExtensions.join(', ')}.");
+            AlertManager.showDanger(clL10n.common.error, clL10n.files.invalidFile(name: file.name, extensions: widget.allowedExtensions.join(', ')));
           } else {
             filesResult.add(CLMedia(file: file));
           }
@@ -132,7 +133,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
         }).toList();
 
         if (validFiles.isEmpty) {
-          AlertManager.showDanger("Errore", "Nessun file valido selezionato.");
+          AlertManager.showDanger(clL10n.common.error, clL10n.files.noValidFile);
           return;
         }
 
@@ -146,10 +147,10 @@ class _ClFilePickerState extends State<ClFilePicker> {
 
         widget.isMultiple ? widget.onFilesPicked?.call(_uploadedFiles.toList()) : widget.onFilePicked?.call(_uploadedFiles.firstOrNull);
       } else {
-        AlertManager.showWarning("Attenzione", "Selezione file annullata.");
+        AlertManager.showWarning(clL10n.common.warning, clL10n.files.pickCancelled);
       }
     } catch (e) {
-      AlertManager.showDanger("Errore", "Impossibile aprire il selettore file: $e");
+      AlertManager.showDanger(clL10n.common.error, clL10n.files.pickerFailed(error: '$e'));
     }
   }
 
@@ -157,7 +158,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
     PlatformFile file = PlatformFile(name: name, size: bytes.length, bytes: bytes);
     String extension = file.extension?.toLowerCase() ?? "";
     if (!widget.allowedExtensions.contains(extension)) {
-      AlertManager.showDanger("Errore", "Il file ${file.name} non valido. L'estensioni abilitare sono ${widget.allowedExtensions.join(', ')}.");
+      AlertManager.showDanger(clL10n.common.error, clL10n.files.invalidFile(name: file.name, extensions: widget.allowedExtensions.join(', ')));
       return;
     }
 
@@ -191,10 +192,11 @@ class _ClFilePickerState extends State<ClFilePicker> {
             children: [
               Stack(
                 children: [
-                  IgnorePointer(
+                  // La zona di rilascio copre tutta la superficie, anche quando il testo va a capo.
+                  Positioned.fill(
+                    child: IgnorePointer(
                     ignoring: !_isDragging,
                     child: SizedBox(
-                        height: 140,
                         width: double.infinity,
                         child: DropzoneView(
                           operation: DragOperation.copy,
@@ -215,12 +217,15 @@ class _ClFilePickerState extends State<ClFilePicker> {
                           },
                         )),
                   ),
+                  ),
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: _pickFile,
                       child: Container(
-                        height: 140,
+                        // Alta almeno 140, cresce col testo: sul telefono va a capo (prima traboccava di 20 px).
+                        constraints: const BoxConstraints(minHeight: 140),
+                        padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.small),
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: CLTheme.of(context).primary.withAlpha(10),
@@ -232,6 +237,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
                             borderRadius: Sizes.radiusCard,
                           ),
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
@@ -248,7 +254,8 @@ class _ClFilePickerState extends State<ClFilePicker> {
                               ),
                               const SizedBox(height: Sizes.small),
                               Text(
-                                "Trascina i file qui o clicca per caricare",
+                                clL10n.files.dropOrClick,
+                                textAlign: TextAlign.center,
                                 style: CLTheme.of(context).bodyText.override(
                                   color: CLTheme.of(context).primary,
                                   fontWeight: FontWeight.w500,
@@ -256,7 +263,8 @@ class _ClFilePickerState extends State<ClFilePicker> {
                               ),
                               const SizedBox(height: Sizes.small / 2),
                               Text(
-                                "Max ${widget.maxNumberOfFile} file • ${widget.allowedExtensions.map((e) => e.toUpperCase()).join(', ')}",
+                                clL10n.files.limits(count: widget.maxNumberOfFile, extensions: widget.allowedExtensions.map((e) => e.toUpperCase()).join(', ')),
+                                textAlign: TextAlign.center,
                                 style: CLTheme.of(context).bodyLabel.override(
                                   color: CLTheme.of(context).secondaryText,
                                 ),
@@ -288,7 +296,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
                             ),
                             const SizedBox(height: Sizes.small),
                             Text(
-                              "Rilascia i file qui",
+                              clL10n.files.dropHere,
                               style: CLTheme.of(context).bodyText.override(
                                 color: CLTheme.of(context).primary,
                                 fontWeight: FontWeight.w600,
@@ -331,7 +339,9 @@ class _ClFilePickerState extends State<ClFilePicker> {
                   child: GestureDetector(
                     onTap: _pickFile,
                     child: Container(
-                      height: 140,
+                      // Alta almeno 140, cresce col testo: sul telefono va a capo (prima traboccava di 20 px).
+                      constraints: const BoxConstraints(minHeight: 140),
+                      padding: const EdgeInsets.symmetric(horizontal: Sizes.padding, vertical: Sizes.small),
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: CLTheme.of(context).primary.withAlpha(10),
@@ -343,6 +353,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
                           borderRadius: Sizes.radiusCard,
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
@@ -359,7 +370,8 @@ class _ClFilePickerState extends State<ClFilePicker> {
                             ),
                             const SizedBox(height: Sizes.small),
                             Text(
-                              "Trascina i file qui o clicca per caricare",
+                              clL10n.files.dropOrClick,
+                              textAlign: TextAlign.center,
                               style: CLTheme.of(context).bodyText.override(
                                 color: CLTheme.of(context).primary,
                                 fontWeight: FontWeight.w500,
@@ -367,7 +379,8 @@ class _ClFilePickerState extends State<ClFilePicker> {
                             ),
                             const SizedBox(height: Sizes.small / 2),
                             Text(
-                              "Max ${widget.maxNumberOfFile} file • ${widget.allowedExtensions.map((e) => e.toUpperCase()).join(', ')}",
+                              clL10n.files.limits(count: widget.maxNumberOfFile, extensions: widget.allowedExtensions.map((e) => e.toUpperCase()).join(', ')),
+                              textAlign: TextAlign.center,
                               style: CLTheme.of(context).bodyLabel.override(
                                 color: CLTheme.of(context).secondaryText,
                               ),
@@ -401,7 +414,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
                         ),
                         const SizedBox(height: Sizes.small),
                         Text(
-                          "Rilascia i file qui",
+                          clL10n.files.dropHere,
                           style: CLTheme.of(context).bodyText.override(
                             color: CLTheme.of(context).primary,
                             fontWeight: FontWeight.w600,
@@ -442,7 +455,7 @@ class _ClFilePickerState extends State<ClFilePicker> {
         );
         String extension = platformFile.extension?.toLowerCase() ?? "";
         if (!widget.allowedExtensions.contains(extension)) {
-          AlertManager.showDanger("Errore", "Il file ${platformFile.name} non valido. L'estensioni abilitare sono ${widget.allowedExtensions.join(', ')}.");
+          AlertManager.showDanger(clL10n.common.error, clL10n.files.invalidFile(name: platformFile.name, extensions: widget.allowedExtensions.join(', ')));
           continue;
         }
         setState(() {

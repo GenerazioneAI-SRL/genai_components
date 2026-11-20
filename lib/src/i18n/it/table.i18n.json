@@ -1,0 +1,44 @@
+{
+  "selectPeriod": "Seleziona periodo",
+  "selectedCount": {
+    "one": "$n selezionato",
+    "other": "$n selezionati"
+  },
+  "deselectAll": "Deseleziona tutto",
+  "deselect": "Deseleziona",
+  "actions": "Azioni",
+  "moreActions": "Altre azioni",
+  "download": "Download",
+  "endOfList": "Non ci sono altri risultati",
+  "empty": {
+    "noneFound": "Nessun elemento trovato",
+    "tryFilters": "Prova a modificare i filtri",
+    "noResults": "Nessun risultato",
+    "nothingYet": "Non c'è ancora niente",
+    "tryFiltersSearch": "Prova a modificare i filtri di ricerca",
+    "willAppear": "Qui compariranno gli elementi quando ce ne saranno"
+  },
+  "error": {
+    "loading": "Errore di caricamento",
+    "generic": "Si è verificato un errore",
+    "unknown": "Errore sconosciuto"
+  },
+  "filter": {
+    "title": "Filtri",
+    "searchFilters": "Filtri di ricerca",
+    "filterWith": "Filtra con...",
+    "searchBy": "Cerca per $title",
+    "filterBy": "Filtra per $title",
+    "chip": "$title: $value"
+  },
+  "sort": {
+    "by": "Ordina per",
+    "short": "Ordina",
+    "ascending": "$column - Ascendente",
+    "descending": "$column - Discendente"
+  },
+  "footer": {
+    "range": "$start – $end di $total",
+    "none": "0 risultati"
+  }
+}

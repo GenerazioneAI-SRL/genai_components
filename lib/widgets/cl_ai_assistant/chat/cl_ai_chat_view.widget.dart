@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../cl_theme.dart';
+import '../../../src/i18n/l10n.dart';
 import '../../buttons/cl_icon_button.widget.dart';
 import '../../buttons/cl_soft_button.widget.dart';
 import 'cl_ai_chat_composer.widget.dart';
@@ -207,14 +208,14 @@ class _CLAiChatViewState extends State<CLAiChatView> {
                         shaderCallback: (b) => gradient.createShader(Offset.zero & b.size),
                         blendMode: BlendMode.srcIn,
                         child: Text(
-                          widget.emptyTitle,
+                          clDefault(widget.emptyTitle, 'Ciao', clL10n.assistant.greeting),
                           style: theme.heading2.copyWith(color: theme.primaryForeground, fontWeight: FontWeight.w700),
                         ),
                       ),
                       if (widget.emptySubtitle != null) ...[
                         SizedBox(height: theme.gapXs),
                         Text(
-                          widget.emptySubtitle!,
+                          clDefault(widget.emptySubtitle!, 'Come posso aiutarti oggi?', clL10n.assistant.howCanIHelp),
                           style: theme.heading2.copyWith(color: theme.secondaryText, fontWeight: FontWeight.w700),
                         ),
                       ],
@@ -302,7 +303,7 @@ class _CLAiChatViewState extends State<CLAiChatView> {
                                     SizedBox(width: theme.gapSm),
                                     Flexible(
                                       child: Text(
-                                        widget.thinkingLabel ?? 'Sto pensando…',
+                                        widget.thinkingLabel ?? clL10n.assistant.thinking,
                                         style: theme.bodyLabel.copyWith(color: theme.secondaryText),
                                       ),
                                     ),
@@ -376,7 +377,7 @@ class _CLAiChatViewState extends State<CLAiChatView> {
               child: CLIconButton(
                 key: const ValueKey('cl-ai-scroll-bottom'),
                 iconData: LucideIcons.arrowDown,
-                tooltip: 'Vai in fondo',
+                tooltip: clL10n.assistant.scrollToBottom,
                 backgroundColor: theme.secondaryBackground,
                 iconColor: theme.primaryText,
                 boxShadow: theme.cardShadowSoft,

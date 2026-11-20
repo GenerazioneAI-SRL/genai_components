@@ -1,0 +1,22 @@
+{
+  "confirmMessage": "Are you sure you want to do this?",
+  "assign": {
+    "pickMany": "Select one or more items",
+    "pickOne": "Select an item",
+    "selected": {
+      "one": "$n selected",
+      "other": "$n selected"
+    },
+    "assign": "Assign",
+    "assignCount": "Assign ($count)",
+    "search": "Search...",
+    "empty": "No items available",
+    "noResults": "No results",
+    "noMatch": "No matches for “$query”"
+  },
+  "qr": {
+    "title": "QR code",
+    "copy": "Copy",
+    "copied": "Code copied"
+  }
+}

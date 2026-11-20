@@ -3,6 +3,8 @@ library genai_components;
 
 // Theme
 export 'cl_theme.dart';
+// La lingua dei testi della libreria (README, «Traduzioni»): l'app la imposta qui se non usa slang.
+export 'src/i18n/cl_locale.dart';
 
 // Layout
 export 'layout/constants/sizes.constant.dart';

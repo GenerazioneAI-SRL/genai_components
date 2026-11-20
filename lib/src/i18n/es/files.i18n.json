@@ -1,0 +1,26 @@
+{
+  "invalidFile": "El archivo $name no es válido. Extensiones permitidas: $extensions.",
+  "noValidFile": "No se ha seleccionado ningún archivo válido.",
+  "pickCancelled": "Selección de archivo cancelada.",
+  "pickerFailed": "No se puede abrir el selector de archivos: $error",
+  "dropOrClick": "Arrastra los archivos aquí o haz clic para subirlos",
+  "dropHere": "Suelta los archivos aquí",
+  "limits": "Máx. $count archivos • $extensions",
+  "kinds": {
+    "image": "Imagen",
+    "video": "Vídeo",
+    "word": "Documento de Word",
+    "excel": "Hoja de Excel",
+    "zip": "Archivo ZIP",
+    "archive": "Archivo comprimido",
+    "file": "Archivo"
+  },
+  "viewer": {
+    "previousPage": "Página anterior",
+    "nextPage": "Página siguiente",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "zoomReset": "Restablecer zoom",
+    "pdfFailed": "No se puede cargar el PDF"
+  }
+}

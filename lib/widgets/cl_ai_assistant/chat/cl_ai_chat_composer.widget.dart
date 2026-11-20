@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../cl_theme.dart';
+import '../../../src/i18n/l10n.dart';
 
-/// Campo di scrittura della chat AI: area di testo con anello di focus a gradiente, pulsante
-/// invia (o «Stop» mentre l'assistente lavora) e una nota facoltativa sotto.
+/// Campo di scrittura della chat AI: una riga con l'area di testo (anello di focus a gradiente, bordo
+/// dei controlli a riposo), il pulsante invia accanto (o «Stop» mentre l'assistente lavora) e un
+/// [leading] facoltativo a sinistra; sotto, una nota facoltativa.
 ///
 /// Tastiera: **Invio** invia, **Maiusc+Invio** va a capo, **⌘Invio** / **Ctrl+Invio** inviano
 /// sempre. Con [enterToSend] `false` Invio va a capo e inviano solo ⌘/Ctrl+Invio. Durante la
@@ -27,6 +29,8 @@ class CLAiChatComposer extends StatefulWidget {
     this.enterToSend = true,
     this.footer,
     this.autofocus = false,
+    this.leading,
+    this.padding,
   });
 
   /// Testo inviato (già senza spazi ai bordi). Il campo si svuota da solo. `null` = invio spento.
@@ -53,6 +57,12 @@ class CLAiChatComposer extends StatefulWidget {
   /// Sotto il campo, es. l'informativa privacy.
   final Widget? footer;
   final bool autofocus;
+
+  /// A sinistra del campo, nella stessa riga (es. il «+» degli allegati o dell'invio programmato). Facoltativo.
+  final Widget? leading;
+
+  /// Lo spazio intorno al composer (di serie 16 per lato). Dentro un guscio che ha già i suoi margini, meno.
+  final EdgeInsetsGeometry? padding;
 
   @override
   State<CLAiChatComposer> createState() => _CLAiChatComposerState();
@@ -128,82 +138,94 @@ class _CLAiChatComposerState extends State<CLAiChatComposer> {
     final showStop = widget.busy && widget.onStop != null;
     final canSend = _canSend;
     final buttonSize = theme.buttonHeightDefault;
+    // Il campo e il pulsante stanno in una riga: il testo parte allineato al centro del pulsante.
+    final textInset = (buttonSize - (theme.bodyText.fontSize ?? 15) * (theme.bodyText.height ?? 1.4)) / 2;
 
     return Padding(
-      padding: EdgeInsets.all(theme.gapMd + theme.gapXs),
+      padding: widget.padding ?? EdgeInsets.all(theme.gapMd + theme.gapXs),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Anello di 1px: gradiente primario → viola a fuoco, bordo neutro altrimenti.
+          // Anello di 1px: gradiente primario → viola a fuoco, il bordo dei controlli (≥ 3:1) altrimenti.
           AnimatedContainer(
             duration: theme.durationFast,
             padding: const EdgeInsets.all(1),
             decoration: BoxDecoration(
               gradient: focused ? LinearGradient(colors: [theme.primary, theme.accentPurple]) : null,
-              color: focused ? null : theme.borderColor,
+              color: focused ? null : theme.inputBorder,
               borderRadius: BorderRadius.circular(theme.radiusModal),
             ),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: theme.gapLg, vertical: theme.gapMd),
+              padding: EdgeInsets.fromLTRB(widget.leading == null ? theme.gapLg : theme.gapSm, theme.gapSm, theme.gapSm, theme.gapSm),
               decoration: BoxDecoration(
                 color: theme.secondaryBackground,
                 borderRadius: BorderRadius.circular(theme.radiusModal - 1),
               ),
-              child: Focus(
-                canRequestFocus: false,
-                skipTraversal: true,
-                onKeyEvent: _onKey,
-                child: TextField(
-                  key: const ValueKey('cl-ai-composer-field'),
-                  controller: _controller,
-                  focusNode: _focus,
-                  enabled: widget.enabled,
-                  autofocus: widget.autofocus,
-                  minLines: widget.minLines,
-                  maxLines: widget.maxLines,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  style: theme.bodyText.copyWith(color: theme.primaryText),
-                  cursorColor: theme.primary,
-                  decoration: InputDecoration(
-                    hintText: widget.hintText,
-                    hintStyle: theme.bodyText.copyWith(color: theme.secondaryText),
-                    border: InputBorder.none,
-                    isCollapsed: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: theme.gapSm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Tooltip(
-                message: showStop ? 'Stop' : 'Invia (Invio)',
-                child: Material(
-                  color: showStop
-                      ? theme.secondaryText.withValues(alpha: theme.opacityStrong)
-                      : (canSend ? theme.primary : theme.primary.withValues(alpha: theme.opacityDisabled)),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    key: ValueKey(showStop ? 'cl-ai-composer-stop' : 'cl-ai-composer-send'),
-                    customBorder: const CircleBorder(),
-                    onTap: showStop ? widget.onStop : (canSend ? _send : null),
-                    child: SizedBox(
-                      width: buttonSize,
-                      height: buttonSize,
-                      child: Icon(
-                        showStop ? LucideIcons.square : LucideIcons.arrowUp,
-                        color: theme.primaryForeground,
-                        size: theme.iconSizeDefault - (showStop ? theme.gapXs : 0),
+              // Una riga: [leading] [campo che cresce] [invia]. Il pulsante resta in basso a destra, accanto all'ultima riga.
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (widget.leading != null) ...[
+                    widget.leading!,
+                    SizedBox(width: theme.gapXs),
+                  ],
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: textInset.clamp(0, theme.gapMd).toDouble()),
+                      child: Focus(
+                        canRequestFocus: false,
+                        skipTraversal: true,
+                        onKeyEvent: _onKey,
+                        child: TextField(
+                          key: const ValueKey('cl-ai-composer-field'),
+                          controller: _controller,
+                          focusNode: _focus,
+                          enabled: widget.enabled,
+                          autofocus: widget.autofocus,
+                          minLines: widget.minLines,
+                          maxLines: widget.maxLines,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          style: theme.bodyText.copyWith(color: theme.primaryText),
+                          cursorColor: theme.primary,
+                          decoration: InputDecoration(
+                            hintText: clDefault(widget.hintText, 'Scrivi un messaggio...', clL10n.assistant.composer.hint),
+                            hintStyle: theme.bodyText.copyWith(color: theme.secondaryText),
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  SizedBox(width: theme.gapSm),
+                  Tooltip(
+                    message: showStop ? clL10n.assistant.composer.stop : clL10n.assistant.composer.send,
+                    child: Material(
+                      color: showStop
+                          ? theme.secondaryText.withValues(alpha: theme.opacityStrong)
+                          : (canSend ? theme.primary : theme.primary.withValues(alpha: theme.opacityDisabled)),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        key: ValueKey(showStop ? 'cl-ai-composer-stop' : 'cl-ai-composer-send'),
+                        customBorder: const CircleBorder(),
+                        onTap: showStop ? widget.onStop : (canSend ? _send : null),
+                        child: SizedBox(
+                          width: buttonSize,
+                          height: buttonSize,
+                          child: Icon(
+                            showStop ? LucideIcons.square : LucideIcons.arrowUp,
+                            color: showStop ? theme.primaryText : theme.primaryForeground,
+                            size: theme.iconSizeDefault - (showStop ? theme.gapXs : 0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
           if (widget.footer != null) ...[
             SizedBox(height: theme.gapSm),

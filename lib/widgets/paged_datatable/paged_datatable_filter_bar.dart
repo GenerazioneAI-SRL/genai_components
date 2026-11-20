@@ -146,10 +146,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                             iconColor: CLTheme.of(context).primaryText,
                                             size: Sizes.buttonHeightDefault,
                                             iconSize: Sizes.iconSizeDefault,
-                                            tooltip: 'Filtri',
+                                            tooltip: clL10n.table.filter.title,
                                           )
                                         : CLOutlineButton.primary(
-                                            text: "Filtri",
+                                            text: clL10n.table.filter.title,
                                             iconAlignment: IconAlignment.start,
                                             icon: LucideIcons.slidersHorizontal,
                                             onTap: isDisabled ? () {} : onTap,
@@ -203,7 +203,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                           textStyle: clTheme.bodyText.copyWith(color: clTheme.primaryText, fontWeight: FontWeight.w500),
                           iconColor: clTheme.primaryText,
                           iconAlignment: IconAlignment.start,
-                          text: downloadButtonText ?? "Download",
+                          text: downloadButtonText ?? clL10n.table.download,
                           iconData: downloadButtonIcon,
                           onTap: () async {
                             await state._dispatchDownloadCallback();
@@ -235,10 +235,10 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                   iconColor: clTheme.primaryText,
                                   size: Sizes.buttonHeightDefault,
                                   iconSize: Sizes.iconSizeDefault,
-                                  tooltip: 'Altre azioni',
+                                  tooltip: clL10n.table.moreActions,
                                 )
                               : CLButton(
-                                  text: 'Altre azioni',
+                                  text: clL10n.table.moreActions,
                                   iconData: LucideIcons.ellipsisVertical400,
                                   iconAlignment: IconAlignment.start,
                                   backgroundColor: _tableButtonFill(context),
@@ -247,7 +247,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                                     color: clTheme.primaryText,
                                     fontWeight: FontWeight.w500,
                                   ),
-                                  tooltip: 'Altre azioni',
+                                  tooltip: clL10n.table.moreActions,
                                   onTap: () async {
                                     _showExtraMenuOverlay(context, state, buttonExtraMenuKey);
                                   },
@@ -280,7 +280,7 @@ class _PagedDataTableFilterTab<TKey extends Comparable, TResultId extends Compar
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${filter.title}: $label',
+                            clL10n.table.filter.chip(title: filter.title, value: label),
                             style: clTheme.bodyLabel.copyWith(
                               color: clTheme.primary,
                               fontSize: 12,
@@ -450,7 +450,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
     }).toList();
     return CLContainer(
       height: MediaQuery.of(context).size.height * 0.67,
-      title: "Filtri di ricerca",
+      title: clL10n.table.filter.searchFilters,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -461,20 +461,20 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                 child: Column(
                   children: [
                     CLDropdown<Map<BaseTableColumn<TResult>?, bool>>.singleSync(
-                      hint: 'Ordina per',
+                      hint: clL10n.table.sort.by,
                       items: items,
                       valueToShow: (item) {
                         if (item.values.toList()[0]) {
-                          return "${item.keys.toList()[0]!.title.toString()} - Discendente";
+                          return clL10n.table.sort.descending(column: item.keys.toList()[0]!.title.toString());
                         } else {
-                          return "${item.keys.toList()[0]!.title.toString()} - Ascendente";
+                          return clL10n.table.sort.ascending(column: item.keys.toList()[0]!.title.toString());
                         }
                       },
                       itemBuilder: (context, item) {
                         if (item.values.toList()[0]) {
-                          return Text("${item.keys.toList()[0]!.title.toString()} - Discendente");
+                          return Text(clL10n.table.sort.descending(column: item.keys.toList()[0]!.title.toString()));
                         } else {
-                          return Text("${item.keys.toList()[0]!.title.toString()} - Ascendente");
+                          return Text(clL10n.table.sort.ascending(column: item.keys.toList()[0]!.title.toString()));
                         }
                       },
                       onSelectItem: (item) {
@@ -514,7 +514,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                   textStyle: CLTheme.of(context).bodyText.copyWith(color: CLTheme.of(context).primaryText),
                   iconAlignment: IconAlignment.start,
                   backgroundColor: CLTheme.of(context).controlFill,
-                  text: "Ripristina",
+                  text: clL10n.common.actions.reset,
                   onTap: () {
                     Navigator.pop(context);
                     state.resetFilterSort();
@@ -523,7 +523,7 @@ class _FiltersDialogBoxedState<TKey extends Comparable, TResultId extends Compar
                 ),
                 const Spacer(),
                 CLButton.primary(
-                  text: "Applica",
+                  text: clL10n.common.actions.apply,
                   onTap: () {
                     state.filtersFormKey.currentState!.save();
                     Navigator.pop(context);
@@ -569,7 +569,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                     padding: EdgeInsets.fromLTRB(theme.pagePadX, theme.pagePadX * 0.65, theme.gapMd, theme.pagePadX * 0.65),
                     child: Row(
                       children: [
-                        Expanded(child: Text('Filtra con...', style: theme.heading4)),
+                        Expanded(child: Text(clL10n.table.filter.filterWith, style: theme.heading4)),
                         CLIconButton(
                           onTap: () => Navigator.pop(context),
                           iconData: LucideIcons.x400,
@@ -577,7 +577,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                           iconColor: theme.primaryText,
                           size: theme.buttonHeightDefault,
                           iconSize: theme.iconSizeDefault,
-                          tooltip: 'Chiudi',
+                          tooltip: clL10n.common.actions.close,
                         ),
                       ],
                     ),
@@ -614,7 +614,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                           textStyle: theme.bodyLabel.copyWith(color: theme.primaryText),
                           iconAlignment: IconAlignment.start,
                           backgroundColor: theme.controlFill,
-                          text: "Ripristina",
+                          text: clL10n.common.actions.reset,
                           onTap: () {
                             Navigator.pop(context);
                             state.resetFilterSort();
@@ -622,7 +622,7 @@ class _FiltersDialog<TKey extends Comparable, TResultId extends Comparable, TRes
                           context: context,
                         ),
                         CLButton.primary(
-                          text: "Applica",
+                          text: clL10n.common.actions.apply,
                           onTap: () {
                             state.filtersFormKey.currentState!.save();
                             Navigator.pop(context);
@@ -725,7 +725,7 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
               backgroundColor: theme.controlFill,
               textStyle: theme.bodyText.copyWith(color: theme.primaryText),
               iconAlignment: IconAlignment.start,
-              text: 'Ripristina',
+              text: clL10n.common.actions.reset,
               // Panel reveal nella bottom bar mobile (chrome) → pill.
               borderRadius: theme.radiusPill,
               onTap: () {
@@ -736,7 +736,7 @@ class _InlineFiltersPanel<TKey extends Comparable, TResultId extends Comparable,
             ),
             const Spacer(),
             CLButton.primary(
-              text: 'Applica',
+              text: clL10n.common.actions.apply,
               borderRadius: theme.radiusPill,
               onTap: () {
                 state.filtersFormKey.currentState?.save();
@@ -789,14 +789,14 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         CLDropdown<Map<BaseTableColumn<TResult>?, bool>>.singleSync(
-          hint: 'Ordina per',
+          hint: clL10n.table.sort.by,
           items: sortItems,
           valueToShow: (item) => item.values.first
-              ? '${item.keys.first!.title} - Discendente'
-              : '${item.keys.first!.title} - Ascendente',
+              ? clL10n.table.sort.descending(column: '${item.keys.first!.title}')
+              : clL10n.table.sort.ascending(column: '${item.keys.first!.title}'),
           itemBuilder: (context, item) => Text(item.values.first
-              ? '${item.keys.first!.title} - Discendente'
-              : '${item.keys.first!.title} - Ascendente'),
+              ? clL10n.table.sort.descending(column: '${item.keys.first!.title}')
+              : clL10n.table.sort.ascending(column: '${item.keys.first!.title}')),
           onSelectItem: (item) {
             if (item != null) {
               selectedColumn = item.keys.first;
@@ -812,7 +812,7 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
               backgroundColor: theme.controlFill,
               textStyle: theme.bodyText.copyWith(color: theme.primaryText),
               iconAlignment: IconAlignment.start,
-              text: 'Rimuovi',
+              text: clL10n.common.actions.remove,
               // Panel reveal nella bottom bar mobile (chrome) → pill.
               borderRadius: theme.radiusPill,
               onTap: () {
@@ -823,7 +823,7 @@ class _InlineSortPanelState<TKey extends Comparable, TResultId extends Comparabl
             ),
             const Spacer(),
             CLButton.primary(
-              text: 'Applica',
+              text: clL10n.common.actions.apply,
               borderRadius: theme.radiusPill,
               onTap: () {
                 state.applyFilters(columnId: selectedColumn?.id, descending: descending);
@@ -981,8 +981,8 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
       controls.add(ShellContextControl.reveal(ShellRevealControl(
         id: 'table-sort',
         icon: LucideIcons.arrowDownNarrowWide400,
-        title: 'Ordina',
-        tooltip: 'Ordina',
+        title: clL10n.table.sort.short,
+        tooltip: clL10n.table.sort.short,
         panelBuilder: (ctx, close) => _InlineSortPanel<TKey, TResultId, TResult>(
           state: state,
           onClose: close,
@@ -1020,8 +1020,8 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
       controls.add(ShellContextControl.reveal(ShellRevealControl(
         id: 'table-filters',
         icon: LucideIcons.slidersHorizontal,
-        title: 'Filtri',
-        tooltip: 'Filtri',
+        title: clL10n.table.filter.title,
+        tooltip: clL10n.table.filter.title,
         badgeCount: activeCount,
         panelBuilder: (ctx, close) => _InlineFiltersPanel<TKey, TResultId, TResult>(
           state: state,
@@ -1034,8 +1034,8 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
         ? ShellRevealControl(
             id: 'table-extra-menu',
             icon: LucideIcons.ellipsisVertical400,
-            title: 'Altre azioni',
-            tooltip: 'Altre azioni',
+            title: clL10n.table.moreActions,
+            tooltip: clL10n.table.moreActions,
             panelBuilder: (ctx, close) => Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1093,13 +1093,13 @@ class _FilterBarShellHostState<TKey extends Comparable, TResultId extends Compar
                 borderRadius: BorderRadius.circular(t.radiusChip),
               ),
               child: Text(
-                '$count selezionat${count == 1 ? 'o' : 'i'}',
+                clL10n.table.selectedCount(n: count),
                 style: t.bodyLabel.copyWith(color: t.primary, fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ),
             const Spacer(),
             CLButton(
-              text: 'Deseleziona',
+              text: clL10n.table.deselect,
               onTap: () => state.clearAllSelections(),
               backgroundColor: Colors.transparent,
               textStyle: t.smallLabel.copyWith(color: t.secondaryText),

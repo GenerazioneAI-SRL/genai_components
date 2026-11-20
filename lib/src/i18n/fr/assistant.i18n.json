@@ -1,0 +1,46 @@
+{
+  "newConversation": "Nouvelle conversation",
+  "greeting": "Bonjour",
+  "greetingName": "Bonjour $name",
+  "howCanIHelp": "Comment puis-je vous aider aujourd'hui ?",
+  "thinking": "Réflexion en cours…",
+  "working": "Traitement en cours...",
+  "scrollToBottom": "Aller en bas",
+  "privacy": "Skillera AI respecte vos autorisations et le RGPD. Vérifiez toujours les réponses.",
+  "composer": {
+    "hint": "Écrivez un message...",
+    "reply": "Répondez...",
+    "wait": "Attendez la réponse...",
+    "send": "Envoyer (Entrée)",
+    "stop": "Arrêter"
+  },
+  "conversations": {
+    "title": "Conversations",
+    "newConversation": "Nouvelle",
+    "empty": "Aucune conversation enregistrée",
+    "archive": "Archiver",
+    "today": "aujourd'hui",
+    "yesterday": "hier",
+    "daysAgo": {
+      "one": "il y a $n j",
+      "other": "il y a $n j"
+    }
+  },
+  "message": {
+    "sending": "Envoi…",
+    "notSent": "Message non envoyé",
+    "replyFailed": "Réponse impossible",
+    "source": "Source $n : $label"
+  },
+  "overlay": {
+    "ask": "Posez une question...",
+    "intro": "Demandez-moi des informations sur les présences, les shifts,\nles anomalies ou naviguez dans les sections.",
+    "ready": "Prêt",
+    "waitingForYou": "Je vous attends...",
+    "waitingForResponse": "J'attends votre réponse...",
+    "workingOnRequest": "Je traite votre demande...",
+    "tapToConfirm": "Touchez « $label » pour confirmer",
+    "tapToViewChat": "Touchez pour voir la conversation",
+    "tapToSeeMore": "Touchez pour en voir plus"
+  }
+}

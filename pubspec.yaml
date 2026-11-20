@@ -1,6 +1,6 @@
 name: genai_components
 description: A comprehensive Flutter UI component library with theming, routing, state management, charts, and 30+ reusable widgets. Built for rapid app development with sensible defaults.
-version: 5.16.0
+version: 5.17.0
 homepage: https://github.com/generazione-ai/genai_components
 repository: https://github.com/generazione-ai/genai_components
 issue_tracker: https://github.com/generazione-ai/genai_components/issues
@@ -81,6 +81,12 @@ dependencies:
   # Localization
   flutter_localizations:
     sdk: flutter
+  # Traduzioni dei testi della libreria (README, «Traduzioni»): chiavi tipizzate generate dai JSON di
+  # `lib/src/i18n/<lingua>/` con `dart run slang`. **Versione fissa**, la stessa di skillera_emp e del kit di Ops: il
+  # codice generato (`lib/src/i18n/*.g.dart`, committato perché le app prendono la libreria da git) deve compilare con
+  # la slang che risolve l'app. Era già nel grafo (la porta shadcn_ui, ^4.13.0). Si alza insieme alle app. Solo
+  # `slang`, senza slang_flutter: la libreria segue la lingua globale di slang, comune a tutti i pacchetti.
+  slang: 4.18.0
 
   # Misc
   universal_html: '>=2.0.0 <3.0.0'

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../cl_theme.dart';
+import '../../../src/i18n/l10n.dart';
 import '../../buttons/cl_icon_button.widget.dart';
 import '../../buttons/cl_soft_button.widget.dart';
 
@@ -64,10 +65,10 @@ class CLAiConversationList extends StatelessWidget {
 
   static String relativeDate(DateTime d, {DateTime? now}) {
     final n = now ?? DateTime.now();
-    if (d.year == n.year && d.month == n.month && d.day == n.day) return 'oggi';
+    if (d.year == n.year && d.month == n.month && d.day == n.day) return clL10n.assistant.conversations.today;
     final diff = DateTime(n.year, n.month, n.day).difference(DateTime(d.year, d.month, d.day)).inDays;
-    if (diff == 1) return 'ieri';
-    if (diff > 1 && diff < 7) return '${diff}g fa';
+    if (diff == 1) return clL10n.assistant.conversations.yesterday;
+    if (diff > 1 && diff < 7) return clL10n.assistant.conversations.daysAgo(n: diff);
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
   }
 
@@ -91,7 +92,7 @@ class CLAiConversationList extends StatelessWidget {
     } else if (items.isEmpty) {
       list = Padding(
         padding: EdgeInsets.all(theme.gapLg),
-        child: Text(emptyText, style: theme.bodyLabel.copyWith(color: theme.secondaryText)),
+        child: Text(clDefault(emptyText, 'Nessuna conversazione salvata', clL10n.assistant.conversations.empty), style: theme.bodyLabel.copyWith(color: theme.secondaryText)),
       );
     } else {
       list = ListView.builder(
@@ -141,7 +142,7 @@ class CLAiConversationList extends StatelessWidget {
                           CLIconButton(
                             key: ValueKey('cl-ai-conv-${c.id}-archive'),
                             iconData: LucideIcons.archive,
-                            tooltip: 'Archivia',
+                            tooltip: clL10n.assistant.conversations.archive,
                             backgroundColor: Colors.transparent,
                             iconColor: theme.secondaryText,
                             size: theme.buttonHeightCompact,
@@ -151,7 +152,7 @@ class CLAiConversationList extends StatelessWidget {
                           CLIconButton(
                             key: ValueKey('cl-ai-conv-${c.id}-delete'),
                             iconData: LucideIcons.trash2,
-                            tooltip: 'Elimina',
+                            tooltip: clL10n.common.actions.delete,
                             backgroundColor: Colors.transparent,
                             iconColor: theme.secondaryText,
                             size: theme.buttonHeightCompact,
@@ -184,7 +185,7 @@ class CLAiConversationList extends StatelessWidget {
                 KeyedSubtree(
                   key: const ValueKey('cl-ai-conv-new'),
                   child: CLSoftButton.primary(
-                    text: newLabel,
+                    text: clDefault(newLabel, 'Nuova', clL10n.assistant.conversations.newConversation),
                     icon: LucideIcons.plus,
                     context: context,
                     isCompact: true,

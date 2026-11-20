@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../cl_theme.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '_dialog_chrome.dart';
+import '../../src/i18n/l10n.dart';
 
 /// A generic modal for selecting one or many entities of type [T] from a
 /// searchable list.
@@ -99,8 +100,8 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
             DialogHeader(
               title: widget.title,
               subtitle: widget.multiSelect
-                  ? 'Seleziona uno o più elementi'
-                  : 'Seleziona un elemento',
+                  ? clL10n.dialogs.assign.pickMany
+                  : clL10n.dialogs.assign.pickOne,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -120,7 +121,7 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
                         ),
                       ),
                       child: Text(
-                        '${_selected.length} selezionati',
+                        clL10n.dialogs.assign.selected(n: _selected.length),
                         style: cl.smallLabel.copyWith(
                           color: cl.primary,
                           fontWeight: FontWeight.w600,
@@ -187,14 +188,14 @@ class _AssignEntitiesModalState<T> extends State<AssignEntitiesModal<T>> {
             DialogFooter(
               actions: [
                 CLDialogButton(
-                  label: 'Annulla',
+                  label: clL10n.common.actions.cancel,
                   tone: CLDialogButtonTone.ghost,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 CLDialogButton(
                   label: _selected.isEmpty
-                      ? 'Assegna'
-                      : 'Assegna (${_selected.length})',
+                      ? clL10n.dialogs.assign.assign
+                      : clL10n.dialogs.assign.assignCount(count: _selected.length),
                   tone: CLDialogButtonTone.primary,
                   icon: Icons.check_rounded,
                   autofocus: true,
@@ -259,7 +260,7 @@ class _SearchField extends StatelessWidget {
               cursorColor: cl.primary,
               decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Cerca...',
+                hintText: clL10n.dialogs.assign.search,
                 hintStyle: cl.bodyText.copyWith(color: cl.mutedForeground),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -451,13 +452,13 @@ class _SelectionIndicator extends StatelessWidget {
           color: selected ? cl.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: selected ? cl.primary : cl.borderColor.withValues(alpha: 0.6),
+            color: selected ? cl.primary : cl.inputBorder,
             width: 1.5,
           ),
         ),
         alignment: Alignment.center,
         child: selected
-            ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+            ? Icon(Icons.check_rounded, size: 14, color: cl.primaryForeground)
             : null,
       );
     }
@@ -468,7 +469,7 @@ class _SelectionIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? cl.primary : cl.borderColor.withValues(alpha: 0.6),
+          color: selected ? cl.primary : cl.inputBorder,
           width: 1.5,
         ),
       ),
@@ -516,13 +517,13 @@ class _EmptyState extends StatelessWidget {
             ),
             SizedBox(height: cl.gapLg),
             Text(
-              query.isEmpty ? 'Nessun elemento disponibile' : 'Nessun risultato',
+              query.isEmpty ? clL10n.dialogs.assign.empty : clL10n.dialogs.assign.noResults,
               style: cl.heading5.copyWith(color: cl.primaryText),
             ),
             if (query.isNotEmpty) ...[
               SizedBox(height: cl.gapXs),
               Text(
-                'Nessuna corrispondenza per "$query"',
+                clL10n.dialogs.assign.noMatch(query: query),
                 style: cl.smallLabel.copyWith(color: cl.mutedForeground),
                 textAlign: TextAlign.center,
               ),

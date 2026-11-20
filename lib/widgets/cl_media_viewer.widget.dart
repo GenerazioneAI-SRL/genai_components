@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import '../cl_theme.dart';
+import '../src/i18n/l10n.dart';
 import '../layout/constants/sizes.constant.dart';
 import '../utils/download_extension_io.dart';
 import 'package:http/http.dart' as http;
@@ -59,21 +60,21 @@ class _FileTypeHelper {
 
   static String getLabel(String mimeType) {
     if (mimeType.startsWith("image/")) {
-      return "Immagine";
+      return clL10n.files.kinds.image;
     } else if (mimeType.startsWith("video/")) {
-      return "Video";
+      return clL10n.files.kinds.video;
     } else if (mimeType.startsWith("application/pdf")) {
       return "PDF";
     } else if (mimeType.contains("word") || mimeType.contains("document")) {
-      return "Documento Word";
+      return clL10n.files.kinds.word;
     } else if (mimeType.contains("excel") || mimeType.contains("spreadsheet")) {
-      return "Foglio Excel";
+      return clL10n.files.kinds.excel;
     } else if (mimeType.contains("zip")) {
-      return "Archivio ZIP";
+      return clL10n.files.kinds.zip;
     } else if (mimeType.contains("rar") || mimeType.contains("compressed")) {
-      return "Archivio";
+      return clL10n.files.kinds.archive;
     } else {
-      return "File";
+      return clL10n.files.kinds.file;
     }
   }
 }
@@ -306,7 +307,7 @@ class _MediaPreviewContentState extends State<_MediaPreviewContent> {
                   if (_isPdf) ...[
                     _MediaControlButton(
                       icon: HugeIcons.strokeRoundedArrowLeft01,
-                      tooltip: 'Pagina precedente',
+                      tooltip: clL10n.files.viewer.previousPage,
                       onPressed: () {
                         if (!_pdfController.isReady) return;
                         final current = _pdfController.pageNumber ?? 1;
@@ -316,7 +317,7 @@ class _MediaPreviewContentState extends State<_MediaPreviewContent> {
                     const SizedBox(width: Sizes.gapXs),
                     _MediaControlButton(
                       icon: HugeIcons.strokeRoundedArrowRight01,
-                      tooltip: 'Pagina successiva',
+                      tooltip: clL10n.files.viewer.nextPage,
                       onPressed: () {
                         if (!_pdfController.isReady) return;
                         final current = _pdfController.pageNumber ?? 1;
@@ -327,7 +328,7 @@ class _MediaPreviewContentState extends State<_MediaPreviewContent> {
                   ],
                   _MediaControlButton(
                     icon: HugeIcons.strokeRoundedZoomOutArea,
-                    tooltip: 'Zoom out',
+                    tooltip: clL10n.files.viewer.zoomOut,
                     onPressed: () {
                       if (_isPdf) {
                         if (_pdfController.isReady) _pdfController.zoomDown();
@@ -339,7 +340,7 @@ class _MediaPreviewContentState extends State<_MediaPreviewContent> {
                   const SizedBox(width: Sizes.gapXs),
                   _MediaControlButton(
                     icon: HugeIcons.strokeRoundedZoomInArea,
-                    tooltip: 'Zoom in',
+                    tooltip: clL10n.files.viewer.zoomIn,
                     onPressed: () {
                       if (_isPdf) {
                         if (_pdfController.isReady) _pdfController.zoomUp();
@@ -352,7 +353,7 @@ class _MediaPreviewContentState extends State<_MediaPreviewContent> {
                     const SizedBox(width: Sizes.gapXs),
                     _MediaControlButton(
                       icon: HugeIcons.strokeRoundedRefresh,
-                      tooltip: 'Reset zoom',
+                      tooltip: clL10n.files.viewer.zoomReset,
                       onPressed: () => _imageController.value = Matrix4.identity(),
                     ),
                   ],
@@ -379,7 +380,7 @@ class _MediaPreviewContentState extends State<_MediaPreviewContent> {
                                   children: [
                                     HugeIcon(icon: _FileTypeHelper.getIcon(widget.mimeType), color: fileColor, size: 64),
                                     const SizedBox(height: Sizes.small),
-                                    Text('Impossibile caricare il PDF', style: theme.heading6.override(color: fileColor)),
+                                    Text(clL10n.files.viewer.pdfFailed, style: theme.heading6.override(color: fileColor)),
                                   ],
                                 ),
                               )),

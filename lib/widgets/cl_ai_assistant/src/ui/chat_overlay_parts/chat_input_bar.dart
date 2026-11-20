@@ -195,8 +195,8 @@ class _InputField extends StatelessWidget {
             decoration: InputDecoration(
               hintText:
                   waiting
-                      ? 'Rispondi...'
-                      : 'Chiedi qualcosa...',
+                      ? clL10n.assistant.composer.reply
+                      : clL10n.assistant.overlay.ask,
               hintStyle: TextStyle(
                 color:
                     waiting

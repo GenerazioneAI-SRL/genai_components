@@ -239,7 +239,8 @@ class CLDialogButton extends StatelessWidget {
                     Colors.black.withValues(alpha: state.hovered ? cl.opacitySoft : 0),
                     cl.primary,
                   );
-            foreground = disabled ? cl.mutedForeground : Colors.white;
+            // Il colore di contrasto del tema (scuro sull'azzurro chiaro del tema scuro di skillera_emp), non il bianco fisso.
+            foreground = disabled ? cl.mutedForeground : cl.primaryForeground;
             break;
           case CLDialogButtonTone.danger:
             background = disabled
@@ -248,7 +249,7 @@ class CLDialogButton extends StatelessWidget {
                     Colors.black.withValues(alpha: state.hovered ? cl.opacitySoft : 0),
                     cl.danger,
                   );
-            foreground = disabled ? cl.mutedForeground : Colors.white;
+            foreground = disabled ? cl.mutedForeground : cl.onFill(cl.danger);
             break;
           case CLDialogButtonTone.ghost:
             background = state.hovered ? cl.muted : Colors.transparent;

@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:genai_components/cl_theme.dart';
+import 'package:genai_components/src/i18n/l10n.dart';
 import 'package:genai_components/layout/constants/sizes.constant.dart';
 import 'package:genai_components/widgets/buttons/cl_icon_button.widget.dart';
 import 'package:genai_components/widgets/buttons/cl_button.widget.dart';
@@ -367,7 +368,7 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
         return t.length > 32 ? '${t.substring(0, 32)}…' : t;
       }
     }
-    return 'Nuova conversazione';
+    return clL10n.assistant.newConversation;
   }
 
   Widget _chatHeader(BuildContext context, CLTheme theme) {
@@ -420,7 +421,7 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
             backgroundColor: theme.muted,
             iconColor: theme.secondaryText,
             borderRadius: theme.radiusPill,
-            tooltip: 'Chiudi',
+            tooltip: clL10n.common.actions.close,
             onTap: () => _handleClose(context),
           ),
         ],
@@ -453,8 +454,9 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
           ),
       ],
       isThinking: (controller?.isProcessing ?? false) && !(controller?.isWaitingForUserResponse ?? false),
-      thinkingLabel: controller?.progressText ?? 'Sto elaborando...',
-      emptyTitle: hasName ? 'Ciao $rawName' : 'Ciao',
+      thinkingLabel: controller?.progressText ?? clL10n.assistant.working,
+      emptyTitle: hasName ? clL10n.assistant.greetingName(name: rawName) : clL10n.assistant.greeting,
+      emptySubtitle: clL10n.assistant.howCanIHelp,
       suggestions: [
         for (final chip in controller?.config.initialSuggestions ?? const <AiSuggestionChip>[])
           CLAiChatSuggestion(label: chip.label, message: chip.message, icon: chip.icon),
@@ -479,13 +481,15 @@ class _CLAiAssistantState extends State<CLAiAssistant> {
       onStop: () => _controller?.requestStop(),
       onSend: _controller == null ? null : (text) => _controller!.sendMessage(text),
       hintText: isWaiting
-          ? 'Rispondi...'
+          ? clL10n.assistant.composer.reply
           : isProcessing
-              ? 'Attendi la risposta...'
-              : 'Scrivi un messaggio...',
+              ? clL10n.assistant.composer.wait
+              : clL10n.assistant.composer.hint,
+      // Una riga che cresce: col pulsante accanto non serve partire da due.
+      minLines: 1,
       // Informativa privacy Skillera AI.
       footer: Text(
-        'Skillera AI opera nel rispetto dei tuoi permessi e del GDPR. Verifica sempre le risposte.',
+        clL10n.assistant.privacy,
         style: theme.smallLabel.copyWith(color: theme.secondaryText),
         textAlign: TextAlign.center,
       ),
@@ -519,7 +523,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   }
 
   Widget _newButton(BuildContext context) => CLSoftButton.primary(
-        text: 'Nuova',
+        text: clL10n.assistant.conversations.newConversation,
         context: context,
         isCompact: true,
         onTap: () {
@@ -572,7 +576,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                   backgroundColor: theme.muted,
                   iconColor: theme.secondaryText,
                   borderRadius: theme.radiusPill,
-                  tooltip: 'Chiudi',
+                  tooltip: clL10n.common.actions.close,
                   onTap: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -582,7 +586,7 @@ class _HistorySheetState extends State<_HistorySheet> {
               padding: EdgeInsets.fromLTRB(theme.gap2Xl, theme.gapLg, theme.gap2Xl, theme.gapLg),
               child: Row(
                 children: [
-                  Expanded(child: Text('Conversazioni', style: theme.title.copyWith(fontWeight: FontWeight.w600))),
+                  Expanded(child: Text(clL10n.assistant.conversations.title, style: theme.title.copyWith(fontWeight: FontWeight.w600))),
                   _newButton(context),
                 ],
               ),
@@ -618,7 +622,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 padding: const EdgeInsets.fromLTRB(Sizes.gapLg, Sizes.gapMd, Sizes.gapLg, Sizes.gapSm),
                 child: Row(
                   children: [
-                    Expanded(child: Text('Conversazioni', style: theme.title.copyWith(fontWeight: FontWeight.w600))),
+                    Expanded(child: Text(clL10n.assistant.conversations.title, style: theme.title.copyWith(fontWeight: FontWeight.w600))),
                     _newButton(context),
                   ],
                 ),

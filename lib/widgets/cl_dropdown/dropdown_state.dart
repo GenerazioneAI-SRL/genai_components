@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../cl_theme.dart';
+import '../../src/i18n/l10n.dart';
 import '../../layout/constants/sizes.constant.dart';
 import '../cl_popup_surface.widget.dart';
 import '../buttons/cl_loading_spinner.widget.dart';
@@ -650,7 +651,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
-                          hintText: 'Cerca',
+                          hintText: clL10n.common.actions.search,
                           hintStyle: theme.bodyText.copyWith(
                               color: theme.mutedForeground, height: 1.0),
                         ),
@@ -688,7 +689,7 @@ class DropdownState<T extends Object> extends ChangeNotifier implements ISelecta
       return wrap(
         Container(
           padding: const EdgeInsets.all(Sizes.padding),
-          child: Text('Nessun risultato trovato', style: theme.bodyLabel),
+          child: Text(clL10n.dropdown.noResults, style: theme.bodyLabel),
         ),
         flexBody: false,
       );
